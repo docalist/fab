@@ -1,0 +1,3 @@
+module: color
+color: ROUGE
+message: le module rouge a décidé de changer de message

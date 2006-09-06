@@ -1,0 +1,48 @@
+field	label	type	table	title	attr
+	Type de document	fieldset			
+Ref		hidden		Numéro de référence	
+TypDoc	Genre principal	checkbox	typdocs.txt	Type de document principal	onclick="update_view()"
+TypDocB	Genre secondaire	checkbox	typdocs.txt	Type de document secondaire	onclick="update_view()"
+TypDoc	Support	checkbox	supports.txt	Type de document principal	onclick="alert('clic')"
+	Auteurs	fieldset			
+AutColl	Moraux	textarea		Auteurs collectifs et commanditaires	
+AutPhys	Physiques	textarea		Auteurs physiques	
+	Titre	fieldset			
+TitOrigA	Du document	textarea		Titre original du document au niveau analytique	
+TitOrigM	De l'ensemble	textarea		Titre original du document au niveau monographique	
+TitPerio	De la revue	textarea		Titre du périodique	
+TitCol	De la collection	textarea		Titre de la collection	
+Diplom	Du diplôme	textarea		Intitulé du diplôme	
+TitCong	Du congrès	textarea		Titre original du congrès	
+	Traduction des titres	fieldset			
+TitFran	En français	textarea		Traduction en français du titre	
+TitEng	En anglais	textarea		Traduction en anglais du titre	
+TitCongF	Congrès	textarea		Traduction en français de TITCONG	
+	Date	fieldset			
+DatEdit	Du document	textarea		Date d'édition sous la forme AAAA/MM/JJ	
+DatCong	Du congrès	textarea		Date de tenue du congrès	
+	Mentions bibliographiques	fieldset			
+NoVol	Volume	textarea		Numéro de volume, ou tomaison	
+NoFasc	Fascicule	textarea		Numéro de fascicule	
+NumDiv	Numéro	textarea		Mention d'édition, numéro spéciaux, législation, etc.	
+PageColl	Page(s)	textarea		Pagination et collation	
+RefBib	Réf. biblio.	textarea		Références bibliographiques	
+Issn		textarea		Numéro ISSN	
+Isbn		textarea		Numéro ISBN	
+	Lieu, éditeur	fieldset			
+VilEd	Editeur	textarea		Ville d'édition et nom de l'éditeur	
+VilCong	Ville du congrès	textarea		Ville du congrès	
+	Pays et langue	fieldset			
+CodPays	Pays	textarea		Pays d'édition du document	
+CodLang	Langue	textarea		Langue du document	
+	Résumé	fieldset			
+LangResu	Langue	textarea		Langue du résumé de la notice	
+Resum	Résumé	textarea		Résumé du document	
+	Indexation	fieldset			
+MotsCles	Mots-clés	textarea		Mots-clés BDSP	
+NouvDesc	Autres	textarea		Candidats descripteurs	
+	le reste	fieldset			
+Ident		textarea		Sigle du producteur et cote d'accès au document	
+Adr	Url	textarea		URL(s) du document	
+Creation		textarea		Date de création de la notice	
+LastUpdate		textarea		Date de dernière modification de la notice	

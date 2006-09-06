@@ -1,0 +1,23 @@
+<fill values="[[name]]" code='checked="checked"' separator="[sep]"> /* TODO: comment le fill peut-il récupérer le séparateur */
+    <if test="[tag] && strpos([tag],'/')===false"><[tag]></if>
+    <span class="radio">
+        <input type="radio" class="radio [class]" id="[auto_id]" name="[name]" value="[value_or_name]" [attributes] />
+        <label class="radio" for="[auto_id]">[title]</label>
+    </span>
+    <if test="[tag]"><if test="strpos([tag],'/')===false"></[tag]></if><else><[tag]></else></if>
+</fill>
+/*
+pour le fill : inverser la logique
+
+actuellement, on prend chaque article du champ de la base split(sep, values)
+pour chaque article on recherche value="$article" et on ajoute $code si trouvé
+
+à faire : l'inverse
+on recherche value=".*"
+si $1 est un article de $values, cocher.
+vérifier que $1 est encadré par quelque chose qui ressemble à un séparateur
+
+-> plus besoin d'avoir code='checked="checked"' separator="[sep]"
+dans la balise fill
+-> complètement dynamique
+*/

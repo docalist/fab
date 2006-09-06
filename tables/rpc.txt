@@ -1,0 +1,13 @@
+field	type	table	label	tooltip	texte1	text2	attr
+	fieldset		Introduction		"Les champs ci-dessous illustrent différentes possibilités de la librairie « rpc ». <br /><br />Pour tester : saisissez quelques lettres ; une liste présentant des suggestions (s'il y en a) s'affichera. Utilisez la souris ou les flèches du clavier pour sélectionner l'élément qui vous intéresse. Tapez ensuite sur « entrée » ou sur « tab » pour l'injecter. La touche « echap » permet de refermer la liste sans rien sélectionner."		
+	fieldset		Saisie sur table d'autorité fermée (fichier texte)		Les tables « pays » et « langue » sont stockées sous forme de fichiers textes contenant deux colonnes : un code et un libellé. La liste affiche les libellés des pays mais c'est le code qui est injecté dans la zone de texte.		
+Pays	text		Code pays :				"onkeydown=""autocomplete(event, 'tbl?table=pays&amp;bqequation=code=%s')"""
+Langue	text		Code langue : 				"onkeydown=""autocomplete(event, 'tbl?table=langues&amp;bqequation=code=%s')"""
+	fieldset		Aide au dédoublonnage		Lors de la saisie du titre, les notices déjà présentes dans la base et qui ont un titre similaire s'affichent. Pour le test, c'est la vraie base Bdsp qui est interrogée. Lorsqu'on sélectionne une entrée (touche entrée, tab ou clic souris), une nouvelle fenêtre affichant la notice complète s'ouvre. A l'utilisateur de voir s'il s'agit d'un doublon ou non.		
+Titre	text		Titre de la notice :				"onkeydown=""autocomplete(event, 'ddbl?Titre=%s*')"""
+	fieldset		Thesaurus		Cette zone permet de saisir un mot-clé du thésaurus Bdsp. La liste affiche aussi bien les descripteurs que les non descripteurs, mais lorsqu'on sélectionne un item, c'est toujours le descripteur qui est injecté.		
+Mcl	text		Mots-clés Tsp3				"onkeydown=""autocomplete(event, 'tsp3?bqequation=fre=%s*')"""
+	fieldset		Saisie sur index		Ici, on interroge des tables d'autorité ouvertes (index de toutes les valeurs déjà saisies pour un champ particulier de la base). Nota bene : c'est la vraie base Bdsp qui est interrogée.		
+Aut	text		Auteur physique				"onkeydown=""autocomplete(event, 'index?field=aut&value=%s')"""
+AutColl	text		Auteur moral				"onkeydown=""autocomplete(event, 'index?field=autcoll&value=%s')"""
+TitPerio	text		Titre de périodique				"onkeydown=""autocomplete(event, 'index?field=titperio&value=%s')"""

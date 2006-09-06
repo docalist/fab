@@ -1,0 +1,34 @@
+<div id="output">
+    <opt>
+    [output]
+    </opt>
+    <if test="[percent]!=''">
+        <div style="border: 1px solid #2AF; width: 20em; background-color: #C8E6FF; ">
+            <div style="background: url('/asco/web/fabweb/images/famfamfam/sylk/shape_square.png'); width: [percent]%;">
+                &nbsp;
+            </div>
+        </div>
+        ([percent] %), [step] / [max]<opt> : [label]</opt>
+        
+        <script>
+            window.setTimeout('window.location.replace("' + unescape(window.location) + '")', 1000);
+        </script>
+    </if>
+</div>
+
+
+<div id="test" style="border: 1px solid red; margin: 2em;">div de test</div>
+<script type="text/javascript">
+<!--
+var updater=new Ajax.PeriodicalUpdater
+(
+    'test', 
+    'http://apache/asco/web/base/formulairerecherche', 
+    {
+        asynchronous:true, 
+        frequency:2,
+        insertion: Insertion.Bottom
+    }
+);
+
+</script>

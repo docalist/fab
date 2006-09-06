@@ -1,0 +1,83 @@
+<h1>Gestionnaire de tâches</h1>
+
+<form action="index" method="GET" style="float: right">
+    <button type="submit" id="btnRefresh">
+        <span>Actualiser...</span>
+    </button>
+</form>
+<if test="[running]">
+    <form action="stop" method="GET" style="float: right">
+        <button type="submit" id="btnStop">
+            <span>Arrêter...</span>
+        </button>
+    </form>
+    <form action="restart" method="GET" style="float: right">
+        <button type="submit" id="btnRestart">
+            <span>Redémarrer...</span>
+        </button>
+    </form>
+</if>
+<else>
+    <form action="start" method="GET" style="float: right">
+        <button type="submit" id="btnStart">
+            <span>Démarrer...</span>
+        </button>
+    </form>
+</else>
+
+<p>Statut du gestionnaire de tâches : <strong>[status]</strong></p>
+<p>Date/heure courante : [now]</p>
+
+<if test="[running]">
+    <h2>Liste des tâches en attente</h2>
+    <if test="[hastasks]">
+        <table class="taskmanager">
+            <tr>
+                <th>ID</th>        
+                <th>site</th>        
+                <th>titre</th>
+                <th>tâche</th>        
+                <th>date/heure</th>        
+                <th>répétition</th>        
+                <th>prochaine exécution</th>        
+                <th>dernière exécution</th>        
+            </tr>
+            <loop on="array($tasks)" order="asc" id="task">
+                <tr class="[task.class]">
+                    <td>[task.id]</td>
+                    <td>[task.root]</td>        
+                    <td>[task.title]</td>
+                    <td>[task.task]</td>        
+                    <td>[task.time]</td>        
+                    <td>[task.repeat]</td>        
+                    <td>[task.nexttime]</td>        
+                    <td>
+                        <a  href="taskstatus?id=[task.id]" 
+                            title="Voir le résultat de la dernière exécution">
+                            [task.lasttime]
+                        </a>
+                    </td>        
+                </tr>
+            </loop>
+        </table>
+    </if>
+    <else>
+        <p>Il n'y a aucune tâche en attente.</p>
+    </else>
+</if>
+
+<p>Todo :</p>
+<ul>
+    <li>Ne lister que les tâches appartenant au site qui consulte, sauf
+    si on a des droits étendus permettant de lister tout. La commande 'list'
+    devient 'list root' : on ne liste que les tâches qui ont root=à la racine
+    demandée.</li>
+    <li>Afficher le statut des tâches : en attente, en cours d'exécution</li>
+    <li>Permettre de créer une nouvelle tâche, de supprimer une tâche 
+    programmée, de changer la date d'exécution ou le champ répétition pour
+    une tâche existante</li>
+    <li>Pour les tâches qui ont été exécutées, permettre de voir le résultat
+    de l'exécution. Ca peut être un simple log, mais aussi une page html 
+    générée qu'il faut afficher. Combien d'historiques d'exécution 
+    conserve-t-on ? Quand et comment les logs sont-ils purgés ?</li>
+</ul>

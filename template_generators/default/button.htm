@@ -1,0 +1,9 @@
+<input type="[action:'button']" name="[name]" value="[title]" src="[src]" [attributes] />
+
+/*
+src : uniquement pour les button type="image"
+accept: text/* (input type image : non géré par les navigateurs)
+si name est indiqué, le bouton sera transmis avec les données du formulaire
+(xxx?name=value)
+sinon, le bouton envoie le formulaire, mais ne sera pas mis dans la querystring
+*/

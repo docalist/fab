@@ -1,0 +1,16 @@
+- url:      /taskmanager/taskstatus*
+#  with:
+#    id: '[0-9a-f]{13,13}'
+  module: taskmanager
+  action: taskstatus
+
+# Routes par défaut
+- url:      /
+  module:   defaultmodule
+  action:   index
+
+- url:      /[module]/
+  action:   index
+
+- url:      /[module]/[action]
+

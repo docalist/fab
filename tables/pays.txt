@@ -1,0 +1,132 @@
+code	label
+AFG	Afghanistan
+ZAF	Afrique du sud
+ALB	Albanie
+DZA	Algérie
+DEU	Allemagne
+AGO	Angola
+SAU	Arabie Saoudite
+ARG	Argentine
+AUS	Australie
+ATR	Autriche
+AZE	Azerbaïdjan
+BEL	Belgique
+BEN	Bénin
+BOL	Bolivie
+BIH	Bosnie-Herzégovine
+BRA	Brésil
+BGR	Bulgarie
+BFA	Burkina Faso
+BDI	Burundi
+KHM	Cambodge
+CMR	Cameroun
+CAN	Canada
+CHL	Chili
+CHN	Chine
+COL	Colombie
+COG	Congo
+KOR	Corée, République de
+PRK	Corée, République Populaire Démocratique de
+CIV	Côte d'Ivoire
+HRV	Croatie
+DNK	Danemark
+EGY	Egypte
+ARE	Emirats Arabes Unis
+ESP	Espagne
+EST	Estonie
+USA	Etats-Unis
+ETH	Ethiopie
+FIN	Finlande
+FRA	France métropolitaine
+GAB	Gabon
+GMB	Gambie
+GEO	Géorgie
+GHA	Ghana
+GRC	Grèce
+GLP	Guadeloupe
+GTM	Guatemala
+GIN	Guinée
+GNQ	Guinée Equatoriale
+GNB	Guinée-Bissau
+GUF	Guyane française
+HVO	Haute Volta
+HND	Honduras
+HUN	Hongrie
+IND	Inde
+IDN	Indonésie
+INT	International
+IRN	Iran (République Islamique d')
+IRQ	Iraq
+IRL	Irlande
+ISL	Islande
+ISR	Israël
+ITA	Italie
+JPN	Japon
+JOR	Jordanie
+KAZ	Kazakhstan
+KEN	Kenya
+LVA	Lettonie, République De 
+LBN	Liban
+LTU	Lituanie
+LUX	Luxembourg
+MKD	Macédoine
+MYS	Malaisie
+MLI	Mali
+MAR	Maroc
+MTQ	Martinique
+MRT	Mauritanie
+MYT	Mayotte
+MEX	Mexique
+MOZ	Mozambique
+NIC	Nicaragua
+NER	Niger
+NGA	Nigeria
+NOR	Norvège
+NCL	Nouvelle-Calédonie
+NZL	Nouvelle-Zélande
+UGA	Ouganda
+UZB	Ouzbékistan
+PAK	Pakistan
+PRY	Paraguay
+NLD	Pays-Bas
+PER	Pérou
+PHL	Philippines
+POL	Pologne
+PYF	Polynésie française
+PRT	Portugal
+CAF	République centrafricaine
+REU	Réunion
+ROM	Roumanie
+GBR	Royaume-Uni
+RUS	Russie, Fédération de
+RWA	Rwanda
+SPM	Saint-Pierre-et-Miquelon
+SEN	Sénégal
+SGP	Singapour
+SVK	Slovaquie
+SVN	Slovénie
+SOM	Somalie
+SDN	Soudan
+LKA	Sri Lanka
+SWE	Suède
+CHE	Suisse
+SYR	Syrienne, République Arabe
+TWN	Taiwan
+TZA	Tanzanie, République Unie de
+TCD	Tchad
+CZE	Tchèque, République
+THA	Thaïlande
+TGO	Togo
+TUN	Tunisie
+TUR	Turquie
+UKR	Ukraine
+URY	Uruguay
+VEN	Venezuela
+VNM	Viet Nam
+WLF	Wallis et Futuna
+YEM	Yémen
+YMD	Yémen Démocratique
+YUG	Yougoslavie
+ZAR	Zaïre
+ZMB	Zambie
+ZWE	Zimbabwe

@@ -1,0 +1,10 @@
+debug: true
+smarturls: false
+
+JS:
+  - /FabWeb/js/lib/prototype/prototype.js
+  - /FabWeb/js/lib/rico/rico.js
+  - /FabWeb/js/debug.js
+
+CSS:
+  - /FabWeb/styles/debug.css

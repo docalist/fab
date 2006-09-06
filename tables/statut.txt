@@ -1,0 +1,5 @@
+statut	value
+Nouveauté	Nouveauté
+A paraître	A paraître
+Nouvelle édition	Nouvelle édition
+Nouvelle édition à paraître	Nouvelle édition à paraître

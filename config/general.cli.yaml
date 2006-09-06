@@ -1,0 +1,9 @@
+# config pour les scripts exécutés en ligne de commande
+debug: false
+
+# en mode ligne de commande, on a toujours les smarturls activées (ie on ne
+# précise jamais le nom du contrôlleur dans le path du module/action demandé).
+# fab ne fonctionnera pas correctement si on appelle un script en ligne de
+# commande avec smarturls=false
+smarturls: true
+

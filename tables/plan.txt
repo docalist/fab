@@ -1,0 +1,43 @@
+url	label	code
+sciences-humaines-sociales/	Sciences humaines et sociales	
+sciences-humaines-sociales/essais/	Essais	sciences-humaines-sociales/essais
+sciences-humaines-sociales/recherche-sante-social/	Collection « Recherche Santé Social »	sciences-humaines-sociales/recherche-sante-social
+sciences-humaines-sociales/contrechamp/	Collection « Contrechamp »	sciences-humaines-sociales/contrechamp
+sciences-humaines-sociales/etude-recherche/	Etude et recherche	sciences-humaines-sociales/etude-recherche
+sciences-humaines-sociales/pedagogie-formation/	Pédagogie, formation	sciences-humaines-sociales/pedagogie-formation
+sante-publique/	Santé publique	
+sante-publique/politiques-pratiques/	Politiques et pratiques	sante-publique/politiques-pratiques
+sante-publique/histoire/	Histoire	sante-publique/histoire
+sante-publique/economie/	Economie	sante-publique/economie
+sante-publique/sante-environnement/	Santé/Environnement	sante-publique/sante-environnement
+sante-publique/documentation/	Documentation	sante-publique/documentation
+sante-publique/hcsp/	Publications du Haut Comité de la santé publique	sante-publique/hcsp
+hopital/	Hôpital	
+hopital/environnement/	L'hôpital et son environnement	hopital/environnement
+hopital/management/	Management	hopital/management
+hopital/histoire/	Histoire	hopital/histoire
+hopital/alimentation-nutrition/	Alimentation/Nutrition	hopital/alimentation-nutrition
+hopital/sante-mentale/	Santé mentale	hopital/sante-mentale
+hopital/ressources-humaines/	Gestion des ressources humaines	hopital/ressources-humaines
+hopital/ressources-humaines/fichiers-permanents/	Collection « Fichiers permanents »	hopital/ressources-humaines/fichiers-permanents
+hopital/gestion-financiere/	Gestion financière	hopital/gestion-financiere
+social-medicosocial/	Social et médico-social	
+social-medicosocial/droit/	Droit	social-medicosocial/droit
+social-medicosocial/management/	Management	social-medicosocial/management
+social-medicosocial/gestion-financiere/	Gestion financière	social-medicosocial/gestion-financiere
+social-medicosocial/enfance/	Enfance	social-medicosocial/enfance
+social-medicosocial/personnes-agees/	Personnes âgées	social-medicosocial/personnes-agees
+social-medicosocial/personnes-handicapees/	Personnes handicapées	social-medicosocial/personnes-handicapees
+social-medicosocial/insertion/	Insertion	social-medicosocial/insertion
+social-medicosocial/alimentation-nutrition/	Alimentation/Nutrition	social-medicosocial/alimentation-nutrition
+social-medicosocial/documentation/	Documentation	social-medicosocial/documentation
+social-medicosocial/politiques-interventions-sociales/	Collection « Politiques et interventions sociales »	social-medicosocial/politiques-interventions-sociales
+social-medicosocial/politiques-interventions-sociales/manuels/	Manuels	social-medicosocial/politiques-interventions-sociales/manuels
+social-medicosocial/conseil-superieur-travail-social/	Collection « Rapports du Conseil supérieur du travail social »	social-medicosocial/conseil-superieur-travail-social
+/	Bienvenue sur le site des éditions ENSP	homepage=vrai
+ouvrages/art/	Livres d'art	art
+nouveautes/	Nouveautés	Statut=Nouveaute ou Statut=nouvelle edition
+a-paraitre/	A paraître	Statut=Paraitre
+abonnement/	Ouvrages sur abonnement	Abonnement=*
+occasion/	Ouvrages d'occasion	TypeDiff=occasion
+revues/lien-social-politiques/	Revue « Lien social et politiques »	revues/lien-social-politiques

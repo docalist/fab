@@ -1,0 +1,554 @@
+<?php
+
+
+/*
+ * Utils.php
+ * 
+ * 
+ * 30 mars 2006, dmenard
+ * 
+ */
+final class Utils
+{
+	/**
+	 * constructeur
+	 * 
+	 * Le constructeur est privé : il n'est pas possible d'instancier la
+	 * classe. Utilisez directement les méthodes statiques proposées.
+	 */
+	private function __construct()
+	{
+	}
+
+	/**
+	 * Retourne la partie extension d'un path
+	 * 
+	 * @param string $path
+	 * @return string l'extension du path ou une chaine vide  
+	 */
+	public static function getExtension($path)
+	{
+		$pt = strrpos($path, '.');
+
+		if ($pt === false)
+			return '';
+		$ext = substr($path, $pt);
+		if (strpos($ext, '/') === FALSE && strpos($ext, '\\') === FALSE)
+			return $ext;
+		return '';
+	}
+
+	/**
+	 * Ajoute une extension au path indiqué si celui-ci n'en a pas
+	 * 
+	 * @param string $path le path à modifier
+	 * @param string $ext l'extension à ajouter
+	 * @return string le nouveau path
+	 * 
+	 * Remarque : la fonction retourne le path obtenu mais le paramètre path,
+	 * passé par référence, est également modifié. Cela permet d'écrire :
+	 * <code>
+	 * defaultExtension($h,'txt');
+	 * $h=defaultExtension('test', 'txt');
+	 * </code>
+	 */
+	public static function defaultExtension(& $path, $ext)
+	{
+		if (self :: getExtension($path) == '')
+			$path .= ($ext {
+			0 }
+		== '.' ? $ext : ".$ext");
+		return $path;
+	}
+
+	/**
+	 * Remplace ou supprime l'extension de fichier d'un path. 
+	 * Ne touche pas aux extensions présentes dans les noms de répertoires
+	 * (c:\toto.tmp\aa.jpg).
+	 * Gère à la fois les slashs et les anti-slashs
+	 * 
+	 * @param string $path le path à modifier
+	 * @param string $ext l'extension à appliquer à $path, ou vide pour supprimer
+	 * l'extension existante. $ext peut être indiqué avec ou sans point de début
+	 */
+	public static function setExtension(& $path, $ext = '')
+	{
+		if ($ext && $ext {
+			0 }
+		!= '.')
+		$ext = ".$ext";
+
+		$pt = strrpos($path, '.');
+
+		if ($pt !== false)
+		{
+			$oldext = substr($path, $pt);
+			if (strpos($oldext, '/') === FALSE && strpos($oldext, '\\') === FALSE)
+			{
+				$path = substr($path, 0, $pt) . $ext;
+				return $path;
+			}
+		}
+		$path = $path . $ext;
+		return $path;
+	}
+
+	/**
+	 * Crée le répertoire indiqué
+	 * 
+	 * La fonction crée en une seule fois tous les répertoires nécessaires du
+	 * niveau le plus haut au plus bas.
+	 * 
+	 * Le répertoire créé a tous les droits (777).
+	 * 
+	 * @param string $path le chemin complet du répertoire à créer 
+	 */
+	public static function makeDirectory($path)
+	{
+        if (! is_dir($path))
+        {
+    		$current_umask = umask(0000);
+    		mkdir($path, 0777, true);
+    		umask($current_umask);
+        }
+	}
+
+	/**
+	 * Indique si le path passé en paramètre est un chemin relatif
+	 * 
+	 * Remarque : aucun test d'existence du path indiqué n'est fait.
+	 * 
+	 * @param string $path le path à tester
+	 * @return bool true si path est un chemin relatif, false sinon
+	 */
+	public static function isRelativePath($path)
+	{
+		if (!$len = strlen($path)) return true;
+		if (strpos('/\\', $path{0}) !== false) return false;
+		if ($len > 2 && $path{1} == ':') return false;
+		return true;
+	}
+
+	/**
+	 * Indique si le path passé en paramètre est un chemin absolu
+	 * 
+	 * Remarque : aucun test d'existence du path indiqué n'est fait.
+	 * 
+	 * @param string $path le path à tester
+	 * @return bool true si path est un chemin absolu, false sinon
+	 */
+	public static function isAbsolutePath($path)
+	{
+		return !self :: isRelativePath($path);
+	}
+
+	/**
+	 * Construit un chemin complet à partir des bouts passés en paramètre.
+	 * 
+	 * La fonction concatène ses arguments en prenant soin d'ajouter
+	 * correctement le séparateur s'il est nécessaire.
+	 * 
+	 * Exemple :
+	 * <code>
+	 * makePath('a','b','c') -> 'a/b/c'
+	 * makePath('/temp/','/dm/','test.txt') -> '/temp/dm/test.txt'
+	 * </code>
+	 * 
+	 * Le path obtenu n'est pas normalisé : si les arguments passés contiennent
+	 * des '.' ou des '..' le résultat les contiendra aussi.
+	 * 
+	 * @param string paramname un nombre variable d'arguments à concaténer 
+	 * @return string le path obtenu
+	 */
+	public static function makePath()
+	{
+		$path = '';
+		$nb = func_num_args();
+		for ($i = 0; $i < $nb; $i++)
+		{
+			$h = func_get_arg($i);
+			$h = strtr($h, '/\\', DIRECTORY_SEPARATOR);
+			if ($path)
+			{
+				if ($h && ($h{0}== DIRECTORY_SEPARATOR))
+				{
+					//                    $path = rtrim($path, DIRECTORY_SEPARATOR).$h;
+					$path = $path . substr($h, 1);
+				}
+				else
+				{
+					//                  $path = rtrim($path, DIRECTORY_SEPARATOR).DIRECTORY_SEPARATOR.$h;
+					$path .= $h;
+				}
+			}
+			else
+			{
+				$path = $h;
+			}
+		}
+		return $path;
+	}
+
+	/**
+	 * Nettoie un path, en supprimant les parties '.' et '..' inutiles.
+	 * 
+	 * Exemple :
+	 * <code>
+	 * cleanPath('/a/b/../c/') -> '/a/c/'
+	 * </code>
+	 * 
+	 * La fonction ne supprime que les parties '..' qui sont résolvables, ce qui
+	 * peut éviter certains attaques (accéder à un répertoire au dessus du 
+	 * répertoire 'root', par exemple). 
+	 * 
+	 * Exemple :
+	 * <code>
+	 * cleanPath('/a/../../') -> '/../'
+	 * </code>
+	 * 
+	 * Pour savoir si le path obtenu est propre, c'est-à-dire si toutes les
+	 * références '..' ont été résolues, utiliser {@link isCleanPath) après.
+	 * 
+	 * @param string $path le path à normaliser
+	 * @return string le path normalisé
+	 * 
+	 */
+	public static function cleanPath($path)
+	{
+        if (strlen($path) > 2 && $path{1} == ':')
+		{
+			$prefix = substr($path, 0, 2);
+			$path = substr($path, 2);
+		}
+		else
+			$prefix = '';
+
+		$path = preg_replace('~[/\\\\]+~', DIRECTORY_SEPARATOR, $path);
+		$parts = explode(DIRECTORY_SEPARATOR, $path);
+		$t = array ();
+
+		foreach ($parts as $dir)
+		{
+			if ($dir == '.')
+				continue;
+
+			$last = end($t);
+			if ($dir == '..' && $last != '' && $last != '..')
+				array_pop($t);
+			else
+				$t[] = $dir;
+		}
+		$path = $prefix . implode(DIRECTORY_SEPARATOR, $t);
+		return $path;
+
+	}
+
+	/**
+	 * Indique si le path fourni contient des éléments '.' ou '..'
+	 * 
+	 * @param string $path le path à tester
+	 * @return bool vrai si le path est propre, faux sinon.
+	 */
+	public static function isCleanPath($path)
+	{
+		return preg_match('~[/\\\\]\.\.?[/\\\\]|^\.\.|\.\.$~', $path) ? false : true;
+	}
+    
+    /**
+     * Recherche un fichier dans une liste de répertoires. Les répertoires sont
+     * examinés dans l'ordre où ils sont fournis.
+     * 
+     * @param string $file le fichier à chercher. Vous pouvez soit indiquer un
+     * simple nom de fichier (par exemple 'test.php') ou bien un 'bout' de
+     * chemin ('/modules/test.php')
+     * @param mixed $directory... les autres paramêtres indiquent les
+     * répertoires dans lesquels le fichier sera recherché.
+     * @return string une chaine vide si le fichier n'a pas été trouvé, le
+     * chemin exact du fichier dans le cas contraire.
+     */
+    public static function searchFile($file /* , $directory1, $directory2... $directoryn */)
+    {
+        if (self::isAbsolutePath($file)) return realpath($file);
+        $nb=func_num_args();
+        
+        for ($i=1; $i<$nb; $i++)
+        {
+            $dir=func_get_arg($i);
+            if ($path=realpath(rtrim($dir,'/\/').DIRECTORY_SEPARATOR.$file)) return $path;
+            
+        }
+        return '';
+    }
+    
+    public static function searchFileNoCase($file /* , $directory1, $directory2... $directoryn */)
+    {
+        $nb=func_num_args();
+        for ($i=1; $i<$nb; $i++)
+        {
+            $dir=rtrim(func_get_arg($i), '/\\');
+            if (($handle=opendir($dir))===false)
+                throw new Exception("Le répertoire '$dir' passé à ".__CLASS__.'::'.__METHOD__ . "() n'existe pas");
+                
+            while (($thisFile=readdir($handle)) !==false)
+            {
+            	if (strcasecmp($file, $thisFile)==0)
+                {
+                    // pas de test && is_dir($thisFile)
+                    // faut être tordu pour mettre dans le même répertoire
+                    // un fichier et un sous-répertoire portant le même nom
+                    
+                    closedir($handle);
+                    return $dir . DIRECTORY_SEPARATOR . $thisFile;
+                }
+            }
+            closedir($handle);
+        }
+        return '';
+    }
+    
+    // TODO: doc à écrire
+    public static function convertString($string, $table='bis')
+    {
+        static $charFroms=null, $tables=null;
+        
+        if (is_null($charFroms))
+        { 
+            $charFroms=
+                    /*           0123456789ABCDEF*/
+                    /* 00 */    "\x00\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f".
+                    /* 10 */    "\x10\x11\x12\x13\x14\x15\x16\x17\x18\x19\x1a\x1b\x1c\x1d\x1e\x1f".
+                    /* 20 */    "\x20\x21\x22\x23\x24\x25\x26\x27\x28\x29\x2a\x2b\x2c\x2d\x2e\x2f".
+                    /* 30 */    "\x30\x31\x32\x33\x34\x35\x36\x37\x38\x39\x3a\x3b\x3c\x3d\x3e\x3f".
+                    /* 40 */    "\x40\x41\x42\x43\x44\x45\x46\x47\x48\x49\x4a\x4b\x4c\x4d\x4e\x4f".
+                    /* 50 */    "\x50\x51\x52\x53\x54\x55\x56\x57\x58\x59\x5a\x5b\x5c\x5d\x5e\x5f".
+                    /* 60 */    "\x60\x61\x62\x63\x64\x65\x66\x67\x68\x69\x6a\x6b\x6c\x6d\x6e\x6f".
+                    /* 70 */    "\x70\x71\x72\x73\x74\x75\x76\x77\x78\x79\x7a\x7b\x7c\x7d\x7e\x7f".
+                    /* 80 */    "\x80\x81\x82\x83\x84\x85\x86\x87\x88\x89\x8a\x8b\x8c\x8d\x8e\x8f".
+                    /* 90 */    "\x90\x91\x92\x93\x94\x95\x96\x97\x98\x99\x9a\x9b\x9c\x9d\x9e\x9f".
+                    /* A0 */    "\xa0\xa1\xa2\xa3\xa4\xa5\xa6\xa7\xa8\xa9\xaa\xab\xac\xad\xae\xaf".
+                    /* B0 */    "\xb0\xb1\xb2\xb3\xb4\xb5\xb6\xb7\xb8\xb9\xba\xbb\xbc\xbd\xbe\xbf".
+                    /* C0 */    "\xc0\xc1\xc2\xc3\xc4\xc5\xc6\xc7\xc8\xc9\xca\xcb\xcc\xcd\xce\xcf".
+                    /* D0 */    "\xd0\xd1\xd2\xd3\xd4\xd5\xd6\xd7\xd8\xd9\xda\xdb\xdc\xdd\xde\xdf".
+                    /* E0 */    "\xe0\xe1\xe2\xe3\xe4\xe5\xe6\xe7\xe8\xe9\xea\xeb\xec\xed\xee\xef".
+                    /* F0 */    "\xf0\xf1\xf2\xf3\xf4\xf5\xf6\xf7\xf8\xf9\xfa\xfb\xfc\xfd\xfe\xff";
+                
+            $tables=array
+            (
+                'bis'=>
+                    /*           0123456789ABCDEF*/
+                    /* 00 */    '                '.
+                    /* 10 */    '                '.
+                    /* 20 */    '                '.
+                    /* 30 */    '0123456789      '.
+                    /* 40 */    '@abcdefghijklmno'.
+                    /* 50 */    'pqrstuvwxyz     '.
+                    /* 60 */    ' abcdefghijklmno'.
+                    /* 70 */    'pqrstuvwxyz     '.
+                    /* 80 */    '                '.
+                    /* 90 */    '                '.
+                    /* A0 */    '                '.
+                    /* B0 */    '                '.
+                    /* C0 */    'aaaaaaaceeeeiiii'.
+                    /* D0 */    'dnooooo 0uuuuy s'.
+                    /* E0 */    'aaaaaaaceeeeiiii'.
+                    /* F0 */    'dnooooo  uuuuyby',
+                    
+                'lower'=>
+                    /*           0123456789ABCDEF*/
+                    /* 00 */    "\x00\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f".
+                    /* 10 */    "\x10\x11\x12\x13\x14\x15\x16\x17\x18\x19\x1a\x1b\x1c\x1d\x1e\x1f".
+                    /* 20 */    "\x20\x21\x22\x23\x24\x25\x26\x27\x28\x29\x2a\x2b\x2c\x2d\x2e\x2f".
+                    /* 30 */    "0123456789\x3a\x3b\x3c\x3d\x3e\x3f".
+                    /* 40 */    '@abcdefghijklmno'.
+                    /* 50 */    "pqrstuvwxyz\x5b\x5c\x5d\x5e\x5f".
+                    /* 60 */    "\x60abcdefghijklmno".
+                    /* 70 */    "pqrstuvwxyz\x7b\x7c\x7d\x7e\x7f".
+                    /* 80 */    "\x80\x81\x82\x83\x84\x85\x86\x87\x88\x89\x8a\x8b\x8c\x8d\x8e\x8f".
+                    /* 90 */    "\x90\x91\x92\x93\x94\x95\x96\x97\x98\x99\x9a\x9b\x9c\x9d\x9e\x9f".
+                    /* A0 */    "\xa0\xa1\xa2\xa3\xa4\xa5\xa6\xa7\xa8\xa9\xaa\xab\xac\xad\xae\xaf".
+                    /* B0 */    "\xb0\xb1\xb2\xb3\xb4\xb5\xb6\xb7\xb8\xb9\xba\xbb\xbc\xbd\xbe\xbf".
+                    /* C0 */    'aaaaaaaceeeeiiii'.
+                    /* D0 */    'dnooooo 0uuuuy s'.
+                    /* E0 */    'aaaaaaaceeeeiiii'.
+                    /* F0 */    'dnooooo  uuuuyby',
+            );
+        }
+        if (! isset($tables[$table]))
+            throw new Exception("La table de conversion de caractères '$table' n'existe pas");
+            
+    	return strtr($string, $charFroms, $tables[$table]);
+    }
+    
+    /**
+     * Met en minuscule la première lettre de la chaine passée en paramètre et
+     * retourne le résultat obtenu.
+     * 
+     * @param string $str la chaine à convertir
+     * @return string la chaine obtenue
+     */
+    public static function lcfirst($str)
+    {
+        return strtolower(substr($str, 0, 1)) . substr($str, 1);
+    }
+    
+    /**
+     * Retourne la valeur de la variable passée en paramêtre si celle-ci est
+     * définie et contient autre chose qu'une chaine vide ou la valeur par
+     * défaut sinon.
+     * 
+     * Remarque : la fonction repose sur le fait que la variable à examiner est
+     * passée par référence, bien que la fonction ne modifie aucune variable. Ca
+     * évite que php génère un warning indiquant que la variable n'existe pas.
+     * 
+     * On peut appeller la fonction avec une variable simple, un tableau, un
+     * élément de tableau, etc.
+     * 
+     * Remarque 2 : anyVar doit être une variable. ça ne marchera pas si c'est
+     * un appel de fonction, une propriété inexistante d'un objet, une
+     * constante, etc.
+     * 
+     * Remarque 3 : équivalent à 'empty', mais ne retourne pas vrai pour une
+     * chaine contenant la valeur '0' ou pour un entier 0 ou pour un booléen
+     * false.
+     * 
+     * @param mixed $anyVar	la variable à examiner
+     * @param mixed $defaultValue la valeur par défaut à retourner si $anyVar
+     * n'est pas définie (optionnel, valeur par défaut null)
+     * @return mixed
+     */
+    public static function get(&$anyVar, $defaultValue=null)
+    {
+        if (! isset($anyVar)) return $defaultValue;
+        if (is_string($anyVar) && strlen(trim($anyVar))==0) return $defaultValue;
+        if (is_bool($anyVar) or is_int($anyVar)) return $anyVar;
+        if (is_float($anyVar)) return is_nan($anyVar) ? $defaultValue : $anyVar;
+        if (is_array($anyVar) && count($anyVar)==0) return $defaultValue;
+        return $anyVar;
+    }
+
+// idem mais nb 'illimité' de variables passées par référence. pb : oblige à passer defaultvalue
+// en premier ce qui est contre-intuitif. 
+//    public static function getAny($defaultValue, &$var1, &$var2=null, &$var3=null, &$var4=null, &$var5=null)
+//    {
+//        $nb=func_num_args();
+//        for ($i=1; $i<$nb; $i++)
+//        {
+//            $arg=func_get_arg($i);
+//            if 
+//            (
+//                    isset($arg)
+//                &&  (is_string($arg) && $arg != '')
+//            ) return $arg;
+//        }
+//        return $defaultValue;
+//    }
+
+    /**
+     * Retourne le path du script qui a appellé la fonction qui appelle
+     * callerScript.
+     * 
+     * Exemple : un script 'un.php' appelle une fonction test() qui se trouve
+     * ailleurs. La fonction test() veut savoir qui l'a appellé. Elle appelle
+     * callerScript() qui va retourner le path complet de 'un.php'
+     * 
+     * @return string
+     */
+    public static function callerScript($level=1)
+    {
+        $stack=debug_backtrace();
+        // En 0, on a la trace pour la fonction qui nous a appellé
+        // En 1, on a la trace de la fonction qui a appellé celle qui nous a appellé.
+        // en général, c'est ça qu'on veut, donc $level=1 par défaut
+        
+        return $stack[$level]['file'];
+    }
+    
+    public static function callerClass($level=1)
+    {
+        $stack=debug_backtrace();
+        // En 0, on a la trace pour la fonction qui nous a appellé
+        // En 1, on a la trace de la fonction qui a appellé celle qui nous a appellé.
+        // en général, c'est ça qu'on veut, donc $level=1 par défaut
+        
+        return $stack[$level]['class'];
+    }
+    
+    public static function callLevel()
+    {
+        return count(debug_backtrace())-1;
+    }
+    
+    /**
+     * Retourne l'adresse du serveur 
+     * (exemple : http://www.bdsp.tm.fr)
+     */
+    public static function getHost()
+    {
+        $host= Utils::get($_SERVER['HTTP_HOST']);
+        if (! $host) $host=Utils::get($_SERVER['SERVER_NAME']);
+        if (! $host) $host=Utils::get($_SERVER['SERVER_ADDR']);
+            
+        if (Utils::get($_SERVER['HTTPS'])=='on')
+            $host='https://' . $host;
+        else 
+            $host='http://' . $host;
+        
+        $port=$_SERVER['SERVER_PORT'];
+        if ($port != '80') $host .= ':' . $port;
+        
+    	return $host;
+    }
+
+    // répare $_GET, $_REQUEST et $_POST
+    // remarque : php://input n'est pas disponible avec enctype="multipart/form-data".
+    public static function repairGetPostRequest()
+    {
+        // Crée une fonction anonyme : urldecode avec l'argument modifié par référence
+        $urldecode=create_function('&$h','$h=urldecode($h);');
+        
+        // Si on est en méthode 'GET', on travaille avec la query_string et le tableau $_GET
+        if (self::isGet())
+        {
+            $raw = '&'.$_SERVER['QUERY_STRING'];
+            $t= & $_GET;
+        }
+        
+        // En méthodes POST et PUT, on travaille avec l'entrée standard et le tableau $_POST
+        else
+        {
+            $raw = '&'.file_get_contents('php://input');
+            $t = & $_POST;          
+        }
+
+        // Parcourt tous les arguments et modifient ceux qui sont multivalués
+        foreach($t as $key=>$value)
+        {
+            if (preg_match_all('/&'.$key.'=([^&]*)/',$raw, $matches, PREG_PATTERN_ORDER) > 1)
+            {
+                array_walk($matches[1], $urldecode);
+                $_REQUEST[$key]=$t[$key]=$matches[1];
+            }
+        }
+    }    
+
+    /**
+     * Retourne vrai si on a été appellé en méthode 'GET' ou 'HEAD'
+     */
+    public static function isGet()
+    {
+        return (strpos('GET HEAD', $_SERVER['REQUEST_METHOD']) !== false);
+    }
+    
+    /**
+     * Retourne vrai si on a été appellé en méthode 'POST' ou 'PUT'
+     */
+    public static function isPost()
+    {
+        return (strpos('POST PUT', $_SERVER['REQUEST_METHOD']) !== false);
+    }
+    
+    
+
+
+}
+?>

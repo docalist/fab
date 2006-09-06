@@ -1,0 +1,25 @@
+contents:
+  - [text]
+    tag: h1
+    contents: Modification de la configuration
+  - [form]
+    action: save
+    method: post
+    contents:
+      - [fieldset]
+        title: 'Fichier "<strong>[file]</strong>" :' 
+        contents: 
+	      - [textarea]
+	        name: data
+	        cols: 80
+	        rows: 40
+	        class: fullwidth autoheight
+		  - [div]
+		    class: buttons
+		    contents:
+		      - [hidden]
+		        name: file
+		        value: '[file]'
+	          - [button]
+	            action: submit
+	            title: Enregistrer...

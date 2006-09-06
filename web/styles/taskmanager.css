@@ -1,0 +1,85 @@
+/**
+    taskmanager.css
+
+    Feuille de style utilisée par le gestionnaire de tâches
+*/
+
+table.taskmanager
+{
+    border: 1px solid red;
+    font-size: 0.8em;
+    border-collapse: collapse;
+}
+
+table.taskmanager th
+{
+    border: 1px solid #aaa;
+    background-color: #008;
+    color: #fff;
+}
+
+table.taskmanager td
+{
+    border: 1px solid #aaa;
+}
+
+table.taskmanager tr.odd
+{
+    background-color: rgb(240,240,240);
+}
+
+table.taskmanager tr:hover
+{
+    background-color: yellow;
+}
+button
+{
+    padding: 0.2em;
+    margin: 0 0.2em;
+}
+
+button span
+{
+    padding-left: 20px;
+}
+
+button#btnStart span
+{
+    background: url('../images/famfamfam/sylk/control_play.png') no-repeat center left;
+}
+button#btnStart:hover span,
+button#btnStart:focus span
+{
+    background: url('../images/famfamfam/sylk/control_play_blue.png') no-repeat center left;
+}
+
+button#btnStop span
+{
+    background: url('../images/famfamfam/sylk/control_stop.png') no-repeat center left;
+}
+button#btnStop:hover span,
+button#btnStop:focus span
+{
+    background: url('../images/famfamfam/sylk/control_stop_blue.png') no-repeat center left;
+}
+
+button#btnRestart span
+{
+    background: url('../images/famfamfam/sylk/control_repeat.png') no-repeat center left;
+}
+button#btnRestart:hover span,
+button#btnRestart:focus span
+{
+    background: url('../images/famfamfam/sylk/control_repeat_blue.png') no-repeat center left;
+}
+
+button#btnRefresh span
+{
+    background: url('../images/table_refresh_gray.png') no-repeat center left;
+}
+button#btnRefresh:hover span,
+button#btnRefresh:focus span
+{
+    background: url('../images/famfamfam/sylk/table_refresh.png') no-repeat center left;
+}
+

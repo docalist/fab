@@ -1,0 +1,11 @@
+contents:
+  - [html]
+    contents:
+      - [text]
+        tag: h1
+        contents: Essai
+      - [text]
+        contents: '[contents]'
+      - [text]
+        tag: p
+        contents: fin du layout

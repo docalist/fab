@@ -1,0 +1,30 @@
+/* aucun espace pour pouvoir faire les exports correctement !
+*/<if test="[tag]"><if test="[title]"><label class="[tag] [class]" for="[auto_id]">[title]</label></if><[tag]<opt> id="[auto_id]" </opt><opt> class="[class]"</opt> [attributes]>[contents]</[tag]></if><else><if test="[title]"><label class="[class]">[title]</label></if>[contents]</else>/*
+<if test="[tag]">
+    <if test="[title]">
+        <label class="[tag] [class]" for="[auto_id]">[title]</label>
+    </if>
+    <[tag]<opt> id="[auto_id]" </opt><opt> class="[class]"</opt> [attributes]>[contents]</[tag]>
+</if>
+<else>
+    <if test="[title]">
+        <label class="[class]">[title]</label>
+    </if>
+    [contents]
+</else>
+*/
+/*
+
+sol 1 : on met des opt à l'intérieur des balises
+rejeté à l'unanimité
+
+sol 2 : post-traitement, on vire les attributs vides
+preg_replace'(<[a-z]+ [^">]*) [a-z]+=""' -> $1
+
+sol 3 : les attributs sont toujours optionnels
+
+
+(<[a-z]+)(\s*[a-z]=".*?[.*?].*?") -> $1<opt>$2</opt>
+
+ne marche pas : class="ul [class]"
+*/

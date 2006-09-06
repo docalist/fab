@@ -1,0 +1,17 @@
+#layout: none
+
+access: cli,Admin
+
+# Le démon ne peut être lancé que en ligne de commande
+daemon:
+  access: cli
+  layout: none
+  
+index:
+  CSS: [/fabweb/styles/taskmanager.css]
+  
+taskstatus:
+  JS: [/FabWeb/js/lib/prototype/prototype.js]
+
+taskstatusupdate:
+  layout: none

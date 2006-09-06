@@ -1,0 +1,43 @@
+<div id="output"></div>
+
+<div id="progressbar" style="display: none;">
+    <div style="border: 1px solid #2AF; width: 20em; background-color: #C8E6FF; ">
+        <div id="indicator" style="background: url('/asco/web/fabweb/images/famfamfam/sylk/shape_square.png'); width: 0%;">
+            &nbsp;
+        </div>
+    </div>
+    <div id="text"></div>
+</div>
+
+<script type="text/javascript">
+<!--
+function hideProgressBar()
+{
+    Element.hide('progressbar');
+}
+function showProgressBar(percent, step, max, label)
+{
+    $('indicator').style.width=percent + '%';
+    Element.update('text', label + ' ' + step + '/' + max + ' (' + percent + ' %)');
+    Element.show('progressbar');
+}
+
+function setSeek(seek)
+{
+   updater.url='taskstatusupdate'+window.location.search+'&seek='+seek;
+}
+
+var updater=new Ajax.PeriodicalUpdater
+//var updater=new Ajax.Updater
+(
+    'output', 
+    'taskstatusupdate'+window.location.search+'&seek=0', 
+    {
+        asynchronous:true, 
+        frequency:1,
+        evalScripts: true,
+        insertion: Insertion.Bottom
+    }
+);
+
+</script>
