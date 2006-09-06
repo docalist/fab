@@ -1,4 +1,5 @@
 Ce fichier liste les modifications apportées au site (les plus récentes en tête).
+test de modif
 28/07/06, DM
 - nouvelle publication pour ascodocpsy.
 - refactoring de runtime::setup éclatement en fonctions, gestion du mode ligne
