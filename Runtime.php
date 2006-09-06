@@ -24,7 +24,7 @@
  
 function test($url, $title='')
 {
-	if ($title) echo "<br /><h2><strong>$title</strong></h2>";
+	//if ($title) echo "<br /><h2><strong>$title</strong></h2>";
     echo "<li>Link for [$url]<br />";
     $h=Routing::linkFor($url);
     if ($h=='') $h='Aucune route';
