@@ -1,5 +1,1 @@
 Ce fichier liste les problèmes détectés dans fab
-
-test de modif
-
-une autre modif
