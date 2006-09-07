@@ -284,7 +284,7 @@ class Module
                 $h='';
                 foreach($t as $css)
                 {
-                    $css=$this->convertCssOrJsPath($css, '.css', 'styles', Config::get('theme'));
+                    $css=$this->convertCssOrJsPath($css, '.css', '/styles', Config::get('theme'));
                     // TODO: si on utilise le thème par défaut il faudrait pouvoir linker la feuille du thème
                     // pb : elle n'est pas dans l'espace web, donc il faut un truc qui l'envoie...
                     $h.='<link rel="stylesheet" type="text/css" href="'.$css.'" media="all" />' . "\n    ";
@@ -297,7 +297,7 @@ class Module
                 $h='';
                 foreach($t as $js)
                 {
-                    $js=$this->convertCssOrJsPath($js, '.js', 'js', '');
+                    $js=$this->convertCssOrJsPath($js, '.js', '/js', '');
                     // TODO: si on utilise le thème par défaut il faudrait pouvoir linker le js du thème
                     // pb : n'est pas dans l'espace web, donc il faut un truc qui l'envoie...
                     $h.='<script type="text/javascript" src="'.$js.'"></script>' . "\n    ";
@@ -335,13 +335,15 @@ class Module
                 if ($defaultSubDir != '' && dirname($path)=='.')
                     $path="$defaultSubDir/$path";
                     
-                $path = Runtime::$realHome . "$defaultDir/$path";
+//                $path = Runtime::$realHome . "$defaultDir/$path";
+                return Routing::linkFor("$defaultDir/$path");
             }
             
             // sinon (chemin absolu style '/xxx/yyy') on ajoute simplement $home
             else
             {
-                $path=rtrim(Runtime::$realHome,'/') . $path;
+                //$path=rtrim(Runtime::$realHome,'/') . $path;
+                return Routing::linkFor($path);
             }
         }
         return $path;        
