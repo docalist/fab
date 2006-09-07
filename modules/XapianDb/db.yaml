@@ -105,7 +105,7 @@ Options:
 #           ignoreafter: '/'
 
 
-Fields:
+fields:
     REF:
         type: int
         title: Numéro de référence
