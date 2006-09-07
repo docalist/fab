@@ -26,25 +26,25 @@ class Config
         // qu'il y a dans la config qui sera pris en compte.
     );
     
-    /**
-     * @var array tableau qui indique le "parser" à utiliser en fonction de 
-     * l'extension du fichier de configuration à charger
-     * @access private
-     */
-    private static $parser =array
-    (
-        // Fichiers de configuration au format YAML
-        '.yml' => 'loadYaml',
-        '.yaml' => 'loadYaml',
-        
-        // Format windows .ini
-        '.ini' => 'loadIni',
-        
-        // Fichier de conf à la apache
-        '.cfg' => 'loadIni',
-        '.conf' => 'loadIni'
-    );
-    
+//    /**
+//     * @var array tableau qui indique le "parser" à utiliser en fonction de 
+//     * l'extension du fichier de configuration à charger
+//     * @access private
+//     */
+//    private static $parser =array
+//    (
+//        // Fichiers de configuration au format YAML
+//        '.yml' => array('Config', 'loadYaml'),
+//        '.yaml' => 'loadYaml',
+//        
+//        // Format windows .ini
+//        '.ini' => 'loadIni',
+//        
+//        // Fichier de conf à la apache
+//        '.cfg' => 'loadIni',
+//        '.conf' => 'loadIni'
+//    );
+//    
     /**
      * Charge un fichier de configuration, mais sans le fusionner avec la
      * configuration en cours. Retourne le tableau obtenu
@@ -67,11 +67,12 @@ class Config
         Debug::log("Compilation de '%s'", $yamlPath); 
 
         // Détermine le parser à utiliser
-        $method=self::$parser[Utils::getExtension($path)];
+//        $method=self::$parser[Utils::getExtension($path)];
         
         // Charge le fichier
-        $data=self::$method($path);
-        
+//        $data=self::$method($path);
+        $data=Utils::loadYaml($path);
+                
         // Applique le transformer
         if ($transformer)
             $data=call_user_func(explode('::', $transformer), $data);
@@ -110,36 +111,18 @@ class Config
         self::addArray(self::loadFile($yamlPath, $transformer), $section);
     }
     
-    /**
-     * Charge un fichier de configuration au format YAML
-     * 
-     * @param string $path le path du fichier à charger
-     * @return array un tableau associatif contenant la configuration lue
-     */
-    private static function loadYaml($path)
-    {
-        // utilise l'extension syck.dll si elle est disponible
-        if (function_exists('syck_load'))
-            return syck_load($path);
-
-        // utilise la classe spyc sinon
-        require_once ('lib/spyc/spyc.php');
-        $spyc = new Spyc();
-        return $spyc->load($path);
-    }
-
-    /**
-     * Charge un fichier ini
-     * 
-     * @param string $path le path du fichier ini à charger
-     * @return array le tableau obtenu
-     */
-    function loadIni($path)
-    {
-        die('tester loadIni avant de l\utiliser !'); 
-        // return parse_ini_file($path); // TODO: à écrire, tester, etc 
-    }
-     
+//    /**
+//     * Charge un fichier ini
+//     * 
+//     * @param string $path le path du fichier ini à charger
+//     * @return array le tableau obtenu
+//     */
+//    function loadIni($path)
+//    {
+//        die('tester loadIni avant de l\utiliser !'); 
+//        // return parse_ini_file($path); // TODO: à écrire, tester, etc 
+//    }
+//     
     /**
      * Fusionne la configuration en cours avec le tableau passé en paramètre.
      * 

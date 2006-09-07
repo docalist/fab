@@ -547,6 +547,24 @@ final class Utils
         return (strpos('POST PUT', $_SERVER['REQUEST_METHOD']) !== false);
     }
     
+    /**
+     * Charge un fichier de configuration au format YAML
+     * 
+     * @param string $path le path du fichier à charger
+     * @return array un tableau associatif contenant la configuration lue
+     */
+    public static function loadYaml($path)
+    {
+        // utilise l'extension syck.dll si elle est disponible
+        if (function_exists('syck_load'))
+            return syck_load($path);
+
+        // utilise la classe spyc sinon
+        require_once ('lib/spyc/spyc.php');
+        $spyc = new Spyc();
+        return $spyc->load($path);
+    }
+
     
 
 
