@@ -118,4 +118,6 @@ class User
     // User::ip        : [REMOTE_ADDR] => 192.168.13.100
     
 }
+
+// modif faite à partir de la copie locale de BdspDev
 ?>
