@@ -1,7 +1,4 @@
 <?php
-// JAUNE modif faite sur la copie locale de bdspserver 
-// ROUGE modif faite sur la copie locale de bdspserver 
- 
 /**
  * Gestion des droits et des utilisateurs
  * 
@@ -119,6 +116,4 @@ class User
     // User::ip        : [REMOTE_ADDR] => 192.168.13.100
     
 }
-
-// modif faite à partir de la copie locale de BdspDev
 ?>
