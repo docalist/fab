@@ -404,7 +404,7 @@ $fab_init_time=microtime(true);
     {
         global $start_time;
 
-        if (debug)
+        if (Config::get('showdebug'))
         {        
             Debug::log("Application terminée");
             Debug::log('Temps total d\'exécution : %s secondes', sprintf('%.3f', (microtime(true) - $start_time )));

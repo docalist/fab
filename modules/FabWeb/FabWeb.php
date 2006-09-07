@@ -84,7 +84,7 @@ class FabWeb extends Module
             header("Content-Type: $mime");
             readfile($path);        
         }                
-
+        Config::set('showdebug', false);
         return true; // indique à fab qu'on a fini, ne pas exécuter d'action
 
     }
