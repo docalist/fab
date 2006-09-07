@@ -1,4 +1,5 @@
 debug: true
+showdebug: true
 smarturls: false
 
 JS:

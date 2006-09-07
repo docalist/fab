@@ -31,6 +31,7 @@ theme: default
 layout: default.htm
 
 debug: false
+showdebug: false
 
 # paramétrage de la sécurité
 security: 
