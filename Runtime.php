@@ -226,6 +226,7 @@ class Runtime
                     }
                 }
                 self::$url=substr(self::$url, 1+strlen($fcName));
+                if (self::$url=='') self::$url='/';
             }
         }
         debug && Debug::notice("Module/action demandés par l'utilisateur : " . self::$url);
