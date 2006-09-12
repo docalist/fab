@@ -38,6 +38,12 @@ options:
 #    ValidChars: "abcdefghijklmnopqrstuvwxyz_0123456789"
     indexstopwords: false
     stemmer: none
+#   flush_threshold    
+#    entier, optionnel, valeur par défaut: ?
+#    lors d'une modification portant sur plusieurs enregistrements (import de
+#    fichier, correction en série, etc...), demande à xapian de faire un flush
+#    tous les n documents.
+    
 
 # Liste des champs de la base.
 # La clé représente le nom du champ.
