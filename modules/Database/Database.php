@@ -415,8 +415,13 @@ class Database extends Module
         switch ($name)
         {
             case 'Creation':
-                if (empty($value)) $value=date('Ymd');
+                if (! $selection->field($name))
+                    $value=date('Ymd');
+                else
+                    $value=$selection->field($name);
                 break;
+//                if (empty($value)) $value=date('Ymd');
+//                break;
                     
             case 'LastUpdate':
                 $value=date('Ymd');
