@@ -450,8 +450,9 @@ class Database extends Module
                 throw new Exception('La base de données à utiliser n\'a pas été indiquée');
         }            
         
-        // Si c'est un alias utilise /config/db.yaml pour le convertir en chemin
+        // Utilise /config/db.yaml pour convertir l'alias en chemin et déterminer le type de base
         $database=Config::get("db.$database.name", $database);
+        $type=Config::get("db.$database.type");
         
         // Si c'est un chemin relatif, recherche dans /data/db
         if (Utils::isRelativePath($database))
@@ -461,45 +462,43 @@ class Database extends Module
                 throw new Exception("Impossible de trouver la base '$database'");
         }
         
-        // Détermine le dataset à utiliser
-        $dataset=basename($database);
-        Utils::setExtension($dataset);
-
         // Ajoute le filtre éventuel à l'équation de recherche
         if ($equation != '' && $filter=$this->getFilter()) 
             $equation='(' . $equation . ') and (' . $filter . ')';        
         
-        // Crée une instance de Bis
-        $Bis=new COM("Bis.PHPEngine");
-
-        // Ouvre la base en lecture seule
-        if ($readOnly)
+        // Ouvre la base en fonction de son type
+        switch ($type)
         {
-            try
-            {
-                $Selection=$Bis->OpenSelection($path, $dataset, $equation);
-            }
-            catch (Exception $e)
-            {
-                throw new Exception("Erreur lors de l'ouverture de la base '$database' : " . $e->getMessage());
-            }
-        }
+        	case 'bis':
+                // Détermine le dataset à utiliser
+                $dataset=basename($database);
+                Utils::setExtension($dataset);
         
-        // Ouvre la base en lecture/écriture
-        else
-        {
-            try
-            {
-                $Selection=$Bis->OpenWriteSelection($path, $dataset, $equation);
-            }
-            catch (Exception $e)
-            {
-                throw new Exception("Erreur lors de l'ouverture de la base '$database' : " . $e->getMessage());
-            }
-        }
+                // Crée une instance de Bis
+                $Bis=new COM("Bis.PHPEngine");
         
-        // Terminé
-        unset($Bis);
+                // Ouvre la base
+                try
+                {
+                    if ($readOnly)
+                        $Selection=$Bis->OpenSelection($path, $dataset, $equation);
+                    else
+                        $Selection=$Bis->OpenWriteSelection($path, $dataset, $equation);
+                }
+                catch (Exception $e)
+                {
+                    throw new Exception("Erreur lors de l'ouverture de la base '$database' : " . $e->getMessage());
+                }
+                
+                // Terminé
+                unset($Bis);
+                break;
+            case 'xapian':
+                require_once(Runtime::$fabRoot.'XapianDb.php');
+                break;
+            default:
+                throw new Exception("Impossible d'ouvrir la base '$database' : le type de base n'est pas valide");
+        }      
         return $Selection;    	
     }
     
