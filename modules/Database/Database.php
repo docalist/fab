@@ -451,9 +451,9 @@ class Database extends Module
         }            
         
         // Utilise /config/db.yaml pour convertir l'alias en chemin et déterminer le type de base
-        $database=Config::get("db.$database.name", $database);
         $type=Config::get("db.$database.type");
-        
+        $database=Config::get("db.$database.path", $database);
+
         // Si c'est un chemin relatif, recherche dans /data/db
         if (Utils::isRelativePath($database))
         {
@@ -501,7 +501,7 @@ class Database extends Module
                 $selection->select($equation);
                 break;
             default:
-                throw new Exception("Impossible d'ouvrir la base '$database' : le type de base n'est pas valide");
+                throw new Exception("Impossible d'ouvrir la base '$database' : le type de base ('$type') n'est pas valide");
         }      
         return $Selection;    	
     }
@@ -623,23 +623,18 @@ class Database extends Module
  * 
  * - fichier db.$env.yaml de l'application (si existant)
  */
-function loadDbConfig()
-{
-    Debug::log("Chargement de la configuration des bases de données");
-    if (file_exists($path=Runtime::$fabRoot.'config' . DIRECTORY_SEPARATOR . 'db.yaml'))
-        Config::load($path, 'db');
-    if (file_exists($path=Runtime::$root.'config' . DIRECTORY_SEPARATOR . 'db.yaml'))
-        Config::load($path, 'db');
+debug && Debug::log("Chargement de la configuration des bases de données");
+if (file_exists($path=Runtime::$fabRoot.'config' . DIRECTORY_SEPARATOR . 'db.yaml'))
+    Config::load($path, 'db');
+if (file_exists($path=Runtime::$root.'config' . DIRECTORY_SEPARATOR . 'db.yaml'))
+    Config::load($path, 'db');
 
-    if (!empty(Runtime::$env))   // charge la config spécifique à l'environnement
-    {
-        if (file_exists($path=Runtime::$fabRoot.'config'.DIRECTORY_SEPARATOR.'db.' . Runtime::$env . '.yaml'))
-            Config::load($path, 'db');
-        if (file_exists($path=Runtime::$root.'config'.DIRECTORY_SEPARATOR.'db.' . Runtime::$env . '.yaml'))
-            Config::load($path, 'db');
-    }
-    
+if (!empty(Runtime::$env))   // charge la config spécifique à l'environnement
+{
+    if (file_exists($path=Runtime::$fabRoot.'config'.DIRECTORY_SEPARATOR.'db.' . Runtime::$env . '.yaml'))
+        Config::load($path, 'db');
+    if (file_exists($path=Runtime::$root.'config'.DIRECTORY_SEPARATOR.'db.' . Runtime::$env . '.yaml'))
+        Config::load($path, 'db');
 }
 
-loadDbConfig();
 ?>

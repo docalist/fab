@@ -470,7 +470,7 @@ final class Utils
         // En 1, on a la trace de la fonction qui a appellé celle qui nous a appellé.
         // en général, c'est ça qu'on veut, donc $level=1 par défaut
         
-        return $stack[$level]['class'];
+        return @$stack[$level]['class']; // TODO: pourquoi le @ ?
     }
     
     public static function callLevel()
