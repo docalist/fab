@@ -31,7 +31,7 @@ class Debug
         return vsprintf($format, $t);
     }
     
-    public static function dump($var)
+    public static function dump($var, $sortkeys=true)
     {
         static $id=0;
         static $level=0;
@@ -72,9 +72,9 @@ class Debug
             $h.='<div class="debugDumpArrayItems" id="dumpvar'.$id.'" style="display:'.($level==0?'block':'block').';">';
             $id++;
             $level++;
-            uksort($var, 'strnatcasecmp');
+            if ($sortkeys) uksort($var, 'strnatcasecmp');
             foreach($var as $key=>$value)
-                $h.='<span class="debugDumpArrayKey">'.self::dump($key) . '</span> =&gt; ' . self::dump($value,'') . '<br />';
+                $h.='<span class="debugDumpArrayKey">'.self::dump($key, $sortkeys) . '</span> =&gt; ' . self::dump($value,$sortkeys) . '<br />';
             $level--;
             $h.='<div class="debugDumpArrayItemsEnd"></div>';
             $h.='</div>';
@@ -92,7 +92,7 @@ class Debug
             $level++;
 //            uksort($var, 'strnatcasecmp');
             foreach($var as $key=>$value)
-                $h.='<span class="debugDumpObjectKey">'.self::dump('$'.$key) . '</span> =&gt; ' . self::dump($value,'') . '<br />';
+                $h.='<span class="debugDumpObjectKey">'.self::dump('$'.$key, $sortkeys) . '</span> =&gt; ' . self::dump($value,$sortkeys) . '<br />';
             $level--;
             $h.='<div class="debugDumpObjectItemsEnd"></div>';
             $h.='</div>';
