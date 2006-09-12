@@ -1,16 +1,10 @@
-# Fichier de configuration du module BisDatabase
+# Fichier de configuration du module Database
 
-# database : nom ou path de la base de données à utiliser.
-# vous pouvez soit indiquer un chemin absolu, soit un chemin relatif au
-# répertoire /data/db
+# database : nom symbolique (alias) ou path de la base de données à utiliser.
+# il est *fortement* conseillé d'utiliser un alias (définit dans le fichier
+# db.yaml de la config).
 
 database: 
-
-
-# dataset : optionnel, nom de la table à ouvrir au sein de la base database.
-# Si vous n'indiquez rien, le nom indiqué dans database est utilisé pour
-# déterminer le nom du dataset.
-dataset:
 
 # callback : nom de la méthode à appeller comme callback lors des exécutions
 # de templates.

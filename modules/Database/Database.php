@@ -1,11 +1,5 @@
 <?php
-/*
- * Created on 1 juin 06
- *
- * To change the template for this generated file go to
- * Window - Preferences - PHPeclipse - PHP - Code Templates
- */
-class BisDatabase extends Module
+class Database extends Module
 {
     /**
      * @var string Equation de recherche
