@@ -450,8 +450,8 @@ class Database extends Module
                 throw new Exception('La base de données à utiliser n\'a pas été indiquée');
         }            
         
-        // Ajoute l'extension .bed si nécessaire
-        Utils::defaultExtension($database, '.bed');
+        // Si c'est un alias utilise /config/db.yaml pour le convertir en chemin
+        $database=Config::get("db.$database.name", $database);
         
         // Si c'est un chemin relatif, recherche dans /data/db
         if (Utils::isRelativePath($database))
