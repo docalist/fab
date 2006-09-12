@@ -493,8 +493,12 @@ class Database extends Module
                 // Terminé
                 unset($Bis);
                 break;
+                
             case 'xapian':
                 require_once(Runtime::$fabRoot.'XapianDb.php');
+                $selection=new XapianDb();
+                $selection->open($path, $readOnly);
+                $selection->select($equation);
                 break;
             default:
                 throw new Exception("Impossible d'ouvrir la base '$database' : le type de base n'est pas valide");
