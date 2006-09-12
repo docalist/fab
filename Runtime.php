@@ -270,8 +270,8 @@ class Runtime
         self::setupExceptions(); 
 
         // Includes supplémentaires
-        // TODO: écrire un class manager pour ne pas inclure systématiquement tout
-        require_once self::$fabRoot.'modules'.DIRECTORY_SEPARATOR.'BisDatabase'.DIRECTORY_SEPARATOR.'BisDatabase.php';        
+        // TODO: écrire un class manager pour ne pas inclure systématiquement tout (voir du coté du gestionnaire de modules)
+        require_once self::$fabRoot.'modules'.DIRECTORY_SEPARATOR.'Database'.DIRECTORY_SEPARATOR.'Database.php';        
         //require_once self::$fabRoot.'BisWeb.php';
 
 require_once self::$fabRoot.'modules'.DIRECTORY_SEPARATOR.'TaskManager/TaskManager.php';
