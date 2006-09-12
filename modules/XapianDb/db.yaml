@@ -1,13 +1,12 @@
-Options:
 # ===========================================================================
 # Ascodocpsy.def - Format de la base de données documentaire Ascodocpsy
 #
 # Banque de Données Santé Publique (BDSP) - 2006
 # ===========================================================================
 
-Options:
-    Name: ASCODOCPSY
-    EmptyWords: "\\bdspserver\d$\Commun\Prestations\Ascodocpsy - Logiciel\Etape1 - consultation\Prog2\Def\Vides.txt"
+options:
+#    Name: ASCODOCPSY
+    stoplist: >
         about afin after against ainsi aisement all alors among and 
         approximativement aquello are assez aucun aucune aujourd aupres auquel 
         auxquelles auxquels aussi autant autour autrefois autres aux avaient 
@@ -35,10 +34,10 @@ Options:
         two una und under une unes uno uns van via voor vos vosotros votre 
         votres vous vuestro was wat were which wie with you your zij
     
-    ValidChars: "abcdefghijklmnopqrstuvwxyz_0123456789"
-    Separator: "/"
-    indexer les mots vides : true/false (de toute façon, sont enlevés à la recherche)
-    stemming: none | fra | eng...
+    separator: "/"
+#    ValidChars: "abcdefghijklmnopqrstuvwxyz_0123456789"
+    indexstopwords: false
+    stemmer: none
 
 # Liste des champs de la base.
 # La clé représente le nom du champ.
@@ -76,6 +75,9 @@ Options:
 #           - phrase: enregistre dans l'index les positions des tokens pour
 #             permettre de faire des recherches par phrase, par proximité et 
 #             par adjacence.
+#           - anyfield   : ajouter également les tokens d'indexation de ce champ dans
+#             l'index "tous les champs". + l'inverse : n'indexer un champ que 
+#             dans l'index tous les champs.
 # - separator: 
 #       par défaut, les champs article utilisent le séparateur définit au niveau 
 #       de la base, mais il est possible de définir un séparateur différent.
@@ -202,7 +204,7 @@ fields:
             type: word, filled
 
     DateVali:
-        type:  text
+        type: text
         title: Date de fin de validité d'un texte officiel (JJ/MM/AAAA)
 
     Rev:
@@ -351,14 +353,14 @@ fields:
 
     Creation:
         type: date
-        title: Date de création de la notice (format : AAAAMMJJ)
+        title: "Date de création de la notice (format : AAAAMMJJ)"
         index: 
             name: Creation
             type: word, filled
 
     LastUpdate:
         type: date
-        title: Date de dernière mise à jour de la notice (format : AAAAMMJJ)
+        title: "Date de dernière mise à jour de la notice (format : AAAAMMJJ)"
         index: 
             name: LastUpdate
             type: word, filled
