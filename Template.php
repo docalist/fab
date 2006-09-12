@@ -1300,7 +1300,7 @@ class Template
         // Découpe la chaine au premier <opt> trouvé.
         // Ne recherche pas <option> présent dans les select
         //$t=preg_split('~<opt([^>]*)>~msx', $source, 2, PREG_SPLIT_DELIM_CAPTURE);
-        $t=preg_split('~<opt([^ion>]*)>~msx', $source, 2, PREG_SPLIT_DELIM_CAPTURE);
+        $t=preg_split('~<opt([^o>]*)>~msx', $source, 2, PREG_SPLIT_DELIM_CAPTURE);
         // en 0 : ce qui précède, en 1 : les attributs, en 2 : ce qui suit le <opt>
 
         // Si le source ne contient aucun <opt>, terminé

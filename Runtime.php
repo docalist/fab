@@ -272,7 +272,7 @@ class Runtime
         // Includes supplémentaires
         // TODO: écrire un class manager pour ne pas inclure systématiquement tout
         require_once self::$fabRoot.'modules'.DIRECTORY_SEPARATOR.'BisDatabase'.DIRECTORY_SEPARATOR.'BisDatabase.php';        
-        require_once self::$fabRoot.'BisWeb.php';
+        //require_once self::$fabRoot.'BisWeb.php';
 
 require_once self::$fabRoot.'modules'.DIRECTORY_SEPARATOR.'TaskManager/TaskManager.php';
 
