@@ -412,6 +412,8 @@ class Database extends Module
 
     public function setField($name, &$value)
     {
+        global $selection;
+        
         switch ($name)
         {
             case 'Creation':
