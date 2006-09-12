@@ -230,6 +230,8 @@ class Database extends Module
      */
     public function actionSave()
     {
+        global $selection;
+        
         // Si un numéro de référence a été indiqué, on charge cette notice         
         if ($ref=Utils::get($_REQUEST['ref']))
         {
