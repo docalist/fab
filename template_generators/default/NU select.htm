@@ -1,0 +1,12 @@
+
+<!-- Select pour [name] basé sur la table '[table]' -->
+
+<opt><label class="select [class]" for="[auto_id]">[title]</label></opt>
+<input type="hidden" name="[name]" value="" />
+<fill values="[[name]]" code='selected="selected"' separator="[sep]"> /* TODO: comment le fill peut-il récupérer le séparateur */
+    <select class="select [class]" id="[auto_id]" name="[name]" [attributes]>
+        <loop on="table([table])">
+            <option value="[table.code]" id="[auto_id]-[table.line]">[table.label]</option>
+        </loop>
+    </select>
+</fill>
