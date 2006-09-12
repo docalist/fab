@@ -440,7 +440,7 @@ class Database extends Module
      * 
      * @param boolean $readOnly
      */
-    protected function openDatabase($equation, $readOnly=true, $database=null, $dataset=null)
+    protected function openDatabase($equation, $readOnly=true, $database=null)
     {
         // Détermine la base à utiliser
         if (is_null($database))
@@ -462,15 +462,8 @@ class Database extends Module
         }
         
         // Détermine le dataset à utiliser
-        if (is_null($dataset))
-        {
-            $dataset=Config::get('dataset');
-            if (is_null($dataset))
-            {
-                $dataset=basename($database);
-                Utils::setExtension($dataset);
-            }
-        }            
+        $dataset=basename($database);
+        Utils::setExtension($dataset);
 
         // Ajoute le filtre éventuel à l'équation de recherche
         if ($equation != '' && $filter=$this->getFilter()) 
