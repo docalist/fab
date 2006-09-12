@@ -1,0 +1,49 @@
+ascodocpsy:
+    type: bis
+    path: data/db/ascodocpsy.bed
+
+ascoxap:
+    type: xapian
+    path: data/db/ascoxap
+    
+# Ce fichier décrit les bases de données utilisables dans le projet.
+# 
+# Chaque clé de premier niveau est un nom symbolique donné à la base. C'est ce 
+# nom qui sera utilisé dans le projet pour désigner la base.
+# 
+# type: 
+#   type de la base. valeurs possibles : 'bis', 'xapian'.
+# 
+# path:
+#   Requis, le chemin d'accès à la base. Il peut s'agir soit d'un chemin relatif
+#   à la racine de votre application), soit d'un chemin absolu, soit, dans le
+#   cas d'une base xapian de type 'remote', d'une chaine désignant le serveur et 
+#   le port à utiliser (exemple : bdspdev:3333).
+#   Dans le cas d'une base bis, le chemin désigne un fichier, dans le cas d'une
+#   base xapian classique (ie non remote), il désigne un répertoire.
+#   remarque : idem si plus tard on gère du sqlite (path) ou du mysql (host+port)
+#
+# Pour une base xapian de type 'remote', les paramètres suivants peuvent être
+# également indiqués :
+#
+# timeout: 
+#   timeout général de la base lors d'une recherche, d'une modif, etc. 
+#   valeur par défaut : 10000 (tout cela est à vérifier).
+#
+# connect_timeout:
+#   timeout lors de la connexion au serveur. Valeur par défaut : 0
+#   (tout cela est à vérifier)
+#
+# Autres paramètres possibles :
+# liste imaginaire, juste pour permettre des évolutions futures
+#
+# flush_threshold:
+#    entier, optionnel, valeur par défaut: ?
+#    lors d'une modification portant sur plusieurs enregistrements (import de
+#    fichier, correction en série, etc...), demande à xapian de faire un flush
+#    tous les n documents.
+#
+#    à la réflexion, n'a pas à être içi mais plutôt dans les paramètres (la
+#    structure) de la base.
+#
+# options de sauvegardes (équivalent de bisbackup ?), de réplication
