@@ -1,13 +1,14 @@
+<!-- Select à sélection multiple pour [name] basé sur la table '[table]' -->
 
-<!-- Select pour [name] basé sur la table '[table]' -->
-
-<opt><label class="selectmult [class]" for="[auto_id]">[title]</label></opt>
-/*<input type="hidden" name="[name]" value="" />*/
-<fill values="[[name]]" code='selected="selected"' separator="[sep]"> /* TODO: comment le fill peut-il récupérer le séparateur */
-    <select size="[size]" class="selectmultiple [class]" id="[auto_id]" name="[name]" [attributes]>
-       /* <option value="" id="[auto_id]-0">-</option>*/
-        <loop on="table([table])">
-            <option value="[table.code]" id="[auto_id]-[table.line]">[table.label]</option>
-        </loop>
-    </select>
-</fill>
+<opt><label class="select [class]" for="[auto_id]">[title]</label></opt>
+<div class="selectmultiple [class]">
+    <input type="hidden" name="[name]" value="" />
+    <fill values="[[name]]" code='selected="selected"' separator="[sep]"> /* TODO: comment le fill peut-il récupérer le séparateur */
+        <select size="[size]" class="selectmultiple [class]" id="[auto_id]" name="[name]" multiple="multiple">
+            <opt min="2"><option value="" id="[auto_id]-0">[emptylabel]</option></opt>
+            <loop on="table([table])">
+                <option value="[table.code]" id="[auto_id]-[table.line]">[table.label]</option>
+            </loop>
+        </select>
+    </fill>
+</div>
