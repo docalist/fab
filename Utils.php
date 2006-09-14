@@ -274,6 +274,7 @@ final class Utils
         for ($i=1; $i<$nb; $i++)
         {
             $dir=func_get_arg($i);
+            debug && Debug::log("Recherche du template [%s]. result=[%s]", rtrim($dir,'/\/').DIRECTORY_SEPARATOR.$file, realpath(rtrim($dir,'/\/').DIRECTORY_SEPARATOR.$file));
             if ($path=realpath(rtrim($dir,'/\/').DIRECTORY_SEPARATOR.$file)) return $path;
             
         }
