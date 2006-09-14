@@ -10,7 +10,7 @@ require_once (Runtime::$fabRoot.'lib/xapian/xapian.php');
 
 
     
-class xap
+class XapianDb
 {
     /**
      * Table de conversion utilisée pour déterminer la liste des tokens 
@@ -43,7 +43,7 @@ class xap
     private $doc=null; // le document en cours
     public $data=null; // les champs
     private $editMode=0; // 0: rien, 1:edit, 2:addnew
-    
+    public $bof=false;
     private static function check(& $array, $key, $subkeys, $strict=true)
     {
         if (! isset($array[$key]))
@@ -163,7 +163,7 @@ class xap
     }
     public function __destruct()
     {
-    	
+        unset($this->doc, $this->iterator, $this->mset, $this->queryParser, $this->enquire, $this->db);
     }
     public function open($database, $readOnly=true)
     {
@@ -220,12 +220,18 @@ class xap
 
             $this->parser=$parser=new XapianQueryParser();
             
-//            foreach ($this->def['map'] as $name=>$prefix)
+//            foreach($this->def['fields'] as $name=>$field)
 //            {
+//            	if (is_int($name)) break;
+//                if (! $field['index']) continue;
+//                $name=$field['index']['name'];
+//                $prefix='X' . strtoupper($name);
 //                $parser->add_boolean_prefix($name, $prefix);
 //                $parser->add_prefix($name, $prefix);
+//                echo "map $name : $prefix<br />";
 //            }
-            
+            $parser->add_boolean_prefix('MotCle', 'XMOTCLE');
+            $parser->add_boolean_prefix('MotCle', 'XTHEME');
             $stopper=new XapianSimpleStopper();
             foreach (explode(' ', $this->def['options']['stoplist']) as $stopWord)
                 $stopper->add($stopWord);
@@ -243,9 +249,11 @@ class xap
         }
     
         // Construit la requête
+        $equation=strtr($equation,'=',':');
+        echo "<br />Equation donnée à xapian : ", $equation, "<br />"; 
         $query=$parser->parse_Query($equation, $this->parseOptions);
-        $this->equation=$equation;
-        
+        $this->equation=$query->get_description();
+        echo "Equation comprise par xapian : ", $this->equation, "<br />"; 
         // générer la liste des mots ignorés dans la requête
 
         // Définit l'ordre de tri
@@ -267,7 +275,7 @@ class xap
     {
         if (is_null($this->iterator))
             throw new Exception('Pas de document courant');
-        echo "Etat de l'itérateur : ", var_dump($this->iterator), "\n";
+        //echo "Etat de l'itérateur : ", var_dump($this->iterator), "\n";
         if ($this->iterator->equals($this->mset->end()))
         {
             $this->doc=null;
@@ -282,7 +290,7 @@ class xap
     public function moveFirst()
     {
         if (is_null($this->mset)) return;
-        echo "mset.size=", $this->mset->size(), "\n";
+        //echo "mset.size=", $this->mset->size(), "\n";
         $this->iterator=$this->mset->begin();
         $this->loadDocument();
     }       
@@ -291,9 +299,18 @@ class xap
         if (is_null($this->mset)) return;
         $this->iterator->next();
         $this->loadDocument();
+        $this->bof=$this->eof=$this->eof();
     }
     // movePrevious
     //moveLast       
+    public function moveLast()
+    {
+    	$this->moveFirst();
+    }
+    public function movePrevious()
+    {
+    	$this->moveNext();
+    }
     public function eof()
     {
         if (is_null($this->mset) or is_null($this->iterator)) return true;
@@ -302,6 +319,9 @@ class xap
     // bof
     public function field($key)
     {
+        if ($key=='REF') return $this->iterator->get_docid();
+        if (! isset($this->def['fields'][$key]))
+            throw new Exception("Le champ '$key' n'existe pas");
         if (is_string($key)) $key=$this->def['fields'][$key]['fieldnumber'];
         if (isset($this->data[$key])) return $this->data[$key];
         return null;
@@ -348,7 +368,6 @@ class xap
             throw new Exception("La notice n'est pas en cours d'édition");
         echo
             "\n<h1>Update()</h1>\n",
-            'Edit mode : ', Debug::dump($this->editMode), "\n",
             'Data : ', Debug::dump($this->data), "\n";
         $doc=new XapianDocument();
         $doc->set_data(serialize($this->data));
@@ -363,10 +382,16 @@ class xap
         }
         
         if ($this->editMode==2)
-            $this->db->add_Document($doc);
+        {
+            $docid=$this->db->add_Document($doc);
+            echo "docid=$docid\n";
+        }
         else
+        {
             $this->db->replace_Document($this->iterator->get_docid(), $doc);
+        }
         $this->editMode=0;
+//        $this->db->flush();
     }
 
     private function index($field, &$data, $document, &$position)
@@ -459,40 +484,41 @@ class xap
     
 }
 
-loadDbConfig();
+//loadDbConfig();
 //$def=new XapianDefinition();
 //$def->load(dirname(__FILE__) . '/db.yaml');
-echo '<pre>';
+//echo '<pre>';
 //var_dump($def);
 //echo '</pre>';
-$selection=new Xap();
-$dbPath=Runtime::$fabRoot . 'data/db/test1';
-$selection->create($dbPath, dirname(__FILE__) . '/db.yaml', true);
 
-$selection->addNew();
-$selection->setfield('REF', 209);
-$selection->setfield('Type', 'Livre');
-$selection->setfield('Aut', 'LORIN C');
-$selection->setfield('Tit', 'Traité de psychodrame d\'enfants. Suivi de : Samia, "l\'enfant de chien".');
-$selection->setfield('Date', '1989');
-$selection->setfield('Page', '237 p.');
-$selection->setfield('Edit', 'Toulouse/Privat');
-$selection->setfield('Resu', 'Les principales formes de psychodrames pratiquées en France avec des enfants et des adolescents sont exposées, ainsi que les règles techniques et l\'organisation des jeux de rôles et de mise en scène du "théâtre privé". Le point de vue est celui des performatifs. Un cas clinique est analysé.');
-$selection->setfield('MotCle', 'MANUEL/PSYCHODRAME/PEDOPSYCHIATRIE/PSYCHANALYSE D\'ENFANT');
-$selection->setfield('FinSaisie', true);
-$selection->setfield('Valide', true);
-$selection->setfield('Creation', '20060905');
-$selection->setfield('LastUpdate', '20060910');
-$selection->update();
-
-$selection->select('lorin c');
-echo "Equation: $selection->equation, réponses : $selection->count\n";
-while (! $selection->eof())
-{
-	echo '1. ', $selection->field(1), ', ', $selection->field('Tit'), "\n";
-    echo var_dump($selection->data), "\n\n";
-    $selection->moveNext();
-}
-    
-
+//$selection=new Xap();
+//$dbPath=Runtime::$fabRoot . 'data/db/test1';
+//$selection->create($dbPath, dirname(__FILE__) . '/db.yaml', true);
+//
+//$selection->addNew();
+//$selection->setfield('REF', 209);
+//$selection->setfield('Type', 'Livre');
+//$selection->setfield('Aut', 'LORIN C');
+//$selection->setfield('Tit', 'Traité de psychodrame d\'enfants. Suivi de : Samia, "l\'enfant de chien".');
+//$selection->setfield('Date', '1989');
+//$selection->setfield('Page', '237 p.');
+//$selection->setfield('Edit', 'Toulouse/Privat');
+//$selection->setfield('Resu', 'Les principales formes de psychodrames pratiquées en France avec des enfants et des adolescents sont exposées, ainsi que les règles techniques et l\'organisation des jeux de rôles et de mise en scène du "théâtre privé". Le point de vue est celui des performatifs. Un cas clinique est analysé.');
+//$selection->setfield('MotCle', 'MANUEL/PSYCHODRAME/PEDOPSYCHIATRIE/PSYCHANALYSE D\'ENFANT');
+//$selection->setfield('FinSaisie', true);
+//$selection->setfield('Valide', true);
+//$selection->setfield('Creation', '20060905');
+//$selection->setfield('LastUpdate', '20060910');
+//$selection->update();
+//
+//$selection->select('lorin c');
+//echo "Equation: $selection->equation, réponses : $selection->count\n";
+//while (! $selection->eof())
+//{
+//	echo '1. ', $selection->field(1), ', ', $selection->field('Tit'), "\n";
+//    echo var_dump($selection->data), "\n\n";
+//    $selection->moveNext();
+//}
+//    
+//
 ?>
