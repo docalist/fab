@@ -220,18 +220,16 @@ class XapianDb
 
             $this->parser=$parser=new XapianQueryParser();
             
-//            foreach($this->def['fields'] as $name=>$field)
-//            {
-//            	if (is_int($name)) break;
-//                if (! $field['index']) continue;
-//                $name=$field['index']['name'];
-//                $prefix='X' . strtoupper($name);
-//                $parser->add_boolean_prefix($name, $prefix);
-//                $parser->add_prefix($name, $prefix);
+            foreach($this->def['fields'] as $name=>$field)
+            {
+            	if (is_int($name)) break;
+                if (! $field['index']) continue;
+                $name=$field['index']['name'];
+                $prefix='X' . strtoupper($name);
+                $parser->add_boolean_prefix($name, $prefix);
+                $parser->add_prefix($name, $prefix);
 //                echo "map $name : $prefix<br />";
-//            }
-            $parser->add_boolean_prefix('MotCle', 'XMOTCLE');
-            $parser->add_boolean_prefix('MotCle', 'XTHEME');
+            }
             $stopper=new XapianSimpleStopper();
             foreach (explode(' ', $this->def['options']['stoplist']) as $stopWord)
                 $stopper->add($stopWord);
