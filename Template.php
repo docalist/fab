@@ -316,6 +316,7 @@ class Template
         $caller=dirname(Utils::callerScript()).DIRECTORY_SEPARATOR;
         
         // Recherche le template
+        $sav=$template;
         if (strncasecmp($caller, Runtime::$fabRoot, strlen(Runtime::$fabRoot)) ==0)
         {
             // module du framework : le répertoire templates de l'application est prioritaire
@@ -339,7 +340,7 @@ class Template
             );
         }
         if (! $template) 
-            throw new Exception("Impossible de trouver le template $template");
+            throw new Exception("Impossible de trouver le template $sav");
 
         debug & Debug::log("Path du template : '%s'", $template);
         self::$template=$template; // enregistre le path du template en cours (cf walkTable)
