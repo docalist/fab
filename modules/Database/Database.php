@@ -481,9 +481,9 @@ class Database extends Module
                 try
                 {
                     if ($readOnly)
-                        $Selection=$Bis->OpenSelection($path, $dataset, $equation);
+                        $selection=$Bis->OpenSelection($path, $dataset, $equation);
                     else
-                        $Selection=$Bis->OpenWriteSelection($path, $dataset, $equation);
+                        $selection=$Bis->OpenWriteSelection($path, $dataset, $equation);
                 }
                 catch (Exception $e)
                 {
@@ -497,13 +497,14 @@ class Database extends Module
             case 'xapian':
                 require_once(Runtime::$fabRoot.'XapianDb.php');
                 $selection=new XapianDb();
+                //$selection->create($path, Runtime::$fabRoot . 'db.yaml', true);
                 $selection->open($path, $readOnly);
                 $selection->select($equation);
                 break;
             default:
                 throw new Exception("Impossible d'ouvrir la base '$database' : le type de base ('$type') n'est pas valide");
         }      
-        return $Selection;    	
+        return $selection;    	
     }
     
 /**
@@ -574,7 +575,7 @@ class Database extends Module
                         $t[$i]=str_ireplace
                         (
                             array(' ou ', ' or ', ' et ', ' sauf ', ' and not ', ' but ', ' and '),
-                            array(" ou $name=", " ou $name=", " et $name=", " sauf $name=", " sauf $name=", " sauf $name=", " et $name="),
+                            array(" OR $name=", " OR $name=", " AND $name=", " sauf $name=", " sauf $name=", " sauf $name=", " AND $name="),
                             $t[$i],
                             $nb
                         );
@@ -602,7 +603,7 @@ class Database extends Module
             }
                                     
             if ($parent) $h='(' . $h . ')';
-            if ($h) if ($equation) $equation .= ' et ' . $h; else $equation=$h;
+            if ($h) if ($equation) $equation .= ' AND ' . $h; else $equation=$h;
         }
         //echo "equation : [$equation]";
         if ($hasFields) return $equation; else return null;
