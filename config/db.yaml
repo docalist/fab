@@ -31,11 +31,12 @@
 #   timeout lors de la connexion au serveur. Valeur par défaut : 0
 #   (tout cela est à vérifier)
 
-ascodocpsy:
-    type: bis
-    path: ascodocpsy.bed
-
-ascoxapian:
-    type: xapian
-    path: ascoxapian
+# exemple : 
+# ascodocpsy:
+#    type: bis
+#    path: ascodocpsy.bed
+#
+# ascoxapian:
+#    type: xapian
+#    path: ascoxapian
 
