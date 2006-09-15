@@ -560,6 +560,8 @@ class Database extends Module
                 
             $h='';
             
+            $parent=false;
+            
             foreach ($value as $item)
             {
                 if ($item == '') continue;
