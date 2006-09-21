@@ -1,13 +1,19 @@
 <?php
-//while(ob_get_level()) ob_end_clean(); // TODO: utile ?
+/**
+ * @package     fab
+ * @subpackage  runtime
+ * @author      dmenard
+ * @version     SVN: $Id$
+ */
 
 
 /**
- * Vocabulaire :
- * le site web = la partie visible sur internet (la page d'index, les
- * images, css, javascript, etc.), plus exactement, il s'agit de tout le
- * contenu qui peut être appellé au travers d'un navigateur
- * ->$webroot= le path du répertoire correspondant
+ * Le coeur de fab
+ * 
+ * Vocabulaire : le site web = la partie visible sur internet (la page d'index,
+ * les images, css, javascript, etc.), plus exactement, il s'agit de tout le
+ * contenu qui peut être appellé au travers d'un navigateur - >$webroot= le path
+ * du répertoire correspondant
  * 
  * l'application = l'ensemble de l'application, c'est à dire le site web et
  * toutes les autres librairies, scripts, fichiers de configuration,
@@ -20,17 +26,11 @@
  *      \admin
  * 
  * home : le préfixe commun à toutes les urls pour un site donné
+ * 
+ * @package     fab
+ * @subpackage  runtime
  */
  
-function test($url, $title='')
-{
-	if ($title) echo "<br /><h2><strong>$title</strong></h2>";
-    echo "<li>Link for [$url]<br />";
-    $h=Routing::linkFor($url);
-    if ($h=='') $h='Aucune route';
-    echo '<span style="color: red">'.$h.'</span>';
-    echo '</li>';
-}
 class Runtime
 {
     /**

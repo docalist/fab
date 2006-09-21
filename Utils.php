@@ -1,12 +1,16 @@
 <?php
+/**
+ * @package     fab
+ * @subpackage  util
+ * @author      dmenard
+ * @version     SVN: $Id$
+ */
 
-
-/*
- * Utils.php
+/**
+ * Fonctions utilitaires
  * 
- * 
- * 30 mars 2006, dmenard
- * 
+ * @package     fab
+ * @subpackage  util
  */
 final class Utils
 {

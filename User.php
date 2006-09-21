@@ -1,5 +1,12 @@
 <?php
 /**
+ * @package     fab
+ * @subpackage  user
+ * @author      dmenard
+ * @version     SVN: $Id$
+ */
+
+/**
  * Gestion des droits et des utilisateurs
  * 
  * Un droit est composé de deux parties : - une partie rôle telle que 'Admin',
@@ -41,6 +48,9 @@
  * Il existe un pseudo-droit nommé 'default' dont dispose automatiquement tous
  * les utilisateurs (i.e. hasAccess('default') retourne toujours true). Default
  * est notamment utilisé dans les fichiers de config.
+ * 
+ * @package     fab
+ * @subpackage  user
  */
 class User
 {

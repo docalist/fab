@@ -1,4 +1,17 @@
 <?php
+/**
+ * @package     fab
+ * @subpackage  module
+ * @author      dmenard
+ * @version     SVN: $Id$
+ */
+
+
+/**
+ * Gestionnaire de modules et classe ancêtre pour tous les modules de fab.
+ * @package     fab
+ * @subpackage  module
+ */
 class Module
 {
     public $path;

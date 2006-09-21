@@ -1,5 +1,18 @@
 <?php
+/**
+ * @package     fab
+ * @subpackage  debug
+ * @author      dmenard
+ * @version     SVN: $Id$
+ */
 
+
+/**
+ * Fonctions de débogage
+ * 
+ * @package     fab
+ * @subpackage  debug
+ */
 class Debug
 {
     public static $log=array();

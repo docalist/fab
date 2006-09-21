@@ -1,12 +1,12 @@
 <?php
-
-/*
- * Routing.php
- * 
- * 
- * 29 mars 2006, dmenard
- * 
+/**
+ * @package     fab
+ * @subpackage  routing
+ * @author      dmenard
+ * @version     SVN: $Id$
  */
+
+
 /**
  * Gestionnaire de routes.
  * 
@@ -18,6 +18,9 @@
  * Le fichier est aussi utilisé en sens inverse : lorsque dans un template on
  * fait un lien vers une autre action ou un autre module, le lien est
  * automatiquement ajusté en fonction de la configuration.
+ * 
+ * @package     fab
+ * @subpackage  routing
  */
 class Routing
 {

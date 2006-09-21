@@ -1,5 +1,19 @@
 <?php
+/**
+ * @package     fab
+ * @subpackage  cache
+ * @author      dmenard
+ * @version     SVN: $Id$
+ */
 
+
+
+/**
+ * Le gestionnaire de cache
+ * 
+ * @package     fab
+ * @subpackage  cache
+ */
 
 final class Cache
 {

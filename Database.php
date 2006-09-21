@@ -4,11 +4,6 @@
  * @subpackage  database
  * @author      dmenard
  * @version     SVN: $Id$
- * 
- * $Author$
- * $Date$
- * $Id$
- * $Revision$
  */
 
 // TODO: implémenter append()
@@ -25,7 +20,7 @@
  * interface pour toutes les classes descendantes.
  * 
  * @package     fab
- * @subpackage  config
+ * @subpackage  database
  */
 abstract class Database implements ArrayAccess, Iterator
 {
@@ -610,7 +605,7 @@ abstract class Database implements ArrayAccess, Iterator
  * Représente un enregistrement de la base
  * 
  * @package     fab
- * @subpackage  config
+ * @subpackage  database
  */
 abstract class DatabaseRecord implements Iterator, ArrayAccess, Countable
 {
@@ -660,7 +655,7 @@ abstract class DatabaseRecord implements Iterator, ArrayAccess, Countable
  * Représente un enregistrement dans une base {@link BisDatabase}
  * 
  * @package     fab
- * @subpackage  config
+ * @subpackage  database
  */
 class BisDatabaseRecord extends DatabaseRecord
 {
@@ -768,7 +763,7 @@ class BisDatabaseRecord extends DatabaseRecord
  * Représente une base de données Bis
  * 
  * @package     fab
- * @subpackage  config
+ * @subpackage  database
  */
 class BisDatabase extends Database
 {

@@ -1,14 +1,16 @@
 <?php
-
-//require_once('Utils.php');
-//require_once('Cache.php');
+/**
+ * @package     fab
+ * @subpackage  config
+ * @author      dmenard
+ * @version     SVN: $Id$
+ */
 
 /**
  * Stocke les paramètres de configuration de l'application
- *
- * @package    fab
- * @subpackage config
- * @author     Daniel Ménard <daniel.menard@bdsp.tm.fr>
+ * 
+ * @package 	fab
+ * @subpackage 	config
  */
 class Config
 {

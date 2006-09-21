@@ -1,9 +1,10 @@
 <?php
 /**
- * Gestionnaire de templates
+ * @package     fab
+ * @subpackage  template
+ * @author      dmenard
+ * @version     SVN: $Id$
  */
-//require_once('Cache.php');
-//require_once('Utils.php');
 
 /**
  * Gestionnaire de templates
@@ -106,7 +107,8 @@
  * 
  * [TODO] - TableOfContents
  * 
- *  
+ * @package     fab
+ * @subpackage  template
  */
 class Template
 {

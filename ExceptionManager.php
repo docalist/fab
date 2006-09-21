@@ -1,4 +1,19 @@
 <?php
+/**
+ * @package     fab
+ * @subpackage  exceptions
+ * @author      dmenard
+ * @version     SVN: $Id$
+ */
+
+
+/**
+ * Gestionnaire d'exceptions
+ * 
+ * @package     fab
+ * @subpackage  exceptions
+ */
+
 class ExceptionManager
 {
     /**
