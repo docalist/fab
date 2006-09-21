@@ -4,6 +4,11 @@
  * @subpackage  database
  * @author      dmenard
  * @version     SVN: $Id$
+ * 
+ * $Author$
+ * $Date$
+ * $Id$
+ * $Revision$
  */
 
 // TODO: implémenter append()
