@@ -2,7 +2,7 @@
 /**
  * @package     fab
  * @subpackage  util
- * @author      dmenard
+ * @author 		Daniel Ménard <Daniel.Menard@bdsp.tm.fr>
  * @version     SVN: $Id$
  */
 
@@ -211,7 +211,7 @@ final class Utils
 	 * </code>
 	 * 
 	 * Pour savoir si le path obtenu est propre, c'est-à-dire si toutes les
-	 * références '..' ont été résolues, utiliser {@link isCleanPath) après.
+	 * références '..' ont été résolues, utiliser {@link isCleanPath} après.
 	 * 
 	 * @param string $path le path à normaliser
 	 * @return string le path normalisé
