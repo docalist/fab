@@ -2,7 +2,7 @@
 /**
  * @package     fab
  * @subpackage  runtime
- * @author      dmenard
+ * @author 		Daniel Ménard <Daniel.Menard@bdsp.tm.fr>
  * @version     SVN: $Id$
  */
 
@@ -271,7 +271,7 @@ class Runtime
 
         // Includes supplémentaires
         // TODO: écrire un class manager pour ne pas inclure systématiquement tout (voir du coté du gestionnaire de modules)
-        require_once self::$fabRoot.'modules'.DIRECTORY_SEPARATOR.'Database'.DIRECTORY_SEPARATOR.'Database.php';        
+//        require_once self::$fabRoot.'modules'.DIRECTORY_SEPARATOR.'Database'.DIRECTORY_SEPARATOR.'Database.php';        
         //require_once self::$fabRoot.'BisWeb.php';
 
 require_once self::$fabRoot.'modules'.DIRECTORY_SEPARATOR.'TaskManager/TaskManager.php';
@@ -291,14 +291,23 @@ $fab_init_time=microtime(true);
         Debug::log('Chargement de la configuration initiale');
         require_once(self::$fabRoot . 'config' . DIRECTORY_SEPARATOR . 'config.php');
         if (file_exists($path=self::$root . 'config' . DIRECTORY_SEPARATOR . 'config.php'))
+        {
+            Debug::log('Chargement de %s', $path);
             require_once $path;
-
+        }
+        
         if (!empty(self::$env))   // charge la config spécifique à l'environnement
         {
-            if (file_exists($path=self::$root.'config'.DIRECTORY_SEPARATOR.'config.' . self::$env . '.php'))
+            if (file_exists($path=self::$fabRoot.'config'.DIRECTORY_SEPARATOR.'config.' . self::$env . '.php'))
+            {
+                Debug::log('Chargement de %s', $path);
                 require_once $path;
+            }
             if (file_exists($path=self::$root.'config'.DIRECTORY_SEPARATOR.'config.' . self::$env . '.php'))
+            {
+                Debug::log('Chargement de %s', $path);
                 require_once $path;
+            }
         }
     }
 
