@@ -70,7 +70,10 @@ class Database extends Module
     {
         // Détermine le template à utiliser
         if (! $template=$this->getTemplate('errortemplate'))
-            throw new Exception('Le template d\'erreur à utiliser n\'a pas été indiqué.');
+        {
+            echo $error ? $error : 'Une erreur est survenue pendant le traitement de la requête';
+            return;
+        }
 
         // Détermine le callback à utiliser
         $callback=$this->getCallback();
@@ -487,7 +490,10 @@ class Database extends Module
                 }
                 catch (Exception $e)
                 {
-                    throw new Exception("Erreur lors de l'ouverture de la base '$database' : " . $e->getMessage());
+//                    throw new Exception("Erreur lors de l'ouverture de la base '$database' : " . $e->getMessage());
+                    $this->showError($e->getMessage());
+                    unset($Bis);
+                    return null;
                 }
                 
                 // Terminé
@@ -574,16 +580,18 @@ class Database extends Module
                     $nb=0;
                     if ($t[$i])
                     {
+ 
                         $t[$i]=str_ireplace
                         (
-                            array(' ou ', ' or ', ' et ', ' sauf ', ' and not ', ' but ', ' and '),
-                            array(" OR $name=", " OR $name=", " AND $name=", " sauf $name=", " sauf $name=", " sauf $name=", " AND $name="),
+                            array(' sauf ', ' and not ', ' but ', ' or ', ' ou ', ' and ', ' et '),
+                            array(" sauf $name=", " sauf $name=", " sauf $name=", " OR $name=", " OR $name=", " AND $name=", " AND $name="),                            
                             $t[$i],
                             $nb
                         );
                         if ($nb) $parent=true;
                     }
                 }
+                
                 $item="$name=" . implode('"',$t);
                 $item=preg_replace('~'.$name.'\s*=((?:\s*\()+)~', '\1' . $name . '=', $item);
                 $item=preg_replace('~\s+~', ' ', $item);
