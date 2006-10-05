@@ -2,7 +2,7 @@
 /**
  * @package     fab
  * @subpackage  config
- * @author      dmenard
+ * @author 		Daniel Ménard <Daniel.Menard@bdsp.tm.fr>
  * @version     SVN: $Id$
  */
 
@@ -61,12 +61,12 @@ class Config
         $cache=Config::get('cache.enabled');
         if ( $cache && Cache::has($path, Config::get('config.checktime')?filemtime($path):0) )
         {
-            Debug::log('A partir du cache'); 
+            Debug::log("Chargement de '%s' à partir du cache", $yamlPath);
             return require(Cache::getPath($path));
         }
         
         // Sinon, charge le fichier réel et le stocke en cache
-        Debug::log("Compilation de '%s'", $yamlPath); 
+        Debug::log("Chargement de '%s' : compilation", $yamlPath);
 
         // Détermine le parser à utiliser
 //        $method=self::$parser[Utils::getExtension($path)];
@@ -109,7 +109,6 @@ class Config
      */
     public static function load($yamlPath, $section='', $transformer='')
     {
-        Debug::log("Chargement de '%s'", $yamlPath);
         self::addArray(self::loadFile($yamlPath, $transformer), $section);
     }
     
