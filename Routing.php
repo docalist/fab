@@ -2,7 +2,7 @@
 /**
  * @package     fab
  * @subpackage  routing
- * @author      dmenard
+ * @author 		Daniel Ménard <Daniel.Menard@bdsp.tm.fr>
  * @version     SVN: $Id$
  */
 
@@ -214,7 +214,7 @@ class Routing
      */
     public static function setupRouteFor($url)
     {
-        Debug::log("Recherche d'une route pour %s", $url);
+        //Debug::log("Recherche d'une route pour %s", $url);
         $matches=array(); // supprime warning 'variable not initialized'
         foreach (Config::get('routes') as $name=>$route)
         {
@@ -265,19 +265,20 @@ class Routing
                         $_REQUEST[$name]= & $t[$name];
                     }
                 }
-                Debug::notice('Route trouvée : ' . Debug::dump($t));
+//                Debug::notice('Route trouvée : ' . Debug::dump($t));
+                debug && Debug::log('Recherche d\'une route pour %s : module=%s, action=%s', $url, $t['module'], $t['action']);
                 return;       
             }
         }
         
-        Debug::notice('Aucune route trouvée pour %s', $url);
+        debug && Debug::notice('Aucune route n\'a été trouvée pour %s', $url);
         // Aucune route trouvée : 404 page non trouvée
         self::notFound();
     }
     
     public static function dispatch($url)
     {
-        debug && Debug::log("Dispatch de l'url");
+        //debug && Debug::log("Dispatch de l'url");
         self::setupRouteFor($url);
         Module::run();
     }
