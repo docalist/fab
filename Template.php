@@ -2,7 +2,7 @@
 /**
  * @package     fab
  * @subpackage  template
- * @author      dmenard
+ * @author 		Daniel Ménard <Daniel.Menard@bdsp.tm.fr>
  * @version     SVN: $Id$
  */
 
@@ -363,8 +363,10 @@ class Template
                     $value=explode('::', $value);
                 self::$dataCallbacks[]=$value;
             }
-            elseif (is_array($value))           // Un tableau de valeur ou un tableau callback  
+            elseif (is_array($value))           // Un tableau de valeur ou un tableau callback
+//            elseif (is_array($value) or($value instanceof Iterator and $value instanceOf ArrayAccess))
             {
+
                 if (is_callable($value))        // C'est un callback
                     self::$dataCallbacks[]=$value;                    	
                 else
@@ -376,6 +378,8 @@ class Template
                     self::$dataVars=array_merge(self::$dataVars, $value);
                 }
             }
+            else
+                echo "Je ne sais pas quoi faire de l'argument numéro ", ($i+1), " passé à template::run <br />", print_r($value), "<br />";
         }
             
         // Compile le template s'il y a besoin
@@ -571,20 +575,34 @@ class Template
                     // S'il n'existe toujours pas, erreur 'type de composant' non géré.
                      
                     // Initialise l'id de l'objet
-                    if (isset(self::$genItem['name']))
-                        $name=self::$genItem['name'];
+//                    if (isset(self::$genItem['name']))
+//                        $name=self::$genItem['name'];
+//                    else
+//                        $name=$type;
+//                        
+//                    if (isset(self::$usedId[$name])) // si id déjà utilisé, ajoute un numéro (2, 3...)
+//                    {
+//                        debug && Debug::notice('Génère ID pour %s. Dernier utilisé : %s', $name, self::$usedId[$name]);
+//                        $name=$name . '_' . (++self::$usedId[$name]+1);
+//                        debug && Debug::notice('ID généré: %s', $name);
+//                    }
+//                    else
+//                    {
+//                        debug && Debug::notice('Génère ID pour %s. Jamais utilisé. ID généré : %s', $name, $name);
+//                        self::$usedId[$name]=0;
+//                    }
+//                    
+//                    self::$genItem['auto_id']=$name; // auto_id existe toujours
+//                    
+                    // auto_id existe toujours
+                    if (isset(self::$genItem['id']))
+                        self::$genItem['auto_id']=self::$genItem['id']; 
                     else
-                        $name=$type;
-                        
-                    if (isset(self::$usedId[$name])) // si id déjà utilisé, ajoute un numéro (2, 3...)
-                        $name=$name . '_' . (++self::$usedId[$name]+1);
-                    else
-                        self::$usedId[$name]=0;
-
-                    self::$genItem['auto_id']=$name; // auto_id existe toujours
-                    
-                    if (isset(self::$genItem['name'])) // id n'existe que si name a été indiqué
-                        self::$genItem['id']=$name;
+                    {
+                        self::$genItem['auto_id']=self::generateId(isset(self::$genItem['name']) ? self::$genItem['name'] : $type); 
+                        if (isset(self::$genItem['name'])) // id n'existe que si name a été indiqué
+                            self::$genItem['id']=self::$genItem['name'];
+                    }
                     
                     // Construit le code de l'objet
                     array_push($used, array('0'=>'0', '1'=>'1', 'type'=>'type', 'name'=>'name', 'id'=>'id', 'auto_id'=>'auto_id'));
@@ -628,6 +646,9 @@ class Template
                 
             case 'sep': // HACK: à virer
                 return '[sep]';
+            
+//            case 'auto_id':
+//                return self::generateId( isset(self::$genItem['name']) ? self::$genItem['name'] : 'dmdm'); 
                 
             default://echo "DUMP " ;var_dump($name);
                 if ($name{0}=='[') return 'iii'.$name; 
@@ -650,7 +671,7 @@ class Template
     private static function generateId($name='id')
     {
         if (isset(self::$usedId[$name]))
-            return $name . (++self::$usedId[$name] + 1);
+            return $name . '-' . (++self::$usedId[$name] + 1);
         else
         {
             self::$usedId[$name]=0;
@@ -921,6 +942,50 @@ class Template
 
         switch($type)
         {
+            case 'db':
+                if ($knownMax)
+                {
+                    if ($max)
+                    {
+                        $maxInit="\$nb=0;\n";
+                        $maxCond="    if (\$nb++>=$max) break;\n";
+                    }
+                    else
+                    {
+                        $maxInit=$maxCond="";
+                    }
+                }
+                else
+                {
+                    $maxInit="\$max=$max;\n"
+                            ."\$nb=0;\n";
+                    $maxCond="    if (\$nb++>=\$max) break;\n";
+                }
+
+                // dans le code, remplace directement les champs de la forme [loop.xxx] ou [$id.xxx]
+                // par un appel à $table['xxx']
+                $code=preg_replace // remplace [array.key], [loop.key]...
+                (
+                    "/\[(?:loop|array".($id?"|$id":"").")\.(rank|fields|name)\]/", 
+                    self::PHP_START_TAG. "echo \$$1" . self::PHP_END_TAG, 
+                    $code
+                );
+
+
+                $source=self::PHP_START_TAG . "\n"
+                    .   "global $object;\n"
+                    .   $maxInit
+                    .   "foreach($object as \$rank=>\$fields)\n"
+                    .   "{"
+                    .   $maxCond
+                    .   self::PHP_END_TAG
+                    .   $code
+                    .   self::PHP_START_TAG . "\n"
+                    .   "}"
+                    .   self::PHP_END_TAG 
+                    ;
+                break;
+
         	case 'bis':
                 if ($knownOrder)
                 {
@@ -1040,7 +1105,7 @@ class Template
                 );
 
                 $source=self::PHP_START_TAG . "\n"
-                    .   "global $object;\n"
+                    .   "global $object,\$key,\$value;\n"
                     .   $init
                     .   $maxInit
                     .   "foreach($cond as \$key=>\$value)\n"
@@ -1516,6 +1581,7 @@ class Template
             // Teste s'il s'agit d'une variable
             if (array_key_exists($name, self::$dataVars)) 
             {
+                debug && Debug::log("recherche de '%s' dans les tableaux de données passés à Template::Run", $name);
                 $value=self::$dataVars[$name];	
                 if ( $value !== '') 
                 {   
@@ -1528,6 +1594,23 @@ class Template
             // Teste s'il s'agit d'une propriété d'objet
             foreach (self::$dataObjects as $object)
             {
+                if ($object instanceof ArrayAccess)
+                {
+                    try
+                    {
+                        $value=$object[$name];
+                        if ( $value !== '') 
+                        {   
+                            self::$optFilled[self::$optLevel]++;
+                            return $value;
+                        }
+                    }
+                    catch(Exception $e)
+                    {
+                    	
+                    }
+                }
+                
                 if (property_exists($object, $name))
                 {
                 	$value=$object->$name;
