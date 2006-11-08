@@ -1642,8 +1642,8 @@ self::$csource=$source;// TODO: à virer
     }
     private static function & filled(&$x)
     {
-        //if ($x != '') 
-        self::$optFilled[self::$optLevel]++;
+        if ($x != '') 
+            self::$optFilled[self::$optLevel]++;
     	return $x;
     }
     

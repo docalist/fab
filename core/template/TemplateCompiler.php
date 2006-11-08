@@ -281,10 +281,10 @@ class TemplateCompiler
                     $node->removeAttribute('if');
                 }
 
-                if ($node->hasAttributes())
-                    foreach ($node->attributes as $key=>$attribute)
-                        $attribute->value=self::compileField($attribute->value, false);
-
+//                if ($node->hasAttributes())
+//                    foreach ($node->attributes as $key=>$attribute)
+//                        $attribute->value=self::compileField($attribute->value, false);
+//
                 if (!$ignore)
                 {        
                     echo '<', $name;    // si le terme a un préfixe, il figure déjà dans name (e.g. <test:h1>)
@@ -297,11 +297,22 @@ class TemplateCompiler
                 
                 if (! $ignore and $node->hasAttributes())
                 {
+                    $flags=0;
                     foreach ($node->attributes as $key=>$attribute)
                     {
-                        $value=utf8_decode($attribute->value);
+                        ++self::$opt;
+                        $value=self::compileField($attribute->value, false, $flags);
+                        --self::$opt;
+                        $value=utf8_decode($value);
                         $quot=(strpos($value,'"')===false) ? '"' : "'";
-                        echo ' ', $attribute->nodeName, '=', $quot, $value, $quot;
+                        if ($flags===2)
+                        {
+                            echo self::PHP_START_TAG, 'Template::optBegin()', self::PHP_END_TAG;
+                            echo ' ', $attribute->nodeName, '=', $quot, $value, $quot;
+                            echo self::PHP_START_TAG, 'Template::optEnd()', self::PHP_END_TAG; 
+                        }
+                        else
+                            echo ' ', $attribute->nodeName, '=', $quot, $value, $quot;
                     }
                 }
                 if ($node->hasChildNodes())
@@ -361,11 +372,18 @@ class TemplateCompiler
      * Compile les balises de champ présents dans un texte   
      * 
      * @param string $source le texte à examiner
+     * 
      * @param boolean $phpTags indique q'il faut ou non ajouter les tags 
      * d'ouverture et de fermeture de php dans le code généré
+     * 
+     * @param int $flags (optionnel) en sortie, un entier indiquant le
+     * statut de la compilation (0=le source passé en paramètre ne contenait
+     * pas de champs, 1=le source passé en paramètre contenait des champs et
+     * du texte, 2=le source passé en paramètre ne contenait que des champs)
+     * 
      * @return string la version compilée du source
      */
-    private static function compileField($source, $asExpression=false)
+    private static function compileField($source, $asExpression=false, &$flags=null)
     {
         // Expression régulière pour un nom de variable php valide
         // Source : http://fr2.php.net/variables (dans l'intro 'essentiel')
@@ -390,6 +408,8 @@ class TemplateCompiler
         $start=0;
         $result='';
         
+        $hasFields=false;
+        $hasText=false;
         for($i=1;;$i++)
         {
             // Recherche la prochaine expression
@@ -397,6 +417,7 @@ class TemplateCompiler
             $expression=$match[0][0];
             $len=strlen($expression);
             $offset=$match[0][1];
+            $hasFields=true; // pour indiquer dans flags qu'on a trouvé au moins un champ
             
             // Envoie le texte qui précède l'expression trouvée
             if ('' != $text=substr($source, $start, $offset-$start))
@@ -405,6 +426,7 @@ class TemplateCompiler
                     $result.=($result?' . ':'') . '\'' . addslashes($text) . '\'';
                 else
                     $result.=$text;
+                $hasText=true;
             }
                         
             // Enlève les accolades qui entourent l'expression
@@ -423,11 +445,11 @@ class TemplateCompiler
             // Il y a plusieurs alternatives dans l'expression
             else
             {
-                $h='($z=' . join($t, ' or $z=') . ') ? ';	
+                $h='($tmp=' . join($t, ' or $tmp=') . ') ? ';	
                 if (self::$opt) 
-                    $h.='Template::filled($z)';
+                    $h.='Template::filled($tmp)';
                 else
-                    $h.='$z';
+                    $h.='$tmp';
                 $h.=' : null';  
             }
             
@@ -452,9 +474,16 @@ class TemplateCompiler
                 $result.=($result?' . ':'') . '\'' . addslashes($text) . '\'';
             else
                 $result.=$text;
+            $hasText=true;
         }
-        //if ($i>0) $h="($h)";        
-//        echo 'Expression compilée : <pre>' , htmlentities($result), '</pre><br />';
+
+        if (! $hasFields) 
+            $flags=0;
+        elseif ($hasText)
+            $flags=1;
+        else
+            $flags=2;
+            
         return $result;
     }
 
