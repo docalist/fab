@@ -1,0 +1,251 @@
+Syntaxe des templates
+~~~~~~~~~~~~~~~~~~~~~
+
+Introduction
+============
+Fab dispose d'un système simple de templates qui permettent d'avoir une 
+séparation nette entre la présentation et le code. Les templates peuvent être
+utilisés pour générer n'importe quelle sortie au format texte (texte brut, xml,
+html, rtf, etc.)
+
+Le système de templates mis en oeuvre vise plusieurs objectifs :
+
+- avoir une syntaxe très simple, facile à comprendre
+- permettre de gagner du temps : écrire un template doit prendre beaucoup moins
+  de temps que de générer à la main la sortie attendue
+- permettre, au moins en théorie, que les templates soient édités avec un outil
+  standard (par exemple un éditeur html, éventuellement wysiswyg)
+- avoir un système rapide (dans l'idéal, aussi rapide que si on avait codé à la
+  main tous les "``echo xxx``" requis)
+- offrir des fonctions de haut niveau : afficher facilement les résultats d'une
+  recherche (loop), générer une table ds matières, etc.
+
+Historique
+==========
+- La version 1 du système de template reprends ce qu'on avait dans BisWeb et 
+  Bis 4.0 (champs entre crochets, bloc optionnels entre parenthèses et rien 
+  d'autre).
+- La version 2 améliore les choses en greffant plus de possibilités : blocs if
+  et loop, balise opt pour les blocs optionnels, etc. La mise en oeuvre est faite
+  à base d'expressions régulières, ce qui devient assez vite ingérable.
+- La version 3 est une réécriture complète basée sur un parser xml. Les 
+  templates doivent désormais être des fichiers xml valides. La syntaxe des 
+  champs utilise maintenant le signe ``$`` et les accolades ``{ }``. Ajout de 
+  plusieurs tags (if/else/elseif, switch/case/default, etc) et d'attributs 
+  utilisables dans tous les tags (``if="xx"``, ``test="xxx"``, ...). 
+  Système de templates match.
+
+Mise en oeuvre
+==============
+Un template doit être un fichier ou un fragment xml bien formé. Fab ajoute 
+automatiquent un tag racine au fichier s'il s'agit d'un frament xml. Cela permet 
+d'avoir le même système de templates pour des documents xhtml et, par exemple, 
+des templates générant une sortie en format csv.
+
+Le système se compose de trois grands groupes d'éléments :
+
+- Des zones de données : il s'agit de balises qui apparaissent dans le code du 
+  template et  qui, lors de l'instanciation du template, seront remplacés par 
+  une valeur : ::
+
+  <h1>$titre</h1>
+  <h1 class="$class">{$titoriga:$titorigm:"sans titre"}</h1>
+ 		
+- des attributs qui peuvent être ajoutés à n'importe quel tag : ::
+
+	<div id="adminBar" test="User::isAdmin()">
+    	<a href="#">Créer une nouvelle base de données</a>
+    	...
+	</div>
+
+- des tags : ::
+
+	<loop on="$selection">...</loop>
+	<if test="xxx">...<if>
+	<switch test="xxx"><case test="yyy">...</case><default></switch>
+	etc.
+
+Commentaires
+------------
+Les commentaires doivent être indiqués en utilisant la syntaxe xhtml : ::
+
+	<!-- commentaire -->
+
+Ces commentaires sont supprimés de la sortie si l'option de configuration 
+*templates.removehtmlcomments* est activée.
+
+Remarque : précédemment, il existait un second type de commentaires utilisant la 
+même syntaxe qu'en C : ``/* commentaire */``. Pour le moment, ce type de 
+commentaire n'est plus géré, car cela crée un conflit avec les expressions xpath 
+utilisées dans les templates match. Il seront activés si une solution est 
+trouvée.
+
+Zones de données
+----------------
+(ce qu'avant, on appellait des "champs").
+
+Lors de l'instanciation du template, toutes les zones de données sont évaluées
+et remplacées par les données correspondantes fournies lors de l'appel à 
+``Template::Run``.
+
+Il existe deux syntaxes possibles : la syntaxe simple et la syntaxe étendue.
+
+Syntaxe simple
+..............
+Exemple : ::
+
+	$title
+
+Un signe dollar suivi d'un identifiant.
+
+Syntaxe étendue
+...............
+Exemples : ::
+
+	{$title:'pas de titre'}
+	{Config::get('env')}
+
+Il s'agit d'une expression saisie entre accolades.
+Il peut s'agit d'une expression simple (par exemple ``{$titre}`` qui fait 
+exactement la même chose que ``$titre``) ou d'une expression plus complexe 
+(par exemple ``{strtolower($titre)}`` qui affiche la version en minuscules du 
+titre).
+
+En fait il est possible de saisir n'importe quelle expression (c'est-à-dire 
+quelque chose qui retourne une valeur). La syntaxe est très intuitive 
+puisqu'elle ressemble fortement à la syntaxe utilisée en php).
+
+Fab ajoute un nouvel opérateur (le signe ":") qui permet de créer un "collier" 
+d'expressions.
+
+Exemple : ::
+	
+	{$titoriga:$titorigm:"pas de titre"}
+
+Dans ce cas, la première expression (``$titoriga``) sera évaluée. Si elle retourne
+quelque chose (i.e pas une chaine vide), on s'arrête là et on retourne cette 
+valeur. Sinon, on passe à la seconde, et ainsi de suite.
+
+Si aucune des expressions ne retourne une valeur, rien ne sera affiché (tout ce 
+qu'il y a entre les accolades disparaît de la sortie générée par le template).
+
+Remarques :
+
+- pour des raisons de compatibilité ascendante, l'ancienne syntaxe 
+  utilisant des crochets utilisée dans les anciennes versions du gestionnaire de 
+  templates est également supportée : ::
+
+	[title] === $title
+	[titoriga:titorigm] === {$titoriga:$titorigm}
+
+- les zones de données sont utilisables dans du texte et dans la valeur d'un 
+  attribut d'un tag mais ne peuvent pas constituer un nom de tag ou un nom 
+  d'attribut (sinon, le template ne serait plus du xml bien formé). Vous pouvez 
+  donc écrire ``<h1>$titre</h1>`` ou ``<h1 class="$titre" id="$id>...</h1>``
+  mais pas ``<h1 $attr="un">...</h1>`` ou ``<$tag>xxx</$tag>``
+
+Lorsqu'une zones de données est utilisée comme valeur d'un attribut, et que la 
+zone de données ne retourne pas de valeur, l'attribut devient automatiquement
+optionnel.
+
+Par exemple, si ``$class`` n'est pas définit, le template suivant 
+``<h1 class="$class">...</h1>`` générera ``<h1>...</h1>`` et non pas
+``<h1 class="">...</h1>``
+	
+Attributs
+---------
+Fab reconnaît un certains nombres d'attributs qui sont utilisables dans les 
+templates reposant sur un balisage.
+
+Bloc optionnel : ``test="condition"``
+.....................................
+L'attribut "``test``" peut être ajouté à n'importe quel tag html. Il représente 
+une condition qui peut éventuellement contenir des zones de données. Lors de 
+l'exécution la condition est évaluée et **l'ensemble du bloc, tag compris, sera 
+supprimé si la condition n'est pas remplie**.
+
+Exemple : ::
+
+	<div test="User::isAdmin($user)" id="adminBar" >...</div>
+
+Tag optionnel : ``if="condition"``
+..................................
+
+L'attribut "``if``" peut être ajouté à n'importe quel tag html. Il représente 
+une  condition qui peut éventuellement contenir des zones de données. Lors de 
+l'exécution la condition est évaluée et le tag ne sera affiché que si la 
+condition est remplie. **Les éléments contenus dans le bloc, eux, sont toujours 
+affichés**, que la condition soit remplie ou non.
+
+Exemple : ::
+	
+	<a href="$link" if="$link">$titre</a>
+		
+Si on a un lien, générera ::
+
+	<a href="http://xxx">Titre du doc</a>
+		
+Sinon, générera : ::
+	
+	Titre du doc
+		
+Remarques :
+- on peut combiner, dans un même tag, les attributs ``test`` et ``if``.
+- le choix des noms (test et if) ne me plait toujours pas.... chercher encore...
+
+Tags
+----
+
+Blocs optionnels : ``<opt>``
+............................
+Exemple : ::
+	
+	<opt>Le titre est $titre<br /></opt><opt>L'auteur est $auteur<br /></opt>
+
+Blocs ``if/elseif/else``
+........................
+Exemple : ::
+	
+	<if test="xxx">
+		...
+	</if>
+	<elseif test="xxx">
+		...
+	</elseif>
+	<else>
+		...
+	</else>
+
+Blocs ``switch/case/default``
+.............................
+Exemple : ::
+	
+	<switch test="xxx">
+		<case test="xxx">
+			...
+		</case>
+		<case test="yyy">
+			...
+		</case>
+		<default>
+			...
+		</default>
+	</switch>
+	
+Boucles ``loop``
+................
+Exemple : ::
+	
+	<loop on="$selection" as="i,j">
+		...
+	</loop>
+	
+Inclusion de fichier : ``<include>``
+....................................
+	<include file="xxx" />
+	
+Templates match
+...............
+Exemple : ::
+	
+	<tag match="xxx">yyy</tag>
