@@ -17,70 +17,6 @@ seule variable
 */
 
 /**
- * Syntaxe des templates :
- * 
- * - commentaires de templates : slash-étoile commentaire étoile-slash. 
- * Systématiquement enlevés.
- * 
- * - commentaire html : <!-- commentaire -->
- * Enlevés si l'option templates.removehtmlcomments est activée dans le
- * fichier de configuration
- * 
- * - Données : $title, {$title:'pas de titre'}, {Config::get('env')}
- * Examine les sources de données indiquées à Template::Run et affiche
- * le premier des champs qui retourne autre chose que null ou une chaine
- * vide. Si tous les champ sont vides, affiche la valeur par défaut.
- * Si tous les champ sont vides et qu'aucune valeur par défaut n'a été 
- * indiquée, rien ne sera affiché (tout ce qu'il y a entre les crochets
- * disparaît).
- * Pour des raisons de compatibilité ascendante, l'ancienne syntaxe 
- * utilisée dans les templates est également supportée ([title], 
- * [titoriga:titorigm])
- * 
- * - Expression dans la valeur d'un attribut : <tag attribut="$data" />
- * ou <tag attribut="{$data:'default'}" />
- * La syntaxe est la même que pour un champ de données. La valeur de 
- * l'attribut sera remplacée par la valeur du champ.
- * Dans ce mode, l'ensemble de l'attribut est compilé de manière à 
- * retourner une expression. Cela permet d'écrire, par exemple
- * <include file="/templates/$file.htm" /> -> '/templates/'.$file.'.htm'
- * TODO: à tester
- * 
- * - Champ dans le nom d'un attribut : <p [attr]="xxx" />
- * Interdit : le template doit rester un fichier xml correctement formé et
- * le dollar n'est pas un caractère valide pour un nom d'attribut.
- * et avec un dollar ?
- * 
- * - Bloc optionnel : <opt>contenu</opt>
- * Permet de n'afficher un bloc de texte que si au moins un des champs
- * présents dans le contenu ont retournés une valeur.
- * TODO : Si contenu ne contient aucun champ, il sera toujours affiché.
- * Les blocs <opt> peuvent être imbriqués les uns dans les autres.
- * Le tag opt accepte un attribut optionnel "min" qui permet d'indiquer
- * le nombre minimum de champs qui doivent être renseignés au sein du bloc
- * pour que le bloc soit affiché (par défaut, min="1").
- * 
- * - Bloc optionnel : <tag test="condition">contenu</tag>
- * L'attribut "test" peut être ajouté à n'importe quel tag html. Il représente
- * une condition qui peut éventuellement contenir des champs. Lors de l'exécution
- * la condition est évaluée et l'ensemble du bloc, tag compris, sera supprimé si
- * la condition n'est pas remplie.
- * Exemple : <div test="IsAdmin([user])" id="adminBar" >...</div>
- * 
- * - Tag optionnel : <tag if="condition">contenu</tag>
- * L'attribut "if" peut être ajouté à n'importe quel tag html. Il représente
- * une condition qui peut éventuellement contenir des champs. Lors de l'exécution
- * la condition est évaluée et le tag ne sera affiché que si la condition est 
- * remplie. Les éléments contenus dans le bloc, eux, sont toujours affichés, que 
- * la condition soit remplie ou non.
- * Exemple : <a href="[link]" if="[link]">[titre]</a>
- * Si on a un lien, générera <a href="http://xxx">Titre du doc</a>
- * Sinon, générera : Titre du doc
- * Remarque : on peut combiner, dans un même tag, les attributs test et if.
- * 
- */
- 
-/**
  * @package     fab
  * @subpackage  template
  * @author      Daniel Ménard <Daniel.Menard@bdsp.tm.fr>
@@ -98,7 +34,7 @@ class TemplateCompiler
     /**
      * Compile un template 
      * 
-     * Génère une exception si le tempalte est mal formé ou contient des erreurs.
+     * Génère une exception si le template est mal formé ou contient des erreurs.
      * 
      * @param string $source le code source du template à compiler
      * @return string le code php du template compilé

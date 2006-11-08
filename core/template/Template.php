@@ -430,6 +430,7 @@ public static $csource='';
                         
             // Compile le code
             debug && Debug::log('Compilation du source');
+            require_once dirname(__FILE__) . '/TemplateCompiler.php';
             $source=TemplateCompiler::compile($source);
 self::$csource=$source;// TODO: à virer
             // Nettoyage

@@ -240,6 +240,9 @@ Exemple : ::
 		...
 	</loop>
 	
+Prévu, mais pas encore implémenté
+---------------------------------
+
 Inclusion de fichier : ``<include>``
 ....................................
 	<include file="xxx" />
@@ -249,3 +252,15 @@ Templates match
 Exemple : ::
 	
 	<tag match="xxx">yyy</tag>
+
+	
+Table des matières : ``<tableofcontents>``
+....................................
+	<tableofcontents ...options...>...</tableofcontens>
+
+options envisageables :
+- insérer avant/après le texte
+- niveau max de titre à prendre en compte (h1..h3 par exemple)
+- ajouter des liens oui/non
+- créer un lien "retour au sommaire" pour les titres
+- ...
