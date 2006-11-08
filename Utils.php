@@ -19,10 +19,13 @@ final class Utils
 	 * 
 	 * Le constructeur est privé : il n'est pas possible d'instancier la
 	 * classe. Utilisez directement les méthodes statiques proposées.
+     * 
+     * @access private
 	 */
 	private function __construct()
 	{
 	}
+
 
 	/**
 	 * Retourne la partie extension d'un path
@@ -42,28 +45,30 @@ final class Utils
 		return '';
 	}
 
+
 	/**
 	 * Ajoute une extension au path indiqué si celui-ci n'en a pas
 	 * 
+     * Remarque : la fonction retourne le path obtenu mais le paramètre path,
+     * passé par référence, est également modifié. Cela permet d'écrire :
+     * <code>
+     * defaultExtension($h,'txt');
+     * $h=defaultExtension('test', 'txt');
+     * </code>
+     * 
 	 * @param string $path le path à modifier
+     * 
 	 * @param string $ext l'extension à ajouter
+     * 
 	 * @return string le nouveau path
-	 * 
-	 * Remarque : la fonction retourne le path obtenu mais le paramètre path,
-	 * passé par référence, est également modifié. Cela permet d'écrire :
-	 * <code>
-	 * defaultExtension($h,'txt');
-	 * $h=defaultExtension('test', 'txt');
-	 * </code>
 	 */
 	public static function defaultExtension(& $path, $ext)
 	{
 		if (self :: getExtension($path) == '')
-			$path .= ($ext {
-			0 }
-		== '.' ? $ext : ".$ext");
+			$path .= ($ext{0} == '.' ? $ext : ".$ext");
 		return $path;
 	}
+
 
 	/**
 	 * Remplace ou supprime l'extension de fichier d'un path. 
@@ -72,15 +77,14 @@ final class Utils
 	 * Gère à la fois les slashs et les anti-slashs
 	 * 
 	 * @param string $path le path à modifier
+     * 
 	 * @param string $ext l'extension à appliquer à $path, ou vide pour supprimer
 	 * l'extension existante. $ext peut être indiqué avec ou sans point de début
 	 */
 	public static function setExtension(& $path, $ext = '')
 	{
-		if ($ext && $ext {
-			0 }
-		!= '.')
-		$ext = ".$ext";
+		if ($ext && $ext {0} != '.')
+		  $ext = ".$ext";
 
 		$pt = strrpos($path, '.');
 
@@ -96,6 +100,7 @@ final class Utils
 		$path = $path . $ext;
 		return $path;
 	}
+
 
 	/**
 	 * Crée le répertoire indiqué
@@ -117,12 +122,14 @@ final class Utils
         }
 	}
 
+
 	/**
 	 * Indique si le path passé en paramètre est un chemin relatif
 	 * 
 	 * Remarque : aucun test d'existence du path indiqué n'est fait.
 	 * 
 	 * @param string $path le path à tester
+     * 
 	 * @return bool true si path est un chemin relatif, false sinon
 	 */
 	public static function isRelativePath($path)
@@ -133,18 +140,21 @@ final class Utils
 		return true;
 	}
 
+
 	/**
 	 * Indique si le path passé en paramètre est un chemin absolu
 	 * 
 	 * Remarque : aucun test d'existence du path indiqué n'est fait.
 	 * 
 	 * @param string $path le path à tester
+     * 
 	 * @return bool true si path est un chemin absolu, false sinon
 	 */
 	public static function isAbsolutePath($path)
 	{
 		return !self :: isRelativePath($path);
 	}
+
 
 	/**
 	 * Construit un chemin complet à partir des bouts passés en paramètre.
@@ -154,14 +164,15 @@ final class Utils
 	 * 
 	 * Exemple :
 	 * <code>
-	 * makePath('a','b','c') -> 'a/b/c'
-	 * makePath('/temp/','/dm/','test.txt') -> '/temp/dm/test.txt'
+	 * makePath('a','b','c'); // 'a/b/c'
+	 * makePath('/temp/','/dm/','test.txt'); // '/temp/dm/test.txt'
 	 * </code>
 	 * 
 	 * Le path obtenu n'est pas normalisé : si les arguments passés contiennent
 	 * des '.' ou des '..' le résultat les contiendra aussi.
 	 * 
 	 * @param string paramname un nombre variable d'arguments à concaténer 
+     * 
 	 * @return string le path obtenu
 	 */
 	public static function makePath()
@@ -193,6 +204,7 @@ final class Utils
 		return $path;
 	}
 
+
 	/**
 	 * Nettoie un path, en supprimant les parties '.' et '..' inutiles.
 	 * 
@@ -211,11 +223,11 @@ final class Utils
 	 * </code>
 	 * 
 	 * Pour savoir si le path obtenu est propre, c'est-à-dire si toutes les
-	 * références '..' ont été résolues, utiliser {@link isCleanPath} après.
+	 * références '..' ont été résolues, utiliser {@link isCleanPath()} après.
 	 * 
 	 * @param string $path le path à normaliser
+     * 
 	 * @return string le path normalisé
-	 * 
 	 */
 	public static function cleanPath($path)
 	{
@@ -247,16 +259,19 @@ final class Utils
 
 	}
 
+
 	/**
 	 * Indique si le path fourni contient des éléments '.' ou '..'
 	 * 
 	 * @param string $path le path à tester
+     * 
 	 * @return bool vrai si le path est propre, faux sinon.
 	 */
 	public static function isCleanPath($path)
 	{
 		return preg_match('~[/\\\\]\.\.?[/\\\\]|^\.\.|\.\.$~', $path) ? false : true;
 	}
+
     
     /**
      * Recherche un fichier dans une liste de répertoires. Les répertoires sont
@@ -265,8 +280,10 @@ final class Utils
      * @param string $file le fichier à chercher. Vous pouvez soit indiquer un
      * simple nom de fichier (par exemple 'test.php') ou bien un 'bout' de
      * chemin ('/modules/test.php')
+     * 
      * @param mixed $directory... les autres paramêtres indiquent les
      * répertoires dans lesquels le fichier sera recherché.
+     * 
      * @return string une chaine vide si le fichier n'a pas été trouvé, le
      * chemin exact du fichier dans le cas contraire.
      */
@@ -278,13 +295,15 @@ final class Utils
         for ($i=1; $i<$nb; $i++)
         {
             $dir=func_get_arg($i);
-            debug && Debug::log("Recherche du template [%s]. result=[%s]", rtrim($dir,'/\/').DIRECTORY_SEPARATOR.$file, realpath(rtrim($dir,'/\/').DIRECTORY_SEPARATOR.$file));
+            debug && Debug::log("Recherche du fichier [%s]. result=[%s]", rtrim($dir,'/\/').DIRECTORY_SEPARATOR.$file, realpath(rtrim($dir,'/\/').DIRECTORY_SEPARATOR.$file));
             if ($path=realpath(rtrim($dir,'/\/').DIRECTORY_SEPARATOR.$file)) return $path;
             
         }
         return '';
     }
+
     
+    // TODO: doc à faire
     public static function searchFileNoCase($file /* , $directory1, $directory2... $directoryn */)
     {
         $nb=func_num_args();
@@ -310,6 +329,7 @@ final class Utils
         }
         return '';
     }
+
     
     // TODO: doc à écrire
     public static function convertString($string, $table='bis')
@@ -384,17 +404,20 @@ final class Utils
     	return strtr($string, $charFroms, $tables[$table]);
     }
     
+    
     /**
      * Met en minuscule la première lettre de la chaine passée en paramètre et
      * retourne le résultat obtenu.
      * 
      * @param string $str la chaine à convertir
+     * 
      * @return string la chaine obtenue
      */
     public static function lcfirst($str)
     {
         return strtolower(substr($str, 0, 1)) . substr($str, 1);
     }
+
     
     /**
      * Retourne la valeur de la variable passée en paramêtre si celle-ci est
@@ -417,8 +440,11 @@ final class Utils
      * false.
      * 
      * @param mixed $anyVar	la variable à examiner
+     * 
      * @param mixed $defaultValue la valeur par défaut à retourner si $anyVar
+     * 
      * n'est pas définie (optionnel, valeur par défaut null)
+     * 
      * @return mixed
      */
     public static function get(&$anyVar, $defaultValue=null)
@@ -448,6 +474,7 @@ final class Utils
 //        return $defaultValue;
 //    }
 
+
     /**
      * Retourne le path du script qui a appellé la fonction qui appelle
      * callerScript.
@@ -455,7 +482,9 @@ final class Utils
      * Exemple : un script 'un.php' appelle une fonction test() qui se trouve
      * ailleurs. La fonction test() veut savoir qui l'a appellé. Elle appelle
      * callerScript() qui va retourner le path complet de 'un.php'
-     * 
+     *
+     * @param int $level le nombre de parents à ignorer
+     *  
      * @return string
      */
     public static function callerScript($level=1)
@@ -468,6 +497,7 @@ final class Utils
         return $stack[$level]['file'];
     }
     
+    
     public static function callerClass($level=1)
     {
         $stack=debug_backtrace();
@@ -475,13 +505,15 @@ final class Utils
         // En 1, on a la trace de la fonction qui a appellé celle qui nous a appellé.
         // en général, c'est ça qu'on veut, donc $level=1 par défaut
         
-        return @$stack[$level]['class']; // TODO: pourquoi le @ ?
+        return @$stack[$level]['class'].@$stack[$level]['type'].@$stack[$level]['function']; // TODO: pourquoi le @ ?
     }
+    
     
     public static function callLevel()
     {
         return count(debug_backtrace())-1;
     }
+    
     
     /**
      * Retourne l'adresse du serveur 
@@ -504,6 +536,7 @@ final class Utils
     	return $host;
     }
 
+
     // répare $_GET, $_REQUEST et $_POST
     // remarque : php://input n'est pas disponible avec enctype="multipart/form-data".
     public static function repairGetPostRequest()
@@ -514,14 +547,14 @@ final class Utils
         // Si on est en méthode 'GET', on travaille avec la query_string et le tableau $_GET
         if (self::isGet())
         {
-            $raw = '&'.$_SERVER['QUERY_STRING'];
+            $raw = '&'. Runtime::$queryString=$_SERVER['QUERY_STRING'];
             $t= & $_GET;
         }
         
         // En méthodes POST et PUT, on travaille avec l'entrée standard et le tableau $_POST
         else
         {
-            $raw = '&'.file_get_contents('php://input');
+            $raw = '&'. Runtime::$queryString=file_get_contents('php://input');
             $t = & $_POST;          
         }
 
@@ -536,26 +569,38 @@ final class Utils
         }
     }    
 
+
     /**
      * Retourne vrai si on a été appellé en méthode 'GET' ou 'HEAD'
+     * 
+     * @return bool
      */
     public static function isGet()
     {
         return (strpos('GET HEAD', $_SERVER['REQUEST_METHOD']) !== false);
     }
     
+
     /**
      * Retourne vrai si on a été appellé en méthode 'POST' ou 'PUT'
+     * 
+     * @return bool
      */
     public static function isPost()
     {
         return (strpos('POST PUT', $_SERVER['REQUEST_METHOD']) !== false);
     }
     
+    
     /**
      * Charge un fichier de configuration au format YAML
      * 
+     * Par défaut, la fonction utilise la classe {@link spyc} mais si 
+     * l'extension syck, qui est beaucoup plus rapide, est installée, c'est
+     * cette extension qui sera utilisée.
+     * 
      * @param string $path le path du fichier à charger
+     * 
      * @return array un tableau associatif contenant la configuration lue
      */
     public static function loadYaml($path)
@@ -569,9 +614,5 @@ final class Utils
         $spyc = new Spyc();
         return $spyc->load($path);
     }
-
-    
-
-
 }
 ?>
