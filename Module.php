@@ -2,7 +2,7 @@
 /**
  * @package     fab
  * @subpackage  module
- * @author      dmenard
+ * @author 		Daniel Ménard <Daniel.Menard@bdsp.tm.fr>
  * @version     SVN: $Id$
  */
 
@@ -31,7 +31,7 @@ class Module
      */
     public static function loadModule($module, $action='')
     {
-        debug && Debug::log('Recherche du module %s', $module);
+//        debug && Debug::log('Recherche du module %s', $module);
         
         // Recherche dans les modules un répertoire dont le nom correspond au module demandé.
         // On recherche : 
@@ -45,18 +45,19 @@ class Module
         // Le répertoire obtenu nous donne le nom exact du module si la casse est différente
         $module=basename($dir);
 
-        debug && Debug::log('Module %s trouvé dans %s', $module, $dir);
+//        debug && Debug::log('Module %s trouvé dans %s', $module, $dir);
 
         $dir .= DIRECTORY_SEPARATOR;
         
         // Si le module a un fichier php, c'est un vrai module, on le charge 
         if (file_exists($path=$dir.$module.'.php'))
         {
-            debug && Debug::log('Le module %s est un vrai module', $module);
+//            debug && Debug::log('Le module %s est un vrai module', $module);
             
             // Inclut le source du module
             require_once($path);
-            debug && Debug::log('Chargement de %s', basename($path));
+//            debug && Debug::log('Chargement de %s', basename($path));
+            debug && Debug::log('Chargement du module %s, type: module php, path: %s', $module, $path);
             
             // Crée une nouvelle instance
             $object=new $module();
@@ -68,20 +69,21 @@ class Module
         // Sinon, il s'agit d'un pseudo-module : on doit avoir un fichier de config avec une clé 'module'
         else
         {
-            debug && Debug::log('%s est un pseudo-module, chargement du fichier de config correspondant', $module);
+            //debug && Debug::log('%s est un pseudo-module, chargement du fichier de config correspondant', $module);
 
             // Charge le fichier de configuration du module
             $tempConfig=Config::loadFile($path=$dir.'config.yaml'); // éviter de charger 2 fois la config
             if (! isset($tempConfig['module']))
                 throw new Exception("Le pseudo-module '$module' est invalide : pas de php et la clé 'module' n'est pas définie dans le fichier de configuration");
              
-            debug && Debug::log('%s utilise le module %s', $module, $tempConfig['module']);
+            //debug && Debug::log('%s utilise le module %s', $module, $tempConfig['module']);
+            debug && Debug::log('Chargement du module %s, type: pseudo-module (hérite de %s), path: ', $module, $tempConfig['module'], $dir);
              
             // Récursive jusqu'à ce qu'on trouve (et qu'on charge) un vrai module    
             $object=self::loadModule($tempConfig['module']);
     
             // Applique la config du module (le tableau temporaire) à la config en cours
-            debug && Debug::log('Application de la configuration du module %s', $module);
+            //debug && Debug::log('Application de la configuration du module %s', $module);
             Config::addArray($tempConfig);
         }
 
@@ -135,7 +137,7 @@ class Module
      */
     private function loadConfig()
     {
-        debug && Debug::log('Chargement de la configuration du module %s', get_class($this));
+        //debug && Debug::log('Chargement de la configuration du module %s', get_class($this));
         self::loadConfigRecurse(new ReflectionClass(get_class($this)));
     }
     
@@ -151,15 +153,21 @@ class Module
             self::loadConfigRecurse($parent);
         }
         $dir=dirname($class->getFileName()).DIRECTORY_SEPARATOR;
+        $noConfig=true;
         if (file_exists($path=$dir.'config.yaml'))
+        {
             Config::load($path);
-
+            $noConfig=false;
+        }
         if (!empty(Runtime::$env))   // charge la config spécifique à l'environnement
         {
             if (file_exists($path=$dir.'config.' . Runtime::$env . '.yaml'))
+            {
                 Config::load($path);
+                $noConfig=false;
+            }
         }
-
+        if ($noConfig) debug && Debug::log('Pas de fichier de config pour le module %s', $class->getName());
 
     }
     
