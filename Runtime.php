@@ -83,12 +83,7 @@ class Runtime
 
     public static $env='';
     
-    private static $includePath=array();
-    
-    public static function addIncludePath($path)
-    {
-    	
-    }
+    public static $queryString=''; // initialisé par repairgetpost
     
     /**
      * Initialise et lance l'application
@@ -241,7 +236,11 @@ class Runtime
         
         // Initialise le gestionnaire de templates
         debug && Debug::log('Initialisation du gestionnaire de templates');
-        require_once self::$fabRoot.'Template.php'; 
+        if (self::$env=='test')
+            require_once self::$fabRoot.'core/template/Template.php';
+        else
+            require_once self::$fabRoot.'Template.php';
+         
         Template::setup();
         
         // Initialise le gestionnaire de modules
@@ -271,7 +270,11 @@ class Runtime
 
         // Includes supplémentaires
         // TODO: écrire un class manager pour ne pas inclure systématiquement tout (voir du coté du gestionnaire de modules)
-//        require_once self::$fabRoot.'modules'.DIRECTORY_SEPARATOR.'Database'.DIRECTORY_SEPARATOR.'Database.php';        
+        if (self::$env == 'test') 
+            require_once self::$fabRoot.'modules'.DIRECTORY_SEPARATOR.'DatabaseModule'.DIRECTORY_SEPARATOR.'DatabaseModule.php';
+        else
+            require_once self::$fabRoot.'modules'.DIRECTORY_SEPARATOR.'Database'.DIRECTORY_SEPARATOR.'Database.php';
+                
         //require_once self::$fabRoot.'BisWeb.php';
 
 require_once self::$fabRoot.'modules'.DIRECTORY_SEPARATOR.'TaskManager/TaskManager.php';
@@ -415,7 +418,7 @@ $fab_init_time=microtime(true);
 
         if (Config::get('showdebug'))
         {        
-            Debug::log("Application terminée");
+            debug && Debug::log("Application terminée");
             Debug::log('Temps total d\'exécution : %s secondes', sprintf('%.3f', (microtime(true) - $start_time )));
             Debug::showBar();
         }
