@@ -2,7 +2,7 @@
 /**
  * @package     fab
  * @subpackage  exceptions
- * @author      dmenard
+ * @author 		Daniel Ménard <Daniel.Menard@bdsp.tm.fr>
  * @version     SVN: $Id$
  */
 
