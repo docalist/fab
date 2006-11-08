@@ -63,13 +63,13 @@ class Database extends Module
 
     /**
      * Affiche un message si une erreur s'est produite lors de la recherche.
-     * Le template à utiliser est indiqué dans la clé 'errortemplate' de la 
-     * configuration de l'action 'search'.
+     * Le template à utiliser est précisé dans la clé indiquée par $errorTemplate
+     * de la configuration de l'action 'search'.
      */
-    public function showError($error='')
+    public function showError($error='', $errorTemplate='errortemplate')
     {
         // Détermine le template à utiliser
-        if (! $template=$this->getTemplate('errortemplate'))
+        if (! $template=$this->getTemplate($errorTemplate))
         {
             echo $error ? $error : 'Une erreur est survenue pendant le traitement de la requête';
             return;
@@ -583,6 +583,7 @@ class Database extends Module
  
                         $t[$i]=str_ireplace
                         (
+                            // Bien respecter l'ordre des opérateurs ci-dessous sinon bug
                             array(' sauf ', ' and not ', ' but ', ' or ', ' ou ', ' and ', ' et '),
                             array(" sauf $name=", " sauf $name=", " sauf $name=", " OR $name=", " OR $name=", " AND $name=", " AND $name="),                            
                             $t[$i],
