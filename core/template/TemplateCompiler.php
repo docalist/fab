@@ -22,6 +22,10 @@ seule variable
  * @author      Daniel Ménard <Daniel.Menard@bdsp.tm.fr>
  * @version     SVN: $Id$
  */
+
+/**
+ * Compilateur de templates
+ */
 class TemplateCompiler
 {
     const PHP_START_TAG='<?php ';
@@ -41,6 +45,7 @@ class TemplateCompiler
      */
     public static function compile($source)
     {
+        // TODO : voir si on peut rétablir les commentaires de templates /* ... */
         // Supprime les commentaires de templates : /* xxx */
         //$source=preg_replace('~/\*.*?\*/~ms', null, $source);
         
@@ -76,18 +81,19 @@ class TemplateCompiler
             $xml->preserveWhiteSpace=false; // à true par défaut
 
         // gestion des erreurs : voir comment 1 à http://fr.php.net/manual/en/function.dom-domdocument-loadxml.php
-        //libxml_clear_errors(); // >PHP5.1
-        //libxml_use_internal_errors(true);// >PHP5.1
+        libxml_clear_errors(); // >PHP5.1
+        libxml_use_internal_errors(true);// >PHP5.1
+//        if (! $xml->loadXML($source, LIBXML_COMPACT)) // options : >PHP5.1, fait planter php
         if (! $xml->loadXML($source)) // options : >PHP5.1
-//        if (! $xml->loadXML($source, LIBXML_COMPACT)) // options : >PHP5.1
         {
-            // >PHP5.1
-            echo 'Erreur lors du chargement du template';
-            //echo '<pre>'; print_r(libxml_get_errors()); echo '</pre>';
-            return;
+            $h="Impossible de compiler le template, ce n'est pas un fichier xml valide :<br />\n"; 
+            foreach (libxml_get_errors() as $error)
+            	$h.= "- ligne $error->line, colonne $error->column : $error->message<br />\n";
+
+            throw new Exception($h);
         }
         unset($source);
-                    
+
         // Instancie tous les templates présents dans le document
         self::compileMatches($xml);        
 
@@ -110,6 +116,7 @@ class TemplateCompiler
         return $result;
     }
     
+
     /**
      * Compile les templates présents dans le document
      * 
@@ -121,7 +128,7 @@ class TemplateCompiler
      */
     private static function compileMatches(DOMDocument $xml)
     {
-        // Crée la liste des templates = les noeuds avec un attribut match="xxx""
+        // Crée la liste des templates = tous les noeuds qui ont un attribut match="xxx""
         $xpath=new DOMXPath($xml);
         $templates=$xpath->query('//*[@match]');
          
@@ -155,6 +162,7 @@ class TemplateCompiler
         }
     }
     
+
     /**
      * Instancie récursivement un template avec une liste d'attributs
      * 
@@ -216,6 +224,9 @@ class TemplateCompiler
      */
     private static function compileNode(DOMNode $node)
     {
+        // Liste des tags reconnus par le gestionnaire de template.
+        // Pour chaque tag, on a le nom de la méthode à appeller lorsqu'un
+        // noeud de ce type est rencontré dans l'arbre du document
         static $tags= array
         (
             //'template'=>'compileTemplate',
@@ -231,29 +242,30 @@ class TemplateCompiler
         
         switch ($node->nodeType)
         {
-            case XML_TEXT_NODE:
+            case XML_TEXT_NODE:     // du texte
                 echo self::compileField(utf8_decode($node->nodeValue)); // ou textContent ? ou wholeText ? ou data ?
                 return;
-//                if ($node->isWhitespaceInElementContent())
-//                    echo '{VIDE', utf8_decode($node->nodeValue), '}'; // ou textContent ? ou wholeText ? ou data ?
-//                else
-//                    echo '{', utf8_decode($node->nodeValue), '}'; // ou textContent ? ou wholeText ? ou data ?
-//                return;
-            case XML_COMMENT_NODE:
+
+            case XML_COMMENT_NODE:  // un commentaire
                 if (false or Config::get('templates.removehtmlcomments')) return;
                 echo utf8_decode($node->ownerDocument->saveXML($node));
                 // Serait plus efficace : $node->ownerDocument->save('php://output');
                 return;
-            case XML_PI_NODE:
+                
+            case XML_PI_NODE:       // une directive (exemple : <?xxx ... ? >)
                 echo utf8_decode($node->ownerDocument->saveXML($node));
                 // Serait plus efficace : $node->ownerDocument->save('php://output');
                 return;
-            case XML_ELEMENT_NODE:
+                
+            case XML_ELEMENT_NODE:  // un tag
+                // Récupère le nom du tag
                 $name=$node->tagName;
                 
+                // S'il s'agit de l'un de nos tags, appelle la méthode correspondante
                 if (isset($tags[$name]))
                     return call_user_func(array('TemplateCompiler', $tags[$name]), $node);
 
+                // Récupère les attributs qu'on gère
                 $ignore=$node->getAttribute('ignore')=='true';
 
                 if (($test=$node->getAttribute('test')) !== '')
@@ -315,13 +327,16 @@ class TemplateCompiler
                     echo self::PHP_START_TAG, 'endif',self::PHP_END_TAG;
                 
                 return;
-            case XML_DOCUMENT_NODE:
+                
+            case XML_DOCUMENT_NODE:     // L'ensemble du document xml
                 self::compileChildren($node);
                 return;
-            case XML_DOCUMENT_TYPE_NODE:
+                
+            case XML_DOCUMENT_TYPE_NODE:    // Le DTD du document
                 echo "\n";
                 echo utf8_decode($node->ownerDocument->saveXML($node));
                 return;
+                
             default:
                 echo '***Type de noeud non géré : ', $node->nodeType, "\n";
                 return;
@@ -341,6 +356,7 @@ class TemplateCompiler
                 self::compileNode($child);
     }
     
+
     /**
      * Compile les balises de champ présents dans un texte   
      * 
@@ -349,11 +365,8 @@ class TemplateCompiler
      * d'ouverture et de fermeture de php dans le code généré
      * @return string la version compilée du source
      */
-    public static function compileField($source, $asExpression=false) // TODO: repasser private
+    private static function compileField($source, $asExpression=false)
     {
-// compilé=
-//echo ($x=f(0) or $x=f(1) or $x=f(2) or $x=f(3) or $x=f(4)) ? $x : "au bout";
-
         // Expression régulière pour un nom de variable php valide
         // Source : http://fr2.php.net/variables (dans l'intro 'essentiel')
         $var='\$([a-zA-Z_\x7f-\xff][a-zA-Z0-9_\x7f-\xff]*)';
@@ -364,9 +377,6 @@ class TemplateCompiler
         // Expression régulière combinant les deux
         $re="~$var|$exp~";
         
-        $h='012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789'."\n";
-//        echo 'Source initial : <pre>', $h, htmlentities($source), '</pre><br />';
-
         // Convertit l'ancienne syntaxe des champs dans la nouvelle syntaxe 
         $source=preg_replace('~\[([a-zA-Z]+)\]~', '$$1', $source);  // [titre]
         $source=preg_replace                                        // [titoriga:titorigm]
@@ -375,7 +385,6 @@ class TemplateCompiler
             "'{\$' . preg_replace('~:(?=[a-zA-Z])~',':\$','$1') . '}'", 
             $source
         );
-//        echo 'Source compatible : <pre>', htmlentities($source), '</pre><br />';
 
         // Boucle tant qu'on trouve des choses dans le source passé en paramètre
         $start=0;
@@ -402,77 +411,34 @@ class TemplateCompiler
             if ($expression[0]==='{') $expression=substr($expression, 1, -1);
             
             // Compile l'expression
-            $tokens = token_get_all(self::PHP_START_TAG . $expression . self::PHP_END_TAG);
-            
-            // Enlève les tokens php de début et de fin
-            array_shift($tokens);
-            array_pop($tokens);
-
-            $hasOr=false;
-            $h='';
-//            print_r($tokens);
-            foreach ($tokens as $token) 
+            $t=self::compileExpression($expression);
+            //echo '<pre>$expression=', print_r($t,true), '</pre>';
+            // Il s'agit d'une simple expression, pas d'un collier
+            if (count($t)==1)
             {
-                if (is_string($token))
-                {
-//                    echo 'string ', htmlentities($token), "\n";
-                    if ($token===':')
-                    {
-                        $h.=' or ';
-                        $hasOr=true;
-                    }
-                    else
-                        $h.=$token;
-                }
+                $h=$t[0];
+                if (self::$opt) $h="Template::filled($h)";	
+            }
+            
+            // Il y a plusieurs alternatives dans l'expression
+            else
+            {
+                $h='($z=' . join($t, ' or $z=') . ') ? ';	
+                if (self::$opt) 
+                    $h.='Template::filled($z)';
                 else
-                {
-                    list($id, $data) = $token;
-//                    echo token_name($id), ' : ' , htmlentities($data), "\n";
-                    switch ($id)
-                    {
-                        case T_VARIABLE:
-//                            $h.= "Template::field('" . substr($data,1) . "')";
-
-                            $var=substr($data,1);
-                            $field=null;
-                            foreach (self::$datasources as $datasource)
-                            {
-                                if (isset($datasource[$var]))
-                                {
-                                    $field=$datasource[$var];
-                                    break;
-                                }    
-                            }
-                            if (is_null($field)) 
-                            {
-                                if (isset(self::$bindings[$var]))
-                                {
-                                    $field='$' .$var;
-                                }
-                                else
-                                {
-                                    $field=Template::fieldSource(substr($data,1));
-                                    self::$bindings[$var]='&' . $field;
-                                    $field='$'.$var;
-                                }
-                            }
-                            if ($field=='') $field="'Champ inconnu : " . $data . " '";//TODO
-                            $h.= '$x=' . $field;
-                            break;
-                        default: 
-                            $h.='$x=' . $data;
-                    }
-                }
+                    $h.='$z';
+                $h.=' : null';  
             }
             
             if ($asExpression)
             {
                 if ($result) $result .= ' . ';
-                $result.= "($h)?\$x:''";
+                $result.= $h;
             }
             else
             {
-                $result.=self::PHP_START_TAG . 'echo (' . $h . ') ? Template::Filled($x) : \'\''. self::PHP_END_TAG;
+                $result.=self::PHP_START_TAG . 'echo ' . $h . self::PHP_END_TAG;
             }
             
             // Passe au suivant
@@ -492,6 +458,106 @@ class TemplateCompiler
         return $result;
     }
 
+    /**
+     * Compile un "collier" d'expression présent dans une zone de données et
+     * retourne un tableau contenant les différentes alternatives.
+     * 
+     * Par exemple, avec l'expression "$titoriga:$titorigm", la fonction 
+     * retournera un tableau contenant deux éléments : un pour la version compilée
+     * de l'expression $titoriga, un second pour la version compilée de l'expression
+     * titorigm
+     * 
+     * @param string $expression l'expression à compiler
+     * @return array un tableau contenant les différentes alternatives de l'expression
+     */
+    private static function compileExpression($expression)
+    {
+        // Utilise l'analyseur syntaxique de php pour décomposer l'expression en tokens
+        $tokens = token_get_all(self::PHP_START_TAG . $expression . self::PHP_END_TAG);
+        
+        // Enlève le premier et le dernier token (PHP_START_TAG et PHP_END_TAG)
+        array_shift($tokens);
+        array_pop($tokens);
+
+        $result=array();    // le tableau résultat
+        $h='';              // l'expression en cours dans le collier
+        foreach ($tokens as $token) 
+        {
+            // Le token est un bloc de texte
+            if (is_string($token))
+            {
+                // Si c'est le signe ':', on ajoute l'expression en cours au tableau résultat
+                if ($token===':')
+                    if ($h) 
+                    {
+                        $result[]=$h;
+                        $h='';	
+                    }
+                
+                // Sinon, on ajoute le texte à l'expression en cours
+                else
+                    $h.=$token;
+                
+                // Passe au token suivant
+                continue;
+            }
+            
+            // Il s'agit d'un vrai token, extrait le type et la valeur du token 
+            list($type, $data) = $token;
+            
+            // Si c'est autre chose qu'une variable, on se contente d'ajouter à l'expression en cours 
+            if ($type !== T_VARIABLE)
+            {
+                // concatène. Il faut que ce soit du php valide
+            	$h.=$data;
+
+                // Passe au token suivant
+                continue;
+            }
+
+            // C'est une variable, on la compile
+                
+            // Enlève le signe $ de début
+            $var=substr($data,1);
+            
+            // Teste si c'est une variable crée par le template (loop, etc.)
+            foreach (self::$datasources as $datasource)
+            {
+                if (isset($datasource[$var]))
+                {
+                    // trouvé !
+                    $h.= $datasource[$var];
+
+                    // Passe au token suivant
+                    continue 2;
+                }    
+            }
+
+            // Teste si on a déjà compilé cette variable
+            if (isset(self::$bindings[$var]))
+            {
+                // trouvé !
+                $h.= '$' .$var;
+
+                // Passe au token suivant
+                continue;
+            }
+
+            // C'est une variable qu'on n'a jamais rencontrée
+            $field=Template::fieldSource(substr($data,1));
+            self::$bindings[$var]='&' . $field;
+            $field='$'.$var;
+
+            if ($field=='') $field="'Champ inconnu : " . $data . " '";//TODO
+            $h.= $field;
+        }
+        
+        // Ajoute l'expression en cours au tableau et retourne le résultat
+        if ($h) $result[]=$h;
+        return $result;
+    }
+    
+    
     /**
      * Compile le tag 'template' représentant la racine de l'arbre xml
      * 

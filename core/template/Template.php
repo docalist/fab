@@ -2353,7 +2353,7 @@ $code = "<span style='color: {$this->color_base}'>".preg_replace_callback("#&lt;
   }
 }
 
-$h="d:/webapache/fab/xml/test.html";
+$h="d:/webapache/fab/NU/xml/variables.html";
 $high = new highlight_html; //Nouvelle instance de la class
 echo '<div id="div1" class="scrollbox" onscroll="sync(\'div1\',\'div2\')">' . $high->color_html(file_get_contents($h)) . '</div>';
 ob_start();
@@ -2364,6 +2364,7 @@ $h=Template::run
     (
         'titoriga'=>'Titre de niveau analytique',
         'titorigm'=>'Titre monographique',
+        'titvide'=>'',
         'title'=>'',//'Tests avec les templates',
         'prix1'=>12.05,
         'prix2'=>23.40,
