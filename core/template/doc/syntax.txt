@@ -193,6 +193,10 @@ Remarques :
 - on peut combiner, dans un même tag, les attributs ``test`` et ``if``.
 - le choix des noms (test et if) ne me plait toujours pas.... chercher encore...
 
+Bloc ignoré : ``ignore="true"``
+...............................
+Voir si on garde.
+
 Tags
 ----
 
