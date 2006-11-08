@@ -2,7 +2,7 @@
 /**
  * @package     fab
  * @subpackage  user
- * @author      dmenard
+ * @author 		Daniel Ménard <Daniel.Menard@bdsp.tm.fr>
  * @version     SVN: $Id$
  */
 
@@ -115,6 +115,18 @@ class User
     public static function accessDenied()
     {
         self::$user->accessDenied();
+    }
+    
+    public static function get($propertyName)
+    {
+        try
+        {
+        	return @self::$user->$propertyName;
+        }
+        catch (Exception $e)
+        {
+            return '';
+        }
     }
     
     // dans $_SERVER, on pourrait extraire :
