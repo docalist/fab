@@ -2,25 +2,66 @@
 /**
  * @package     fab
  * @subpackage  debug
- * @author      dmenard
+ * @author 		Daniel Ménard <Daniel.Menard@bdsp.tm.fr>
  * @version     SVN: $Id$
  */
 
-
+//set_time_limit(5);
 /**
  * Fonctions de débogage
  * 
  * @package     fab
  * @subpackage  debug
  */
+
+//class testo
+//{
+//	public $v=null;
+//}
+//$t=new testo();
+//$u=new testo();
+//
+//
+////$a=array(&$t, &$u);
+////echo in_array($t, $a, true) ? 'true':'false';
+////die();
+//
+//$u->v=$t;
+//$t->v=$u;
+//echo Debug::dump($t);
+//die();
 class Debug
 {
     public static $log=array();
+    public static $tplLog=array();
     
     public static function log()
     {
         $t=func_get_args();
         self::$log[]=array(Utils::callLevel()-1, Utils::callerClass(2), 0, call_user_func_array(array('self','sprintfColor'), $t));
+//        echo '<pre>', implode(' - ', $t), '</pre>';
+    }
+    
+    public static function tplLog($field, $value='', $comment='')
+    {
+
+//        self::$tplLog[]=array(Template::getLevel(), $field, $value, $comment);
+        $t=func_get_args();
+        $field=htmlentities(array_shift($t));
+        $value=array_shift($t);
+        if (is_string($value))
+        {
+            if (strlen($value)>80) $value=substr($value, 0, 80).'...';
+        	$value=htmlentities($value);
+        }
+        //elseif(is_object($value)) $value='***object('.get_class($value).') ***';
+        
+        $format=array_shift($t);
+        
+        self::$tplLog[]=array(Template::getLevel(), 
+        $field, 
+        $value, 
+        vsprintf($format,$t));
     }
     
     public static function notice()
@@ -48,6 +89,8 @@ class Debug
     {
         static $id=0;
         static $level=0;
+        static $seen=array();
+
         if (! isset($var) || is_null($var)) 
             return '<span class="debugDumpNull">null</span>';
             
@@ -85,9 +128,11 @@ class Debug
             $h.='<div class="debugDumpArrayItems" id="dumpvar'.$id.'" style="display:'.($level==0?'block':'block').';">';
             $id++;
             $level++;
+            $seen[]=&$var;
             if ($sortkeys) uksort($var, 'strnatcasecmp');
             foreach($var as $key=>$value)
                 $h.='<span class="debugDumpArrayKey">'.self::dump($key, $sortkeys) . '</span> =&gt; ' . self::dump($value,$sortkeys) . '<br />';
+            array_pop($seen);
             $level--;
             $h.='<div class="debugDumpArrayItemsEnd"></div>';
             $h.='</div>';
@@ -101,12 +146,29 @@ class Debug
             $h.='</span>';
 
             $h.='<div class="debugDumpObjectItems" id="dumpvar'.$id.'" style="display:'.($level==0?'block':'none').';">';
-            $id++;
-            $level++;
-//            uksort($var, 'strnatcasecmp');
-            foreach($var as $key=>$value)
-                $h.='<span class="debugDumpObjectKey">'.self::dump('$'.$key, $sortkeys) . '</span> =&gt; ' . self::dump($value,$sortkeys) . '<br />';
-            $level--;
+
+            if (in_array($var, $seen, true))
+                $h.='***récursion***';
+            else
+            {
+                $id++;
+                $level++;
+                $seen[]=&$var;
+                
+    //            uksort($var, 'strnatcasecmp');
+                try // ne marche pas s'il s'agit d'un objet COM (exemple : selection)
+                {
+                    $t=get_object_vars($var);
+                    if ($t) foreach($t as $key=>$value)
+                        $h.='<span class="debugDumpObjectKey">'.self::dump('$'.$key, $sortkeys) . '</span> =&gt; ' . self::dump($value,$sortkeys) . '<br />';
+                }
+                catch (Exception $e)
+                {
+                	
+                }
+                $level--;
+                array_pop($seen);
+            }
             $h.='<div class="debugDumpObjectItemsEnd"></div>';
             $h.='</div>';
             return $h;
@@ -141,10 +203,45 @@ class Debug
             $log=&Debug::$log[$i];
 
             if ($log[0]<$level) break;  
-        }	
+        }   
         if ($i<$nb) echo '<div class="debugDumpLogEnd"></div>';
         
         echo str_repeat('    ', $level-1),"</ul>\n";
+    }
+    
+            
+    private static function showTplLog(&$i=0)
+    {
+        $nb=count(Debug::$tplLog);
+        $tplLog=&Debug::$tplLog[$i];
+        $level=$tplLog[0];
+        echo '<ul id="log'.$i.'" style="display: '.($i==0?'block':'block').'">' . "\n";
+
+        for(;;)
+        {
+            $i++;
+            $h="<strong>".$tplLog[1]."</strong> : $tplLog[3] : ".Debug::dump($tplLog[2]);
+//            $h="<strong>".$tplLog[1]."</strong> : $tplLog[3] : ".$tplLog[2];
+            if ($i<$nb && Debug::$tplLog[$i][0]>$level)
+            {
+                $onclick='onclick="debugToggle(\'log'.$i.'\');return false;"';
+                echo str_repeat('    ', $level),"<li class=\"debugLog\">";
+                echo "<a href=\"#\" $onclick>$h »»»</a>\n";
+                self::showTplLog($i);
+                $tplLog=&Debug::$tplLog[$i];
+                echo str_repeat('    ', $level),"</li>\n";
+            }
+            else
+                echo str_repeat('    ', $level),"<li class=\"debugLog\">$h</li>\n";
+            
+            if ($i >= $nb) break;
+            $tplLog=&Debug::$tplLog[$i];
+
+            if ($tplLog[0]<$level) break;  
+        }   
+        if ($i<$nb) echo '<div class="debugDumpLogEnd"></div>';
+        
+        echo "</ul>\n";
     }
     
   
@@ -158,6 +255,13 @@ class Debug
             echo '<div class="accordionTabTitleBar">Trace du programme</div>'; // trace : header
             echo '<div class="accordionTabContentBox">'."\n"; // trace : content
             self::showLog();
+            echo '</div>'; // fin de trace:content
+        echo '</div>'; // fin de trace:panel
+
+        echo '<div class="debugLog">'; // trace : panel
+            echo '<div class="accordionTabTitleBar">Templates</div>'; // trace : header
+            echo '<div class="accordionTabContentBox">'."\n"; // trace : content
+            self::showTplLog();
             echo '</div>'; // fin de trace:content
         echo '</div>'; // fin de trace:panel
 
