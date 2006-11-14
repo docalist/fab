@@ -38,9 +38,9 @@ Historique
 Mise en oeuvre
 ==============
 Un template doit être un fichier ou un fragment xml bien formé. Fab ajoute 
-automatiquent un tag racine au fichier s'il s'agit d'un frament xml. Cela permet 
+automatiquent un tag racine au fichier s'il s'agit d'un fragment xml. Cela permet 
 d'avoir le même système de templates pour des documents xhtml et, par exemple, 
-des templates générant une sortie en format csv.
+des templates générant une sortie au format csv.
 
 Le système se compose de trois grands groupes d'éléments :
 
@@ -106,7 +106,7 @@ Exemples : ::
 	{Config::get('env')}
 
 Il s'agit d'une expression saisie entre accolades.
-Il peut s'agit d'une expression simple (par exemple ``{$titre}`` qui fait 
+Il peut s'agir d'une expression simple (par exemple ``{$titre}`` qui fait 
 exactement la même chose que ``$titre``) ou d'une expression plus complexe 
 (par exemple ``{strtolower($titre)}`` qui affiche la version en minuscules du 
 titre).
@@ -197,6 +197,22 @@ Bloc ignoré : ``ignore="true"``
 ...............................
 Voir si on garde.
 
+Bloc non parsé : ``noparse="true"``
+................................... ::
+	<style noparse="true">
+	a{color:red}
+	</style>
+
+peut-être qu'un tag serait plus utile qu'un attribut (ou peut-être qu'il faut
+les deux ?) ::
+	<noparse>
+		<style>
+			a{color: red}
+		</style>
+	</noparse>
+
+remarques : non implémenté, réfléchir à un meilleur nom.
+
 Tags
 ----
 
@@ -225,7 +241,7 @@ Blocs ``switch/case/default``
 Exemple : ::
 	
 	<switch test="xxx">
-		<case test="xxx">
+		<case test="xxx">	<!-- où "xxx" est une valeur possible pour l'expression du switch -->
 			...
 		</case>
 		<case test="yyy">
@@ -240,7 +256,7 @@ Boucles ``loop``
 ................
 Exemple : ::
 	
-	<loop on="$selection" as="i,j">
+	<loop on="$selection" as="$i,$j">
 		...
 	</loop>
 	
@@ -259,7 +275,7 @@ Exemple : ::
 
 	
 Table des matières : ``<tableofcontents>``
-....................................
+..........................................
 	<tableofcontents ...options...>...</tableofcontens>
 
 options envisageables :
