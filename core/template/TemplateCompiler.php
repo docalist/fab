@@ -32,6 +32,7 @@ class TemplateCompiler
     const PHP_END_TAG="?>";
 
     private static $opt=0;
+    private static $loop=0;
     private static $datasources=array();
     private static $bindings=array();
     
@@ -99,7 +100,7 @@ class TemplateCompiler
 
         // Lance la compilation
         ob_start();
-        self::$opt=0;
+        self::$loop=self::$opt=0;
         self::$datasources=array();
         self::$bindings=array();
         if ($xmlDeclaration) echo $xmlDeclaration, "\n";
@@ -109,7 +110,7 @@ class TemplateCompiler
         {
             $h=self::PHP_START_TAG . "\n//Liste des variables de ce template\n" ;
             foreach (self::$bindings as $var=>$binding)
-                $h.='    $' . $var . '=' . $binding . ";\n";
+                $h.='    ' . $var . '=' . $binding . ";\n";
             $h.=self::PHP_END_TAG;
             $result = $h.$result;
         }
@@ -229,7 +230,7 @@ class TemplateCompiler
         // noeud de ce type est rencontré dans l'arbre du document
         static $tags= array
         (
-            //'template'=>'compileTemplate',
+            'template'=>'compileTemplate',
             'loop'=>'compileLoop',
             'if'=>'compileIf',
             'else'=>'elseError',
@@ -319,23 +320,23 @@ class TemplateCompiler
                 {
                     if (! $ignore) echo '>';
                     if ($if !== '')                     
-                        echo self::PHP_START_TAG, 'endif',self::PHP_END_TAG;
+                        echo self::PHP_START_TAG, 'endif;',self::PHP_END_TAG;
                     self::compileChildren($node);
                     if ($if !== '')                     
                         echo self::PHP_START_TAG, 'if ($tmp):',self::PHP_END_TAG;
                     if (! $ignore) echo '</', $node->tagName, '>';
                     if ($if !== '')                     
-                        echo self::PHP_START_TAG, 'endif',self::PHP_END_TAG;
+                        echo self::PHP_START_TAG, 'endif;',self::PHP_END_TAG;
                 }
                 else
                 {
                     if (! $ignore) echo ' />';
                     if ($if !== '')                     
-                        echo self::PHP_START_TAG, 'endif',self::PHP_END_TAG;
+                        echo self::PHP_START_TAG, 'endif;',self::PHP_END_TAG;
                 }
 
                 if ($test !== '')                     
-                    echo self::PHP_START_TAG, 'endif',self::PHP_END_TAG;
+                    echo self::PHP_START_TAG, 'endif;',self::PHP_END_TAG;
                 
                 return;
                 
@@ -388,7 +389,8 @@ class TemplateCompiler
         // Expression régulière pour un nom de variable php valide
         // Source : http://fr2.php.net/variables (dans l'intro 'essentiel')
         $var='\$([a-zA-Z_\x7f-\xff][a-zA-Z0-9_\x7f-\xff]*)';
-
+        // TODO : voir si un \w fait la même chose
+        
         // Expression régulière pour une expression valide dans un template
         $exp='\{[^}]*\}';
         
@@ -422,47 +424,41 @@ class TemplateCompiler
             // Envoie le texte qui précède l'expression trouvée
             if ('' != $text=substr($source, $start, $offset-$start))
             {
-                if ($asExpression)
-                    $result.=($result?' . ':'') . '\'' . addslashes($text) . '\'';
-                else
-                    $result.=$text;
+                $result.=$text;
                 $hasText=true;
             }
                         
             // Enlève les accolades qui entourent l'expression
             if ($expression[0]==='{') $expression=substr($expression, 1, -1);
-            
-            // Compile l'expression
-            $t=self::compileExpression($expression);
-            //echo '<pre>$expression=', print_r($t,true), '</pre>';
-            // Il s'agit d'une simple expression, pas d'un collier
-            if (count($t)==1)
+            if (trim($expression) != '')
             {
-                $h=$t[0];
-                if (self::$opt) $h="Template::filled($h)";	
-            }
-            
-            // Il y a plusieurs alternatives dans l'expression
-            else
-            {
-                $h='($tmp=' . join($t, ' or $tmp=') . ') ? ';	
-                if (self::$opt) 
-                    $h.='Template::filled($tmp)';
+                // Compile l'expression
+                $t=self::compileExpression($expression);
+                //echo '<pre>$expression=', print_r($t,true), '</pre>';
+                // Il s'agit d'une simple expression, pas d'un collier
+                if (count($t)==1)
+                {
+                    $h=$t[0];
+                    if (self::$opt) $h="Template::filled($h)";	
+                }
+                
+                // Il y a plusieurs alternatives dans l'expression
                 else
-                    $h.='$tmp';
-                $h.=' : null';  
+                {
+                    $h='($tmp=' . join($t, ' or $tmp=') . ') ? ';	
+                    if (self::$opt) 
+                        $h.='Template::filled($tmp)';
+                    else
+                        $h.='$tmp';
+                    $h.=' : null';  
+                }
+                
+                if ($asExpression)
+                    $result.= $h;
+                else
+                    $result.=self::PHP_START_TAG . 'echo ' . $h . self::PHP_END_TAG;
             }
-            
-            if ($asExpression)
-            {
-                if ($result) $result .= ' . ';
-                $result.= $h;
-            }
-            else
-            {
-                $result.=self::PHP_START_TAG . 'echo ' . $h . self::PHP_END_TAG;
-            }
-            
+                        
             // Passe au suivant
             $start=$offset + $len;
         }
@@ -470,10 +466,7 @@ class TemplateCompiler
         // Envoie le texte qui suit le dernier match 
         if ('' != $text=substr($source, $start))
         {
-            if ($asExpression)
-                $result.=($result?' . ':'') . '\'' . addslashes($text) . '\'';
-            else
-                $result.=$text;
+            $result.=$text;
             $hasText=true;
         }
 
@@ -510,6 +503,7 @@ class TemplateCompiler
 
         $result=array();    // le tableau résultat
         $h='';              // l'expression en cours dans le collier
+        //echo '<pre>', print_r($tokens, true), '</pre>';
         foreach ($tokens as $token) 
         {
             // Le token est un bloc de texte
@@ -517,16 +511,18 @@ class TemplateCompiler
             {
                 // Si c'est le signe ':', on ajoute l'expression en cours au tableau résultat
                 if ($token===':')
+                {
                     if ($h) 
                     {
                         $result[]=$h;
                         $h='';	
                     }
+                }
                 
                 // Sinon, on ajoute le texte à l'expression en cours
                 else
                     $h.=$token;
-                
+
                 // Passe au token suivant
                 continue;
             }
@@ -549,7 +545,8 @@ class TemplateCompiler
             // Enlève le signe $ de début
             $var=substr($data,1);
             
-            // Teste si c'est une variable crée par le template (loop, etc.)
+            // Teste si c'est une variable créée par le template (loop, etc.)
+//            echo '<pre>', print_r(self::$datasources, true), '</pre>';
             foreach (self::$datasources as $datasource)
             {
                 if (isset($datasource[$var]))
@@ -562,23 +559,35 @@ class TemplateCompiler
                 }    
             }
 
-            // Teste si on a déjà compilé cette variable
-            if (isset(self::$bindings[$var]))
-            {
-                // trouvé !
-                $h.= '$' .$var;
-
-                // Passe au token suivant
-                continue;
-            }
+//            // Teste si on a déjà compilé cette variable
+//            if (isset(self::$bindings[$var]))
+//            {
+//                // trouvé !
+//                $h.= '$' .$var;
+//
+//                // Passe au token suivant
+//                continue;
+//            }
 
             // C'est une variable qu'on n'a jamais rencontrée
-            $field=Template::fieldSource(substr($data,1));
-            self::$bindings[$var]='&' . $field;
-            $field='$'.$var;
+            $name=$value=$code=null;
+            if (!Template::getDataSource(utf8_decode($var), $name, $value, $code)) // utf8_decode($var) ??
+                throw new Exception("Impossible de compiler le template : la source de données <code>$var</code> n'est pas définie.");
 
-            if ($field=='') $field="'Champ inconnu : " . $data . " '";//TODO
-            $h.= $field;
+            self::$bindings[$name]=$value;
+            $h.= $code;
+            
+//            $field=Template::fieldSource(utf8_decode($var));
+//            if ($field=='')
+//            {
+//                print_r(Template::$data);
+//                throw new Exception("Impossible de compiler le template : la source de données $data n'est pas définie.");
+//            }
+//            self::$bindings[$var]='&' . $field;
+//            $field='$'.$var;
+//
+//            if ($field=='') $field="'Champ inconnu : " . $data . " '";//TODO
+//            $h.= $field;
         }
         
         // Ajoute l'expression en cours au tableau et retourne le résultat
@@ -694,11 +703,21 @@ class TemplateCompiler
         }
                 
         // Ferme le dernier tag ouvert
-        echo self::PHP_START_TAG, 'endif', self::PHP_END_TAG;
+        echo self::PHP_START_TAG, 'endif;', self::PHP_END_TAG;
         
         // Supprime tous les noeuds qu'on a traité
-        while(!$node->nextSibling->isSameNode($next))
-            $node->parentNode->removeChild($node->nextSibling);
+        if ($next)
+            while(!$node->nextSibling->isSameNode($next))
+            {
+//                echo'<pre>Suppression du tag ', $node->nextSibling, '</pre>';
+                $node->parentNode->removeChild($node->nextSibling);
+            }
+        else
+            while($node->nextSibling)
+            {
+//                echo'<pre>Suppression du tag ', $node->nextSibling, '</pre>';
+                $node->parentNode->removeChild($node->nextSibling);
+            }
     }
 
     /**
@@ -708,10 +727,10 @@ class TemplateCompiler
      */
     private static function compileSwitch(DOMNode $node)
     {
-
         // Récupère la condition du switch
         if (($test=$node->getAttribute('test')) === '')
             $test='true';
+        $test=self::compileField($test, true);
                 
         // Génère le tag et sa condition
 //        echo self::PHP_START_TAG, 'switch (', $test, '):', self::PHP_END_TAG, "\n";
@@ -721,7 +740,7 @@ class TemplateCompiler
         self::compileSwitchCases($node);
 
         // Ferme le switch
-        echo self::PHP_START_TAG, 'endswitch', self::PHP_END_TAG;
+        echo self::PHP_START_TAG, 'endswitch;', self::PHP_END_TAG;
 //        echo 'endswitch', self::PHP_END_TAG;
     }
 
@@ -747,6 +766,7 @@ class TemplateCompiler
                         case 'case':
                             if (($test=$node->getAttribute('test')) === '')
                                 throw new Exception("Tag case incorrect : attribut test manquant");
+                            $test=self::compileField($test, true);
                             echo ($first?'':self::PHP_START_TAG.'break;'), 'case ', $test, ':', self::PHP_END_TAG;
                             self::compileChildren($node);
                             break;
@@ -794,7 +814,7 @@ class TemplateCompiler
         $value='value';
         if (($as=$node->getAttribute('as')) !== '')
         {
-            $var='\$?([a-zA-Z_\x7f-\xff][a-zA-Z0-9_\x7f-\xff]*)';
+            $var='\$([a-zA-Z_\x7f-\xff][a-zA-Z0-9_\x7f-\xff]*)';
             $re="~^\s*$var\s*(?:,\s*$var\s*)?\$~"; // as="value", as="key,value", as=" $key, $value "
             if (preg_match($re, $as, $matches) == 0)
                 throw new Exception("Tag loop : syntaxe incorrecte pour l'attribut 'as'");
@@ -808,13 +828,21 @@ class TemplateCompiler
                 $value=$matches[1];
             }            
         }
-        $key='$'.$key;
-        $value='$'.$value;    
-        echo self::PHP_START_TAG, "foreach($on as $key=>$value):", self::PHP_END_TAG;
+        $keyReal='$_key';
+        $valueReal='$_val';
+//        if (self::$loop)
+//        {
+            $keyReal.=self::$loop;
+            $valueReal.=self::$loop;
+//        }
+        echo self::PHP_START_TAG, "foreach($on as $keyReal=>$valueReal):", self::PHP_END_TAG;
         if ($node->hasChildNodes())
         {
-            array_unshift(self::$datasources, array('key'=>$key, 'value'=>$value)); // empile au début
+//            echo '<pre>ajout ds datasources de ', $key, ' et de ', $value, '</pre>';
+            array_unshift(self::$datasources, array($key=>$keyReal, $value=>$valueReal)); // empile au début
+            ++self::$loop;
             self::compileChildren($node);
+            --self::$loop;
             array_shift(self::$datasources);    // dépile au début
         }
         echo self::PHP_START_TAG, 'endforeach;', self::PHP_END_TAG;

@@ -1,4 +1,5 @@
 <?php
+
 /**
  * @package     fab
  * @subpackage  template
@@ -398,8 +399,9 @@ public static $csource='';
         }
             
         // Compile le template s'il y a besoin
-        if (TRUE or self::needsCompilation($template)) // TODO : à virer
+        if (true or self::needsCompilation($template)) // TODO : à virer
         {
+//            echo "<pre>Recompilation du template $template</pre>";
             //
             debug && Debug::notice("'%s' doit être compilé", $template);
             
@@ -1582,6 +1584,81 @@ self::$csource=$source;// TODO: à virer
         
         return $h;                                           
     }
+
+    public static function getDataSource($name, & $bindingName, & $bindingValue, & $code)
+    {
+        debug && Debug::log('%s', $name);
+        
+        // Parcours toutes les sources de données
+        foreach (self::$data as $i=>$data)
+        {
+            // Objet
+            if (is_object($data))
+            {
+                // Propriété d'un objet
+                if (property_exists($data, $name))
+                {
+                    debug && Debug::log('C\'est une propriété de l\'objet %s', get_class($data));
+                    $code=$bindingName='$'.$name;
+                    $bindingValue='& Template::$data['.$i.']->'.$name;
+                    return true;
+                }
+                
+                // Clé d'un objet ArrayAccess
+                if ($data instanceof ArrayAccess)
+                {
+                    try
+                    {
+                        debug && Debug::log('Tentative d\'accès à %s[\'%s\']', get_class($data), $name);
+                        $value=$data[$name]; // essaie d'accéder, pas d'erreur ?
+
+                        $code=$bindingName='$'.$name;
+                        $bindingValue='& Template::$data['.$i.'][\''.$name.'\']';
+                        return true;
+                    }
+                    catch(Exception $e)
+                    {
+                        debug && Debug::log('Génère une erreur %s', $e->getMessage());
+                    }
+                }
+                else
+                    debug && Debug::log('Ce n\'est pas une clé de l\'objet %s', get_class($data));
+            }
+
+            // Clé d'un tableau de données
+            if (is_array($data) && array_key_exists($name, $data)) 
+            {
+                debug && Debug::log('C\'est une clé du tableau de données');
+                $code=$bindingName='$'.$name;
+                $bindingValue='& Template::$data['.$i.'][\''.$name.'\']';
+                return true;
+            }
+
+            // Fonction de callback
+            if (is_callable($data))
+            {
+                $value=@call_user_func($data, $name);
+
+                // Si la fonction retourne autre chose que "null", terminé
+                if ( ! is_null($value) )
+                {
+                    $bindingName='$callback';
+                    if ($i) $bindingName .= $i;
+                    $bindingValue='& Template::$data['.$i.']';
+//                    $bindingValue.= 'print_r('.$bindingName.')';
+                    $code=$bindingName.'(\''.$name.'\')';
+                    $code='call_user_func(' . $bindingName.', \''.$name.'\')';
+                    return true;
+                    //return 'call_user_func(Template::$data['.$i.'], \''.$name.'\')';
+                }
+            }
+            
+            //echo('Datasource incorrecte : <pre>'.print_r($data, true). '</pre>');
+        }
+        //echo('Aucune source ne connait <pre>'. $name.'</pre>');
+        return false;
+    }
+
     public static function fieldSource($name) // TODO: repasser private
     {
         debug && Debug::log('%s', $name);
@@ -1640,7 +1717,7 @@ self::$csource=$source;// TODO: à virer
         //echo('Aucune source ne connait <pre>'. $name.'</pre>');
         return '';
     }
-    private static function & filled(&$x)
+    private static function filled($x)
     {
         if ($x != '') 
             self::$optFilled[self::$optLevel]++;
@@ -2278,6 +2355,7 @@ echo $var=x ? $var
     	return Config::get($name);
     }
 }
+__halt_compiler();
 ?>
 <style>
 body
