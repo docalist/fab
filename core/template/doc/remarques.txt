@@ -1,0 +1,19 @@
+Remarques par rapport aux tests unitaires réalisés pour le gestionnaires de templates
+
+
+- Quand le template contient un '$texteQuelconque' et qu'aucun index '$texteQuelconque' n'existe dans le tableau
+de données passé au template, ne devrait-on pas ignorer cet ensemble de caractère au lieu de générer une exception ?
+C'est le comportement qu'on retrouve dans d'autres cas donc par souci de cohérence, ce serait peut-être mieux.
+
+- Si le template contient '$$texte', l'analyseur syntaxique va recherche l'index 'texte' dans le tableau source
+de données et s'il ne le trouve pas, il génère une exception. PHP autorise ce type de variable : que doit-on en faire ?
+
+- Si le template contient '$<texte', une exception est généré alors que '$>texte' ne génèrera rien. Problème de l'analyseur
+XML ? De plus, le contenu 'texte>', lui, génèrera bien une exception.
+
+- Un template contenant '{$nomVar $nomVar}' génèrera un code PHP incorrect (erreur PHP à l'exécution)
+
+- '<div test="$_underscore">Contenu du div</div>' devrait peut-être générer une exception pour éviter de
+produire du PHP non valide
+
+- Même chose pour une construction du type '<div test="$vAccentuée==">Contenu du div</div>'

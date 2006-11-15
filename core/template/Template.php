@@ -218,8 +218,7 @@ class Template
      */
     public static function run($template /* $dataSource1, $dataSource2, ..., $dataSourceN */ )
     {
-        debug && Debug::log("Template::Run('%s')", $template);
-        debug && Debug::tplLog("Template::Run", $template." (TODO: lister les datasources)");
+        debug && Debug::log('Exécution du template %s', $template);
         if (count(self::$stateStack)==0)
         {
             // On est au niveau zéro, c'est un tout nouveau template, réinitialise les id utilisés.
@@ -268,7 +267,7 @@ class Template
         
         self::$data=func_get_args();    // new
         array_shift(self::$data);
-        debug && Debug::log('Données du formulaire %s : %s', $sav, self::$data);
+//        debug && Debug::log('Données du formulaire %s : %s', $sav, self::$data);
 
         self::$dataCallbacks=self::$dataObjects=self::$dataVars=array();    // old
         $nb=func_num_args();
@@ -340,26 +339,21 @@ class Template
 
             // Nettoyage
             // si la balise de fin de php est \r, elle est mangée (cf http://fr2.php.net/manual/fr/language.basic-syntax.instruction-separation.php)
-            $source=str_replace(self::PHP_END_TAG."\r", self::PHP_END_TAG." \r", $source);
+//            $source=str_replace(self::PHP_END_TAG."\r", self::PHP_END_TAG." \r", $source);
 //            $source=preg_replace('~[\r\n][ \t]*([\r\n])~', '$1', $source);
             $source=preg_replace("~([\r\n])\s+$~m", '$1', $source);
             
-            // Stocke le template dans le cache
+            // Stocke le template dans le cache et l'exécute
             if (self::$useCache)
             {
                 debug && Debug::log("Mise en cache de '%s'", $template);
                 Cache::set($template, $source);
-            }
-            
-            // Exécute le source compilé
-            if (self::$useCache)
-            {
                 debug && Debug::log("Exécution à partir du cache");
                 require(Cache::getPath($template));
             }
             else
             {
-                debug && Debug::log("Cache désactivé, eval()");
+                debug && Debug::log("Cache désactivé, evaluation du template compilé");
                 eval(self::PHP_END_TAG . $source);
             }            
         }
@@ -518,8 +512,10 @@ class Template
             // Fonction de callback
             if (is_callable($data))
             {
+                ob_start();
                 $value=@call_user_func($data, $name);
-
+                ob_end_clean();
+                
                 // Si la fonction retourne autre chose que "null", terminé
                 if ( ! is_null($value) )
                 {

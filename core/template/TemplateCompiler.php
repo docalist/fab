@@ -410,6 +410,13 @@ class TemplateCompiler
                 self::compileNode($child);
     }
     
+    /**
+     * Supprime les antislashes devant les dollar et les accolades
+     */
+    private static function unescape($source)
+    {
+        return strtr($source, array('\\$'=>'$', '\\{'=>'{', '\\}'=>'}'));	
+    }
 
     /**
      * Compile les balises de champ présents dans un texte   
@@ -437,23 +444,23 @@ class TemplateCompiler
         // par un underscore (réservé aux variables internes du template, le fait
         // de l'interdire assure que les variables internes n'écrasent pas les
         // sources de données)
-        $var='\$([a-zA-Z\x7f-\xff][a-zA-Z0-9_\x7f-\xff]*)';
+        $var='(?<!\\\\)\$([a-zA-Z\x7f-\xff][a-zA-Z0-9_\x7f-\xff]*)';
         // TODO : voir si un \w fait la même chose
         
         // Expression régulière pour une expression valide dans un template
-        $exp='\{[^}]*\}';
+        $exp='(?<!\\\\)\{[^}]*(?<!\\\\)\}';
         
         // Expression régulière combinant les deux
         $re="~$var|$exp~";
         
         // Convertit l'ancienne syntaxe des champs dans la nouvelle syntaxe 
-        $source=preg_replace('~\[([a-zA-Z]+)\]~', '$$1', $source);  // [titre]
-        $source=preg_replace                                        // [titoriga:titorigm]
-        (
-            '~\[([^\]]+)\]~e', 
-            "'{\$' . preg_replace('~:(?=[a-zA-Z])~',':\$','$1') . '}'", 
-            $source
-        );
+//        $source=preg_replace('~\[([a-zA-Z]+)\]~', '$$1', $source);  // [titre]
+//        $source=preg_replace                                        // [titoriga:titorigm]
+//        (
+//            '~\[([^\]]+)\]~e', 
+//            "'{\$' . preg_replace('~:(?=[a-zA-Z])~',':\$','$1') . '}'", 
+//            $source
+//        );
 
         // COnvertit le texte ytf8->iso8859-1
         $source=utf8_decode($source);
@@ -476,7 +483,7 @@ class TemplateCompiler
             // Envoie le texte qui précède l'expression trouvée
             if ('' != $text=substr($source, $start, $offset-$start))
             {
-                $result.=$text;
+                $result.=self::unescape($text);
                 $hasText=true;
             }
                         
@@ -518,7 +525,7 @@ class TemplateCompiler
         // Envoie le texte qui suit le dernier match 
         if ('' != $text=substr($source, $start))
         {
-            $result.=$text;
+            $result.=self::unescape($text);
             $hasText=true;
         }
 

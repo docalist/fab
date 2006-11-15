@@ -1,0 +1,45 @@
+Gestion des droits et des utilisateurs
+======================================
+
+Un droit est composé de deux parties :
+
+- une partie rôle telle que 'Admin', 'Edit', etc.
+- une partie 'objet' à laquelle s'applique le rôle (Bdsp,Webs...)
+
+Chacune des deux parties doit commencer par une majuscule et ne doit contenir
+ensuite que des minuscules. Les lettres accentuées et autres signes sont
+interdits.
+
+Le nom du droit est obtenu en concaténant les deux parties : 
+
+- AdminBdsp : administrateur de l'objet bdsp
+- EditWebs : Editeur de l'objet webs
+
+Chacune des deux parties est optionnelle : l'absence de rôle signifie
+'tous les rôles', l'absence d'objet signifie 'tous les objets'. Ainsi,
+'Admin' tout seul signifie 'administrateur de tout' et 'Bdsp' tout seul
+signifie 'tous les droits sur l'objet bdsp'.
+
+L'ensemble des noms de rôles et l'ensemble des noms d'objets doivent
+être disjoints (on ne peut pas avoir le même mot pour désigner un rôle
+et un objet). Par exemple il est interdit d'avoir à la fois un rôle
+appellé "auteur" (quelqu'un qui aurait le droit d'écrire quelque chose)
+et un objet "auteur" (par exemple une base de données référençant tous
+les auteurs) car cela conduirait à la possibilité d'avoir un droit nommé
+AuteurAuteur.
+
+Lorsqu'on requiert un droit (fonctions User::hasAccess(), User::checkAccess()...)
+les droits requis peuvent être indiqués de différentes façon :
+
+- il peut s'agir d'un droit simple : User::hasAccess('admin')
+
+- il peut s'agit de plusieurs droits possibles, séparés par une virgule : 
+  hasAccess('admin, producteur'). Dans ce cas, l'utilisateur obtiendra l'accès 
+  s'il dispose de l'un des droits indiqués
+
+- il peut s'agir d'une combinaison de droits, séparés par un signe plus :
+  hasAccess('producteur+gestionnaire')
+
+Il existe un pseudo-droit nommé 'default' dont dispose automatiquement tous
+les utilisateurs (i.e. User::hasAccess('default') retourne toujours true).
+Default est notamment utilisé dans les fichiers de config.

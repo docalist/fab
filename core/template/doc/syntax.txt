@@ -96,7 +96,7 @@ Exemple : ::
 
 	$title
 
-Un signe dollar suivi d'un identifiant.
+Un signe dollar suivi d'un identifiant (sensible à la casse).
 
 Syntaxe étendue
 ...............

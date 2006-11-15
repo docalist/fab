@@ -6,62 +6,20 @@
  * @version     SVN: $Id$
  */
 
-//set_time_limit(5);
 /**
  * Fonctions de débogage
  * 
  * @package     fab
  * @subpackage  debug
  */
-
-//class testo
-//{
-//	public $v=null;
-//}
-//$t=new testo();
-//$u=new testo();
-//
-//
-////$a=array(&$t, &$u);
-////echo in_array($t, $a, true) ? 'true':'false';
-////die();
-//
-//$u->v=$t;
-//$t->v=$u;
-//echo Debug::dump($t);
-//die();
 class Debug
 {
     public static $log=array();
-    public static $tplLog=array();
     
     public static function log()
     {
         $t=func_get_args();
         self::$log[]=array(Utils::callLevel()-1, Utils::callerClass(2), 0, call_user_func_array(array('self','sprintfColor'), $t));
-//        echo '<pre>', implode(' - ', $t), '</pre>';
-    }
-    
-    public static function tplLog($field, $value='', $comment='')
-    {
-
-//        self::$tplLog[]=array(Template::getLevel(), $field, $value, $comment);
-        $t=func_get_args();
-        $field=htmlentities(array_shift($t));
-        $value=array_shift($t);
-        if (is_string($value))
-        {
-            if (strlen($value)>80) $value=substr($value, 0, 80).'...';
-        	$value=htmlentities($value);
-        }
-        //elseif(is_object($value)) $value='***object('.get_class($value).') ***';
-        
-        $format=array_shift($t);
-        
-        self::$tplLog[]=array(Template::getLevel(), 
-        $field, 
-        $value, 
-        vsprintf($format,$t));
     }
     
     public static function notice()
@@ -209,42 +167,6 @@ class Debug
         echo str_repeat('    ', $level-1),"</ul>\n";
     }
     
-            
-    private static function showTplLog(&$i=0)
-    {
-        $nb=count(Debug::$tplLog);
-        $tplLog=&Debug::$tplLog[$i];
-        $level=$tplLog[0];
-        echo '<ul id="log'.$i.'" style="display: '.($i==0?'block':'block').'">' . "\n";
-
-        for(;;)
-        {
-            $i++;
-            $h="<strong>".$tplLog[1]."</strong> : $tplLog[3] : ".Debug::dump($tplLog[2]);
-//            $h="<strong>".$tplLog[1]."</strong> : $tplLog[3] : ".$tplLog[2];
-            if ($i<$nb && Debug::$tplLog[$i][0]>$level)
-            {
-                $onclick='onclick="debugToggle(\'log'.$i.'\');return false;"';
-                echo str_repeat('    ', $level),"<li class=\"debugLog\">";
-                echo "<a href=\"#\" $onclick>$h »»»</a>\n";
-                self::showTplLog($i);
-                $tplLog=&Debug::$tplLog[$i];
-                echo str_repeat('    ', $level),"</li>\n";
-            }
-            else
-                echo str_repeat('    ', $level),"<li class=\"debugLog\">$h</li>\n";
-            
-            if ($i >= $nb) break;
-            $tplLog=&Debug::$tplLog[$i];
-
-            if ($tplLog[0]<$level) break;  
-        }   
-        if ($i<$nb) echo '<div class="debugDumpLogEnd"></div>';
-        
-        echo "</ul>\n";
-    }
-    
-  
     public static function showBar()
     {
         echo '<div id="debugWebBar">';
@@ -255,13 +177,6 @@ class Debug
             echo '<div class="accordionTabTitleBar">Trace du programme</div>'; // trace : header
             echo '<div class="accordionTabContentBox">'."\n"; // trace : content
             self::showLog();
-            echo '</div>'; // fin de trace:content
-        echo '</div>'; // fin de trace:panel
-
-        echo '<div class="debugLog">'; // trace : panel
-            echo '<div class="accordionTabTitleBar">Templates</div>'; // trace : header
-            echo '<div class="accordionTabContentBox">'."\n"; // trace : content
-            self::showTplLog();
             echo '</div>'; // fin de trace:content
         echo '</div>'; // fin de trace:panel
 
@@ -313,7 +228,5 @@ class Debug
         echo '</div>'; // debugWebBar
         echo '<script type="text/javascript">new Rico.Accordion( $("debugWebBarContent"), {panelHeight:400} );</script>';
     }    
-    
 }
-
 ?>

@@ -1,0 +1,182 @@
+Bugs rencontrés lors des tests
+
+ZONES DE DONNEES
+-------------------
+
+Bug 1 :
+
+Quand un template contient un $ suivi d'un certain nombre de caractères qui ne représentent aucune variable
+passée à Template::run, le gestionnaire devrait afficher un message d'erreur et ne pas compiler le template.
+Or il le fait et produit un code PHP non valide.
+
+Corrigé, DM, 10/11/2006 : TemplateCompiler génère une exception s'il rencontre
+une variable qu'aucune source de données ne connaît.
+
+------
+
+Bug 2 :
+
+Si template contient '{}', c'est compilé en '<?php echo ($tmp=) ? $tmp : null?>'
+Devrait générer une exception au lieu de compiler.
+
+Corrigé, DM, 10/11/2006
+
+------
+
+Bug 3 :
+
+Si template contient '{$identifiant' et qu'on passe la chaîne 'val' pour $identifiant lors de 
+l'instanciation, la sortie générée est '{val'.
+Par contre, si on remplace '{$identifiant' par '{{$identifiant}' dans le template, on obtient une exception.
+
+Sans doute une incohérence ici car d'après les règles syntaxiques, '$identifant' équivaut à '{$identifiant}'
+et par conséquent, '{$identifiant' devrait équivaloir à '{ {$identifiant}'
+
+comment, DM, 14/12/2006 : à étudier : est-ce possible de faire ça à coup 
+d'expressions régulières ?
+WONTFIX, DM, 15/12/2006 : je laisse tomber. En fait le problème, c'est que les 
+accolades ne sont pas appareillées. On ignore silencieusement l'erreur, les 
+accolades surnuméraires apparaîtront dans la sortie générée.
+
+------
+
+Bug 4 :
+
+D'après les règles de syntaxe, si aucune des expressions d'un collier ne retourne de valeur, rien n'est affiché.
+Or, dans la pratique, si on ne donne aucune valeur pour l'expression d'une zone de donnée (ou pour l'une des
+expressions du collier de la zone de donnée) lors de l'instanciation et que l'expression apparaît dans le
+template, une exception est générée.
+
+WontFix, DM, 14/06/06
+Il y a deux cas à distinguer :
+- la source de données indiquée n'a pas été passée lors de l'appel à Template::Run. 
+  Dans ce cas, il s'agit bien d'une erreur : la source de données n'est pas définie,
+  génère une exception (c'est comme utiliser une variable non déclarée dans un 
+  language typé).
+- la source de données indiquée a été passée lors de l'appel à Template::Run, mais 
+  sa valeur est vide (au sens de la fonction php 'empty'), c'est-à-dire que la 
+  variable contient une chaine vide, ou le booléen false, ou l'entier zéro, etc.
+  Dans ce cas, ce n'est pas une erreur (c'est même un cas plutôt fréquent), 
+  aucune erreur n'est générée et rien n'est affichée.
+
+Seule question en suspens : la définition de 'vide' est-elle correcte (est-ce normal
+de ne rien afficher quand la source de données contient l'entier zéro, par exemple).
+je pense que non, donc nouveau bug à signaler...
+
+------
+
+Bug 5 : http://apache/asco/web/test.php/youenn/bug5
+
+La construction <div test="$prénom=='Youenn'">Bonjour Youenn</div> génère une exception à cause du caractère accentué.
+Est-ce normal ou pas ?
+
+Corrigé, DM, 14/11/06 (meilleure gestion des appels à utf8_decode)
+
+------
+
+Bug 6
+
+Si on a <div test="$prenom=='Younn'">Bonjour Youenn</div> dans le template et que la valeur passée pour prénom est
+différente de 'Younn', on a quand même 'Bonjour Youenn' en sortie.
+
+Corrigé, DM, 10/11/2006
+
+------
+
+Bug 7 : http://apache/asco/web/test.php/youenn/bug7
+
+Même chose que Bug 5 mais avec la construction <if test="$prénom == 'Youenn'">Bonjour $prénom.<br/></if>
+
+Corrigé, DM, 14/11/06 (meilleure gestion des appels à utf8_decode)
+
+------
+
+Bug 8 : http://apache/asco/web/test.php/youenn/bug8
+
+La construction <if></if><else></else> ne fonctionne pas parfaitement : ajoute 'tag else isolé' dans la sortie (echo sûrement)
+Sinon, fonctionne correctement (le bon bloc est exécuté)
+
+Même chose pour constructions <if></if><elseif></elseif> et <if></if><elseif></elseif><else></else>.
+
+Corrigé, DM, 13/11/06
+
+------
+
+Bug 9 : http://apache/asco/web/test.php/youenn/bug9
+
+La construction   <switch test="$prenom">
+        					<case test="'Youenn'">
+            					Bonjour
+        					</case>
+    					</switch>
+génère une erreur PHP qui indique
+'Notice: Undefined variable: prenom in D:\WebApache\fab\cachetest\modules\youenn\dataZone3.html.php on line 11'
+
+Motif : la ligne '$prenom=& Template::$data[0]['prenom'];' est absente du fichier compilé.
+
+Corrigé, DM, le 13/11/06
+
+------
+
+Bug 10 :
+
+La construction <if></if><elseif></elseif><else></else><else></else> compile au lieu de générer une exception
+Ensuite, on obtient une erreur PHP
+
+(plusieurs else à se suivre. Similaires aux bugs 12 et 14)
+
+De même, une construction <if></if><else></else><elseif></elseif> compile et génère une erreur PHP au lieu de
+générer une exception
+
+Corrigé, DM, 14/11/06 (génère maintenant une exception dans tous les cas)
+
+------
+
+Bug 11 : http://apache/asco/web/test.php/youenn/bug11
+
+La construction     <switch test="$prénom"> <- pas de bug içi
+        <case test="'Youenn'">
+            Bonjour Youenn
+        </case>
+        <default>
+            Bonjour $prénom <- bug apparaît içi
+        </default>
+    </switch>
+    
+génère encore une erreur à cause de l'accent dans 'prénom'. Par contre, en remplaçant "Bonjour $prénom" par "Bonjour"
+dans le default, l'erreur n'apparaît pas (malgré le fait que $prénom soit référencé dans le switch test="$prénom".
+
+Corrigé, DM, 14/11/06 (meilleure gestion des appels à utf8_decode)
+
+------
+
+Bug 12 : http://apache/asco/web/test.php/youenn/bug12
+
+Mettre deux cas par défaut dans un switch ne génère aucune exception !
+Le premier bloc default n'est pas exécuté.
+
+Corrigé, DM, 14/11/06 (génère maintenant une exception)
+
+------
+
+Bug 13 : http://apache/asco/web/test.php/youenn/bug13
+
+Dans un switch, mettre un bloc default avant un bloc case ne génère ni exception, ni warning.
+Est-ce un comportement souhaitable ? Peut-être pas.
+
+Corrigé, DM, 14/11/06 (génère maintenant une exception)
+
+------
+
+Bug 14 (?) : http://apache/asco/web/test.php/youenn/bug14
+
+Un switch contenant deux case qui effectuent le même test ne génère pas d'avertissement.
+Peut-être qu'il faudrait le faire étant donné que seul le premier case n'est exécuté dans un tel cas.
+
+Corrigé partiellement/wontfix, DM, 14/11/06 :
+
+Génère une exception si les blocs case comportent des expressions strictement 
+identiques, à l'espace près. Pour aller plus loin, il faudrait être capable 
+d'interprêter et de normaliser du code php
+(par exemple comment détecter que "$i==$j" et "$j==$i" font la même chose ?)
+
