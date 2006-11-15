@@ -25,7 +25,7 @@ Config::addArray
             // de l'application mis en cache. 
             // Il peut s'agir d'un chemin absolu (c:/temp/cache/) ou
             // d'un chemin relatif à la racine de l'application ($root) 
-            'path'      => 'cachetest',
+            'path'      => 'cache',
 
             // Path du répertoire dans lequel seront stockés les fichiers 
             // du framework mis en cache. 
