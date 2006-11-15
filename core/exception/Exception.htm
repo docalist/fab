@@ -1,0 +1,47 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" 
+"http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="fr">
+<head>
+    <meta http-equiv="Content-Type" content="application/xhtml+xml; charset=iso-8859-1" />
+    <title>{$message:'Exception non gérée'}</title>
+
+    <link rel="stylesheet" type="text/css" href="/asco/web/test.php/fabweb/styles/exception.css" media="all" />
+
+    <!--  ce qui suit ne devrait être inclus que si on est en mode debug -->
+    <link rel="stylesheet" type="text/css" href="/asco/web/fabweb/styles/debug.css" media="all" />
+    <script type="text/javascript" src="/asco/web/fabweb/js/lib/prototype/prototype.js"> </script>
+    <script type="text/javascript" src="/asco/web/fabweb/js/lib/rico/rico.js"> </script>
+    <script type="text/javascript" src="/asco/web/fabweb/js/debug.js" > </script>
+    
+    <script type="text/javascript">
+        function toggle(id)
+        \{
+            el = document.getElementById(id); 
+            el.style.display = el.style.display == 'block' ? 'none' : 'block';
+        \}
+    </script>
+</head>
+
+<body onload="toggle('id0');">
+    <div class="content">
+        <h1>Une exception de type '<strong>$name</strong>' s'est produite<if test="$errCode!=0"> (code $errCode)</if></h1>
+        <h2>$message</h2>
+        <ul>
+            <loop on="$stack" as="$key, $code">
+                <li>
+                    <h3>
+                        <a href="#" title="Voir le code..." onclick="toggle('id$key'); return false;">
+                            {$code['function']}
+                        </a>
+                        , ligne {$code['line']}
+                    </h3>
+                    <div class="code" id="id$key">
+                        <p class="filePath">Fichier <strong>{$code['file']}</strong></p>
+                        {$code['code']}
+                    </div>
+                </li>
+            </loop>
+        </ul>
+    </div>
+</body>
+</html>
