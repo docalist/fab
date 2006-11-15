@@ -107,7 +107,7 @@ class Runtime
         require_once self::$fabRoot.'Utils.php';
         
         // Fonctions de déboggage // TODO : seulement si mode debug
-        require_once self::$fabRoot.'Debug.php';
+        require_once self::$fabRoot.'core/debug/Debug.php';
         Debug::notice('Initialisation du framework en mode %s', $env ? $env : 'normal');
         
         // cas spécial, lancé en ligne de commande
@@ -338,7 +338,7 @@ $fab_init_time=microtime(true);
     {
         if (Config::get('cache.enabled'))
         {
-            require_once self::$fabRoot.'Cache.php';
+            require_once self::$fabRoot.'core/cache/Cache.php';
             
             // Cache de l'application
             $path=Config::get('cache.path');
