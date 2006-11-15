@@ -25,16 +25,54 @@ seule variable
 
 /**
  * Compilateur de templates
+ * 
+ * Le compilateur est basé sur un parser xml. Si le remplate n'est pas un fichier xml
+ * on ajoute une déclaration xml et un tag racine pour qu'il le devienne. 
+ * Quelques transformations sont ensuite opérées sur le source xml obtenu (pour le 
+ * moment uniquement transformation des templates match). 
+ * Le source obtenu est ensuite chargé dans le parser. La compilation consiste alors 
+ * simplement à faire un parcourt de l'arbre obtenu en générant à chaque fois le code 
+ * nécessaire (cf {@link compileNode()}). Pour chacun des tags de notre langage (if, 
+ * loop, switch...) compileNode() appelle la fonction correspondante (cf {@link compileIf()}, 
+ * {@link CompileLoop()}, {@link CompileSwitch()}, ...).
+ * Le code est généré par de simples echos. L'ensemble de la sortie est bufferisé pour être
+ * retourné à l'appellant. 
  */
 class TemplateCompiler
 {
     const PHP_START_TAG='<?php ';
     const PHP_END_TAG="?>";
 
+    /**
+     * @var int Niveau d'imbrication des blocs <opt>...</opt> rencontrés durant
+     * la compilation. Utilisé pour optimiser la façon dont les variables sont
+     * compilées (pas de Template::filled($x) si on n'est pas dans un bloc opt)
+     * 
+     * @access private
+     */
     private static $opt=0;
+
+    /**
+     * @var int Niveau d'imbrication des blocs <loop>...</loop> rencontrés durant
+     * la compilation. Utilisé pour attribuer des variables de boucles différentes
+     * à chaque niveau.
+     * 
+     * @access private
+     */
     private static $loop=0;
-    private static $datasources=array();
+    
+    /**
+     * @var array Liaisons entre chacune des variables rencontrées dans le template
+     * et la source de données correspondante.
+     * Ce tableau est construit au cours de la compilation. Les bindings sont ensuite
+     * générés au début du template généré.
+     * 
+     * @access private
+     */
     private static $bindings=array();
+    
+    
+    private static $datasources=array();
     
     /**
      * Compile un template 
@@ -119,7 +157,7 @@ class TemplateCompiler
     
 
     /**
-     * Compile les templates présents dans le document
+     * Compile les templates match présents dans le document
      * 
      * La fonction récupère tous les templates présents dans le document
      * (c'est à dire les noeuds ayant un attribut match="xxx") et instancie tous
@@ -165,7 +203,7 @@ class TemplateCompiler
     
 
     /**
-     * Instancie récursivement un template avec une liste d'attributs
+     * Instancie récursivement un template match avec une liste d'attributs
      * 
      * @param DOMNode $node le template à instancier
      * @param array $replace un tableau contenant les attributs à appliquer
@@ -179,6 +217,7 @@ class TemplateCompiler
                 if ($node->isWhitespaceInElementContent()) return;
                 $node->nodeValue=strtr($node->nodeValue, $replace);
                 return;
+                
             case XML_ELEMENT_NODE:
                 if ($node->hasAttributes())
                     foreach ($node->attributes as $key=>$attribute)
@@ -218,6 +257,7 @@ class TemplateCompiler
             return strtr($source, $literal2NumericEntity);
     } 
 
+
     /**
      * Compile un noeud (un tag) et tous ses fils   
      * 
@@ -244,7 +284,7 @@ class TemplateCompiler
         switch ($node->nodeType)
         {
             case XML_TEXT_NODE:     // du texte
-                echo self::compileField(utf8_decode($node->nodeValue)); // ou textContent ? ou wholeText ? ou data ?
+                echo self::compileField($node->nodeValue); // ou textContent ? ou wholeText ? ou data ?
                 return;
 
             case XML_COMMENT_NODE:  // un commentaire
@@ -278,44 +318,45 @@ class TemplateCompiler
                 if (($if=$node->getAttribute('if')) !== '')
                 {
                     $if=self::compileField($if, true);
-                    echo self::PHP_START_TAG, 'if ($tmp=(', $if, ')):',self::PHP_END_TAG;
+                    echo self::PHP_START_TAG, 'if ($tmp=(', $if, ')):', self::PHP_END_TAG;
                     $node->removeAttribute('if');
                 }
 
-//                if ($node->hasAttributes())
-//                    foreach ($node->attributes as $key=>$attribute)
-//                        $attribute->value=self::compileField($attribute->value, false);
-//
+                // Génère le tag
                 if (!$ignore)
                 {        
-                    echo '<', $name;    // si le terme a un préfixe, il figure déjà dans name (e.g. <test:h1>)
+                    echo '<', $name;    // si le tag a un préfixe, il figure déjà dans name (e.g. <test:h1>)
                     if ($node->namespaceURI !== $node->parentNode->namespaceURI)
                         echo ' xmlns="', $node->namespaceURI, '"'; 
-                }
                 
-                // Accès aux attributs xmlns : cf http://bugs.php.net/bug.php?id=38949
-                // apparemment, fixé dans php > 5.1.6, à vérifier
+                    // Accès aux attributs xmlns : cf http://bugs.php.net/bug.php?id=38949
+                    // apparemment, fixé dans php > 5.1.6, à vérifier
                 
-                if (! $ignore and $node->hasAttributes())
-                {
-                    $flags=0;
-                    foreach ($node->attributes as $key=>$attribute)
+                    if ($node->hasAttributes())
                     {
-                        ++self::$opt;
-                        $value=self::compileField($attribute->value, false, $flags);
-                        --self::$opt;
-                        $value=utf8_decode($value);
-                        $quot=(strpos($value,'"')===false) ? '"' : "'";
-                        if ($flags===2)
+                        $flags=0;
+                        foreach ($node->attributes as $key=>$attribute)
                         {
-                            echo self::PHP_START_TAG, 'Template::optBegin()', self::PHP_END_TAG;
-                            echo ' ', $attribute->nodeName, '=', $quot, $value, $quot;
-                            echo self::PHP_START_TAG, 'Template::optEnd()', self::PHP_END_TAG; 
+                            ++self::$opt;
+                            $value=self::compileField($attribute->value, false, $flags);
+                            --self::$opt;
+                            $value=utf8_decode($value);
+                            $quot=(strpos($value,'"')===false) ? '"' : "'";
+                            
+                            // Si l'attribut ne contient que des variables (pas de texte), il devient optionnel
+                            if ($flags===2)
+                            {
+                                echo self::PHP_START_TAG, 'Template::optBegin()', self::PHP_END_TAG;
+                                echo ' ', $attribute->nodeName, '=', $quot, $value, $quot;
+                                echo self::PHP_START_TAG, 'Template::optEnd()', self::PHP_END_TAG; 
+                            }
+                            else
+                                echo ' ', $attribute->nodeName, '=', $quot, $value, $quot;
                         }
-                        else
-                            echo ' ', $attribute->nodeName, '=', $quot, $value, $quot;
                     }
                 }
+                
+                // Génère tous les fils et la fin du tag
                 if ($node->hasChildNodes())
                 {
                     if (! $ignore) echo '>';
@@ -328,6 +369,8 @@ class TemplateCompiler
                     if ($if !== '')                     
                         echo self::PHP_START_TAG, 'endif;',self::PHP_END_TAG;
                 }
+                
+                // Cas d'un noeud sans fils
                 else
                 {
                     if (! $ignore) echo ' />';
@@ -350,14 +393,13 @@ class TemplateCompiler
                 return;
                 
             default:
-                echo '***Type de noeud non géré : ', $node->nodeType, "\n";
-                return;
+                throw new Exception("Impossible de compiler le template : l'arbre obtenu contient un type de noeud non géré ($node->nodeType)");
         }
     }
 
 
     /**
-     * Compile les fils d'un noeud et tous leurs descendants   
+     * Compile récursivement les fils d'un noeud et tous leurs descendants   
      * 
      * @param DOMNode $node le noeud à compiler
      */
@@ -371,6 +413,9 @@ class TemplateCompiler
 
     /**
      * Compile les balises de champ présents dans un texte   
+     * 
+     * Remarque : la fonction applique automatiquement utf8_decode à l'expression
+     * passée en paramêre : ne pas le faire ni avant ni après.
      * 
      * @param string $source le texte à examiner
      * 
@@ -388,7 +433,11 @@ class TemplateCompiler
     {
         // Expression régulière pour un nom de variable php valide
         // Source : http://fr2.php.net/variables (dans l'intro 'essentiel')
-        $var='\$([a-zA-Z_\x7f-\xff][a-zA-Z0-9_\x7f-\xff]*)';
+        // Modif du 14/11/06 : interdiction d'avoir une variable qui commence
+        // par un underscore (réservé aux variables internes du template, le fait
+        // de l'interdire assure que les variables internes n'écrasent pas les
+        // sources de données)
+        $var='\$([a-zA-Z\x7f-\xff][a-zA-Z0-9_\x7f-\xff]*)';
         // TODO : voir si un \w fait la même chose
         
         // Expression régulière pour une expression valide dans un template
@@ -406,6 +455,9 @@ class TemplateCompiler
             $source
         );
 
+        // COnvertit le texte ytf8->iso8859-1
+        $source=utf8_decode($source);
+        
         // Boucle tant qu'on trouve des choses dans le source passé en paramètre
         $start=0;
         $result='';
@@ -470,15 +522,17 @@ class TemplateCompiler
             $hasText=true;
         }
 
+        // Positionne les flags en fonction de ce q'on a trouvé
         if (! $hasFields) 
-            $flags=0;
-        elseif ($hasText)
-            $flags=1;
+            $flags=0;           // aucun champ, que du texte
+        elseif ($hasText)       
+            $flags=1;           // champ et texte mélangés
         else
-            $flags=2;
+            $flags=2;           // que des champs
             
         return $result;
     }
+
 
     /**
      * Compile un "collier" d'expression présent dans une zone de données et
@@ -503,7 +557,7 @@ class TemplateCompiler
 
         $result=array();    // le tableau résultat
         $h='';              // l'expression en cours dans le collier
-        //echo '<pre>', print_r($tokens, true), '</pre>';
+
         foreach ($tokens as $token) 
         {
             // Le token est un bloc de texte
@@ -546,7 +600,6 @@ class TemplateCompiler
             $var=substr($data,1);
             
             // Teste si c'est une variable créée par le template (loop, etc.)
-//            echo '<pre>', print_r(self::$datasources, true), '</pre>';
             foreach (self::$datasources as $datasource)
             {
                 if (isset($datasource[$var]))
@@ -559,35 +612,13 @@ class TemplateCompiler
                 }    
             }
 
-//            // Teste si on a déjà compilé cette variable
-//            if (isset(self::$bindings[$var]))
-//            {
-//                // trouvé !
-//                $h.= '$' .$var;
-//
-//                // Passe au token suivant
-//                continue;
-//            }
-
-            // C'est une variable qu'on n'a jamais rencontrée
+            // C'est une source de données
             $name=$value=$code=null;
-            if (!Template::getDataSource(utf8_decode($var), $name, $value, $code)) // utf8_decode($var) ??
+            if (!Template::getDataSource($var, $name, $value, $code))
                 throw new Exception("Impossible de compiler le template : la source de données <code>$var</code> n'est pas définie.");
 
             self::$bindings[$name]=$value;
             $h.= $code;
-            
-//            $field=Template::fieldSource(utf8_decode($var));
-//            if ($field=='')
-//            {
-//                print_r(Template::$data);
-//                throw new Exception("Impossible de compiler le template : la source de données $data n'est pas définie.");
-//            }
-//            self::$bindings[$var]='&' . $field;
-//            $field='$'.$var;
-//
-//            if ($field=='') $field="'Champ inconnu : " . $data . " '";//TODO
-//            $h.= $field;
         }
         
         // Ajoute l'expression en cours au tableau et retourne le résultat
@@ -610,16 +641,7 @@ class TemplateCompiler
         self::compileChildren($node);
         // TODO : serait inutile si on pouvait écrire <template collapse="true">
     }
-/*
-    private static function insertPhp(DOMNode $node, $data, $before=true)
-    {
-        $piNode=$node->ownerDocument->createProcessingInstruction('php', $data);
-        if ($before)
-            $node->parentNode->insertBefore($piNode, $node);
-        else
-            $node->parentNode->insertBefore($piNode, $node->nextSibling);
-    }
-*/
+
     /**
      * Compile un bloc &lt;opt&gt;&lt;/opt&gt;   
      *
@@ -627,15 +649,15 @@ class TemplateCompiler
      */
     private static function compileOpt(DOMNode $node)
     {
-        // Récupère la condition
+        // Opt accepte un attribut optionnel min qui indique le nombre minimum de variables
         $min=$node->getAttribute('min') or '';
         
         // Génère le code
-        echo self::PHP_START_TAG . 'Template::optBegin()' .self::PHP_END_TAG;
+        echo self::PHP_START_TAG, 'Template::optBegin()', self::PHP_END_TAG;
         ++self::$opt;
         self::compileChildren($node);
         --self::$opt;
-        echo self::PHP_START_TAG . "Template::optEnd($min)" .self::PHP_END_TAG; 
+        echo self::PHP_START_TAG, "Template::optEnd($min)", self::PHP_END_TAG; 
     }
 
    
@@ -660,7 +682,7 @@ class TemplateCompiler
          * traité, sauf le noeud node passé en paramètre dans la mesure ou
          * la fonction compileNode qui nous a appellée fait elle-même un next.
          */
-
+        $elseAllowed=true;  // Un else ou un elseif sont-ils encore autorisés au stade où on est ?
         $next=$node;
         for(;;)
         {
@@ -669,9 +691,12 @@ class TemplateCompiler
             {
                 case 'else':
                     echo self::PHP_START_TAG, $tag, ':', self::PHP_END_TAG;
+                    $elseAllowed=false;
                     break;
-                case 'if':
+
                 case 'elseif':
+                    
+                case 'if':
                     // Récupère la condition
                     if (($test=$next->getAttribute('test')) === '')
                         throw new Exception("Tag $tag incorrect : attribut test manquant");
@@ -697,8 +722,10 @@ class TemplateCompiler
             }
 
             // Vérifie que le noeud obtenu est un elseif ou un else
-            if ($next->nodeType!==XML_ELEMENT_NODE or
-               ($next->tagName!=='else' and $next->tagName!=='elseif')) break;
+            if ($next->nodeType!==XML_ELEMENT_NODE) break;
+            if ($elseAllowed and $next->tagName=='else') continue;
+            if ($elseAllowed and $next->tagName=='elseif') continue;
+            break;
 
         }
                 
@@ -747,6 +774,7 @@ class TemplateCompiler
     private static function compileSwitchCases($node)
     {
         $first=true;
+        $seen=array(); // Les conditions déjà rencontrées dans le switch
         
         // Génère tous les fils du switch
         foreach ($node->childNodes as $node)
@@ -764,13 +792,21 @@ class TemplateCompiler
                     switch($node->tagName)
                     {
                         case 'case':
+                            if (isset($seen['']))
+                                throw new Exception('Switch : bloc case rencontré après un bloc default');
                             if (($test=$node->getAttribute('test')) === '')
                                 throw new Exception("Tag case incorrect : attribut test manquant");
+                            if (isset($seen[$test]))
+                                throw new Exception('Switch : plusieurs blocs case avec la même condition');
+                            $seen[$test]=true;
                             $test=self::compileField($test, true);
                             echo ($first?'':self::PHP_START_TAG.'break;'), 'case ', $test, ':', self::PHP_END_TAG;
                             self::compileChildren($node);
                             break;
                         case 'default':
+                            if (isset($seen['']))
+                                throw new Exception('Switch : blocs default multiples');
+                            $seen['']=true;
                             echo ($first?'':self::PHP_START_TAG.'break;'), 'default:', self::PHP_END_TAG;
                             self::compileChildren($node);
                             break;
@@ -797,8 +833,7 @@ class TemplateCompiler
      */
     private static function elseError(DOMNode $node)
     {
-//        throw new Exception('Le tag else doit suivre immédiatement un tag if, seuls des blancs sont autorisés entre les deux.');
-        echo 'Tag ', $node->tagName, ' isolé.';
+        throw new Exception('Tag '.$node->tagName.' isolé. Ce tag doit suivre immédiatement un tag if ou elseif, seuls des blancs sont autorisés entre les deux.');
     }
     
 
@@ -814,7 +849,7 @@ class TemplateCompiler
         $value='value';
         if (($as=$node->getAttribute('as')) !== '')
         {
-            $var='\$([a-zA-Z_\x7f-\xff][a-zA-Z0-9_\x7f-\xff]*)';
+            $var='\$([a-zA-Z\x7f-\xff][a-zA-Z0-9_\x7f-\xff]*)'; // synchro avec le $var de compileField 
             $re="~^\s*$var\s*(?:,\s*$var\s*)?\$~"; // as="value", as="key,value", as=" $key, $value "
             if (preg_match($re, $as, $matches) == 0)
                 throw new Exception("Tag loop : syntaxe incorrecte pour l'attribut 'as'");
