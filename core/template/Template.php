@@ -488,7 +488,9 @@ class Template
                         $value=$data[$name]; // essaie d'accéder, pas d'erreur ?
 
                         $code=$bindingName='$'.$name;
-                        $bindingValue='& Template::$data['.$i.'][\''.$name.'\']';
+                        $bindingValue='Template::$data['.$i.'][\''.$name.'\']';
+                        // pas de référence : see http://bugs.php.net/bug.php?id=34783
+                        // It is impossible to have ArrayAccess deal with references
                         return true;
                     }
                     catch(Exception $e)

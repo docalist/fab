@@ -42,6 +42,18 @@ automatiquent un tag racine au fichier s'il s'agit d'un fragment xml. Cela perme
 d'avoir le même système de templates pour des documents xhtml et, par exemple, 
 des templates générant une sortie au format csv.
 
+Remarque :
+
+Même si un template doit être au format xml, on peut vouloir écrire du texte contenant des caractères
+qui ne soient pas interprétés par le parser xml : il suffit pour cela de les include dans un bloc 
+CDATA :
+
+<![CDATA[
+Ce bloc peut contenir n'importe quels caractères tels que des $ des signes < et >, etc.
+Ils ne seront pas interprétés par le parser xml
+]]>
+
+
 Le système se compose de trois grands groupes d'éléments :
 
 - Des zones de données : il s'agit de balises qui apparaissent dans le code du 
@@ -240,7 +252,7 @@ Blocs ``switch/case/default``
 .............................
 Exemple : ::
 	
-	<switch test="xxx">
+	<switch test="xxx">		<!-- l'attribut 'test' optionnel -->
 		<case test="xxx">	<!-- où "xxx" est une valeur possible pour l'expression du switch -->
 			...
 		</case>
@@ -260,6 +272,23 @@ Exemple : ::
 		...
 	</loop>
 	
+Si l'attribut 'as' ne spécifie qu'une seule variable $var, alors, dans le corps du loop,
+$var donnera accès à la valeur et non à l'index en cours : équivalent à $j dans l'exemple précédent.
+
+Templates 
+.........
+Exemple : ::
+
+	<template match="//footer">
+		<hr />
+		Copyright Bdsp
+	</template>
+	
+	<footer />
+	
+Le tag <template> fait l'objet d'une documentation séparée dans le 
+fichier template.txt.
+
 Prévu, mais pas encore implémenté
 ---------------------------------
 
@@ -271,7 +300,12 @@ Templates match
 ...............
 Exemple : ::
 	
-	<tag match="xxx">yyy</tag>
+	<template match="xxx">$val1</template>
+
+	<xxx att1="$val1"/>
+
+Il s'agit en fait de pouvoir définir des templates "internes" qui sont instanciés par un "pré-processeur"
+quand il rencontre un tag dont le nom est équivalent à la valeur du tag 'match' du template ('xxx' dans l'exemple).
 
 	
 Table des matières : ``<tableofcontents>``

@@ -1,0 +1,379 @@
+Templates dans les templates : le tag <template>
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Introduction
+============
+Le tag ``<template>`` permet de mettre en oeuvre, au sein des fichiers templates,
+l'équivalent d'une fonction dans un langage de programmation.
+
+Définition d'un template
+------------------------
+Le tag ``<template>`` permet de définir un modèle qui pourra ensuite être 
+réutilisé autant de fois que nécessaire.
+
+Ce modèle spécifie un masque (indiqué par un attribut match contenant une
+expression xpath valide) qui définit l'ensemble des éléments du fichier template
+auxquels ce modèle sera automatiquement appliqué.
+
+Le modèle peut également avoir des arguments (ce sont les attributs 
+supplémentaires indiqués dans le tag ``<template>``) et chaque argument a une 
+valeur par défaut (la valeur indiqués dans chacun des attributs), éventuellement 
+vide.
+
+Exemple : ::
+
+	<template match="//copyright" year="2006">
+		<hr />
+		Copyright $year BDSP.
+	</template>
+	
+Dans cet exemple, nous définissons un template qui sélectionne automatiquement
+tous les tags dont le nom est égal à "``copyright``" (c'est ce qu'indique 
+l'expression xpath indiquée dans l'attribut match).
+
+Ce template spécifie un paramètre nommé "``year``" et dont la valeur par défaut 
+est "``2006``".
+
+Le corps du template (ce qui figure entre les balises ``<template>`` et 
+``</template>``) spécifie le code qui sera généré lorsque ce template sera 
+utilisé.
+
+On voit que le paramètre "``year``" qui figure dans les attributs du template 
+s'utilise comme une variable standard (``$year``).
+
+Le corps du template peut contenir n'importe quoi : du texte, d'autres tags, 
+des instructions du système de template (if, loop, switch...) et peut également
+inclure tout ou partie du contenu des noeuds auxquels il sera appliqué en 
+utilisant la fonction ``select()`` (voir plus bas).
+
+Utilisation d'un template
+-------------------------
+Pour utiliser un modèle, il suffit d'écrire un noeud qui réponde aux critères
+spécifiés dans l'attribut match du modèle. Ce noeud sera alors automatiquement
+remplacé par le contenu du template.
+
+Lorsqu'on appelle un template, on peut choisir d'utiliser les valeurs par
+défaut des arguments du template, ou au contraire spécifier des valeurs.
+
+Exemple 1 : ::
+
+	<copyright />
+
+Ici, on a écrit le minimum nécessaire pour que le modèle donné en exemple un
+peu plus haut soit instancié. Aucun paramètre n'a été indiqué, et donc le 
+modèle va être instancié tel quel, en utilisant les valeurs par défaut de ses 
+paramètres. On obtiendra donc la sortie suivante : ::
+
+	<hr />
+	Copyright 2006 BDSP.
+
+Exemple 2 : ::
+
+	<copyright year="1993-2007" />
+
+Ici, on a spécifié une valeur pour l'argument year. Cette valeur va "écraser"
+la valeur par défaut du template, et on obtiendra donc la sortie suivante : ::
+
+	<hr />
+	Copyright 1993-2007 BDSP.
+
+
+
+L'attribut match du tag <template>
+==================================
+Le tag template doit obligatoirement contenir l'attribut match : une exception 
+est générée si cet attribut est absent, s'il est vide, ou s'il contient une 
+expression xpath non valide.
+
+Par contre, presque toutes les expression xpath valides sont autorisées. Il est 
+ainsi possible de sélectionner des noeuds en fonction de leur tag, de leur 
+position dans l'arbre XML du document, des attributs qu'ils contiennent, de la 
+valeur de ces attributs ou même de faire des calculs plus complexes en utilisant
+les fonctions et les opérateurs disponibles dans le langage xpath.
+
+Néanmoins, certaines expressions xpath, bien que valides, ne peuvent pas être 
+utilisées. Par exemple sélectionner le document dans son entier, sélection 
+récursive (un template qui se sélectionne lui-même), etc.
+(TODO : à analyser, mieux définir les expressions qui généreront un exception).
+
+Quelques exemples
+-----------------
+
+- ``match="//div"`` (qui est un raccourci de match="``/*/div"``) : tous les tags
+  ``<div>``, quel que soit leur emplacement dans l'arbre xml du document
+- ``match="//form/fieldset/div"`` : tous les éléments ``<div>`` qui sont des 
+  descendants directs d'un élément ``<fieldset>`` lui-même descendant direct 
+  d'un élément ``<form>`` présent n'importe où dans l'arbre xml
+- ``match="//ul/li[1]"`` (qui est un raccourci de 
+  ``match="/*/ul/li[position()=1]"`` : le premier élément ``<li>`` présent dans 
+  un élément ``<ul>``
+- ``match="//a[@target]"`` : tous les liens (tags ``<a>``) qui ont un attribut 
+  "``target``"
+- ``match="//a[@href^='mailto:']"`` : tous les liens (tags ``<a>``) dont l'attribut
+  ``href`` commence par "``mailto:``"
+- ``match="//form[(input[@type="checkbox"] or input[@type="radio"] and not(textarea)]"`` : 
+  tous les formulaires qui contiennent au moins une case à cocher ou un bouton
+  radio mais qui ne contiennent pas de textearea.
+- ``match="//h1|h2|h3|h4|h5|h6"`` : tous les éléments titres
+- ``match="//h1[text()]"`` : le *texte* des titres de niveau 1
+- ``match="//a/@href"`` : sélectionne les *attributs* href de tous les liens
+- ``match="//*/@*"`` : sélectionne tous les *attributs* de tous les noeuds de 
+  l'arbre xml (ça risque de faire du monde ...)
+
+TODO : 
+
+- Aucun des exemples ci-dessus n'a été testé pour de vrai... à faire
+- normallement, les // de début ne devrait pas être nécessaires, si ? (à
+  étudier et à tester). En fait, je pense que si, sinon on ne sélectionnerait
+  que les descendants directs de l'élément racine ? à tester.
+
+
+Remarques
+---------
+
+- lorsqu'un template est instancié, le contexte courant de xpath est
+  la racine de l'arbre xml du document.
+  TODO : probablement buggé pour le moment, à tester
+- utiliser dans un attribut match une expression xpath qui sélectionne des 
+  *attributs* et non pas des *éléments* de l'arbre xml **est** une opération 
+  valide.
+  
+  TODO : expliquer que dans ce cas, lors de l'instanciation, on fait un traitement 
+  spécial. En fait, on a sélectionné un attribut. La valeur de cet attribut va 
+  être remplacé par le corps du template. Mais le corps du template peut 
+  contenir n'importe quoi, par exemple toute une hiérarchie de tags. Or, on ne 
+  peut pas mettre des tags dans la valeur d'un attribut (``<a href="<b>???</b>"``),
+  c'est interdit en xml. Le traitement spécial effectué, c'est que dans ce cas
+  on obtiendra uniquement la version "text only" du corps du template, 
+  c'est-à-dire ce qu'on obtient si on enlève tous les tags.
+  TODO : non implémenté pour le moment
+
+
+Les paramètres du template
+==========================
+Le template peut spécifier des paramètres. Pour cela il suffit d'ajouter des
+attributs au tag ``<template>`` utilisé.
+
+Remarque : le nom "``match``" est réservé, il n'est pas possible de l'utiliser
+comme nom de paramètre.
+
+Dans le corps du template, les paramètres deviennent automatiquement de
+nouvelles sources de données. Elles sont du coup utilisables comme n'importe
+quelle autre variable : ``$arg``, ``{$arg}``, etc.
+
+TODO : ça c'est en théorie, dans la pratique, actuellement, on ne peut utiliser
+que $arg.
+
+Les autres sources de données utilisées dans le corps du template sont 
+instanciées telles quelles.
+
+Exemple : ::
+
+	<template match="//copyright" year="2005">
+		Copyright $year $name
+	</template>
+	
+Dans cet exemple, year est un paramètre du template. Lors de l'instanciation,
+$year sera donc remplacée par la valeur de ce paramètre, que ce soit la valeur
+par défaut indiquée dans le template ou la valeur spécifiée par l'appellant.
+
+Par-contre, name n'est pas un argument du template, donc lors de 
+l'instanciation, il sera transmis tel quel.
+
+On obtient donc la sortie suivante : ::
+
+	Copyright 2005 $name
+
+
+Récupérer le contenu de l'élément instancié : fonction ``select()``
+===================================================================
+
+Introduction
+------------
+
+Il existe une pseudo-fonction nommée ``select()``, qui peut être utilisée dans
+le corps d'un template, et qui prends en argument une expression xpath.
+
+Cette fonction simple permet de récupérer tout ou partie du contenu de l'élément 
+instancié, qu'il s'agisse de texte, d'éléments ou d'attributs.
+
+Lorsque cette fonction est exécutée, le contexte courant de xpath est le noeud
+en cours d'instanciation.
+
+Utiliser select() dans du texte
+-------------------------------
+
+Exemple 1 : convertir les tags <b>...</b> en tags <strong>...</strong>
+......................................................................
+
+::
+
+	<template match="//b">
+		<strong>{select('text()')}</strong>
+	</template>
+
+Ici, on a utilisé la fonction select() pour récupérer le texte présent dans les
+tags h1 sélectionnés par le template.
+
+
+Exemple 2 : transformer une liste <ul>...</ul> en liste <ol>...</ol>
+....................................................................
+
+::
+
+	<template match="//ul">
+		<ol>{select('*')}</ol>
+	</template>
+
+
+Utiliser select() dans un attribut
+----------------------------------
+
+La fonction select() peut également être utilisée dans les attributs des 
+éléments qui figurent dans le corps du template (TODO : non implémenté pour le 
+moment).
+
+Exemple : ::
+
+	<template match="//a">
+		<a href="{select('@href')}">{select('*|text()')}</a>
+	</template>
+
+Dans cet exemple, on réécrit les liens en ne conservant que l'attribut href, à
+l'exclusion de tous les autres.
+
+Remarque : dans un tel cas, on obtiendra une erreur si l'expression xpath
+sélectionne des éléments ou plusieurs attributs. En fait, on a le droit de
+sélectionner soi un attribut unique (dans ce cas, c'est la valeur de l'attribut 
+sélectionné qui sera utilisée), soit un élément de type texte qui est utilisé
+tel quel :
+
+- ``class="{select('@class')}"`` : correct
+- ``class="{select('@*')}"`` : erreur si le noeud instancié contenait plusieurs 
+  attributs
+- ``class="{select('*')}`` : illlégal, on essaie de mettre des éléments dans la
+  valeur d'un attribut
+- ``class="{select('text()')}`` : légal (bien que probablement peu utile), 
+  puisqu'on ne sélectionne que du texte
+
+
+Récupérer tous les attributs de l'élément instancié
+---------------------------------------------------
+Il est possible d'utiliser dans le texte d'un élément une instruction select()
+qui va sélectionner un ou plusieurs attributs. Dans ce cas, les attributs
+sélectionnés vont être ajoutés à l'élément parent du texte et non pas dans le 
+texte.
+
+TODO: je sais, ce n'est pas très clair...
+
+Ici, on utilise ``{select('@*')}`` dans le texte de l'élément <a> présent dans
+le corps du template pour récupérer tous les attributs du noeud instancié.
+Les attributs obtenus ne seront pas "collé" dans le texte (``<a>href="xxx"...``)
+mais ajoutés au parent du texte qui contient l'appel à select (donc le tag 
+``<a>``) :
+
+::
+
+   <a href="xxx" style="yyy" onclick="zzz">...</a>
+
+En fait l'insertion des attributs se fait de manière "intelligente" : d'une 
+part, seuls les attributs qui ne figurent pas déjà dans la parent sont insérés,
+d'autre part, les attributs du noeud instancié qui correspondent à des 
+paramètres passés au template sont ignorés.
+
+
+Exemple, ajouter la classe "external" aux liens sortants :
+..........................................................
+
+::
+
+	<a 
+		name="bdsplink"
+		href="http://www.bdsp.tm.fr" 
+		style="color: blue" 
+		onclick="alert('à bientôt')"
+	>
+		Bdsp
+	</a>
+	
+	<template match="//a[href^='http://']" name="">
+		<a class="{select('@class')} external" style="color: red">
+			{select('@*')}         /* récupère les attributs du noeud */
+			{select('*|text()')}   /* récupére le contenu du noeud */
+		</a>
+	</template>
+
+Sortie générée : ::
+
+	<a class="external" 
+		href="http://www.bdsp.tm.fr" 
+		style="color: red" 
+		onclick="alert('à bientôt')"
+	>
+		Bdsp
+	</a>
+
+
+Voila comment sont traités les attributs lorsque le {select('@*')} est exécuté :
+
+- ``name`` est un paramètre de template, il n'est pas repris
+- ``href`` est repris (n'existe pas déjà dans le tag a et n'est pas un paramètre)
+- ``style`` existe dajà dans le tag a (color : red), le style existant dans le
+  noeud d'origine est ignoré
+- ``href`` est repris (n'existe pas déjà dans le tag a et n'est pas un paramètre)
+
+
+Algorithme utilisé pour exécuter les select()
+---------------------------------------------
+
+On a un noeud en cours de type DOMText qui contient des expressions select ::
+
+	[avant{select('xpath')}après...]
+
+On repère l'expression, et on coupe le noeud texte en deux (splitText) ::
+
+	[avant][après...]
+ 
+On exécute l'expression xpath qui retourne une liste de noeuds ::
+
+	<N1 /><N2 />...<Nn />
+
+On clone ces noeuds et on les insère entre les deux noeuds texte ::
+
+	[avant]<N1 /><N2 />...<Nn />[après...]
+
+Le second noeud texte ([après...]) devient le noeud en cours et on recommence
+jusqu'à ce qu'on ne trouve plus de select()
+
+Cas particulier : l'expression xpath retourne des noeuds de type DOMAttr.
+Dans ce cas, chaque attribut est ajouté au noeud parent du noeud texte en 
+cours, sauf s'il s'agit d'un attribut qui existe déjà dans le parent ou s'il 
+s'agit d'un des paramètres du template. 
+
+Cas d'erreurs, génèrent une exception : expression xpath vide, expression 
+xpath erronée, expression xpath qui retourne des types de noeuds incorrects
+(par exemple tout le document)
+
+
+
+Références xpath
+================
+
+Références :
+
+- en anglais : http://www.w3.org/TR/xpath
+- en français : http://xmlfr.org/w3c/TR/xpath
+
+
+Tutoriels :
+
+- en anglais : http://www.zvon.org/xxl/XPathTutorial/General_fre/examples.html
+- en français : http://jerome.developpez.com/xmlxsl/xpath/
+
+
+Outils en ligne permettant de tester des expressions xpath :
+
+- http://www.whitebeam.org/library/guide/TechNotes/xpathtestbed.rhtm
+  (très bon)
+- http://www.activsoftware.com/xml/xpath/
+
