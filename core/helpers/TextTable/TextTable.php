@@ -18,7 +18,7 @@
     private $ignoreEmpty;       // true si on ignore les enregistrements "vides" (contenant seulement $delimiter, espaces ou $enclosure)
     private $header=null;       // La ligne d'entête
     private $record=null;       // L'enreg en cours
-    private $line=0;            // Numéro de la ligne en cours 
+    private $line=0;            // Numéro de la ligne enfjdskfds cours 
     
     /*
      * @param $filePath string chemin d'accès au fichier
