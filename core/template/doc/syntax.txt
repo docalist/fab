@@ -275,19 +275,22 @@ Exemple : ::
 Si l'attribut 'as' ne spécifie qu'une seule variable $var, alors, dans le corps du loop,
 $var donnera accès à la valeur et non à l'index en cours : équivalent à $j dans l'exemple précédent.
 
-Templates 
-.........
-Exemple : ::
 
-	<template match="//footer">
+Templates : le tag template fait l'object d'une documentation séparée dans le fichier template.txt
+..................................................................................................
+Exemple : ::
+	
+	<template match="//copyright" year="">
 		<hr />
-		Copyright Bdsp
+		Copyright $year BDSP
 	</template>
 	
-	<footer />
-	
-Le tag <template> fait l'objet d'une documentation séparée dans le 
-fichier template.txt.
+	<copyright year="2007"/>
+
+Il s'agit en fait de pouvoir définir des templates "internes" qui sont instanciés par un "pré-processeur"
+quand il rencontre un tag dont le nom est équivalent à la valeur du tag 'match' du template ('copyright' dans l'exemple).
+
+Cf documentation séparée : template.txt
 
 Prévu, mais pas encore implémenté
 ---------------------------------
@@ -296,17 +299,6 @@ Inclusion de fichier : ``<include>``
 ....................................
 	<include file="xxx" />
 	
-Templates match
-...............
-Exemple : ::
-	
-	<template match="xxx">$val1</template>
-
-	<xxx att1="$val1"/>
-
-Il s'agit en fait de pouvoir définir des templates "internes" qui sont instanciés par un "pré-processeur"
-quand il rencontre un tag dont le nom est équivalent à la valeur du tag 'match' du template ('xxx' dans l'exemple).
-
 	
 Table des matières : ``<tableofcontents>``
 ..........................................

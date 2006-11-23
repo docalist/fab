@@ -1,5 +1,6 @@
 Remarques par rapport aux tests unitaires réalisés pour le gestionnaires de templates
 
+Voir aussi : BUGS.TXT
 
 - Quand le template contient un '$texteQuelconque' et qu'aucun index '$texteQuelconque' n'existe dans le tableau
 de données passé au template, ne devrait-on pas ignorer cet ensemble de caractère au lieu de générer une exception ?
@@ -17,3 +18,37 @@ XML ? De plus, le contenu 'texte>', lui, génèrera bien une exception.
 produire du PHP non valide
 
 - Même chose pour une construction du type '<div test="$vAccentuée==">Contenu du div</div>'
+
+- '<switch tet="$vAccentuée"><case test="\'Valeur 1\'">Dans le case</case></switch>' ne génère pas d'exception :
+l'attribut test est optionnel mais il faudrait générer une exception si un attribut autre que 'test' est présent.
+D'ailleurs, le fait que l'attribut 'test' soit optionnel ne fonctionne pas : l'exemple ci-dessus fonctionne
+(pourtant, erreur de syntaxe : 'tet' au lieu de 'test') mais si ne met pas du tout l'attibut 'test', on a une exception.
+
+- Par rapport au bug 14 dans bugs.txt, est-ce qu'il ne faudrait pas aussi générer une exception quand 1 case
+comportent la même expression qu'un autre case avec un ou plusieurs espaces de différences ? Ces espaces risquent d'être des erreurs de
+frappe de la part de l'utilisateur donc il serait bien de les signaler.
+D'un autre côté, peut-être que c'est compliqué à gérer : on serait obligé de distinguer les espaces qui affectent ou non le résultat renvoyé par
+l'expression.
+A voir...
+
+- Bug : <template match="//a/@href">Remplacé</template> <a href="www">Lien</a>
+
+Au lieu de générer <a href="Remplacé">Lien</a>, un bug survient :
+"Fatal error: Argument 3 passed to TemplateCompiler::compileSelectsInTextNode() must be an instance of DOMElement, called in
+D:\WebApache\fab\core\template\TemplateCompiler.php on line 245 and defined in D:\WebApache\fab\core\template\TemplateCompiler.php on line 354"
+
+Test mis en commentaire pour le moment...
+
+
+- Problème de gestion des variables accentuées : portée des variables des templates.
+Quand un argument du template a le même nom qu'une source de données passée à Template::run, on devrait avoir le même fonctionnement
+qu'avec une fonction dans une langage de programmation "classique", à savoir une portée locale de la variable dans le template, qui
+n'écrase donc pas la valeur de la variable passée à Template::run.
+Or, si le nom de variable en question comporte des accents, la variable a, dans le corps du template, la valeur passé à Template::run
+au lieu de celle passée en paramètre au template "interne".
+Par contre, on retrouve le fonctionnement souhaité si le nom de la variable ne comporte pas d'accent.
+
+
+- Bug lié aux accents :
+<template match="//a[starts-with(@href, \'http://\')]"><a href="www" onclick="alert(\'A bientôt\')"></a></template> <a href="http://unsite" />
+ne génère pas : <a href="www" onclick="alert(\'A bientôt\')" /> à cause de l'accent dans "A bientôt"

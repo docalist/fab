@@ -1,6 +1,16 @@
 Templates dans les templates : le tag <template>
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+
+Vocabulaire
+===========
+
+Pour simplifier le langage dans la documentation, les termes "attribut",
+"élément" et "texte" sont parfois utilisés respectivement pour :
+"noeud de type attribut" (attributs d'un tag par ex), "noeud de type élément" (tag)
+et "noeud de type texte" (texte du tag par ex.)
+
+
 Introduction
 ============
 Le tag ``<template>`` permet de mettre en oeuvre, au sein des fichiers templates,
@@ -17,10 +27,10 @@ auxquels ce modèle sera automatiquement appliqué.
 
 Le modèle peut également avoir des arguments (ce sont les attributs 
 supplémentaires indiqués dans le tag ``<template>``) et chaque argument a une 
-valeur par défaut (la valeur indiqués dans chacun des attributs), éventuellement 
+valeur par défaut (la valeur indiquée dans chacun des attributs), éventuellement 
 vide.
 
-Exemple : ::
+Exemple de template : ::
 
 	<template match="//copyright" year="2006">
 		<hr />
@@ -28,10 +38,10 @@ Exemple : ::
 	</template>
 	
 Dans cet exemple, nous définissons un template qui sélectionne automatiquement
-tous les tags dont le nom est égal à "``copyright``" (c'est ce qu'indique 
-l'expression xpath indiquée dans l'attribut match).
+tous les éléments dont le nom de tag est égal à "``copyright``" (c'est ce 
+qu'indique l'expression xpath indiquée dans l'attribut match).
 
-Ce template spécifie un paramètre nommé "``year``" et dont la valeur par défaut 
+Ce template spécifie un paramètre nommé "``year``" dont la valeur par défaut 
 est "``2006``".
 
 Le corps du template (ce qui figure entre les balises ``<template>`` et 
@@ -96,8 +106,8 @@ utilisées. Par exemple sélectionner le document dans son entier, sélection
 récursive (un template qui se sélectionne lui-même), etc.
 (TODO : à analyser, mieux définir les expressions qui généreront un exception).
 
-Quelques exemples
------------------
+Exemples d'attributs match valides
+----------------------------------
 
 - ``match="//div"`` (qui est un raccourci de match="``/*/div"``) : tous les tags
   ``<div>``, quel que soit leur emplacement dans l'arbre xml du document
@@ -107,32 +117,34 @@ Quelques exemples
 - ``match="//ul/li[1]"`` (qui est un raccourci de 
   ``match="/*/ul/li[position()=1]"`` : le premier élément ``<li>`` présent dans 
   un élément ``<ul>``
-- ``match="//a[@target]"`` : tous les liens (tags ``<a>``) qui ont un attribut 
-  "``target``"
-- ``match="//a[@href^='mailto:']"`` : tous les liens (tags ``<a>``) dont l'attribut
+- ``match="//a[@title]"`` : tous les liens (tags ``<a>``) qui ont un attribut 
+  "``title``"
+- ``match="//a[starts-with(@href, 'mailto:')]"`` : tous les liens (tags ``<a>``) dont l'attribut
   ``href`` commence par "``mailto:``"
 - ``match="//form[(input[@type="checkbox"] or input[@type="radio"] and not(textarea)]"`` : 
   tous les formulaires qui contiennent au moins une case à cocher ou un bouton
   radio mais qui ne contiennent pas de textearea.
-- ``match="//h1|h2|h3|h4|h5|h6"`` : tous les éléments titres
+- ``match="//h1|//h2|//h3|//h4|//h5|//h6"`` : tous les éléments titres
 - ``match="//h1[text()]"`` : le *texte* des titres de niveau 1
 - ``match="//a/@href"`` : sélectionne les *attributs* href de tous les liens
 - ``match="//*/@*"`` : sélectionne tous les *attributs* de tous les noeuds de 
   l'arbre xml (ça risque de faire du monde ...)
 
-TODO : 
 
-- Aucun des exemples ci-dessus n'a été testé pour de vrai... à faire
-- normallement, les // de début ne devrait pas être nécessaires, si ? (à
-  étudier et à tester). En fait, je pense que si, sinon on ne sélectionnerait
-  que les descendants directs de l'élément racine ? à tester.
+TODO : aucun des exemples ci-dessus n'a été testé pour de vrai... à faire
 
 
 Remarques
 ---------
 
-- lorsqu'un template est instancié, le contexte courant de xpath est
-  la racine de l'arbre xml du document.
+- Les "//"du match sont nécessaires pour sélectionner tous les descendants quel
+  que soit le niveau de descendance.
+  Sans les "//", on ne sélectionne que les descendants directs de l'élément 
+  racine.
+  
+- lorsque l'expression xpath contenue dans l'attribut match d'un template est 
+  exécutée, le contexte courant de xpath estla racine de l'arbre xml du 
+  document.
   TODO : probablement buggé pour le moment, à tester
 - utiliser dans un attribut match une expression xpath qui sélectionne des 
   *attributs* et non pas des *éléments* de l'arbre xml **est** une opération 
@@ -185,6 +197,18 @@ On obtient donc la sortie suivante : ::
 	Copyright 2005 $name
 
 
+
+Remarques :
+
+- (Youenn Leborgne) S'il s'agit d'un paramètre transmis par l'appelant à
+Template::run, il sera remplacé lors de la phase de compilation.
+
+- si un template "interne" (tag template) a un attribut portant le même nom qu'une source de 
+données existante passée à Template::run, l'attribut du template "interne" est prioritaire.
+Dans ce cas, de la même façon que pour une fonction dans un langage de programmation, les
+variables du template "interne" ont une portée locale.
+
+
 Récupérer le contenu de l'élément instancié : fonction ``select()``
 ===================================================================
 
@@ -194,8 +218,13 @@ Introduction
 Il existe une pseudo-fonction nommée ``select()``, qui peut être utilisée dans
 le corps d'un template, et qui prends en argument une expression xpath.
 
-Cette fonction simple permet de récupérer tout ou partie du contenu de l'élément 
-instancié, qu'il s'agisse de texte, d'éléments ou d'attributs.
+Cette fonction permet de récupérer tout ou partie du contenu du noeud instancié :
+- le texte : {select('text()')}
+- les éléments : {select('*')}
+- la valeur d'un ou de tous les attributs par ex. : {select('@nomAttribut')}; {select('@*')}
+- une combinaison de plusieurs de ces différents types de contenu en les séparant
+	au moyen de l'opérateur '|' 
+	
 
 Lorsque cette fonction est exécutée, le contexte courant de xpath est le noeud
 en cours d'instanciation.
@@ -213,7 +242,9 @@ Exemple 1 : convertir les tags <b>...</b> en tags <strong>...</strong>
 	</template>
 
 Ici, on a utilisé la fonction select() pour récupérer le texte présent dans les
-tags h1 sélectionnés par le template.
+tags b sélectionnés par le template (remarque : pour rester simple, l'exemple 
+donné ne récupère que le texte présent dans le tag ``<b>``, pas les éventuels 
+éléments présents).
 
 
 Exemple 2 : transformer une liste <ul>...</ul> en liste <ol>...</ol>
@@ -225,6 +256,11 @@ Exemple 2 : transformer une liste <ul>...</ul> en liste <ol>...</ol>
 		<ol>{select('*')}</ol>
 	</template>
 
+
+Remarque : ici, on ne récupère que les éléments (les tags) présents dans le tag ``<ul>``,
+pas le texte évenuel. Cela dis, un ul n'est pas censé contenir du texte (contrairement
+à un il)
+.
 
 Utiliser select() dans un attribut
 ----------------------------------
@@ -243,10 +279,12 @@ Dans cet exemple, on réécrit les liens en ne conservant que l'attribut href, à
 l'exclusion de tous les autres.
 
 Remarque : dans un tel cas, on obtiendra une erreur si l'expression xpath
-sélectionne des éléments ou plusieurs attributs. En fait, on a le droit de
-sélectionner soi un attribut unique (dans ce cas, c'est la valeur de l'attribut 
-sélectionné qui sera utilisée), soit un élément de type texte qui est utilisé
-tel quel :
+sélectionne des éléments ou plusieurs attributs. 
+TODO : à discuter. Pourquoi générer une exception ? On pourrait récupérer la 
+version texte des éléments.
+En fait, on a le droit de sélectionner soit un attribut unique (dans ce cas, 
+c'est la valeur de l'attribut sélectionné qui sera utilisée), soit un élément 
+de type texte qui est utilisé tel quel :
 
 - ``class="{select('@class')}"`` : correct
 - ``class="{select('@*')}"`` : erreur si le noeud instancié contenait plusieurs 
@@ -260,11 +298,11 @@ tel quel :
 Récupérer tous les attributs de l'élément instancié
 ---------------------------------------------------
 Il est possible d'utiliser dans le texte d'un élément une instruction select()
-qui va sélectionner un ou plusieurs attributs. Dans ce cas, les attributs
-sélectionnés vont être ajoutés à l'élément parent du texte et non pas dans le 
-texte.
+qui va sélectionner un ou plusieurs attributs (c'est-à-dire non pas des éléments
+ou du texte, mais bien un ou plusieurs attributs présents dans des éléments).
+Dans ce cas, les attributs sélectionnés vont être ajoutés à l'élément parent du 
+texte et non pas dans le texte : ça n'aurait pas de sens.
 
-TODO: je sais, ce n'est pas très clair...
 
 Ici, on utilise ``{select('@*')}`` dans le texte de l'élément <a> présent dans
 le corps du template pour récupérer tous les attributs du noeud instancié.
@@ -281,6 +319,9 @@ part, seuls les attributs qui ne figurent pas déjà dans la parent sont insérés,
 d'autre part, les attributs du noeud instancié qui correspondent à des 
 paramètres passés au template sont ignorés.
 
+TODO: compliqué à dire, mais dans la pratique, c'est le comportement qu'on 
+attend...
+
 
 Exemple, ajouter la classe "external" aux liens sortants :
 ..........................................................
@@ -288,7 +329,6 @@ Exemple, ajouter la classe "external" aux liens sortants :
 ::
 
 	<a 
-		name="bdsplink"
 		href="http://www.bdsp.tm.fr" 
 		style="color: blue" 
 		onclick="alert('à bientôt')"
@@ -296,7 +336,7 @@ Exemple, ajouter la classe "external" aux liens sortants :
 		Bdsp
 	</a>
 	
-	<template match="//a[href^='http://']" name="">
+	<template match="//a[starts-with(href, 'http://')]">
 		<a class="{select('@class')} external" style="color: red">
 			{select('@*')}         /* récupère les attributs du noeud */
 			{select('*|text()')}   /* récupére le contenu du noeud */
@@ -321,6 +361,12 @@ Voila comment sont traités les attributs lorsque le {select('@*')} est exécuté :
 - ``style`` existe dajà dans le tag a (color : red), le style existant dans le
   noeud d'origine est ignoré
 - ``href`` est repris (n'existe pas déjà dans le tag a et n'est pas un paramètre)
+
+
+TODO : vérifier si on a bien validé le choix de ce fonctionnement
+Remarque importante :
+Dans le template précédent, la ligne <a class="{select('@class')] external"... génère,
+pour notre lien, class="external" (sans espace) : les espaces "inutiles" sont supprimés.
 
 
 Algorithme utilisé pour exécuter les select()

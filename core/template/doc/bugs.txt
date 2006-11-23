@@ -1,5 +1,7 @@
 Bugs rencontrés lors des tests
 
+VOIR AUSSI REMARQUES.TXT
+
 ZONES DE DONNEES
 -------------------
 
@@ -180,3 +182,20 @@ identiques, à l'espace près. Pour aller plus loin, il faudrait être capable
 d'interprêter et de normaliser du code php
 (par exemple comment détecter que "$i==$j" et "$j==$i" font la même chose ?)
 
+------
+
+Bug 15 : http://apache/asco/web/test.php/youenn/bug15
+
+Nouvelle erreur liée à une variable dont le nom comporte un accent
+
+------
+
+Bug 16 :
+
+Daniel, il faudrait que tu ajoute un ob_get_clean() dans ton compilateur de templates
+
+comment, DM, 17/12/06
+seulement si une exception est générée. IL faudrait que toute la compilation
+se fasse dans un bloc try/catch. Si une erreur survient, faire le 
+ob_end_clean et relancer l'exception. (sinon le contenu partiellement généré
+est affiché par php).
