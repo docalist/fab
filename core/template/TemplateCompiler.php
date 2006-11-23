@@ -74,6 +74,8 @@ class TemplateCompiler
     
     private static $datasources=array();
     
+    private static $stack=array();
+    
     /**
      * Compile un template 
      * 
@@ -84,6 +86,7 @@ class TemplateCompiler
      */
     public static function compile($source)
     {
+
         // TODO : voir si on peut rétablir les commentaires de templates /* ... */
         // Supprime les commentaires de templates : /* xxx */
         // $source=preg_replace('~/\*.*?\*/~ms', null, $source);
@@ -93,8 +96,8 @@ class TemplateCompiler
         {
             // le fichier a une déclaration xml
             // le premier tag trouvé est la racine, on l'entoure avec <template></template>
-            $source=preg_replace('~(\<[^!?])~', '<template>$1', $source, 1);
-            $source.='</template>';
+            $source=preg_replace('~(\<[^!?])~', '<root>$1', $source, 1);
+            $source.='</root>';
             
             $xmlDeclaration=strtok($source, '>').'>';
         }
@@ -104,9 +107,9 @@ class TemplateCompiler
             $source=self::translate_entities($source);
     
             // si le fichier à un DTD <!DOCTYPE..., il faut prendre des précautions
-            $source=preg_replace('~(\<!DOCTYPE [^>]+\>)~im', '$1<template>', $source, 1, $nb);
-            if ($nb==0) $source='<template ignore="true">'.$source;
-            $source.='</template>';
+            $source=preg_replace('~(\<!DOCTYPE [^>]+\>)~im', '$1<root>', $source, 1, $nb);
+            if ($nb==0) $source='<root>'.$source;
+            $source.='</root>';
             
             // on ajoute la déclaration xml
             $source='<?xml version="1.0" encoding="ISO-8859-1" ?>' . $source;
@@ -116,7 +119,7 @@ class TemplateCompiler
         
         // Charge le template comme s'il s'agissait d'un document xml
         $xml=new domDocument('1.0', 'iso-8859-1');
-        if (false or Config::get('templates.removeblanks'))
+        if (Config::get('templates.removeblanks'))
             $xml->preserveWhiteSpace=false; // à true par défaut
 
         // gestion des erreurs : voir comment 1 à http://fr.php.net/manual/en/function.dom-domdocument-loadxml.php
@@ -135,15 +138,24 @@ class TemplateCompiler
 
         // Instancie tous les templates présents dans le document
         self::compileMatches($xml);        
+if (Template::getLevel()==1) $xml->save(dirname(__FILE__).'/dm.xml');
+
+        // Normalize le document
+//        $xml->normalize();        
+
+self::removeEmptyTextNodes($xml->documentElement);
 
         // Lance la compilation
         ob_start();
+        self::$stack[]=array(self::$loop, self::$opt, self::$datasources, self::$bindings);
         self::$loop=self::$opt=0;
         self::$datasources=array();
         self::$bindings=array();
         if ($xmlDeclaration) echo $xmlDeclaration, "\n";
         self::compileChildren($xml); //->documentElement
         $result=ob_get_clean();
+//        $result=str_replace(self::PHP_END_TAG."\n", self::PHP_END_TAG."\n\n", $result);
+        
         if (count(self::$bindings))
         {
             $h=self::PHP_START_TAG . "\n//Liste des variables de ce template\n" ;
@@ -152,7 +164,36 @@ class TemplateCompiler
             $h.=self::PHP_END_TAG;
             $result = $h.$result;
         }
+        list(self::$loop, self::$opt, self::$datasources, self::$bindings)=array_pop(self::$stack);
         return $result;
+    }
+    private static function removeEmptyTextNodes(DOMElement $node)
+    {
+        if (!$node->hasChildNodes()) return;
+        $child=$node->firstChild;
+        while (! is_null($child))
+        {
+            $nextChild=$child->nextSibling;
+            switch ($child->nodeType)
+            {
+                case XML_TEXT_NODE:
+//                    if ($child->isWhitespaceInElementContent())
+                    if ($child->wholeText==='')
+                        $node->removeChild($child);
+                    break;
+                    
+                case XML_ELEMENT_NODE:
+                    self::removeEmptyTextNodes($child);
+                    break;
+                case XML_COMMENT_NODE:
+                case XML_PI_NODE:
+                case XML_CDATA_SECTION_NODE:
+                    break;
+                default:
+                    echo __METHOD__, "type de noeud non géré : ", $node->nodeType, '(', self::nodeType($node),')';
+            }
+            $child=$nextChild;
+        }
     }
     
 
@@ -169,28 +210,39 @@ class TemplateCompiler
     {
         // Crée la liste des templates = tous les noeuds qui ont un attribut match="xxx""
         $xpath=new DOMXPath($xml);
-        $templates=$xpath->query('//*[@match]');
+        $templates=$xpath->query('//template'); // , $xml->documentElement
         if ($templates->length ==0) return;
 
-        // Traite chaque template dans l'ordre d'apparation dans le document
-        header('content-type: text/plain');
+        // On enlève tous les templates du document xml
+        // - pour qu'ils n'apparaissent pas dans la sortie générée
+        // - pour que le code d'un template ne soit pas modifié par un autre template        
+        foreach($templates as $template)
+            $template->parentNode->removeChild($template);
+
+        // Exécute chaque template dans l'ordre
         foreach($templates as $template)
         {
-            echo '--------------------------------------------', "\n";
-            echo "template :\n", $template->ownerDocument->saveXML($template), "\n";
-            
-            // Supprime le template du document, pour qu'il n'apparaisse pas dans la sortie
-            $template->parentNode->removeChild($template);
-            
+            $expression=$template->getAttribute('match');
+            if ($expression==='')
+                throw new Exception
+                (
+                    "L'attribut match d'un tag template est obligatoire" .
+                    htmlentities($template->ownerDocument->saveXml($template))
+                );
+                    
             // Crée la liste de tous les noeuds sélectionnés par ce template
-            $matches=$xpath->query($template->getAttribute('match'));
+            $matches=$xpath->query($expression);
+
+            // Expression xpath erronée ?
+            if ($matches===false)
+                throw new Exception("Erreur dans l'expression xpath [$expression]");
+                
+            // Aucun résultat : rien à faire
+            if ($matches->length==0) continue;
 
             // Traite chaque noeud trouvé dans l'ordre
             foreach($matches as $match)
             {
-                echo "\nmatch original:\n", $match->ownerDocument->saveXML($match), "\n";
-                // Génère un tableau contenant les attributs du noeud d'origine
-
                 // Clone le template pour créer un nouveau noeud 
                 $node=$template->cloneNode(true);
                 
@@ -198,30 +250,30 @@ class TemplateCompiler
                 $node->removeAttribute('match');
                 
                 // Recopie tous les arguments (les attributs du match qui existent dans le template)
-                echo "Remplacement des attributs :\n";
+                $replace=array();
                 foreach ($node->attributes as $attribute)
                 {
-                    echo "- ", $attribute->name, "='", $attribute->value, "' : ";
                     if ($match->hasAttribute($attribute->name))
-                    {
-                        echo "présent dans le match, nouvelle valeur=", $match->getAttribute($attribute->name), "\n";
-//                        $node->setAttribute($attribute->name, $match->getAttribute($attribute->name));
                         $attribute->value=$match->getAttribute($attribute->name);
-                    }
-                    else
-                        echo "absent du match, valeur inchangée\n";
+                    $replace['~\$'.$attribute->name.'($|[^a-zA-Z0-9_\x7f-\xff])~']=$attribute->value.'\1';
                 }
 
                 // Applique au nouveau noeud les attributs de l'ancien noeud
-                self::instantiateMatch($template, $node, array(), $match);
-                echo "\nmatch après replace:\n", $node->ownerDocument->saveXML($node), "\n";
+                self::instantiateMatch($template, $node, $replace, $match);
                 
-                // Remplace l'ancien noeud (l'appel de template) par le nouveau (le template instancié)
-                $match->parentNode->replaceChild($node, $match);
+                // Remplace l'ancien noeud (l'appel de template) 
+                // par les fils (pour ne pas avoir le tag <template>) du nouveau (le template instancié)
+                while ($node->hasChildNodes())
+                    $match->parentNode->insertBefore($node->childNodes->item(0), $match);
+                $match->parentNode->removeChild($match);    
+                // ci-dessus, on ne peut pas utiliser une boucle foreach :
+                // comme on modifie la liste des fils, le foreach perd la boule                    
+
+                // ancien code : remplace l'ancien noeud par le noeud template
+                //$match->parentNode->replaceChild($node, $match); // remplace match par node
+             
             }
         }
-        echo '========================= TERMINE =========================', "\n";
-        
     }
     
     
@@ -239,55 +291,137 @@ class TemplateCompiler
         {
             case XML_TEXT_NODE:
                 if ($node->isWhitespaceInElementContent()) return;
-                $node->nodeValue=strtr($node->nodeValue, $replace);
-                self::compileSelects($template, $node, $match);
+                $node->nodeValue=preg_replace(array_keys($replace),array_values($replace), $node->nodeValue);
+                self::compileSelectsInTextNode($template, $node, $match);
                 return;
                 
             case XML_ELEMENT_NODE:
                 if ($node->hasAttributes())
-                    foreach ($node->attributes as $key=>$attribute)
-                        $attribute->value=strtr($attribute->value, $replace);
-                                
+                {
+                    $emptyAttributes=array();
+                    foreach ($node->attributes as $name=>$attribute)
+                    {
+                        $attribute->value=self::compileSelectsInAttribute($template, $attribute->value, $match);
+                        $attribute->value=preg_replace(array_keys($replace),array_values($replace), $attribute->value);
+                        if ($attribute->value==='') 
+                            $emptyAttributes[]=$name; 
+                    }
+                    
+                    // Supprime tous les attrbuts vides à l'issue du match
+                    foreach ($emptyAttributes as $name)
+                        $node->removeAttribute($name);    
+                }                
                 if ($node->hasChildNodes())
                     foreach ($node->childNodes as $child)
                         self::instantiateMatch($template, $child, $replace, $match);
 
                 return;
+            case XML_COMMENT_NODE:
+            case XML_PI_NODE:
+            case XML_CDATA_SECTION_NODE:
+                $node->nodeValue=preg_replace(array_keys($replace),array_values($replace), $node->nodeValue);
+                self::compileSelectsInTextNode($template, $node, $match);
+                return;
+//            case XML_DOCUMENT_TYPE_NODE:
+//            case XML_DOCUMENT_NODE:
             default:
                 echo "\ninstantiateMatch non gere : ", $node->nodeType, '(', self::nodeType($node),')';
         }
     }
     
-    private static function compileSelects(DOMElement $template, DOMText $node, DOMElement $matchNode)
+    private static function compileSelectsInAttribute(DOMElement $template, $value, DOMElement $matchNode)
     {
-        /*
-         * Algorithme :
-         * 
-         * On a un noeud en cours de type DOMText qui contient des expressions select
-         * [avant{select('xpath')}après...]
-         * 
-         * On repère l'expression, et on coupe le noeud texte en deux (splitText)
-         * [avant][après...]
-         * 
-         * On exécute l'expression xpath qui retourne une liste de noeuds
-         * -> <N1 /><N2 />...<Nn />
-         * 
-         * On clone ces noeuds et on les insère entre les deux noeuds texte
-         * [avant]<N1 /><N2 />...<Nn />[après...]
-         * 
-         * Le second noeud texte ([après...]) devient le noeud en cours et on recommence
-         * jusqu'à ce qu'on ne trouve plus de select()
-         * 
-         * Cas particulier : l'expression xpath retourne des noeuds de type DOMAttr.
-         * Dans ce cas, chaque attribut est ajouté au noeud parent du noeud texte en 
-         * cours, sauf s'il s'agit d'un attribut qui existe déjà dans le parent ou s'il 
-         * s'agit d'un des paramètres du template. 
-         * 
-         * Cas d'erreurs, génèrent une exception : expression xpath vide, expression 
-         * xpath erronée, expression xpath qui retourne des types de noeuds incorrects
-         * (par exemple tout le document)
-         */
+        // Expression régulière pour repérer les expressions {select('xxx')}
+        $re=
+            '~
+                (?<!\\\\)\{             # Une accolade ouvrante non précédée de antislash
+                \s*select\s*            # Le nom de la fonction : select
+                \(\s*                   # Début des paramètres
+                (?:
+                    (?:"([^"]*)")       # Expression xpath entre guillemets doubles
+                    |                   # soit
+                    (?:\'([^\']*)\')    # Expression xpath entre guillemets simples
+                )
+                \s*\)\s*                # Fin des paramètres
+                (?<!\\\\)\}             # Une accolade fermante non précédée de antislash
+            ~sx';
+        
+        $result='';
+        
+        // Boucle tant qu'on trouve des choses dans le source passé en paramètre
+        for(;;)
+        {
+            // Recherche la prochaine expression {select('xpath')}
+            if (preg_match($re, $value, $match, PREG_OFFSET_CAPTURE)==0) break;
+            $offset=$match[0][1];
+            $len=strlen($match[0][0]);
+            $expression=$match[1][0];
+            if ($expression=='') $expression=$match[2][0];
 
+            // Coupe le texte en en deux, au début de l'expression trouvée
+            if ($offset > 0) 
+                $result .= ' ' . trim(substr($value, 0, $offset));
+            $value=substr($value, $offset+$len);	   
+//            echo "match trouvé. result actuel=", $result, ", select=", $expression, ", suite=", $value, "\n";
+            
+            // Exécute l'expression xpath trouvée
+            $xpath=new DOMXPath($matchNode->ownerDocument);
+            //$nodeSet=$xpath->query($expression, $matchNode);
+            $nodeSet=$xpath->evaluate($expression, $matchNode);
+
+            // Expression xpath erronée ?
+            if ($nodeSet===false)
+                throw new Exception("Erreur dans l'expression xpath [$expression]");
+                
+            if (is_scalar($nodeSet))
+            {
+                if ($nodeSet !== '') $result.=' ' . trim($nodeSet);
+                
+            }
+            else
+            {            
+                // Aucun résultat : rien à faire
+                if ($nodeSet->length==0) continue;
+                
+                // Insère entre les deux noeuds texte les noeuds sélectionnés par l'expression xpath
+                // Il est important de cloner chaque noeud car il sera peut-être réutilisé par un autre select
+                foreach($nodeSet as $newNode)
+                {
+                    switch ($newNode->nodeType)
+                    {
+                        // S'il s'agit d'un attribut, on insère sa valeur
+                        case XML_ATTRIBUTE_NODE:
+                            $insert=$newNode->value;
+                            break;
+                            
+                        // Idem si c'est un noeud texte
+                        case XML_TEXT_NODE:
+                            $insert.=$newNode->nodeValue;
+                            break;
+                            
+                        // Types de noeuds illégaux : exception
+                        case XML_COMMENT_NODE:
+                        case XML_PI_NODE:
+                        case XML_ELEMENT_NODE:
+                        case XML_DOCUMENT_TYPE_NODE:
+                        case XML_CDATA_SECTION_NODE:
+                        case XML_DOCUMENT_NODE:
+                            throw new Exception("Expression xpath incorrecte : $expression. Les noeuds retournés ne peuvent pas être insérés à la postion actuelle");
+                            
+                        default:
+                            return __METHOD__ . " : type de noeud non géré ($node->nodeType)";
+                    }
+                    if ($insert!=='') $result.=' ' . trim($insert);
+                }
+            }
+        }
+        
+        if ($value !=='') $result .= ' ' . trim($value);
+        return trim($result);
+    }
+    
+    private static function compileSelectsInTextNode(DOMElement $template, DOMNode $node, DOMElement $matchNode)
+    {
         // Expression régulière pour repérer les expressions {select('xxx')}
         $re=
             '~
@@ -314,59 +448,67 @@ class TemplateCompiler
             if ($expression=='') $expression=$match[2][0];
 
             // Coupe le noeud texte en cours en deux, au début de l'expression trouvée
-            $node->splitText($offset);
+            $node=$node->splitText($offset);
             
-            // Le noeud de droite devient le nouveau noeud en cours
-            $node=$node->nextSibling;
+            // Le noeud de droite retourné par splitText() devient le nouveau noeud en cours
             
             // Supprime l'expression xpath trouvée, elle figure au début
             $node->nodeValue=substr($node->nodeValue, $len);
 
             // Exécute l'expression xpath trouvée
             $xpath=new DOMXPath($matchNode->ownerDocument);
-            $nodeSet=$xpath->query($expression, $matchNode);
+            //$nodeSet=$xpath->query($expression, $matchNode);
+            $nodeSet=$xpath->evaluate($expression, $matchNode);
             
-            // Expresion xpath erronée ?
+            // Expression xpath erronée ?
             if ($nodeSet===false)
                 throw new Exception("Erreur dans l'expression xpath [$expression]");
                 
-            // Aucun résultat : rien à faire
-            if ($nodeSet->length==0) continue;
-            
             // Insère entre les deux noeuds texte les noeuds sélectionnés par l'expression xpath
             // Il est important de cloner chaque noeud car il sera peut-être réutilisé par un autre select
-            foreach($nodeSet as $newNode)
+            if (is_scalar($nodeSet))
             {
-                switch ($newNode->nodeType)
+                $node->parentNode->insertBefore($node->ownerDocument->createTextNode($nodeSet), $node);
+            }            
+            else 
+            {
+                // Aucun résultat : rien à faire
+                if ($nodeSet->length==0) continue;
+                
+            	
+                foreach($nodeSet as $newNode)
                 {
-                    // S'il s'agit d'un attribut, on l'ajoute au parent, sans écraser
-                    case XML_ATTRIBUTE_NODE:
-                        // sauf si le parent a déjà définit cet attribut    
-                        if ($node->parentNode->hasAttribute($newNode->name)) break;
-                        
-                        // Ou s'il s'agit d'un des paramètres du template 
-                        if ($template->hasAttribute($newNode->name)) break;
-                        
-                        // OK.
-                        $node->parentNode->setAttributeNode($newNode->cloneNode(true)); 
-                        break;
-                        
-                    // Les autres types de noeud sont simplement insérés
-                    case XML_TEXT_NODE:
-                    case XML_COMMENT_NODE:
-                    case XML_PI_NODE:
-                    case XML_ELEMENT_NODE:
-                    case XML_DOCUMENT_TYPE_NODE:
-                    case XML_CDATA_SECTION_NODE:
-                        $node->parentNode->insertBefore($newNode->cloneNode(true), $node);
-                        return;
-
-                    // Types de noeuds illégaux : exception
-                    case XML_DOCUMENT_NODE:
-                        throw new Exception("Expression xpath incorrecte : $expression. Les noeuds retournés ne peuvent pas être insérés à la postion actuelle");
-                        
-                    default:
-                        return __METHOD__ . " : type de noeud non géré ($node->nodeType)";
+                    switch ($newNode->nodeType)
+                    {
+                        // S'il s'agit d'un attribut, on l'ajoute au parent, sans écraser
+                        case XML_ATTRIBUTE_NODE:
+                            // sauf si le parent a déjà définit cet attribut    
+                            if ($node->parentNode->hasAttribute($newNode->name)) break;
+                            
+                            // Ou s'il s'agit d'un des paramètres du template 
+                            if ($template->hasAttribute($newNode->name)) break;
+                            
+                            // OK.
+                            $node->parentNode->setAttributeNode($newNode->cloneNode(true)); 
+                            break;
+                            
+                        // Les autres types de noeud sont simplement insérés
+                        case XML_TEXT_NODE:
+                        case XML_COMMENT_NODE:
+                        case XML_PI_NODE:
+                        case XML_ELEMENT_NODE:
+                        case XML_DOCUMENT_TYPE_NODE:
+                        case XML_CDATA_SECTION_NODE:
+                            $node->parentNode->insertBefore($newNode->cloneNode(true), $node);
+                            break;
+    
+                        // Types de noeuds illégaux : exception
+                        case XML_DOCUMENT_NODE:
+                            throw new Exception("Expression xpath incorrecte : $expression. Les noeuds retournés ne peuvent pas être insérés à la postion actuelle");
+                            
+                        default:
+                            throw new Exception(__METHOD__ . " : type de noeud non géré ($node->nodeType)");
+                    }
                 }
             }
         }
@@ -429,6 +571,7 @@ class TemplateCompiler
         // noeud de ce type est rencontré dans l'arbre du document
         static $tags= array
         (
+            'root'=>'compileTemplate',
             'template'=>'compileTemplate',
             'loop'=>'compileLoop',
             'if'=>'compileIf',
@@ -447,7 +590,7 @@ class TemplateCompiler
                 return;
 
             case XML_COMMENT_NODE:  // un commentaire
-                if (false or Config::get('templates.removehtmlcomments')) return;
+                if (Config::get('templates.removehtmlcomments')) return;
                 echo utf8_decode($node->ownerDocument->saveXML($node));
                 // Serait plus efficace : $node->ownerDocument->save('php://output');
                 return;
@@ -514,7 +657,7 @@ class TemplateCompiler
                         }
                     }
                 }
-                
+  
                 // Génère tous les fils et la fin du tag
                 if ($node->hasChildNodes())
                 {
@@ -1005,9 +1148,42 @@ class TemplateCompiler
         throw new Exception('Tag '.$node->tagName.' isolé. Ce tag doit suivre immédiatement un tag if ou elseif, seuls des blancs sont autorisés entre les deux.');
     }
     
-
+    private static function nodeGetIndent($node)
+    {
+        $node=$node->previousSibling;
+        if (is_null($node)) return 0;
+        if ($node->nodeType != XML_TEXT_NODE) return 0;
+    	$h=$node->nodeValue;
+        //echo "text=[",nl2br($h),"], len(h)=", strlen($h), ", len(trim(h)))=",strlen(rtrim($h, ' ')), ", h=", bin2hex($h), "\n";
+        return strlen($h)-strlen(rtrim($h, ' '));
+    } 
+    
     private static function compileLoop($node)
     {
+//echo "Je suis indenté de ", self::nodeGetIndent($node), " espaces\n";
+//echo "AVANT: \n\n", show($node->ownerDocument->saveXml($node->parentNode)), "\n\n"; 
+//$indent=self::nodeGetIndent($node);
+//if (($node->previousSibling) && ($node->previousSibling->nodeType===XML_TEXT_NODE))
+//{
+//    $h=$node->previousSibling->nodeValue;
+//    $node->previousSibling->nodeValue=substr($h,0,strlen($h)-4);
+//}
+//foreach($node->childNodes as $child)
+//{
+//	if ($child->nodeType!==XML_TEXT_NODE) continue;
+//    {
+//    	$h=$child->nodeValue;
+//        if(substr($h, -$indent)===str_repeat(' ', $indent))
+//        {
+//            //$h{strlen($h)-$indent}='|';//substr($h,0,-$indent)
+//            $child->nodeValue=substr($h,0,strlen($h)-$indent);
+////            $child->nodeValue=rtrim($h, ' ');
+//        }else
+//            echo "child non réindenté\n";
+//    }
+//}
+//echo "APRES : \n\n", show($node->ownerDocument->saveXml($node->parentNode)), "\n\n"; 
+
         // Récupère l'objet sur lequel il faut itérer
         if (($on=$node->getAttribute('on')) === '')
             throw new Exception("Tag loop incorrect : attribut 'on' manquant");

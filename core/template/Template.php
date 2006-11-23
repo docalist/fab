@@ -9,7 +9,7 @@
 
 /*
  * TODO :
- * - avoir l'équivalent des walktables
+ * - FAIT, Youenn avoir l'équivalent des walktables
  * - blocs <fill>/</fill> 
  * - TableOfContents
  * - HandleLinks (conversion des liens en fonction des routes)
