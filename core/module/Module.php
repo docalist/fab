@@ -243,9 +243,9 @@ class Module
             (
                 $layout,                                // On recherche le layout :
                 Runtime::$root.$theme,                  // Thème en cours, dans l'application 
-                $path=Runtime::$fabRoot,                // Thème en cours, dans le framework
-                $path=Runtime::$root.$defaultTheme,     // Thème par défaut, dans l'application
-                $path=Runtime::$fabRoot.$defaultTheme   // Thème par défaut, dans le framework
+                Runtime::$fabRoot.$theme,               // Thème en cours, dans le framework
+                Runtime::$root.$defaultTheme,           // Thème par défaut, dans l'application
+                Runtime::$fabRoot.$defaultTheme         // Thème par défaut, dans le framework
             );
             if (!$path)
                 throw new Exception("Impossible de trouver le layout $layout");
@@ -272,7 +272,7 @@ class Module
     	switch($name)
         {
         	case 'title':
-                return Config::get('title');
+                return Config::get('title','Votre site web');
                 
             case 'CSS':
                 if(is_null($t=Config::get('CSS'))) return '';
