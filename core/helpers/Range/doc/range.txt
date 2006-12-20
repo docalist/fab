@@ -1,0 +1,34 @@
+LA CLASSE RANGE
+---------------
+
+
+Constructeur : Range($début, $fin, [$pas = 0])
+
+
+La classe Range représente un itérateur (elle implémente l'interface Iterator) qui permet de boucler
+entre $début et $fin avec un pas spécifique (paramètre optionnel qui vaut 0 par défaut).
+
+Remarque :
+Si aucune valeur n'est fournie ou si l'utilisateur passe 0 pour $pas, cette valeur sera
+automatique pour fournir un pas unitaire cohérent par rapport aux valeurs passées pour
+$début et $end (prendra la valeur 1 si $début <= $end et -1 autrement)
+
+L'objectif initial de cette classe était de fournir, pour le système de template,
+un moyen de créer des boucles similaires à une boucle PHP for mais avec l'élément <loop /> :
+
+<loop on="new Range(6, -2.3)" as="$i">
+	i = $i;
+</loop>
+
+Produira la sortie suivante :
+i = 6;i = 5;i = 4;i = 3;i = 2;i = 1; i = 0;i = -1; i = -2
+
+Remarque
+--------
+Une exception est générée dans les cas suivant :
+
+- $start < $end et $pas est négatif ou si $start > $end et $pas est positif
+- $start ou $end est un caractère et que l'autre est un entier ou un réel
+- $start ou $end est un caractère et que le pas est un réel
+- $start ou $end est une chaîne de caractères
+- $start et $end sont des caractères mais l'un est une minuscule et l'autre une majuscule
