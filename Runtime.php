@@ -104,7 +104,7 @@ class Runtime
         self::$fabRoot=dirname(__FILE__) . DIRECTORY_SEPARATOR;
         
         // Charge les fonctions utilitaires
-        require_once self::$fabRoot.'Utils.php';
+        require_once self::$fabRoot.'core/utils/Utils.php'; 
         
         // Fonctions de déboggage // TODO : seulement si mode debug
         require_once self::$fabRoot.'core/debug/Debug.php';
@@ -133,7 +133,7 @@ class Runtime
         }
                 
         // Charge le gestionnaire de configuration
-        require_once self::$fabRoot.'Config.php'; 
+        require_once self::$fabRoot.'core/config/Config.php'; 
         
         // Charge la configuration de base (fichiers config.php application/fab/environnement)
         self::setupBaseConfig();                    // Modules requis : Debug
@@ -231,7 +231,7 @@ class Runtime
         
         // Charge les routes - routes.yaml -
         debug && Debug::log('Initialisation du routeur');
-        require_once self::$fabRoot.'Routing.php'; 
+        require_once self::$fabRoot.'core/routing/Routing.php'; 
         self::setupRoutes();
         
         // Initialise le gestionnaire de templates
@@ -245,12 +245,12 @@ class Runtime
         
         // Initialise le gestionnaire de modules
         debug && Debug::log('Initialisation du gestionnaire de modules');
-        require_once self::$fabRoot.'Module.php'; 
+        require_once self::$fabRoot.'core/module/Module.php'; 
         
         // Initialise le gestionnaire de sécurité
         debug && Debug::log('Initialisation du gestionnaire de sécurité');
         require_once self::$fabRoot.'modules/NoSecurity/NoSecurity.php'; // uniquement pour les classes qui implémentent 
-        require_once self::$fabRoot.'User.php'; 
+        require_once self::$fabRoot.'core/user/User.php'; 
 
         User::$user=Module::loadModule(Config::get('security.handler'));
         //User::$user->rights=Config::get('rights');
@@ -265,19 +265,16 @@ class Runtime
 
         // Initialise le gestionnaire d'exceptions
         debug && Debug::log("Initialisation du gestionnaire d'exceptions");
-        require_once self::$fabRoot.'ExceptionManager.php';
+        require_once self::$fabRoot.'core/exception/ExceptionManager.php';
         self::setupExceptions(); 
 
         // Includes supplémentaires
         // TODO: écrire un class manager pour ne pas inclure systématiquement tout (voir du coté du gestionnaire de modules)
-        if (self::$env == 'test') 
-            require_once self::$fabRoot.'modules'.DIRECTORY_SEPARATOR.'DatabaseModule'.DIRECTORY_SEPARATOR.'DatabaseModule.php';
-        else
-            require_once self::$fabRoot.'modules'.DIRECTORY_SEPARATOR.'Database'.DIRECTORY_SEPARATOR.'Database.php';
-                
-        //require_once self::$fabRoot.'BisWeb.php';
+        require_once self::$fabRoot.'core/database/Database.php';
+        require_once self::$fabRoot.'modules'.DIRECTORY_SEPARATOR.'DatabaseModule/DatabaseModule.php';
 
-require_once self::$fabRoot.'modules'.DIRECTORY_SEPARATOR.'TaskManager/TaskManager.php';
+        require_once self::$fabRoot.'modules'.DIRECTORY_SEPARATOR.'TaskManager/TaskManager.php';
+        require_once self::$fabRoot.'core/helpers/TextTable/TextTable.php';
 
         // Dispatch l'url
 $fab_init_time=microtime(true);
