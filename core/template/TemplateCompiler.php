@@ -76,6 +76,41 @@ class TemplateCompiler
     
     private static $stack=array();
     
+    private static $functions=array
+    (
+        'autoId'=>'getAutoId',
+        'lastId'=>'getLastId',
+        'select'=>'executeSelect'
+    );
+    
+    private static $currentNode=null;
+    private static $lastId='';
+    private static $usedId=array();
+    
+    private static function getAutoId()
+    {
+        $node=self::$currentNode;
+        for(;;)
+        {
+            if (is_null($node) ) break; //or !($node instanceof DOMElement)
+            if ($node instanceof DOMElement)    // un DOMText, par exemple, n'a pas d'attributs
+                if ($h=$node->getAttribute('id') or $h=$node->getAttribute('name')) break;
+        	$node=$node->parentNode;
+        }
+        if (!$h)
+            $h=self::$currentNode->tagName;
+        if (isset(self::$usedId[$h]))
+            $h=$h.(++self::$usedId[$h]);
+        else
+            self::$usedId[$h]=1;
+        return self::$lastId=$h;
+    }
+    
+    private static function getLastId()
+    {
+        return self::$lastId;   
+    }
+    
     /**
      * Compile un template 
      * 
@@ -278,14 +313,17 @@ self::removeEmptyTextNodes($xml->documentElement);
                 
                 // Remplace l'ancien noeud (l'appel de template) 
                 // par les fils (pour ne pas avoir le tag <template>) du nouveau (le template instancié)
-                while ($node->hasChildNodes())
-                    $match->parentNode->insertBefore($node->childNodes->item(0), $match);
-                $match->parentNode->removeChild($match);    
+//                while ($node->hasChildNodes())
+//                    $match->parentNode->insertBefore($node->childNodes->item(0), $match);
+//                $match->parentNode->removeChild($match);    
                 // ci-dessus, on ne peut pas utiliser une boucle foreach :
                 // comme on modifie la liste des fils, le foreach perd la boule                    
 
+                // Ajoute un attribut collapse
+                $node->setAttribute('collapse','true');
+                
                 // ancien code : remplace l'ancien noeud par le noeud template
-                //$match->parentNode->replaceChild($node, $match); // remplace match par node
+                $match->parentNode->replaceChild($node, $match); // remplace match par node
              
             }
         }
@@ -597,7 +635,7 @@ self::removeEmptyTextNodes($xml->documentElement);
             'default'=>'elseError',
             'opt'=>'compileOpt'
         );
-        
+        self::$currentNode=$node;
         switch ($node->nodeType)
         {
             case XML_TEXT_NODE:     // du texte
@@ -883,7 +921,132 @@ self::removeEmptyTextNodes($xml->documentElement);
      * @param string $expression l'expression à compiler
      * @return array un tableau contenant les différentes alternatives de l'expression
      */
-    private static function compileExpression($expression)
+    public static function compileExpression($expression)
+    {
+        // Utilise l'analyseur syntaxique de php pour décomposer l'expression en tokens
+        $tokens = token_get_all(self::PHP_START_TAG . $expression . self::PHP_END_TAG);
+        
+        // Enlève le premier et le dernier token (PHP_START_TAG et PHP_END_TAG)
+        array_shift($tokens);
+        array_pop($tokens);
+        
+        $result=array();    // le tableau résultat
+        $h='';              // l'expression en cours dans le collier
+
+        // Supprime les espaces du source
+        foreach ($tokens as $index=>$token)
+        {
+            if (is_array($token) and $token[0]==T_WHITESPACE) unset($tokens[$index]);
+        }
+        $tokens=array_values($tokens);
+        
+        reset($tokens);
+        while(list($index,$token)=each($tokens))
+        {
+            // Le token est un bloc de texte
+            if (is_string($token))
+            {
+                // Si c'est le signe ':', on ajoute l'expression en cours au tableau résultat
+                if ($token===':')
+                {
+                    if ($h) 
+                    {
+                        $result[]=$h;
+                        $h='';  
+                    }
+                }
+
+                // Sinon, on ajoute le texte à l'expression en cours
+                else
+                    $h.=$token;
+
+                // Passe au token suivant
+                continue;
+            }
+            
+            // Il s'agit d'un vrai token, extrait le type et la valeur du token 
+            list($type, $data) = $token;
+            
+            switch ($type)
+            {          
+                case T_VARIABLE:
+                    // C'est une variable, on la compile
+                        
+                    // Enlève le signe $ de début
+                    $var=substr($data,1);
+                    
+                    // Teste si c'est une variable créée par le template (loop, etc.)
+                    foreach (self::$datasources as $datasource)
+                    {
+                        if (isset($datasource[$var]))
+                        {
+                            // trouvé !
+                            $h.= $datasource[$var];
+        
+                            // Passe au token suivant
+                            continue 2;
+                        }    
+                    }
+        
+                    // C'est une source de données
+                    $name=$value=$code=null;
+                    if (!Template::getDataSource($var, $name, $value, $code))
+                        throw new Exception("Impossible de compiler le template : la source de données <code>$var</code> n'est pas définie.");
+        
+                    self::$bindings[$name]=$value;
+                    $h.= $code;
+                    break;
+                
+                case T_STRING:
+                    if (isset($tokens[$index+1]) && is_string($tokens[$index+1]) && ($tokens[$index+1]=='(') && isset(self::$functions[$data]))
+                    {
+                        // todo: check fonction à nous
+                        ++$index;
+                        unset($tokens[$index]); // supprime la parenthèses ouvrante
+                        ++$index;
+                        $args='';
+                        $level=0;
+                        for(;;)
+                        {
+                            if (! isset($tokens[$index])) throw new Exception("parenthèse fermante attendue");
+                            $token=$tokens[$index];
+                            unset($tokens[$index]);
+                            $index++;
+                            if (is_string($token))
+                            {
+                                if ($token=='(')
+                                    $level++;
+                                elseif ($token==')')
+                                {
+                                     if ($level==0) break;
+                                     $level--;
+                                }
+                                $args.=$token;
+                            }
+                            else
+                            {
+                                $args.=$token[1];
+                            }
+                        }
+                        $h.=var_export(eval('return self::' . self::$functions[$data].'('.$args.');'), true);
+                    }
+                    else
+                        $h.=$data;
+                    break;
+                
+                default:
+                    // Si c'est autre chose qu'une variable, on se contente d'ajouter à l'expression en cours 
+                    // concatène. Il faut que ce soit du php valide
+                    $h.=$data;
+                    break;
+            }
+        }
+        
+        // Ajoute l'expression en cours au tableau et retourne le résultat
+        if ($h) $result[]=$h;
+        return $result;
+    }
+    private static function OLDcompileExpression($expression)
     {
         // Utilise l'analyseur syntaxique de php pour décomposer l'expression en tokens
         $tokens = token_get_all(self::PHP_START_TAG . $expression . self::PHP_END_TAG);
