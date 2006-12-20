@@ -16,14 +16,35 @@
  */
 class BisDatabase extends Database
 {
-    private $reverse=false; // true : afficher en ordre inverse
-    private $count=0;   // le nombre de notices pour l'utilisateur (=count-start)
-    private $rank=0; // le "rang" de la notice en cours
-    private $fields=null; // un raccourci vers $this->selection->fields
-    private $fieldsIterator=null;
+    /**
+     * @var COM.Bis.Selection l'objet COM contenant la sélection en cours
+     */
+    private $selection=null;
     
+    /**
+     * @var boolean true : afficher en ordre inverse
+     */
+    private $reverse=false;
+    
+    /**
+     * @var int le nombre de notices pour l'utilisateur
+     */ 
+    private $count=0;   
+    
+    /**
+     * @var int le "rang" de la notice en cours
+     */
+    private $rank=0;
+    
+    /**
+     * @var int le rang de la première notice à retourner
+     */
     private $start=0;
-    private $nb=0;
+    
+    /**
+     * @var int le nombre maximum de notices à retourner
+     */
+    private $max=0;
     
     protected function doCreate($database, $def, $options=null)
     {
@@ -32,15 +53,13 @@ class BisDatabase extends Database
         
     protected function doOpen($database, $readOnly=true)
     {
-        $bis=new COM("Bis.Engine");
-        $dataset='ascodocpsy';
+        $bis=new COM('Bis.Engine');
+        $dataset='bdsp'; // TODO: à virer
         if ($readOnly)
             $this->selection=$bis->openSelection($database, $dataset);
         else
-            $this->selection=$bis->OpenDatabase($database, false, false)->openSelection($dataset);
-        unset($bis);
-        $this->fields=$this->selection->fields;
-        $this->fieldsIterator=new BisDatabaseRecord($this, $this->fields);
+            $this->selection=$bis->openDatabase($database, false, false)->openSelection($dataset);
+        $this->record=new BisDatabaseRecord($this, $this->selection->fields);
     }
         
     public function search($equation=null, $options=null)
@@ -54,16 +73,16 @@ class BisDatabase extends Database
             $sort=isset($options['sort']) ? $options['sort'] : null;
             $start=isset($options['start']) ? ((int)$options['start'])-1 : 0;
             if ($start<0) $start=0;
-            $nb=isset($options['nb']) ? ((int)$options['nb']) : 10;
-            if ($nb<1) $nb=1;
+            $max=isset($options['max']) ? ((int)$options['max']) : 10;
         }
         else
         {
             $sort=null;
             $start=10;
+            $max=-1;
         }
         $this->start=$start+1;
-        $this->nb=$nb;
+        $this->max=$max;
         //echo 'equation=', $equation, ', options=', print_r($options,true), ', sort=', $sort, ', start=', $start, "\n";
         
         // Lance la recherche
@@ -75,14 +94,14 @@ class BisDatabase extends Database
         if ($this->count==0) return false;
         
         // Si start est supérieur à count, return false
-        if ($this->count<0 or $this->count<=$start)
+        if ($this->start>$this->count)
         {
             $this->selection->moveLast();
             $this->selection->moveNext();
             return false;	
         }
         
-        $this->rank=$start+1;
+        $this->rank=$this->start;
         
         // Gère l'ordre de tri et va sur la start-ième réponse
         switch($sort)
@@ -97,12 +116,10 @@ class BisDatabase extends Database
             default:
                 $this->reverse=false;
                 while ($start--) $this->selection->moveNext();
-                
         }
         
         // Retourne le résultat
-        $this->eof=false;
-        return true;
+        return ! $this->eof=($this->max === 0);
     }
 
     public function count($countType=0)
@@ -117,13 +134,16 @@ class BisDatabase extends Database
         	case 'equation': return $this->selection->equation;
             case 'rank': return $this->rank;
             case 'start': return $this->start;
-            case 'nb': return $this->nb;
+            case 'max': return $this->max;
             default: return null;
         }
     }
     
     public function moveNext()
     {
+        if($this->max !==-1 and $this->rank >= $this->max)
+            return !$this->eof=true;
+            
         $this->rank++;
         if ($this->reverse) 
         {
@@ -137,39 +157,27 @@ class BisDatabase extends Database
         }
     }
 
-    public function fields()
-    {
-        return $this->fieldsIterator;
-    }
-
-    protected function getField($offset)
-    {
-//        return $this->selection->fields->item($which)->value;
-//        return $this->selection[$offset];
-        return $this->fields[$offset];
-    }
-    protected function setField($offset, $value)
-    {
-        $this->selection[$offset]=$value;
-    }
-    
-    public function add()
+    public function addRecord()
     {
         $this->selection->addNew();
     }
-    public function edit()
+
+    public function editRecord()
     {
         $this->selection->edit();
     }
-    public function save()
+
+    public function saveRecord()
     {
-        $this->selection->save();
+        $this->selection->update();
     }
-    public function cancel()
+
+    public function cancelUpdate()
     {
         $this->selection->cancelUpdate();
     }
-    public function delete()
+
+    public function deleteRecord()
     {
         $this->selection->delete();
     }
@@ -183,27 +191,67 @@ class BisDatabase extends Database
  */
 class BisDatabaseRecord extends DatabaseRecord
 {
+    /**
+     * @var COM.Bis.Fields Liste des champs de cet enregistrement
+     */
     private $fields=null;
-    private $current=1;
     
+    /**
+     * @var int Numéro du champ en corus (utilisé pour Iterator)
+     */
+    private $current=0;
+    
+    /**
+     * {@inheritdoc}
+     * 
+     * @param COM.Bis.Fields $fields l'objet BIS.Fields contenant la liste
+     * des champs de la base
+     */
     public function __construct(Database $parent, & $fields)
     {
         parent::__construct($parent);
         $this->fields= & $fields;   
     }
+
+    /* <ArrayAccess> */
+
+    public function offsetSet($offset, $value)
+    {
+        $this->fields[$offset]=$value;
+    }
+
+    public function offsetGet($offset)
+    {
+        return $this->fields[$offset];
+        //return (string) $this->fields[$offset]->value;
+        //return $this->fields->item($offset)->value;
+    }
+
+    public function offsetUnset($offset)
+    {
+        $this->fields[$offset]=null;
+    }
+
+    public function offsetExists($offset)
+    {
+        return !is_null($this->fields[$offset]);
+    }
+
+    /* </ArrayAccess> */
     
-    /* Début de l'interface Countable */
+
+    /* <Countable> */
 
     public function count()
     {
         return $this->fields->count;    
     }
-    
-    /* Fin de l'interface Countable */
+
+    /* </Countable> */
 
     
-    /* Début de l'interface Iterator */
-
+    /* <Iterator> */
+    
     public function rewind()
     {
         $this->current=1;
@@ -229,7 +277,7 @@ class BisDatabaseRecord extends DatabaseRecord
         return $this->current<=$this->fields->count;
     }
     
-    /* Fin de l'interface Iterator */
+    /* </Iterator> */
     
 }
 

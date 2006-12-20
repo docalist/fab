@@ -1,17 +1,41 @@
 <?php
 
 /**
+ * Charge les fichiers de configuration de base de données (db.yaml, db.
+ * debug.yaml...) dans la configuration en cours.
+ * 
+ * L'ordre de chargement est le suivant :
+ * 
+ * - fichier db.yaml de fab (si existant)
+ * 
+ * - fichier db.$env.yaml de fab (si existant)
+ * 
+ * - fichier db.yaml de l'application (si existant)
+ * 
+ * - fichier db.$env.yaml de l'application (si existant)
+ */
+debug && Debug::log("Chargement de la configuration des bases de données");
+if (file_exists($path=Runtime::$fabRoot.'config' . DIRECTORY_SEPARATOR . 'db.yaml'))
+    Config::load($path, 'db');
+if (file_exists($path=Runtime::$root.'config' . DIRECTORY_SEPARATOR . 'db.yaml'))
+    Config::load($path, 'db');
+
+if (!empty(Runtime::$env))   // charge la config spécifique à l'environnement
+{
+    if (file_exists($path=Runtime::$fabRoot.'config'.DIRECTORY_SEPARATOR.'db.' . Runtime::$env . '.yaml'))
+        Config::load($path, 'db');
+    if (file_exists($path=Runtime::$root.'config'.DIRECTORY_SEPARATOR.'db.' . Runtime::$env . '.yaml'))
+        Config::load($path, 'db');
+}
+
+// TODO : revoir API pour editRecord, saveRecord, addNew
+
+/**
  * @package     fab
  * @subpackage  database
  * @author 		Daniel Ménard <Daniel.Menard@bdsp.tm.fr>
  * @version     SVN: $Id$
  */
-
-// TODO: implémenter append()
-// récupérer une notice $selection[$ref]
-// ajout d'une notice : $selection[]=array('ref'=>12, 'tit'=>'xxx'...)
-// suppression d'une notice unset($selection[$ref])
-// modification d'une notice : $selection[$ref]=$t
 
 /**
  * Interface d'accès aux bases de données.
@@ -36,7 +60,7 @@
  * </loop>
  * </code>
  * 
- * NON ! Database implémente également l'interface ArrayAccess. Cela permet de
+ * Database implémente également l'interface ArrayAccess. Cela permet de
  * manipuler les champs de la notice en cours comme s'il s'agissait d'un
  * tableau :
  * 
@@ -99,6 +123,8 @@ abstract class Database implements ArrayAccess, Iterator
      * @access protected
      */
     protected $eof=true;
+    
+    public $record=null;
     
     /**
      * Le constructeur est privé car ni cette classe, ni aucun des drivers qui
@@ -324,9 +350,10 @@ abstract class Database implements ArrayAccess, Iterator
      * <b>'start'</b> : entier (>0) indiquant la notice sur laquelle se positionner
      * une fois la recherche effectuée.
      * 
-     * <b>'nb'</b> : entier (>0) donnant une indication sur le nombre de notices que
-     * l'on compte parcourir. Permet au backend d'optimiser sa recherche qu'en
-     * ne recherchant que les nb meilleurs réponses.
+     * <b>'max'</b> : entier indiquant le nombre maximum de notices à retourner.
+     * Permet au backend d'optimiser sa recherche en ne recherchant que les max
+     * meilleures réponses. Indiquez -1 pour obtenir toutes les réponses.
+     * Indiquez 0 si vous voulez seulement savoir combien il y a de réponses.
      * 
      * <b>'min_weight'</b> : entier (>=0), score minimum qu'une notice doit obtenir
      * pour être sélectionnée (0=pas de minimum)
@@ -427,57 +454,57 @@ abstract class Database implements ArrayAccess, Iterator
     abstract protected function moveNext();
 
     
-    /**
-     * Retourne la notice en cours
-     * 
-     * @return DatabaseRecord un objet représentant la notice en cours. Cette
-     * objet peut être manipulé comme un tableau (utilisation dans une
-     * boucle foreach, lecture/modification de la valeur d'un champ en
-     * utilisant les crochets, utilisation de count pour connaître le nombre de
-     * champs dans la base...)
-     */
-    abstract public function fields();
+//    /**
+//     * Retourne la notice en cours
+//     * 
+//     * @return DatabaseRecord un objet représentant la notice en cours. Cette
+//     * objet peut être manipulé comme un tableau (utilisation dans une
+//     * boucle foreach, lecture/modification de la valeur d'un champ en
+//     * utilisant les crochets, utilisation de count pour connaître le nombre de
+//     * champs dans la base...)
+//     */
+//    abstract public function fields();
 
 
-    /**
-     * Retourne la valeur d'un champ
-     * 
-     * Cette fonction n'est pas destiné à être appellée par l'utilisatateur, 
-     * mais par les méthodes qui implémentent l'interface ArrayAccess.
-     * 
-     * @access protected
-     * 
-     * @param mixed $which index ou nom du champ dont la valeur sera retournée.
-     * 
-     * @return mixed la valeur du champ ou null si ce champ ne figure pas dans
-     * l'enregistrement courant.
-     */
-    abstract protected function getField($offset);
- 
-
-    /**
-     * Modifie la valeur d'un champ
-     * 
-     * Cette fonction n'est pas destiné à être appellée par l'utilisatateur, 
-     * mais par les méthodes qui implémentent l'interface ArrayAccess.
-     * 
-     * @access protected
-     * 
-     * @param mixed $which index ou nom du champ dont la valeur sera modifiée.
-     * 
-     * @return mixed la nouvelle valeur du champ ou null pour supprimer ce
-     * champ de la notice en cours.
-     */
-    abstract protected function setField($offset, $value);
+//    /**
+//     * Retourne la valeur d'un champ
+//     * 
+//     * Cette fonction n'est pas destiné à être appellée par l'utilisatateur, 
+//     * mais par les méthodes qui implémentent l'interface ArrayAccess.
+//     * 
+//     * @access protected
+//     * 
+//     * @param mixed $which index ou nom du champ dont la valeur sera retournée.
+//     * 
+//     * @return mixed la valeur du champ ou null si ce champ ne figure pas dans
+//     * l'enregistrement courant.
+//     */
+//    abstract protected function getField($offset);
+// 
+//
+//    /**
+//     * Modifie la valeur d'un champ
+//     * 
+//     * Cette fonction n'est pas destiné à être appellée par l'utilisatateur, 
+//     * mais par les méthodes qui implémentent l'interface ArrayAccess.
+//     * 
+//     * @access protected
+//     * 
+//     * @param mixed $which index ou nom du champ dont la valeur sera modifiée.
+//     * 
+//     * @return mixed la nouvelle valeur du champ ou null pour supprimer ce
+//     * champ de la notice en cours.
+//     */
+//    abstract protected function setField($offset, $value);
 
     
     /**
      * Initialise la création d'un nouvel enregistrement
      * 
-     * L'enregistrement ne sera effectivement créé que lorsque {@link update}
+     * L'enregistrement ne sera effectivement créé que lorsque {@link update()}
      * sera appellé.
      */
-    abstract public function add();
+    abstract public function addRecord();
     
 
     /**
@@ -487,30 +514,37 @@ abstract class Database implements ArrayAccess, Iterator
      * sera appellé.
      *  
      */
-    abstract public function edit();
+    abstract public function editRecord();
 
     
     /**
      * Enregistre les modifications apportées à une notice après un appel à
      * {@link add()} ou à {@link edit()}
      */
-    abstract public function save();
+    abstract public function saveRecord();
     
 
     /**
      * Annule l'opération d'ajout ou de modification de notice en cours
      */
-    abstract public function cancel();
+    abstract public function cancelUpdate();
 
 
     /**
      * Supprime la notice en cours
      */
-    abstract public function delete();
+    abstract public function deleteRecord();
 
 
     /* Début de l'interface ArrayAccess */
 
+    /* En fait, on implémente pas réellement ArrayAccess, on se contente
+     * de tout déléguer à record ( de type DatabaseRecord) qui lui implémente
+     * réellement l'interface.
+     * Comme il n'existe pas, dans SPL, d'interface ArrayAccessDelegate, on
+     * est obligé de le faire nous-même 
+     */
+     
     /**
      * Modifie la valeur d'un champ
      * 
@@ -529,7 +563,8 @@ abstract class Database implements ArrayAccess, Iterator
      */
     public function offsetSet($offset, $value)
     {
-        $this->setField($offset, $value);
+//        $this->setField($offset, $value);
+        $this->record->offsetSet($offset, $value);
     }
 
 
@@ -549,7 +584,8 @@ abstract class Database implements ArrayAccess, Iterator
      */
     public function offsetGet($offset)
     {
-        return $this->getField($offset);
+        return $this->record->offsetGet($offset);
+//        return $this->getField($offset);
     }
 
 
@@ -573,7 +609,8 @@ abstract class Database implements ArrayAccess, Iterator
      */
     public function offsetUnset($offset)
     {
-        $this->setField($offset, null);
+        $this->record->offsetUnset($offset);
+//        $this->setField($offset, null);
     }
 
 
@@ -596,7 +633,8 @@ abstract class Database implements ArrayAccess, Iterator
      */
     public function offsetExists($offset)
     {
-        return ! is_null($this->getField($offset));
+        return $this->record->offsetExists($offset);
+//        return ! is_null($this->getField($offset));
     }
     /* Fin de l'interface ArrayAccess */
     
@@ -630,7 +668,7 @@ abstract class Database implements ArrayAccess, Iterator
      */
     public function current()
     {
-        return $this->fields();
+        return $this->record;
     }
 
 
@@ -687,12 +725,15 @@ abstract class Database implements ArrayAccess, Iterator
  */
 abstract class DatabaseRecord implements Iterator, ArrayAccess, Countable
 {
-
-    protected $parent=null;
+    /**
+     * @var Database L'objet Database auquel appartient cet enregistrement 
+     * @access protected
+     */
+    protected $database=null;
     
-    public function __construct(Database $parent)
+    public function __construct(BisDatabase $database)
     {
-        $this->parent= & $parent;   
+        $this->database= & $database;   
     }
 
     /* Début de l'interface ArrayAccess */
@@ -708,62 +749,29 @@ abstract class DatabaseRecord implements Iterator, ArrayAccess, Countable
 
     public function offsetSet($offset, $value)
     {
-        $this->parent->offsetSet($offset, $value);
+        $this->database->offsetSet($offset, $value);
     }
-//    private function variantToZval($value)
-//    {
-//        switch (variant_get_type($value))
-//        {
-//            case VT_NULL: 
-//            case VT_EMPTY: return null;
-//            
-//            case VT_UI1:
-//            case VT_I1:
-//            case VT_UI2:
-//            case VT_I2:
-//            case VT_UI4:
-//            case VT_I4:
-//            case VT_INT:
-//            case VT_UINT: return (int) $value;
-//            
-//            case VT_R4:
-//            case VT_R8: return (float) $value;
-//            
-//            case VT_BOOL: return (bool) $value;
-//            
-//            case VT_BSTR: return (string) $value;
-//            default: print("Variant non convertit : ".variant_get_type($value)); return $value;
-////            case VT_ERROR (integer)
-////            case VT_CY (integer)
-////            case VT_DATE (integer)
-////            case VT_DECIMAL (integer)
-////            case VT_UNKNOWN (integer)
-////            case VT_DISPATCH (integer)
-////            case VT_VARIANT (integer)
-////            case VT_ARRAY (integer)
-////            case VT_BYREF (integer)        	
-//        }    	
-//    }
+
     public function offsetGet($offset)
     {
         // normallement, il faudrait convertir le variant en zval php
-        // en fonction su type du variant
+        // en fonction du type du variant
         // Dans la pratique, on utilise quasiment jamais BIS pour autre
         // chose que des chaines (si ce n'est REF). Ca me semble sans
         // risque de caster systématiquement vers une chaine
-        $value=$this->parent->offsetGet($offset);
+        $value=$this->database->offsetGet($offset);
         return is_null($value) ? null : (string)$value;
 //        return $this->variantToZVal($this->parent->offsetGet($offset));
     }
 
     public function offsetUnset($offset)
     {
-        $this->parent->offsetUnset($offset);
+        $this->database->offsetUnset($offset);
     }
 
     public function offsetExists($offset)
     {
-        return $this->parent->offsetExists($offset);
+        return $this->database->offsetExists($offset);
     }
     /* Fin de l'interface ArrayAccess */
 	
@@ -771,7 +779,7 @@ abstract class DatabaseRecord implements Iterator, ArrayAccess, Countable
 
 
 //echo '<pre>';
-//
+
 //echo "Ouverture de la base\n";
 //$selection=Database::open('ascodocpsy', false, 'bis');
 //echo "\n", 'Base ouverte. Type=', $selection->getType(), "\n";
@@ -797,6 +805,7 @@ abstract class DatabaseRecord implements Iterator, ArrayAccess, Countable
 ////        //$selection['tit']='essai';
 ////    } while ($selection->next() && (++$nb<1000));
 ////    
+//}
 //
 //echo "La base contient ", count($selection->fields()), " champs, ", $selection->fields()->count(), "\n";
 //echo "Premier parcours\n";
