@@ -89,14 +89,14 @@ class TemplateCompiler
 
         // TODO : voir si on peut rétablir les commentaires de templates /* ... */
         // Supprime les commentaires de templates : /* xxx */
-        // $source=preg_replace('~/\*.*?\*/~ms', null, $source);
+        $source=preg_replace('~/\*.*?\*/~ms', null, $source);
         
         // Englobe le template dans des balises <template>...</template>
         if (substr($source, 0, 6)==='<?xml ')
         {
             // le fichier a une déclaration xml
             // le premier tag trouvé est la racine, on l'entoure avec <template></template>
-            $source=preg_replace('~(\<[^!?])~', '<root>$1', $source, 1);
+            $source=preg_replace('~(\<[^!?])~', '<root collapse="true">$1', $source, 1);
             $source.='</root>';
             
             $xmlDeclaration=strtok($source, '>').'>';
@@ -104,11 +104,11 @@ class TemplateCompiler
         else
         {
             // Pas de déclaration xml, donc pas d'encoding : traduit en utf8
-            $source=self::translate_entities($source);
+            //$source=self::translate_entities($source);
     
             // si le fichier à un DTD <!DOCTYPE..., il faut prendre des précautions
             $source=preg_replace('~(\<!DOCTYPE [^>]+\>)~im', '$1<root>', $source, 1, $nb);
-            if ($nb==0) $source='<root>'.$source;
+            if ($nb==0) $source='<root collapse="true">'.$source;
             $source.='</root>';
             
             // on ajoute la déclaration xml
@@ -121,6 +121,15 @@ class TemplateCompiler
         $xml=new domDocument('1.0', 'iso-8859-1');
         if (Config::get('templates.removeblanks'))
             $xml->preserveWhiteSpace=false; // à true par défaut
+            
+        // Ajoute les fichiers auto-include dans le source
+        $files=Config::get('templates.autoinclude');
+        $h='';
+        foreach($files as $file)
+        	$h.=file_get_contents(Runtime::$fabRoot.'core/template/autoincludes/'.$file);
+
+        $source=str_replace('</root>', $h.'</root>', $source);
+        if (Template::getLevel()==1) file_put_contents(dirname(__FILE__).'/dm.xml', $source);
 
         // gestion des erreurs : voir comment 1 à http://fr.php.net/manual/en/function.dom-domdocument-loadxml.php
         libxml_clear_errors(); // >PHP5.1
@@ -138,7 +147,7 @@ class TemplateCompiler
 
         // Instancie tous les templates présents dans le document
         self::compileMatches($xml);        
-if (Template::getLevel()==1) $xml->save(dirname(__FILE__).'/dm.xml');
+//if (Template::getLevel()==1) $xml->save(dirname(__FILE__).'/dm.xml');
 
         // Normalize le document
 //        $xml->normalize();        
@@ -167,6 +176,7 @@ self::removeEmptyTextNodes($xml->documentElement);
         list(self::$loop, self::$opt, self::$datasources, self::$bindings)=array_pop(self::$stack);
         return $result;
     }
+    
     private static function removeEmptyTextNodes(DOMElement $node)
     {
         if (!$node->hasChildNodes()) return;
@@ -223,6 +233,7 @@ self::removeEmptyTextNodes($xml->documentElement);
         foreach($templates as $template)
         {
             $expression=$template->getAttribute('match');
+//            echo 'template match=', $expression, '<br />';
             if ($expression==='')
                 throw new Exception
                 (
@@ -238,7 +249,11 @@ self::removeEmptyTextNodes($xml->documentElement);
                 throw new Exception("Erreur dans l'expression xpath [$expression]");
                 
             // Aucun résultat : rien à faire
-            if ($matches->length==0) continue;
+            if ($matches->length==0) 
+            {
+//                echo 'aucun match<br />';
+                continue;	   
+            }
 
             // Traite chaque noeud trouvé dans l'ordre
             foreach($matches as $match)
@@ -518,19 +533,19 @@ self::removeEmptyTextNodes($xml->documentElement);
     {
         switch ($node->nodeType)
         {
-            case XML_ATTRIBUTE_NODE: return 'XML_ATTRIBUTE_NODE';
-            case XML_TEXT_NODE: return 'XML_TEXT_NODE';
-            case XML_COMMENT_NODE: return 'XML_COMMENT_NODE';
-            case XML_PI_NODE: return 'XML_PI_NODE';
-            case XML_ELEMENT_NODE: return 'XML_ELEMENT_NODE';
-            case XML_DOCUMENT_NODE: return 'XML_DOCUMENT_NODE';
-            case XML_DOCUMENT_TYPE_NODE: return 'XML_DOCUMENT_TYPE_NODE';
-            case XML_CDATA_SECTION_NODE: return 'XML_CDATA_SECTION_NODE';
+            case XML_ATTRIBUTE_NODE:        return 'XML_ATTRIBUTE_NODE';
+            case XML_TEXT_NODE:             return 'XML_TEXT_NODE';
+            case XML_COMMENT_NODE:          return 'XML_COMMENT_NODE';
+            case XML_PI_NODE:               return 'XML_PI_NODE';
+            case XML_ELEMENT_NODE:          return 'XML_ELEMENT_NODE';
+            case XML_DOCUMENT_NODE:         return 'XML_DOCUMENT_NODE';
+            case XML_DOCUMENT_TYPE_NODE:    return 'XML_DOCUMENT_TYPE_NODE';
+            case XML_CDATA_SECTION_NODE:    return 'XML_CDATA_SECTION_NODE';
             default:
                 return "type de noeud non géré ($node->nodeType)";
         }
-    	
     } 
+
     /**
      * Convertit en caractères les entités html présentes dans le template  
      * 
@@ -571,8 +586,8 @@ self::removeEmptyTextNodes($xml->documentElement);
         // noeud de ce type est rencontré dans l'arbre du document
         static $tags= array
         (
-            'root'=>'compileTemplate',
-            'template'=>'compileTemplate',
+//            'root'=>'compileTemplate',
+//            'template'=>'compileTemplate',
             'loop'=>'compileLoop',
             'if'=>'compileIf',
             'else'=>'elseError',
@@ -609,79 +624,84 @@ self::removeEmptyTextNodes($xml->documentElement);
                     return call_user_func(array('TemplateCompiler', $tags[$name]), $node);
 
                 // Récupère les attributs qu'on gère
+                $collapse=$node->getAttribute('collapse')=='true';
                 $ignore=$node->getAttribute('ignore')=='true';
 
-                if (($test=$node->getAttribute('test')) !== '')
+                // Génère le noeud
+                if (! $ignore)
                 {
-                    $test=self::compileField($test, true);
-                    echo self::PHP_START_TAG, 'if (', $test, '):',self::PHP_END_TAG;
-                    $node->removeAttribute('test');
-                }
-                if (($if=$node->getAttribute('if')) !== '')
-                {
-                    $if=self::compileField($if, true);
-                    echo self::PHP_START_TAG, 'if ($tmp=(', $if, ')):', self::PHP_END_TAG;
-                    $node->removeAttribute('if');
-                }
-
-                // Génère le tag
-                if (!$ignore)
-                {        
-                    echo '<', $name;    // si le tag a un préfixe, il figure déjà dans name (e.g. <test:h1>)
-                    if ($node->namespaceURI !== $node->parentNode->namespaceURI)
-                        echo ' xmlns="', $node->namespaceURI, '"'; 
-                
-                    // Accès aux attributs xmlns : cf http://bugs.php.net/bug.php?id=38949
-                    // apparemment, fixé dans php > 5.1.6, à vérifier
-                
-                    if ($node->hasAttributes())
+                    if (($test=$node->getAttribute('test')) !== '')
                     {
-                        $flags=0;
-                        foreach ($node->attributes as $key=>$attribute)
+                        $test=self::compileField($test, true);
+                        echo self::PHP_START_TAG, 'if (', $test, '):',self::PHP_END_TAG;
+                        $node->removeAttribute('test');
+                    }
+                    if (($if=$node->getAttribute('if')) !== '')
+                    {
+                        $if=self::compileField($if, true);
+                        echo self::PHP_START_TAG, 'if ($tmp=(', $if, ')):', self::PHP_END_TAG;
+                        $node->removeAttribute('if');
+                    }
+    
+                    // Génère le tag ouvrant
+                    if (!$collapse)
+                    {        
+                        echo '<', $name;    // si le tag a un préfixe, il figure déjà dans name (e.g. <test:h1>)
+                        if ($node->namespaceURI !== $node->parentNode->namespaceURI)
+                            echo ' xmlns="', $node->namespaceURI, '"'; 
+                    
+                        // Accès aux attributs xmlns : cf http://bugs.php.net/bug.php?id=38949
+                        // apparemment, fixé dans php > 5.1.6, à vérifier
+                    
+                        if ($node->hasAttributes())
                         {
-                            ++self::$opt;
-                            $value=self::compileField($attribute->value, false, $flags);
-                            --self::$opt;
-                            $value=utf8_decode($value);
-                            $quot=(strpos($value,'"')===false) ? '"' : "'";
-                            
-                            // Si l'attribut ne contient que des variables (pas de texte), il devient optionnel
-                            if ($flags===2)
+                            $flags=0;
+                            foreach ($node->attributes as $key=>$attribute)
                             {
-                                echo self::PHP_START_TAG, 'Template::optBegin()', self::PHP_END_TAG;
-                                echo ' ', $attribute->nodeName, '=', $quot, $value, $quot;
-                                echo self::PHP_START_TAG, 'Template::optEnd()', self::PHP_END_TAG; 
+                                ++self::$opt;
+                                $value=self::compileField($attribute->value, false, $flags);
+                                --self::$opt;
+                                $value=utf8_decode($value);
+                                $quot=(strpos($value,'"')===false) ? '"' : "'";
+                                
+                                // Si l'attribut ne contient que des variables (pas de texte), il devient optionnel
+                                if ($flags===2)
+                                {
+                                    echo self::PHP_START_TAG, 'Template::optBegin()', self::PHP_END_TAG;
+                                    echo ' ', $attribute->nodeName, '=', $quot, $value, $quot;
+                                    echo self::PHP_START_TAG, 'Template::optEnd()', self::PHP_END_TAG; 
+                                }
+                                else
+                                    echo ' ', $attribute->nodeName, '=', $quot, $value, $quot;
                             }
-                            else
-                                echo ' ', $attribute->nodeName, '=', $quot, $value, $quot;
                         }
                     }
-                }
-  
-                // Génère tous les fils et la fin du tag
-                if ($node->hasChildNodes())
-                {
-                    if (! $ignore) echo '>';
-                    if ($if !== '')                     
+      
+                    // Génère tous les fils et la fin du tag
+                    if ($node->hasChildNodes())
+                    {
+                        if (! $collapse) echo '>';
+                        if ($if !== '')                     
+                            echo self::PHP_START_TAG, 'endif;',self::PHP_END_TAG;
+                        self::compileChildren($node);
+                        if ($if !== '')                     
+                            echo self::PHP_START_TAG, 'if ($tmp):',self::PHP_END_TAG;
+                        if (! $collapse) echo '</', $node->tagName, '>';
+                        if ($if !== '')                     
+                            echo self::PHP_START_TAG, 'endif;',self::PHP_END_TAG;
+                    }
+                    
+                    // Cas d'un noeud sans fils
+                    else
+                    {
+                        if (! $collapse) echo ' />';
+                        if ($if !== '')                     
+                            echo self::PHP_START_TAG, 'endif;',self::PHP_END_TAG;
+                    }
+    
+                    if ($test !== '')                     
                         echo self::PHP_START_TAG, 'endif;',self::PHP_END_TAG;
-                    self::compileChildren($node);
-                    if ($if !== '')                     
-                        echo self::PHP_START_TAG, 'if ($tmp):',self::PHP_END_TAG;
-                    if (! $ignore) echo '</', $node->tagName, '>';
-                    if ($if !== '')                     
-                        echo self::PHP_START_TAG, 'endif;',self::PHP_END_TAG;
                 }
-                
-                // Cas d'un noeud sans fils
-                else
-                {
-                    if (! $ignore) echo ' />';
-                    if ($if !== '')                     
-                        echo self::PHP_START_TAG, 'endif;',self::PHP_END_TAG;
-                }
-
-                if ($test !== '')                     
-                    echo self::PHP_START_TAG, 'endif;',self::PHP_END_TAG;
                 
                 return;
                 
@@ -696,7 +716,12 @@ self::removeEmptyTextNodes($xml->documentElement);
             case XML_CDATA_SECTION_NODE:    // Un bloc CDATA : <![CDATA[ on met <ce> <qu'on> $veut ]]>
                 echo utf8_decode($node->ownerDocument->saveXML($node));
                 return;
-            
+
+            case XML_ENTITY_REF_NODE:
+            case XML_ENTITY_NODE:
+                echo utf8_decode($node->ownerDocument->saveXML($node));
+                return;
+                            
             default:
                 throw new Exception("Impossible de compiler le template : l'arbre obtenu contient un type de noeud non géré ($node->nodeType)");
         }
@@ -767,7 +792,7 @@ self::removeEmptyTextNodes($xml->documentElement);
 //            $source
 //        );
 
-        // COnvertit le texte ytf8->iso8859-1
+        // Convertit le texte utf8->iso8859-1
         $source=utf8_decode($source);
         
         // Boucle tant qu'on trouve des choses dans le source passé en paramètre

@@ -58,6 +58,13 @@ templates:
   
   # false=ne vérifie pas les dates des fichiers et ne recompile jamais
   checktime:true
+  
+  # liste des fichiers à inclure dans le source lors de la compilation d'un template
+  autoinclude:
+     - generators.xml
+#    - xhtml1-lat1.ent
+#    - xhtml1-special.ent
+#    - xhtml1-symbol.ent
 
 # Paramétrage du gestionnaire de configuration
 config:

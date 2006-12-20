@@ -1,9 +1,5 @@
 Bugs rencontrés lors des tests
 
-VOIR AUSSI REMARQUES.TXT
-
-ZONES DE DONNEES
--------------------
 
 Bug 1 :
 
@@ -199,3 +195,127 @@ seulement si une exception est générée. IL faudrait que toute la compilation
 se fasse dans un bloc try/catch. Si une erreur survient, faire le 
 ob_end_clean et relancer l'exception. (sinon le contenu partiellement généré
 est affiché par php).
+
+
+************************************************
+*  Reprise des bugs précédents non corrigés :  *
+************************************************
+
+
+- Seule question en suspens : la définition de 'vide' est-elle correcte (est-ce normal
+de ne rien afficher quand la source de données contient l'entier zéro, par exemple).
+je pense que non, donc nouveau bug à signaler...
+
+=> Pour le moment, on conserve ce fonctionnement, identique à PHP
+
+
+- Génère une exception si les blocs case comportent des expressions strictement 
+identiques, à l'espace près. Pour aller plus loin, il faudrait être capable 
+d'interprêter et de normaliser du code php
+(par exemple comment détecter que "$i==$j" et "$j==$i" font la même chose ?)
+
+=> On en reste là pour l'instant.
+
+
+- Bug 15 : http://apache/asco/web/test.php/youenn/bug15
+Nouvelle erreur liée à une variable dont le nom comporte un accent
+
+=> Pas d'accent sur les variables pour l'instant
+
+
+- Daniel, il faudrait ajouter un ob_get_clean() dans ton compilateur de templates
+comment, DM, 17/12/06
+seulement si une exception est générée. IL faudrait que toute la compilation
+se fasse dans un bloc try/catch. Si une erreur survient, faire le 
+ob_end_clean et relancer l'exception. (sinon le contenu partiellement généré
+est affiché par php).
+
+
+
+Bugs apparus durant les tests unitaires :
+----------------------------------------
+
+
+- Si le template contient '$$texte', l'analyseur syntaxique va recherche l'index 'texte' dans le tableau source
+de données et s'il ne le trouve pas, il génère une exception. PHP autorise ce type de variable : que doit-on en faire ?
+
+
+- Si le template contient '$<texte', une exception est généré alors que '$>texte' ne génèrera rien. Problème de l'analyseur
+XML ? De plus, le contenu 'texte>', lui, génèrera bien une exception.
+
+
+- Un template contenant '{$nomVar $nomVar}' génèrera un code PHP incorrect (erreur PHP à l'exécution)
+- '<div test="$_underscore">Contenu du div</div>' devrait peut-être générer une exception pour éviter de
+produire du PHP non valide
+
+
+- Même chose pour une construction du type '<div test="$vAccentuée==">Contenu du div</div>'
+
+
+- '<switch tet="$vAccentuée"><case test="\'Valeur 1\'">Dans le case</case></switch>' ne génère pas d'exception :
+l'attribut test est optionnel mais il faudrait générer une exception si un attribut autre que 'test' est présent.
+D'ailleurs, le fait que l'attribut 'test' soit optionnel ne fonctionne pas : l'exemple ci-dessus fonctionne
+(pourtant, erreur de syntaxe : 'tet' au lieu de 'test') mais si ne met pas du tout l'attibut 'test', on a une exception.
+
+
+- Par rapport au bug 14 dans bugs.txt, est-ce qu'il ne faudrait pas aussi générer une exception quand 1 case
+comporte la même expression qu'un autre case avec un ou plusieurs espaces de différences ? Ces espaces risquent d'être des erreurs de
+frappe de la part de l'utilisateur donc il serait bien de les signaler.
+D'un autre côté, peut-être que c'est compliqué à gérer : on serait obligé de distinguer les espaces qui affectent ou non le résultat renvoyé par
+l'expression.
+A voir...
+
+
+- Bug : <template match="//a/@href">Remplacé</template> <a href="www">Lien</a>
+Au lieu de générer <a href="Remplacé">Lien</a>, un bug survient :
+"Fatal error: Argument 3 passed to TemplateCompiler::compileSelectsInTextNode() must be an instance of DOMElement, called in
+D:\WebApache\fab\core\template\TemplateCompiler.php on line 245 and defined in D:\WebApache\fab\core\template\TemplateCompiler.php on line 354"
+Test mis en commentaire pour le moment...
+
+
+- Problème de gestion des variables accentuées : portée des variables des templates.
+Quand un argument du template a le même nom qu'une source de données passée à Template::run, on devrait avoir le même fonctionnement
+qu'avec une fonction dans une langage de programmation "classique", à savoir une portée locale de la variable dans le template, qui
+n'écrase donc pas la valeur de la variable passée à Template::run.
+Or, si le nom de variable en question comporte des accents, la variable a, dans le corps du template, la valeur passé à Template::run
+au lieu de celle passée en paramètre au template "interne".
+Par contre, on retrouve le fonctionnement souhaité si le nom de la variable ne comporte pas d'accent.
+
+
+- Bug lié aux accents :
+<template match="//a[starts-with(@href, \'http://\')]"><a href="www" onclick="alert(\'A bientôt\')"></a></template> <a href="http://unsite" />
+ne génère pas : <a href="www" onclick="alert(\'A bientôt\')" /> à cause de l'accent dans "A bientôt"
+
+
+- Templates imbriqués :
+Les templates ne peuvent pas être imbriqués : ils sont ignorés
+Par exemple :
+<template match="//form">
+	<template match="//input">
+		<input type="submit" />
+	</template>
+</template>
+
+<form><input type="radio" /></form>'
+
+n'est pas équivalent à :
+
+<template match="//form/input">
+	<input type="submit"
+</template>
+
+Générer exception
+
+
+- Bug lié aux caractères spéciaux comme les apostrophes qui ne sont pas échappés par le compilateur :
+si on appelle un template avec <nomTemplate att="Nom de l'attribut">
+et que le template est définit comme :
+<template match="//nomTemplate" att="">
+	<div if="$att">
+		Texte du div
+	</div>
+</template>
+
+Une erreur PHP survient car le compilateur n'échappe pas les apostrophes => test PHP erronné.
+
+- Bug : '&#160;' dans le code HTML de la page génère une exception

@@ -1,4 +1,13 @@
 <?php
+function autoId()
+{
+    return 'id';
+}
+function lastId()
+{
+    return 'id';
+}
+
 /**
  * @package     fab
  * @subpackage  template
@@ -69,15 +78,11 @@ class Template
     private static $optLevel=0;
     
     /**
-     * @var string Liste des callbacks à appeller pour déterminer la valeur d'un
-     * champ. Il s'agit d'un copie de l'argument $callback  indiqué par
-     * l'utilisateur lors de l'appel à {@link run()}.
+     * @var array Sources de données passées en paramètre 
      * 
      * @access private
      */
-    private static $dataCallbacks;
-    private static $dataObjects;
-    private static $dataVars;
+    public static $data=null;
     
 
     /**
@@ -101,30 +106,6 @@ class Template
      * @access private
      */
     private static $template='';
-    
-    /**
-     * @var string Lors de la génération d'un template (cf {@link generate()}),
-     * nom du jeu de générateurs à utiliser. Correspond à un sous-répertoire du
-     * répertoire "template_generators"
-     * @access private
-     */
-    private static $genSet;
-    
-    /**
-     * @var string Lors de la génération d'un template (cf {@link generate()}),
-     * item en cours de génération
-     * @access private
-     */
-    private static $genItem;
-    
-    
-    /**
-     * @var array Utilisé par {@link generateId()} pour générer des identifiants
-     * unique. Le tableau contient, pour chaque nom utilisé lors d'un appel à
-     * {@link generateId()} le dernier numéro utilisé.
-     */
-    private static $usedId;
-    public static $data=null;
     
     /**
      * constructeur
@@ -219,11 +200,11 @@ class Template
     public static function run($template /* $dataSource1, $dataSource2, ..., $dataSourceN */ )
     {
         debug && Debug::log('Exécution du template %s', $template);
-        if (count(self::$stateStack)==0)
-        {
-            // On est au niveau zéro, c'est un tout nouveau template, réinitialise les id utilisés.
-            self::$usedId=array();
-        }
+//        if (count(self::$stateStack)==0)
+//        {
+//            // On est au niveau zéro, c'est un tout nouveau template, réinitialise les id utilisés.
+//            self::$usedId=array();
+//        }
 
         $parentDir=dirname(self::$template);
 
@@ -262,76 +243,23 @@ class Template
         if (! $template) 
             throw new Exception("Impossible de trouver le template $sav");
 
+        // Stocke le path du template
         debug && Debug::log("Path du template : '%s'", $template);
         self::$template=$template; // enregistre le path du template en cours (cf walkTable)
         
-        self::$data=func_get_args();    // new
+        // Stocke les sources de données passées en paramètre
+        self::$data=func_get_args();
         array_shift(self::$data);
-//        debug && Debug::log('Données du formulaire %s : %s', $sav, self::$data);
 
-        self::$dataCallbacks=self::$dataObjects=self::$dataVars=array();    // old
-        $nb=func_num_args();
-        for ($i=1; $i<$nb; $i++)
-        {
-            $value=func_get_arg($i);
-            
-            if (is_object($value))              // Un objet, exemple : $this
-                self::$dataObjects[]=$value;
-            elseif (is_string($value))          // Une fonction globale, exemple : 'mycallback' 
-            {                                   // Ou une méthode statique, exemple : 'template::callback'
-                $value=rtrim($value, '()');
-                if (strpos($value, '::') !== false)
-                    $value=explode('::', $value);
-                self::$dataCallbacks[]=$value;
-            }
-            elseif (is_array($value))           // Un tableau de valeur ou un tableau callback
-//            elseif (is_array($value) or($value instanceof Iterator and $value instanceOf ArrayAccess))
-            {
-
-                if (is_callable($value))        // C'est un callback
-                    self::$dataCallbacks[]=$value;                    	
-                else
-                {
-                    // TODO: à faire seulement en mode debug ou en environnement test
-                    foreach ($value as $key=>$item)
-                        if (! is_string($key)) 
-                            throw new Exception("Les clés d'un tableau de valeur doivent être des chaines de caractères. Callback passé : " . Debug::dump($key) . ', ' . Debug::dump($item));
-                    self::$dataVars=array_merge(self::$dataVars, $value);
-                }
-            }
-            else
-                echo "Je ne sais pas quoi faire de l'argument numéro ", ($i+1), " passé à template::run <br />", print_r($value), "<br />";
-        }
-            
         // Compile le template s'il y a besoin
-        if (true or self::needsCompilation($template)) // TODO : à virer
+        if (self::needsCompilation($template))
         {
-//            echo "<pre>Recompilation du template $template</pre>";
-            //
             debug && Debug::notice("'%s' doit être compilé", $template);
             
             // Charge le contenu du template
             if ( ! $source=file_get_contents($template, 1) )
                 throw new Exception("Le template '$template' est introuvable.");
             
-            // Teste si c'est un template généré
-            if (Utils::getExtension($template)=='.yaml') // TODO: à revoir
-            {
-                // Autorise l'emploi des tabulations (une tab=4 espaces) dans le source yaml
-                $source=str_replace("\t", '    ', $source);
-                
-                //echo "<h1>Description du template :</h1>";
-                //highlight_string($source);
-                debug && Debug::notice("Génération du template html à partir du fichier yaml");
-                self::generate($source);
-                
-                // Nettoyage
-                //$source=str_replace(self::PHP_END_TAG."\r", self::PHP_END_TAG."\n", $source);
-//                echo "<h1>Template généré: </h1>";
-//                highlight_string($source);
-//                echo "<hr />";
-            }
-                        
             // Compile le code
             debug && Debug::log('Compilation du source');
             require_once dirname(__FILE__) . '/TemplateCompiler.php';
@@ -370,25 +298,6 @@ class Template
     }        
 
     /**
-     * Génère un identifiant unique (au sein de la page) pour l'identifiant
-     * passé en paramètre
-     * @param string id le nom pour lequel il faut générer un identifiant ('id'
-     * si absent)
-     * @return string un identifiant unique de la forme 'name', 'name2',
-     * 'name3...'
-     */
-    private static function generateId($name='id')
-    {
-        if (isset(self::$usedId[$name]))
-            return $name . '-' . (++self::$usedId[$name] + 1);
-        else
-        {
-            self::$usedId[$name]=0;
-        	return $name;
-        }        
-    }
-    
-    /**
      * Teste si un template a besoin d'être recompilé en comparant la version
      * en cache avec la version source.
      * 
@@ -425,6 +334,7 @@ class Template
         // Aucune des dépendances n'est plus récente que le fichier indiqué
         return false;
     }
+    
     /**
      * Fonction appellée au début d'un bloc <opt>
      * @internal cette fonction ne doit être appellée que depuis un template.
@@ -463,7 +373,7 @@ class Template
     public static function getDataSource($name, & $bindingName, & $bindingValue, & $code)
     {
         debug && Debug::log('%s', $name);
-        
+
         // Parcours toutes les sources de données
         foreach (self::$data as $i=>$data)
         {
@@ -551,17 +461,12 @@ class Template
      */
     private static function saveState()
     {
-//        array_push(self::$stateStack, array(self::$template,self::$callbacks,self::$genItem));
         array_push
         (
             self::$stateStack, 
             array
             (
                 'template'      => self::$template,
-                'dataVars'      => self::$dataVars,
-                'dataObjects'   => self::$dataObjects,
-                'dataCallbacks' => self::$dataCallbacks,
-                'genItem'       => self::$genItem,
                 'data'          => self::$data
             )
         );
@@ -573,13 +478,8 @@ class Template
      */
     private static function restoreState()
     {
-//        list(self::$template, self::$callbacks,self::$genItem)=array_pop(self::$stateStack);
         $t=array_pop(self::$stateStack);
         self::$template         =$t['template'];
-        self::$dataVars         =$t['dataVars'];
-        self::$dataObjects      =$t['dataObjects'];
-        self::$dataCallbacks    =$t['dataCallbacks'];
-        self::$genItem          =$t['genItem'];
         self::$data             =$t['data'];
     }
     
