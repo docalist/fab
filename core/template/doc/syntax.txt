@@ -211,7 +211,14 @@ de la sortie, alors qu'en lisant opt='$param' à la place, ça me semble plus évid
 
 Bloc ignoré : ``ignore="true"``
 ...............................
-Voir si on garde.
+(implémenté)
+Le bloc est complètement ignoré dans la sortie généré par le template (ie : ol
+n'apparaîtra pas).
+
+Bloc collapsé : ``collaps="true"``
+.........................///......
+(implémenté)
+Le bloc est remplacé par son contenu
 
 Bloc non parsé : ``noparse="true"``
 ................................... ::
@@ -314,3 +321,22 @@ options envisageables :
 - ajouter des liens oui/non
 - créer un lien "retour au sommaire" pour les titres
 - ...
+
+
+TODO : faire doc pour les auto-include
+Fonctions
+---------
+autoId()
+........
+Génère automatiquement un ID pour l'élément auquel il est appliqué.
+
+Fonctionnement : 
+prends l'id ou le 'name' du noeud en cours et remonte l'arbre 
+comme ça jusqu'à la racine. 
+Si on ne trouve rien, on prends le nom du tag du noeud en cours. 
+Si cet id a déjà été utilisé, on numérote (typdoc, typdoc2, typdoc3...)
+
+lastId()
+........
+Retourne le dernier id généré par autoId() ou vide si autoId() n'a pas été 
+appellé avant.
