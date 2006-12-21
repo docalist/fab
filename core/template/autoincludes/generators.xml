@@ -121,11 +121,7 @@
             title="$title"
             cols="$cols"
             rows="$rows"
-            id="{lastId()}">
-            {select('@*')}
-        </textarea>
-            <!-- Le contenu du tag s'il y en a un -->
-            {select('node()')}
+            id="{lastId()}">{select('@*')}{select('node()')}</textarea>
     </template>
     
     
