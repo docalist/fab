@@ -245,9 +245,7 @@ class DatabaseModule extends Module
      * Affiche le formulaire indiqué dans la clé 'template' de la configuration.
      */
     public function actionNew()
-    {
-        // TODO: vérifications...
-        
+    {        
         $template = $this->getTemplate();
         $callback = $this->getCallback();
         
@@ -332,14 +330,13 @@ class DatabaseModule extends Module
             // Crée une nouvelle notice
             $this->selection->addRecord();
             // Récupère le numéro de la notice créée
-//AVANT:            $ref=$this->selection->field(1);
             $ref=$this->selection['REF'];
             debug && Debug::log('Numéro de la notice créée : %s', $ref);
         }            
        
        // Mise à jour de chacun des champs
         $record=& $this->selection->record;
-        foreach($this->selection->record as $fieldName=>& $fieldValue)
+        foreach($this->selection->record as $fieldName => $fieldValue)
         {
             //echo "fieldName=$fieldName, fieldValue=$fieldValue<br />";
             if ($fieldName==='REF') continue;
@@ -412,6 +409,94 @@ class DatabaseModule extends Module
         }
     }
     
+    /**
+     * Affiche le formulaire de type Chercher/Remplacer indiqué dans la clé
+     * template de la configuration
+     */
+     public function actionReplaceForm()
+     {
+        //TODO: Faut-il gérer un éventuel callback ici ?
+
+        // Détermine le template à utiliser
+        if (! $template=$this->getTemplate())
+            throw new Exception('Le template à utiliser n\'a pas été indiqué');
+        
+        // Détermine le callback à utiliser
+        $callback=$this->getCallback();
+               
+        // Exécute le template
+        Template::run
+        (
+            $template,  
+            array($this, $callback),           // Priorité à la fonction utilisateur
+            new Optional($_REQUEST)
+        );
+     }
+    
+    /**
+     * Effectue le chercher/remplacer et appelle le tempalte indiqué dans la clé
+     * template de la configuration ensuite : feedback
+     */
+     public function actionReplace()
+     {
+        // Récupérer l'équation de recherche
+        $this->equation=Utils::get($_REQUEST['equation']);
+        $search=Utils::get($_REQUEST['searchStr']);
+        $replace=Utils::get($_REQUEST['replaceStr']);
+        $wholeWord=Utils::get($_REQUEST['wholeWord']);
+
+        // Si aucun paramètre de recherche n'a été passé ou si rien n'est à remplacer, il faut rediriger vers le formulaire replaceform
+        if (is_null($this->equation) || is_null($search))
+            Runtime::redirect('replaceform');
+        
+        // TODO: tester les différentes valeurs possibles pour wholeWord et modifier tests en conséquence  
+        // TODO tester si ça fonctionne bien      
+        if($wholeWord == true)
+        {
+            $search = ' ' . $search . ' ';
+            $replace = ' ' . $replace . ' '; 
+        }   
+        
+        // Des paramètres ont été passés, mais tous sont vides et l'équation obtenue est vide
+        if ($this->equation==='')
+            return $this->showError('Vous n\'avez indiqué aucun critère de recherche.');
+        
+        // Lance la récherche
+        if (! $this->openSelection($this->equation))
+            // TODO : il n'y a rien a remplacer
+            return $this->showError("Aucune réponse. Equation : $this->equation");
+
+        // TODO: déléguer le boulot au TaskManager (exécution peut être longue)
+        foreach($this->selection as & $record)
+        {            
+            $this->selection->editRecord();
+            foreach($record as $fieldName=>$fieldValue)
+            {
+                if(strpos($fieldValue, $search))
+                {
+                    $record[$fieldName] = str_replace($search, $replace, $record[$fieldName]);
+                }
+            }
+            $this->selection->saveRecord();
+        }
+            
+        // Détermine le template à utiliser
+        if (! $template=$this->getTemplate('template'))
+            throw new Exception('Le template à utiliser n\'a pas été indiqué');
+        
+        // Détermine le callback à utiliser
+        $callback=$this->getCallback();
+
+        // Exécute le template
+        Template::run
+        (
+            $template,  
+            array($this, $callback),
+            array('selection'=>$this->selection),
+            $this->selection->record
+        ); 
+     }
+     
     // ****************** fonctions surchargeables ***************
     /**
      * Retourne le template à utiliser pour l'action en cours ({@link action})
