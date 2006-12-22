@@ -652,6 +652,7 @@ abstract class Database implements ArrayAccess, Iterator
      */
     public function rewind()
     {
+//        echo "Appel de Database::rewind()<br />";
     }
 
 
@@ -668,6 +669,7 @@ abstract class Database implements ArrayAccess, Iterator
      */
     public function current()
     {
+//        echo "Appel de Database::current()<br />";
         return $this->record;
     }
 
@@ -683,6 +685,7 @@ abstract class Database implements ArrayAccess, Iterator
      */
     public function key()
     {
+//        echo "Appel de Database::key()<br />";
         return $this->searchInfo('rank');
     }
 
@@ -696,6 +699,7 @@ abstract class Database implements ArrayAccess, Iterator
     public function next()
     {
         $this->moveNext();
+//        echo "Appel de Database::next()<br />";
     }
 
 
@@ -709,14 +713,40 @@ abstract class Database implements ArrayAccess, Iterator
      */
     public function valid()
     {
+//        echo "Appel de Database::valid() result=",((! $this->eof)?"true":"false"),"<br />";
         return ! $this->eof;
     }
     
     /* Fin de l'interface Iterator */
     
-
-
+    /**
+     * Chercher/Remplacer à part d'une exp rég sur l'enregistrement en cours d'une base de données ouverte 
+     * (peut être appelé dans une boucle sur une sélection par exemple)
+     * 
+     * @param string $pattern le pattern à utiliser pour l'expression régulière de recherche
+     * @param string $replace la chaîne de remplacement pour les occurences trouvées
+     * @param booléen $wholeWord indique si on remplace uniquement les mots entiers
+     * @param booléen $caseSensitive indique si la recherche est sensible à la casse
+     * 
+     * @return false si une erreur est survenue et true sinon
+     */
+    public function pregReplace($pattern, $replace, $wholeWord = true, $caseSensitive = true)
+    {
+        // TODO: gestion d'erreurs
+        
+        if ($pattern === null)
+            return false;
+        
+        foreach($this->record as $field => $value)
+        {
+            $this->record[$field] = preg_replace($pattern, $replace, $value);    
+        } 
+        
+        return true;
+            
+    }
 }
+
 /**
  * Représente un enregistrement de la base
  * 
@@ -774,7 +804,8 @@ abstract class DatabaseRecord implements Iterator, ArrayAccess, Countable
         return $this->database->offsetExists($offset);
     }
     /* Fin de l'interface ArrayAccess */
-	
+    
+
 }
 
 
