@@ -164,7 +164,7 @@ class DatabaseModule extends Module
     public function actionSearch()
     {
         // Construit l'équation de recherche
-        $this->equation=$this->makeEquation('start,nb');
+        $this->equation=$this->makeEquation('start,max,sort');
         
         
         // Si aucun paramètre de recherche n'a été passé, il faut afficher le formulaire
@@ -437,8 +437,13 @@ class DatabaseModule extends Module
      * Effectue le chercher/remplacer et appelle le tempalte indiqué dans la clé
      * template de la configuration ensuite : feedback
      */
+     
+     // NEW VERSION
      public function actionReplace()
      {
+        //TODO : gestion d'erreurs
+        //TODO : nettoyage
+                
         // Récupérer l'équation de recherche
         $this->equation=Utils::get($_REQUEST['equation']);
         $search=Utils::get($_REQUEST['searchStr']);
@@ -449,13 +454,16 @@ class DatabaseModule extends Module
         if (is_null($this->equation) || is_null($search))
             Runtime::redirect('replaceform');
         
-        // TODO: tester les différentes valeurs possibles pour wholeWord et modifier tests en conséquence  
-        // TODO tester si ça fonctionne bien      
-        if($wholeWord == true)
+        if ($wholeWord)     // expression régulière pour le chercher/remplacer
         {
-            $search = ' ' . $search . ' ';
-            $replace = ' ' . $replace . ' '; 
-        }   
+            $pattern = '~\b' . preg_quote($search) . '\b~';   
+        }
+        else
+        {
+            $pattern = '~' . preg_quote($search) . '~';
+        }
+        
+        echo "PATTERN = $pattern<br />";
         
         // Des paramètres ont été passés, mais tous sont vides et l'équation obtenue est vide
         if ($this->equation==='')
@@ -465,21 +473,23 @@ class DatabaseModule extends Module
         if (! $this->openSelection($this->equation))
             // TODO : il n'y a rien a remplacer
             return $this->showError("Aucune réponse. Equation : $this->equation");
-
+        
+        echo "search = $search<br />replace = $replace<br />";
+        
         // TODO: déléguer le boulot au TaskManager (exécution peut être longue)
         foreach($this->selection as & $record)
         {            
             $this->selection->editRecord();
-            foreach($record as $fieldName=>$fieldValue)
-            {
-                if(strpos($fieldValue, $search))
-                {
-                    $record[$fieldName] = str_replace($search, $replace, $record[$fieldName]);
-                }
-            }
+
+            if( ! $this->selection->pregReplace($pattern, $replace))
+                echo 'RIEN DE REMPLACE<br />';
+                
             $this->selection->saveRecord();
         }
-            
+        
+        die();
+        
+        
         // Détermine le template à utiliser
         if (! $template=$this->getTemplate('template'))
             throw new Exception('Le template à utiliser n\'a pas été indiqué');
@@ -496,6 +506,7 @@ class DatabaseModule extends Module
             $this->selection->record
         ); 
      }
+
      
     // ****************** fonctions surchargeables ***************
     /**
