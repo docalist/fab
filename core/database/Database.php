@@ -725,18 +725,31 @@ abstract class Database implements ArrayAccess, Iterator
      * 
      * @param string $pattern le pattern à utiliser pour l'expression régulière de recherche
      * @param string $replace la chaîne de remplacement pour les occurences trouvées
-     * @param booléen $wholeWord indique si on remplace uniquement les mots entiers
-     * @param booléen $caseSensitive indique si la recherche est sensible à la casse
+     * @param bool $caseSensitive indique si la recherche est sensible à la casse
      * 
      * @return false si une erreur est survenue et true sinon
      */
-    public function pregReplace($pattern, $replace, $wholeWord = true, $caseSensitive = true)
+    public function pregReplace($pattern, $replace, $caseSensitive = true)
     {
-        // TODO: gestion d'erreurs
+        // TODO : vérifier qu'il y a bien des délimiteurs (retourne false sinon)
+        // (une partie de cette vérification est faite plus bas et peut-être recopiée)
         
-        if ($pattern === null)
+        if ($pattern === null || trim($pattern) == '')
             return false;
+        else
+            $pattern = trim($pattern);
         
+        echo 'CASE SENSITIVE = ', $caseSensitive, '<br/>';
+        
+        if (! $caseSensitive)
+        {            
+            $delimiter = $pattern[0];  
+            $end = strpos($pattern, $delimiter, 1); // position du délimiteur de fin de pattern de recherche
+            if ($end == strlen($pattern)-1 || strpos($pattern, 'i', $end))
+                $pattern = $pattern . 'i';  // spécifie une recherche insensible à la casse
+        }
+        
+        // boucle sur les champs pour effectuer le remplacement éventuel
         foreach($this->record as $field => $value)
         {
             if ($field != 'REF')    // champ REF non modifiable
@@ -745,6 +758,46 @@ abstract class Database implements ArrayAccess, Iterator
         
         return true;
             
+    }
+    
+    /**
+     * Chercher/Remplacer à part d'une chaîne de caractères sur l'enregistrement en cours d'une base de données ouverte 
+     * (peut être appelé dans une boucle sur une sélection par exemple)
+     * 
+     * @param string $search la chaîne de caractère de recherche
+     * @param string $replace la chaîne de remplacement pour les occurences trouvées
+     * @param bool $caseSensitive indique si la recherche est (true) ou non (false) sensible à la case
+     * @param bool $wholeWord indique si on recherche uniquement le(s) mot(s) entier(s) correspondant(s)
+     * à search (true) dans l'enregistrement en cours
+     * 
+     * @return false si une erreur est survenue et true sinon
+     */
+    public function replace($search, $replace, $caseSensitive = true, $wholeWord = false)
+    {        
+        if ( ($search == null) || trim($search) == '')
+            return false;
+        else
+            $search = trim($search);
+            
+        if(! $caseSensitive)
+            $search = strtolower($search);   // optimisation pour la boucle qui suit
+        
+        // boucle sur les champs et effecue le chercher/remplacer
+        foreach($this->record as $field => $value)
+        {
+            if ($field != 'REF')    // champ REF non modifiable
+            {
+                // TODO : prendre en compte $caseSensitive et $wholeWord
+                // TODO : tester
+                
+                if ($caseSensitive)
+                    $this->record[$field] = str_replace($search, $replace, $value);
+                else
+                    $this->record[$field] = str_replace($search, $replace, strtolower($value));
+            }    
+        } 
+        
+        return true;
     }
 }
 
