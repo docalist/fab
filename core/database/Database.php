@@ -739,7 +739,8 @@ abstract class Database implements ArrayAccess, Iterator
         
         foreach($this->record as $field => $value)
         {
-            $this->record[$field] = preg_replace($pattern, $replace, $value);    
+            if ($field != 'REF')    // champ REF non modifiable
+                $this->record[$field] = preg_replace($pattern, $replace, $value);    
         } 
         
         return true;
