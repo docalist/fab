@@ -434,7 +434,7 @@ class DatabaseModule extends Module
      }
     
     /**
-     * Effectue le chercher/remplacer et appelle le tempalte indiqué dans la clé
+     * Effectue le chercher/remplacer et appelle le template indiqué dans la clé
      * template de la configuration ensuite : feedback
      */
      
@@ -446,48 +446,54 @@ class DatabaseModule extends Module
                 
         // Récupérer l'équation de recherche
         $this->equation=Utils::get($_REQUEST['equation']);
-        $search=Utils::get($_REQUEST['searchStr']);
+        $search=Utils::get($_REQUEST['search']);
         $replace=Utils::get($_REQUEST['replaceStr']);
         $wholeWord=Utils::get($_REQUEST['wholeWord']);
-
-        // Si aucun paramètre de recherche n'a été passé ou si rien n'est à remplacer, il faut rediriger vers le formulaire replaceform
+        $caseSensitive=Utils::get($_REQUEST['caseSensitive']);
+        $searchType=Utils::get($_REQUEST['searchType']);
+        
+        if (! isset($caseSensitive))
+            $caseSensitive = false;     // si non coché par l'utilisateur, met la variable à false
+            
+        if(! isset($wholeWord))
+            $wholeWord = false;     // si non coché par l'utilisateur, met la variable à false
+            
+        // Si aucun paramètre de recherche ou si rien n'est à remplacer, rediriger vers le formulaire replaceform
         if (is_null($this->equation) || is_null($search))
             Runtime::redirect('replaceform');
         
-        if ($wholeWord)     // expression régulière pour le chercher/remplacer
-        {
-            $pattern = '~\b' . preg_quote($search) . '\b~';   
-        }
-        else
-        {
-            $pattern = '~' . preg_quote($search) . '~';
-        }
-        
-        echo "PATTERN = $pattern<br />";
-        
-        // Des paramètres ont été passés, mais tous sont vides et l'équation obtenue est vide
+        // Paramètres passés vides et équation obtenue est vide
         if ($this->equation==='')
-            return $this->showError('Vous n\'avez indiqué aucun critère de recherche.');
+            return $this->showError('Vous n\'avez indiqué aucun critère de recherche sur les enregistrements de la base de données.');
         
-        // Lance la récherche
-        if (! $this->openSelection($this->equation))
-            // TODO : il n'y a rien a remplacer
+        // Lance la requête qui détermine les enregistrements sur lesquels on va opérer le chercher/remplacer 
+        if (! $this->openSelection($this->equation))            // TODO : il n'y a rien a remplacer, qu'est-ce qu'on fait ?
             return $this->showError("Aucune réponse. Equation : $this->equation");
-        
-        echo "search = $search<br />replace = $replace<br />";
+
+            
+        echo "BEFORE SEARCH AND REPLACE<br />search = $search<br />replace = $replace<br />";
         
         // TODO: déléguer le boulot au TaskManager (exécution peut être longue)
         foreach($this->selection as & $record)
         {            
-            $this->selection->editRecord();
+            $this->selection->editRecord(); // on passe en mode édition de l'enregistrement
 
-            if( ! $this->selection->pregReplace($pattern, $replace))
-                echo 'RIEN DE REMPLACE<br />';
-                
+            if($searchType != 'regExp')
+            {
+                // Recherche par chaîne de caractères
+                if( ! $this->selection->replace($search, $replace, $caseSensitive, $wholeWord))    // cf. Database.php
+                    echo 'RIEN DE REMPLACE<br />';
+            }
+            else
+            {
+                // Chercher/remplacer par expression régulière
+                // TODO : dans pregReplace, vérifier qu'il y a bien des délimiteurs (retourne false sinon)
+                if( ! $this->selection->pregReplace($search, $replace, $caseSensitive))    // cf. Database.php
+                    echo 'RIEN DE REMPLACE<br />';
+            }
+ 
             $this->selection->saveRecord();
         }
-        
-        die();
         
         
         // Détermine le template à utiliser
