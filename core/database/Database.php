@@ -719,6 +719,7 @@ abstract class Database implements ArrayAccess, Iterator
     
     /* Fin de l'interface Iterator */
     
+    
     /**
      * Chercher/Remplacer à part d'une exp rég sur l'enregistrement en cours d'une base de données ouverte 
      * (peut être appelé dans une boucle sur une sélection par exemple)
@@ -727,11 +728,10 @@ abstract class Database implements ArrayAccess, Iterator
      * @param string $replace la chaîne de remplacement pour les occurences trouvées
      * @param bool $caseSensitive indique si la recherche est sensible à la casse
      * 
-     * @return false si une erreur est survenue et true sinon
+     * @return false s'il y a une erreur (pattern de recherche mal formé) et true sinon
      */
     public function pregReplace($pattern, $replace, $caseSensitive = true)
     {
-        // TODO : vérifier qu'il y a bien des délimiteurs (retourne false sinon)
         // (une partie de cette vérification est faite plus bas et peut-être recopiée)
         
         if ($pattern === null || trim($pattern) == '')
@@ -739,13 +739,15 @@ abstract class Database implements ArrayAccess, Iterator
         else
             $pattern = trim($pattern);
         
-        echo 'CASE SENSITIVE = ', $caseSensitive, '<br/>';
+        // vérifie que $pattern contient bien les deux délimiteurs
+        $delimiter = $pattern[0];  
+        $end = strpos($pattern, $delimiter, 1); // position du délimiteur de fin de pattern de recherche
+        if ($end === false)     // pas de délimiteur de fin ou alors, problème avec le délimiteur de début
+            return false;
         
         if (! $caseSensitive)
         {            
-            $delimiter = $pattern[0];  
-            $end = strpos($pattern, $delimiter, 1); // position du délimiteur de fin de pattern de recherche
-            if ($end == strlen($pattern)-1 || strpos($pattern, 'i', $end))
+            if ($end == strlen($pattern)-1 || strpos($pattern, 'i', $end) === false)
                 $pattern = $pattern . 'i';  // spécifie une recherche insensible à la casse
         }
         
@@ -759,6 +761,7 @@ abstract class Database implements ArrayAccess, Iterator
         return true;
             
     }
+    
     
     /**
      * Chercher/Remplacer à part d'une chaîne de caractères sur l'enregistrement en cours d'une base de données ouverte 
@@ -780,20 +783,34 @@ abstract class Database implements ArrayAccess, Iterator
             $search = trim($search);
             
         if(! $caseSensitive)
-            $search = strtolower($search);   // optimisation pour la boucle qui suit
+            $search = strtolower($search);   // pour optimiser un peu la boucle principale
+        
+        if ($wholeWord)
+        {
+            $search = ' ' . $search . ' ';   // ajoute des espaces pour simplifier la suite
+            $replace = ' ' . $replace . ' ';
+        }
         
         // boucle sur les champs et effecue le chercher/remplacer
         foreach($this->record as $field => $value)
         {
             if ($field != 'REF')    // champ REF non modifiable
             {
-                // TODO : prendre en compte $caseSensitive et $wholeWord
-                // TODO : tester
+                // TODO : ne fonctionne pas avec des tabulations, "'", etc.
+                // Exemple : dans "l'ensemble", "ensemble" est bien un mot mais il n'est pas remplacé
+                // si on sélectionne "Mots entiers"
+                // Utiliser des expressions régulières si $wholeWord vaut true ?
+                
+                if ($wholeWord)
+                    $value = ' ' . $value . ' ';    // pré-traitement : ajoute des espaces pour simplifier la suite
                 
                 if ($caseSensitive)
                     $this->record[$field] = str_replace($search, $replace, $value);
                 else
                     $this->record[$field] = str_replace($search, $replace, strtolower($value));
+                
+                if($wholeWord)      // post-traitement : supprime les 2 espaces ajoutés en pré-traitement       
+                    $this->record[$field] = substr($this->record[$field], 1, strlen($this->record[$field])-2);
             }    
         } 
         
