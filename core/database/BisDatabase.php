@@ -71,9 +71,30 @@ class BisDatabase extends Database
         if (is_array($options))
         {
             $sort=isset($options['sort']) ? $options['sort'] : null;
+//            if (is_array($sort))
+//                foreach ($sort as $i)
+//                    if ($i) { $sort=$i; break;}
+
             $start=isset($options['start']) ? ((int)$options['start'])-1 : 0;
+//            if (is_array($start))
+//                foreach ($start as $i)
+//                    if ($i) { $start=$i; break;}
             if ($start<0) $start=0;
-            $max=isset($options['max']) ? ((int)$options['max']) : 10;
+
+            $max=isset($options['max']) ? $options['max'] : 10;
+            if (is_array($max))
+                foreach ($max as $i)
+                    if ($i) { $max=$i; break;}
+            if (is_numeric($max))
+            {
+                $max=(int)$max;
+                if ($max<0) $max=10;
+            }
+            else
+                $max=10;
+                
+//echo "sort=", var_export($sort,true), ", max=", var_export($max,true), ", start=", var_export($start,true), "<br />";
+                    
         }
         else
         {
@@ -222,7 +243,7 @@ class BisDatabaseRecord extends DatabaseRecord
 
     public function offsetGet($offset)
     {
-        return $this->fields[$offset];
+        return $this->fields[$offset]->value;
         //return (string) $this->fields[$offset]->value;
         //return $this->fields->item($offset)->value;
     }
@@ -255,20 +276,24 @@ class BisDatabaseRecord extends DatabaseRecord
     public function rewind()
     {
         $this->current=1;
+//        echo "Rewind. This.current=", $this->current, "<br />";
     }
 
     public function current()
     {
+//        echo "Appel de current(). This.current=",$this->current," (",$this->fields[$this->current]->name,")","<br />";
         return $this->fields[$this->current]->value;
     }
 
     public function key()
     {
+//        echo "Appel de key(). This.current=",$this->current," (",$this->fields[$this->current]->name,")","<br />";
         return $this->fields[$this->current]->name;
     }
 
     public function next()
     {
+//        echo "Appel de next. This.current passe à ", ($this->current+1),"<br />";
         ++$this->current;
     }
 
