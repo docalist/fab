@@ -724,13 +724,14 @@ abstract class Database implements ArrayAccess, Iterator
      * Chercher/Remplacer à partir d'une exp rég sur l'enregistrement en cours d'une base de données ouverte 
      * (peut être appelé dans une boucle sur une sélection par exemple)
      * 
+     * @param array fields la liste des champs sur lesquels on effectue le chercher/remplacer
      * @param string $pattern le pattern à utiliser pour l'expression régulière de recherche
      * @param string $replace la chaîne de remplacement pour les occurences trouvées
      * @param bool $caseSensitive indique si la recherche est sensible à la casse
      * 
      * @return false s'il y a une erreur (pattern de recherche mal formé) et true sinon
      */
-    public function pregReplace($pattern, $replace, $caseSensitive = true)
+    public function pregReplace($fields, $pattern, $replace, $caseSensitive = true)
     {
         // (une partie de cette vérification est faite plus bas et peut-être recopiée)
         
@@ -754,7 +755,7 @@ abstract class Database implements ArrayAccess, Iterator
         // boucle sur les champs pour effectuer le remplacement éventuel
         foreach($this->record as $field => $value)
         {
-            if ($field != 'REF')    // champ REF non modifiable
+            if (in_array($field, $fields))
                 $this->record[$field] = preg_replace($pattern, $replace, $value);    
         } 
         
@@ -767,6 +768,7 @@ abstract class Database implements ArrayAccess, Iterator
      * Chercher/Remplacer à partir d'une chaîne de caractères sur l'enregistrement en cours d'une base de données ouverte 
      * (peut être appelé dans une boucle sur une sélection par exemple)
      * 
+     * @param array fields la liste des champs sur lesquels on effectue le chercher/remplacer
      * @param string $search la chaîne de caractère de recherche
      * @param string $replace la chaîne de remplacement pour les occurences trouvées
      * @param bool $caseSensitive indique si la recherche est (true) ou non (false) sensible à la case
@@ -775,7 +777,7 @@ abstract class Database implements ArrayAccess, Iterator
      * 
      * @return false si une erreur est survenue et true sinon
      */
-    public function strReplace($search, $replace, $caseSensitive = true, $wholeWord = false)
+    public function strReplace($fields, $search, $replace, $caseSensitive = true, $wholeWord = false)
     {        
         if ( ($search == null) || trim($search) == '')
             return false;
@@ -794,7 +796,7 @@ abstract class Database implements ArrayAccess, Iterator
         // boucle sur les champs et effecue le chercher/remplacer
         foreach($this->record as $field => $value)
         {
-            if ($field != 'REF')    // champ REF non modifiable
+            if (in_array($field, $fields))
             {
                 // TODO : ne fonctionne pas avec des tabulations, "'", etc.
                 // Exemple : dans "l'ensemble", "ensemble" est bien un mot mais il n'est pas remplacé
@@ -821,14 +823,15 @@ abstract class Database implements ArrayAccess, Iterator
      * Chercher/Remplacer les champs vides de l'enregistrement en cours d'une base de données ouverte 
      * (peut être appelé dans une boucle sur une sélection par exemple)
      * 
+     * @param array fields la liste des champs sur lesquels on effectue le chercher/remplacer
      * @param string $replace la chaîne de remplacement pour les champs vides trouvés
      * 
      */
-     public function replaceEmpty($replace)
+     public function replaceEmpty($fields, $replace)
      {
         foreach($this->record as $field => $value)
         {
-            if ($field != 'REF' && $value == null)
+            if (in_array($field, $fields))
             {
                 $this->record[$field] = $replace;
             }
