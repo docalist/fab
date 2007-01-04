@@ -721,7 +721,7 @@ abstract class Database implements ArrayAccess, Iterator
     
     
     /**
-     * Chercher/Remplacer à part d'une exp rég sur l'enregistrement en cours d'une base de données ouverte 
+     * Chercher/Remplacer à partir d'une exp rég sur l'enregistrement en cours d'une base de données ouverte 
      * (peut être appelé dans une boucle sur une sélection par exemple)
      * 
      * @param string $pattern le pattern à utiliser pour l'expression régulière de recherche
@@ -764,7 +764,7 @@ abstract class Database implements ArrayAccess, Iterator
     
     
     /**
-     * Chercher/Remplacer à part d'une chaîne de caractères sur l'enregistrement en cours d'une base de données ouverte 
+     * Chercher/Remplacer à partir d'une chaîne de caractères sur l'enregistrement en cours d'une base de données ouverte 
      * (peut être appelé dans une boucle sur une sélection par exemple)
      * 
      * @param string $search la chaîne de caractère de recherche
@@ -775,7 +775,7 @@ abstract class Database implements ArrayAccess, Iterator
      * 
      * @return false si une erreur est survenue et true sinon
      */
-    public function replace($search, $replace, $caseSensitive = true, $wholeWord = false)
+    public function strReplace($search, $replace, $caseSensitive = true, $wholeWord = false)
     {        
         if ( ($search == null) || trim($search) == '')
             return false;
@@ -799,7 +799,7 @@ abstract class Database implements ArrayAccess, Iterator
                 // TODO : ne fonctionne pas avec des tabulations, "'", etc.
                 // Exemple : dans "l'ensemble", "ensemble" est bien un mot mais il n'est pas remplacé
                 // si on sélectionne "Mots entiers"
-                // Utiliser des expressions régulières si $wholeWord vaut true ?
+                // => Il faudra sûrement utiliser des expressions régulières si $wholeWord vaut true
                 
                 if ($wholeWord)
                     $value = ' ' . $value . ' ';    // pré-traitement : ajoute des espaces pour simplifier la suite
@@ -816,6 +816,24 @@ abstract class Database implements ArrayAccess, Iterator
         
         return true;
     }
+    
+    /**
+     * Chercher/Remplacer les champs vides de l'enregistrement en cours d'une base de données ouverte 
+     * (peut être appelé dans une boucle sur une sélection par exemple)
+     * 
+     * @param string $replace la chaîne de remplacement pour les champs vides trouvés
+     * 
+     */
+     public function replaceEmpty($replace)
+     {
+        foreach($this->record as $field => $value)
+        {
+            if ($field != 'REF' && $value == null)
+            {
+                $this->record[$field] = $replace;
+            }
+        }
+     }
 }
 
 /**
