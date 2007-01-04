@@ -1,3 +1,6 @@
+<!-- Générateurs de contrôles basés sur les template match -->
+
+
 <div ignore="true">
     <!-- Les différents contrôles de base -->
     <!-- les textbox -->
@@ -9,13 +12,7 @@
             id="{lastId()}" 
             name="$name" 
             value="$value" 
-            title="$title">
-            <!-- Plus tous les autres attributs donnés lors de l'appel -->
-            {select('@*')}
-        </input>
-        <!-- Le contenu du tag -->
-        {select('node()')}
-    </template>
+            title="$title">{select('@*')}</input>{select('node()')}</template>
             
     
     <!-- textlist : liste de textbox -->
@@ -121,7 +118,7 @@
             title="$title"
             cols="$cols"
             rows="$rows"
-            id="{lastId()}">{select('@*')}{select('node()')}</textarea>
+            id="{lastId()}"> {select('@*')}{select('node()')}</textarea>
     </template>
     
     
