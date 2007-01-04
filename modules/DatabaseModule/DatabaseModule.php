@@ -166,7 +166,6 @@ class DatabaseModule extends Module
         // Construit l'équation de recherche
         $this->equation=$this->makeEquation('start,max,sort');
         
-        
         // Si aucun paramètre de recherche n'a été passé, il faut afficher le formulaire
         // de recherche
         if (is_null($this->equation))
@@ -179,20 +178,21 @@ class DatabaseModule extends Module
         // Lance la récherche
         if (! $this->openSelection($this->equation))
             return $this->showError("Aucune réponse. Equation : $this->equation");
-
+        
         // Détermine le template à utiliser
         if (! $template=$this->getTemplate('template'))
             throw new Exception('Le template à utiliser n\'a pas été indiqué');
         
         // Détermine le callback à utiliser
         $callback=$this->getCallback();
-
+        
         // Exécute le template
         Template::run
         (
             $template,  
             array($this, $callback),
             array('selection'=>$this->selection),
+            array('equation'=>$this->equation),
             $this->selection->record
         );                
     }
@@ -417,6 +417,35 @@ class DatabaseModule extends Module
      {
         //TODO: Faut-il gérer un éventuel callback ici ?
 
+        // récupère l'équation de recherche qui donne les enregistrements sur lesquels travailler
+        $equation = Utils::get($_REQUEST['equation']);
+        $this->equation = substr($equation, 1, strlen($equation)-2);
+        
+        // Lance la récherche
+        if (! $this->openSelection($this->equation) )
+            return $this->showError("Aucune réponse. Equation : $this->equation");
+        
+        // Construit le tableau de tous les champs des enregistrements retournés par la recherche
+        // au cas où l'utilisateur voudrait effectuer un chercher/remplacer
+        // Par compatibilité avec les générateurs de contrôles utilisateurs (fichier generators.xml)
+        // il faut un tableau de tableau contenant chacun une clé 'code' et une clé 'label'
+        $fieldList = array();   // le tableau global qui contient les tableaux de champs
+        $fieldsFound = array(); // la liste de tous les champs déjà trouvés
+        foreach($this->selection as $record)
+        {
+            $newField = array();    // un tableau par champ trouvé
+            foreach($record as $fieldName => $fieldValue)
+            {
+                if (in_array($fieldName, $fieldsFound) === false)
+                {
+                    $newField['code'] = $fieldName;
+                    $newField['label'] = $fieldName;    // on affichera directement le code du champs tel que dans la BDD
+                    $fieldList[] = $newField;           // ajoute au tableau global
+                    $fieldsFound[] = $fieldName;        // pour ne pas le rajouter la prochaine fois qu'on le trouve
+                }
+            }
+        }
+
         // Détermine le template à utiliser
         if (! $template=$this->getTemplate())
             throw new Exception('Le template à utiliser n\'a pas été indiqué');
@@ -429,6 +458,7 @@ class DatabaseModule extends Module
         (
             $template,  
             array($this, $callback),           // Priorité à la fonction utilisateur
+            array('fieldList'=>$fieldList),
             new Optional($_REQUEST)
         );
      }
@@ -437,8 +467,6 @@ class DatabaseModule extends Module
      * Effectue le chercher/remplacer et appelle le template indiqué dans la clé
      * template de la configuration ensuite : feedback
      */
-     
-     // NEW VERSION
      public function actionReplace()
      {
         //TODO : gestion d'erreurs
@@ -451,6 +479,12 @@ class DatabaseModule extends Module
         $wholeWord=Utils::get($_REQUEST['wholeWord']);
         $caseSensitive=Utils::get($_REQUEST['caseSensitive']);
         $searchType=Utils::get($_REQUEST['searchType']);
+        $fields = Utils::get($_REQUEST['fields']);
+        
+        echo "EQUATION = $this->equation<br />";
+        echo "FIELDS = ";
+        print_r($fields);
+        echo "<br />";
                     
         if (! isset($caseSensitive))
             $caseSensitive = false;     // si non coché par l'utilisateur, met la variable à false
@@ -469,10 +503,9 @@ class DatabaseModule extends Module
         // Lance la requête qui détermine les enregistrements sur lesquels on va opérer le chercher/remplacer 
         if (! $this->openSelection($this->equation))            // TODO : il n'y a rien a remplacer, qu'est-ce qu'on fait ?
             return $this->showError("Aucune réponse. Equation : $this->equation");
-
             
         echo "BEFORE SEARCH AND REPLACE<br />search = $search<br />replace = $replace<br />";
-        
+
         // TODO: déléguer le boulot au TaskManager (exécution peut être longue)
         
         // TODO : améliorer les messages qd fonction retourne false
@@ -482,25 +515,17 @@ class DatabaseModule extends Module
             switch($searchType)
             {
                 case 'string' :         // Recherche par chaîne de caractères
-                    if( ! $this->selection->strReplace($search, $replace, $caseSensitive, $wholeWord))    // cf. Database.php
+                    if( ! $this->selection->strReplace($fields, $search, $replace, $caseSensitive, $wholeWord))    // cf. Database.php
                         echo 'Rien n\'a été remplacé<br />';
                     break;
                 
                 case 'regExp' :         // Chercher/remplacer par expression régulière
-                    if( ! $this->selection->pregReplace($search, $replace, $caseSensitive))    // cf. Database.php
+                    if( ! $this->selection->pregReplace($fields, $search, $replace, $caseSensitive))    // cf. Database.php
                         echo 'Le modèle de recherche n\'est pas bien formé : veillez à utiliser le même délimiteur de début et de fin<br />';
                     break;
                 
                 case 'emptyFields' :    // Chercher/remplacer les champs vides
-//                    foreach($record as $field=>$value)
-//                    {
-//                        if ($value == null)
-//                        {
-//                            echo "DEBUG - Champ $field = $value<br />";
-//                            $this->selection->record[$field] = $replace;
-//                        }   
-//                    }
-                    $this->selection->replaceEmpty($replace);    
+                    $this->selection->replaceEmpty($fields, $replace);    
                     break;
             }
             $this->selection->saveRecord();
