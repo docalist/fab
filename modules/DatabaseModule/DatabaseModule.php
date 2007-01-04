@@ -451,15 +451,15 @@ class DatabaseModule extends Module
         $wholeWord=Utils::get($_REQUEST['wholeWord']);
         $caseSensitive=Utils::get($_REQUEST['caseSensitive']);
         $searchType=Utils::get($_REQUEST['searchType']);
-        
+                    
         if (! isset($caseSensitive))
             $caseSensitive = false;     // si non coché par l'utilisateur, met la variable à false
             
         if(! isset($wholeWord))
             $wholeWord = false;     // si non coché par l'utilisateur, met la variable à false
-            
-        // Si aucun paramètre de recherche ou si rien n'est à remplacer, rediriger vers le formulaire replaceform
-        if (is_null($this->equation) || is_null($search))
+          
+        // Si aucun paramètre de recherche ou s'il n'y a rien a remplacer, rediriger vers le formulaire replaceform
+        if (is_null($this->equation) || (is_null($search) && $searchType != 'emptyFields'))
             Runtime::redirect('replaceform');
         
         // Paramètres passés vides et équation obtenue est vide
@@ -474,24 +474,35 @@ class DatabaseModule extends Module
         echo "BEFORE SEARCH AND REPLACE<br />search = $search<br />replace = $replace<br />";
         
         // TODO: déléguer le boulot au TaskManager (exécution peut être longue)
+        
+        // TODO : améliorer les messages qd fonction retourne false
         foreach($this->selection as & $record)
         {            
             $this->selection->editRecord(); // on passe en mode édition de l'enregistrement
-
-            if($searchType != 'regExp')
+            switch($searchType)
             {
-                // Recherche par chaîne de caractères
-                if( ! $this->selection->replace($search, $replace, $caseSensitive, $wholeWord))    // cf. Database.php
-                    echo 'RIEN DE REMPLACE<br />';
+                case 'string' :         // Recherche par chaîne de caractères
+                    if( ! $this->selection->strReplace($search, $replace, $caseSensitive, $wholeWord))    // cf. Database.php
+                        echo 'Rien n\'a été remplacé<br />';
+                    break;
+                
+                case 'regExp' :         // Chercher/remplacer par expression régulière
+                    if( ! $this->selection->pregReplace($search, $replace, $caseSensitive))    // cf. Database.php
+                        echo 'Le modèle de recherche n\'est pas bien formé : veillez à utiliser le même délimiteur de début et de fin<br />';
+                    break;
+                
+                case 'emptyFields' :    // Chercher/remplacer les champs vides
+//                    foreach($record as $field=>$value)
+//                    {
+//                        if ($value == null)
+//                        {
+//                            echo "DEBUG - Champ $field = $value<br />";
+//                            $this->selection->record[$field] = $replace;
+//                        }   
+//                    }
+                    $this->selection->replaceEmpty($replace);    
+                    break;
             }
-            else
-            {
-                // Chercher/remplacer par expression régulière
-                // TODO : dans pregReplace, vérifier qu'il y a bien des délimiteurs (retourne false sinon)
-                if( ! $this->selection->pregReplace($search, $replace, $caseSensitive))    // cf. Database.php
-                    echo 'RIEN DE REMPLACE<br />';
-            }
- 
             $this->selection->saveRecord();
         }
         
