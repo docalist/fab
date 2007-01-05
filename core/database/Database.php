@@ -777,6 +777,51 @@ abstract class Database implements ArrayAccess, Iterator
      * 
      * @return false si une erreur est survenue et true sinon
      */
+        // Ancienne version de strReplace
+        // Utilisait toujours str_replace() mais ne permettait pas de chercher/remplacer correctement quand
+        // l'option "mot entier" était définit : ne détectait que l'espace comme délimteur de mots (pas tab, etc.)
+//    public function strReplace($fields, $search, $replace, $caseSensitive = true, $wholeWord = false)
+//    {        
+//        if ( ($search == null) || trim($search) == '')
+//            return false;
+//        else
+//            $search = trim($search);
+//            
+//        if(! $caseSensitive)
+//            $search = strtolower($search);   // pour optimiser un peu la boucle principale
+//        
+//        if ($wholeWord)
+//        {
+//            $search = ' ' . $search . ' ';   // ajoute des espaces pour simplifier la suite
+//            $replace = ' ' . $replace . ' ';
+//        }
+//        
+//        // boucle sur les champs et effecue le chercher/remplacer
+//        foreach($this->record as $field => $value)
+//        {
+//            if (in_array($field, $fields))
+//            {
+//                // TODO : ne fonctionne pas avec des tabulations, "'", etc.
+//                // Exemple : dans "l'ensemble", "ensemble" est bien un mot mais il n'est pas remplacé
+//                // si on sélectionne "Mots entiers"
+//                // => Il faudra sûrement utiliser des expressions régulières si $wholeWord vaut true
+//                
+//                if ($wholeWord)
+//                    $value = ' ' . $value . ' ';    // pré-traitement : ajoute des espaces pour simplifier la suite
+//                
+//                if ($caseSensitive)
+//                    $this->record[$field] = str_replace($search, $replace, $value);
+//                else
+//                    $this->record[$field] = str_replace($search, $replace, strtolower($value));
+//                
+//                if($wholeWord)      // post-traitement : supprime les 2 espaces ajoutés en pré-traitement       
+//                    $this->record[$field] = substr($this->record[$field], 1, strlen($this->record[$field])-2);
+//            }    
+//        } 
+//        
+//        return true;
+//    }
+    
     public function strReplace($fields, $search, $replace, $caseSensitive = true, $wholeWord = false)
     {        
         if ( ($search == null) || trim($search) == '')
@@ -784,14 +829,22 @@ abstract class Database implements ArrayAccess, Iterator
         else
             $search = trim($search);
             
-        if(! $caseSensitive)
-            $search = strtolower($search);   // pour optimiser un peu la boucle principale
-        
         if ($wholeWord)
         {
-            $search = ' ' . $search . ' ';   // ajoute des espaces pour simplifier la suite
-            $replace = ' ' . $replace . ' ';
+            $pattern = '~\b' . $search . '\b~';
+            if (! $caseSensitive)
+                $pattern = $pattern . 'i';
         }
+        else
+        {
+            if(! $caseSensitive)
+                $search = strtolower($search);   // pour optimiser un peu la boucle principale
+        }
+//        if ($wholeWord)
+//        {
+//            $search = ' ' . $search . ' ';   // ajoute des espaces pour simplifier la suite
+//            $replace = ' ' . $replace . ' ';
+//        }
         
         // boucle sur les champs et effecue le chercher/remplacer
         foreach($this->record as $field => $value)
@@ -803,16 +856,22 @@ abstract class Database implements ArrayAccess, Iterator
                 // si on sélectionne "Mots entiers"
                 // => Il faudra sûrement utiliser des expressions régulières si $wholeWord vaut true
                 
+//                if ($wholeWord)
+//                    $value = ' ' . $value . ' ';    // pré-traitement : ajoute des espaces pour simplifier la suite
+                
                 if ($wholeWord)
-                    $value = ' ' . $value . ' ';    // pré-traitement : ajoute des espaces pour simplifier la suite
-                
-                if ($caseSensitive)
-                    $this->record[$field] = str_replace($search, $replace, $value);
+                {
+                    $this->record[$field] = preg_replace($pattern, $replace, $value);
+                }
                 else
-                    $this->record[$field] = str_replace($search, $replace, strtolower($value));
-                
-                if($wholeWord)      // post-traitement : supprime les 2 espaces ajoutés en pré-traitement       
-                    $this->record[$field] = substr($this->record[$field], 1, strlen($this->record[$field])-2);
+                {
+                    if ($caseSensitive)
+                        $this->record[$field] = str_replace($search, $replace, $value);
+                    else
+                        $this->record[$field] = str_replace($search, $replace, strtolower($value));
+                }
+//                if($wholeWord)      // post-traitement : supprime les 2 espaces ajoutés en pré-traitement       
+//                    $this->record[$field] = substr($this->record[$field], 1, strlen($this->record[$field])-2);
             }    
         } 
         
