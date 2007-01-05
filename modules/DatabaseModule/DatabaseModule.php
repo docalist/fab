@@ -36,6 +36,7 @@ class Optional implements ArrayAccess
     }   
 }
 
+
 /**
  * Ce module permet de publier une base de données sur le web
  * 
@@ -113,18 +114,7 @@ class DatabaseModule extends Module
             array($this, $callback),           // Priorité à la fonction utilisateur
             new Optional($_REQUEST)
 //            $_REQUEST,                          // Champs passés en paramètre
-//            array('Template', 'EmptyCallback')  // Effacer tous les autres
         );
-//        echo "here";
-// TODO: remettre en place le rappel des éléments de formulaire
-//        Template::run
-//        (
-//            $template,  
-//            array($this, $callback),            // Priorité à la fonction utilisateur
-//            $_REQUEST,                          // Champs passés en paramètre
-////            'Template::emptyCallback'           // Effacer tous les autres
-//            array('Template', 'EmptyCallback')
-//        );
     }
 
     /**
@@ -415,12 +405,16 @@ class DatabaseModule extends Module
      */
      public function actionReplaceForm()
      {
-        //TODO: Faut-il gérer un éventuel callback ici ?
+        // TODO : callback définit dans BaseDoc qui supprime 'REF' de la liste
 
         // récupère l'équation de recherche qui donne les enregistrements sur lesquels travailler
         $equation = Utils::get($_REQUEST['equation']);
         $this->equation = substr($equation, 1, strlen($equation)-2);
         
+        // Paramètre equation manquant
+        if (is_null($this->equation) || (! $this->equation))
+            $this->showError('Vous n\'avez indiqué aucun critère de recherche sur les enregistrements de la base de données.');
+            
         // Lance la récherche
         if (! $this->openSelection($this->equation) )
             return $this->showError("Aucune réponse. Equation : $this->equation");
@@ -445,7 +439,7 @@ class DatabaseModule extends Module
                 }
             }
         }
-
+        
         // Détermine le template à utiliser
         if (! $template=$this->getTemplate())
             throw new Exception('Le template à utiliser n\'a pas été indiqué');
@@ -480,11 +474,6 @@ class DatabaseModule extends Module
         $caseSensitive=Utils::get($_REQUEST['caseSensitive']);
         $searchType=Utils::get($_REQUEST['searchType']);
         $fields = Utils::get($_REQUEST['fields']);
-        
-        echo "EQUATION = $this->equation<br />";
-        echo "FIELDS = ";
-        print_r($fields);
-        echo "<br />";
                     
         if (! isset($caseSensitive))
             $caseSensitive = false;     // si non coché par l'utilisateur, met la variable à false
@@ -492,23 +481,25 @@ class DatabaseModule extends Module
         if(! isset($wholeWord))
             $wholeWord = false;     // si non coché par l'utilisateur, met la variable à false
           
-        // Si aucun paramètre de recherche ou s'il n'y a rien a remplacer, rediriger vers le formulaire replaceform
-        if (is_null($this->equation) || (is_null($search) && $searchType != 'emptyFields'))
-            Runtime::redirect('replaceform');
-        
-        // Paramètres passés vides et équation obtenue est vide
+//        // Si aucun paramètre de recherche ou s'il n'y a rien a remplacer, rediriger vers le formulaire replaceform
+//        if (is_null($this->equation))
+//            throw new Exception('L\'équation de sélection des enregistrements n\'a pas été indiqué pour le chercher/remplacer');
+         // Paramètre equation manquant
+         
         if ($this->equation==='')
             return $this->showError('Vous n\'avez indiqué aucun critère de recherche sur les enregistrements de la base de données.');
-        
+                
+        // si aucun critère de recherche concernant les données à remplacer, redirige vers le formulaire
+        if (is_null($search) && $searchType != 'emptyFields')
+            Runtime::redirect('replaceform?equation="' . $this->equation .'"');
+
         // Lance la requête qui détermine les enregistrements sur lesquels on va opérer le chercher/remplacer 
         if (! $this->openSelection($this->equation))            // TODO : il n'y a rien a remplacer, qu'est-ce qu'on fait ?
             return $this->showError("Aucune réponse. Equation : $this->equation");
-            
-        echo "BEFORE SEARCH AND REPLACE<br />search = $search<br />replace = $replace<br />";
 
         // TODO: déléguer le boulot au TaskManager (exécution peut être longue)
         
-        // TODO : améliorer les messages qd fonction retourne false
+        // effectue le chercher/remplacer
         foreach($this->selection as & $record)
         {            
             $this->selection->editRecord(); // on passe en mode édition de l'enregistrement
@@ -516,12 +507,12 @@ class DatabaseModule extends Module
             {
                 case 'string' :         // Recherche par chaîne de caractères
                     if( ! $this->selection->strReplace($fields, $search, $replace, $caseSensitive, $wholeWord))    // cf. Database.php
-                        echo 'Rien n\'a été remplacé<br />';
+                        echo 'La chaîne de recherche que vous avez indiquée est vide.<br />';
                     break;
                 
                 case 'regExp' :         // Chercher/remplacer par expression régulière
                     if( ! $this->selection->pregReplace($fields, $search, $replace, $caseSensitive))    // cf. Database.php
-                        echo 'Le modèle de recherche n\'est pas bien formé : veillez à utiliser le même délimiteur de début et de fin<br />';
+                        echo 'L\'expression régulière ou vide ou mal formée : veillez à utiliser le même délimiteur de début et de fin<br />';
                     break;
                 
                 case 'emptyFields' :    // Chercher/remplacer les champs vides
