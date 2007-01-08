@@ -133,6 +133,8 @@ class TemplateCompiler
             // le premier tag trouvé est la racine, on l'entoure avec <template></template>
             $source=preg_replace('~(\<[^!?])~', '<root collapse="true">$1', $source, 1);
             $source.='</root>';
+            // TODO: A TESTER, si c'ets un fichier xml correct (il a une déclaration xml), il est censé
+            // être bien formé et donc contenir une racine unique
             
             $xmlDeclaration=strtok($source, '>').'>';
         }
@@ -142,8 +144,10 @@ class TemplateCompiler
             //$source=self::translate_entities($source);
     
             // si le fichier à un DTD <!DOCTYPE..., il faut prendre des précautions
-            $source=preg_replace('~(\<!DOCTYPE [^>]+\>)~im', '$1<root>', $source, 1, $nb);
-            if ($nb==0) $source='<root collapse="true">'.$source;
+//            $source=preg_replace('~(\<!DOCTYPE [^>]+\>)~im', '$1<root collapse="true">', $source, 1, $nb);
+//            if ($nb==0) $source='<root collapse="true">'.$source;
+
+            $source=preg_replace('~(\<[^!?])~', '<root collapse="true">$1', $source, 1);
             $source.='</root>';
             
             // on ajoute la déclaration xml
@@ -153,7 +157,7 @@ class TemplateCompiler
         }
         
         // Charge le template comme s'il s'agissait d'un document xml
-        $xml=new domDocument('1.0', 'iso-8859-1');
+        $xml=new domDocument();
         if (Config::get('templates.removeblanks'))
             $xml->preserveWhiteSpace=false; // à true par défaut
             
@@ -164,12 +168,15 @@ class TemplateCompiler
         	$h.=file_get_contents(Runtime::$fabRoot.'core/template/autoincludes/'.$file);
 
         $source=str_replace('</root>', $h.'</root>', $source);
-        if (Template::getLevel()==1) file_put_contents(dirname(__FILE__).'/dm.xml', $source);
+        if (Template::getLevel()==0) file_put_contents(dirname(__FILE__).'/dm.xml', $source);
 
         // gestion des erreurs : voir comment 1 à http://fr.php.net/manual/en/function.dom-domdocument-loadxml.php
         libxml_clear_errors(); // >PHP5.1
         libxml_use_internal_errors(true);// >PHP5.1
+        $xml->resolveExternals=true;
 //        if (! $xml->loadXML($source, LIBXML_COMPACT)) // options : >PHP5.1, fait planter php
+        $catalog='XML_CATALOG_FILES=' . dirname(__FILE__) . '/autoincludes/catalog.xml';
+        putenv($catalog);
         if (! $xml->loadXML($source)) // options : >PHP5.1
         {
             $h="Impossible de compiler le template, ce n'est pas un fichier xml valide :<br />\n"; 
@@ -179,6 +186,7 @@ class TemplateCompiler
             throw new Exception($h);
         }
         unset($source);
+//self::collapseNodes($xml);
 
         // Instancie tous les templates présents dans le document
         self::compileMatches($xml);        
@@ -188,7 +196,6 @@ class TemplateCompiler
 //        $xml->normalize();        
 
 self::removeEmptyTextNodes($xml->documentElement);
-
         // Lance la compilation
         ob_start();
         self::$stack[]=array(self::$loop, self::$opt, self::$datasources, self::$bindings);
@@ -199,6 +206,14 @@ self::removeEmptyTextNodes($xml->documentElement);
         self::compileChildren($xml); //->documentElement
         $result=ob_get_clean();
 //        $result=str_replace(self::PHP_END_TAG."\n", self::PHP_END_TAG."\n\n", $result);
+
+    // Nettoyage
+    // si la balise de fin de php est \r, elle est mangée (cf http://fr2.php.net/manual/fr/language.basic-syntax.instruction-separation.php)
+       $result=str_replace(self::PHP_END_TAG."\r", self::PHP_END_TAG."\r\r", $result);
+       $result=str_replace(self::PHP_END_TAG."\n", self::PHP_END_TAG."\n\r", $result);
+//            $source=preg_replace('~[\r\n][ \t]*([\r\n])~', '$1', $source);
+//        $source=preg_replace("~([\r\n])\s+$~m", '$1', $source);
+            
         
         if (count(self::$bindings))
         {
@@ -235,7 +250,7 @@ self::removeEmptyTextNodes($xml->documentElement);
                 case XML_CDATA_SECTION_NODE:
                     break;
                 default:
-                    echo __METHOD__, "type de noeud non géré : ", $node->nodeType, '(', self::nodeType($node),')';
+                    //echo __METHOD__, "type de noeud non géré : ", $node->nodeType, '(', self::nodeType($node),')';
             }
             $child=$nextChild;
         }
@@ -662,7 +677,7 @@ self::removeEmptyTextNodes($xml->documentElement);
                     return call_user_func(array('TemplateCompiler', $tags[$name]), $node);
 
                 // Récupère les attributs qu'on gère
-                $collapse=$node->getAttribute('collapse')=='true';
+                $collapse=($node->getAttribute('collapse')=='true');
                 $ignore=$node->getAttribute('ignore')=='true';
 
                 // Génère le noeud
@@ -1346,6 +1361,136 @@ self::removeEmptyTextNodes($xml->documentElement);
         return strlen($h)-strlen(rtrim($h, ' '));
     } 
     
+    private static function collapseNodes($xml)
+    {
+//return;
+echo "Source initial :\n",  $xml->saveXml($xml), "\n------------------------------------------------------------\n";
+$xpath=new DOMXPath($xml);
+$nodes=$xpath->query('//div');
+for($i=1;$i<10;$i++)
+{
+        foreach($nodes as $node)
+            self::indent($node, '    ');
+}
+//            self::collapse($node);
+echo "Source indente :\n",  $xml->saveXml($xml), "\n------------------------------------------------------------\n";
+for($i=1;$i<10;$i++)
+{
+        foreach($nodes as $node)
+            self::unindent($node, '    ');
+}
+echo "Source desindente :\n",  $xml->saveXml($xml), "\n------------------------------------------------------------\n";
+    }
+
+    private static function collapse(DOMElement $node)
+    {
+        echo "Collapse du noeud ", $node->tagName, "\n\n";
+        echo "Source initial :\n",  $node->ownerDocument->saveXml($node), "\n\n";
+        
+        // Détermine l'indentation qui précède le tag d'ouverture du noeud
+        $indent='';
+        if ($previous=$node->previousSibling and $previous->nodeType==XML_TEXT_NODE)
+        {
+            $h=$previous->data;
+            if ($pt=strrpos($h, 10) !== false) $indent=substr($h, $pt);
+            if (rtrim($indent, " \t")!='') $indent='';
+        }
+//        echo "myindent=[$indent], "; var_dump($indent); echo "\n";
+        
+        // Si le tag d'ouverture est tout seul sur sa ligne (avec éventuellement des espaces avant et après),
+        // on supprime la dernière ligne du noeud texte qui précède
+        if ($previous)
+        {
+            $h=$previous->data;
+            if ($pt=strrpos($h, 10) !== false)
+            {
+                $line=substr($h, $pt);
+                if (rtrim($line, " \t")==='')
+                    $previous->data=substr($previous->data,0,$pt-1);
+            } 
+        }
+        
+        // Réindente tous les noeuds fils de type texte contenant des retours à la ligne
+        foreach($node->childNodes as $child)
+        {
+            $nb=0;
+            if ($child->nodeType===XML_TEXT_NODE)
+                $child->data=$h=str_replace("\n".$indent, "\n", $child->data, $nb);
+        }
+        echo "Source obtenu :\n",  $node->ownerDocument->saveXml($node), "\n\n";
+        echo "-----------------------------------------------------\n\n";
+    }
+    
+    // ajoute la chaine indent à l'indentation du noeud et de tous ses descendants
+    private static function indent(DOMNode $node, $indent, $isChild=false)
+    {
+        // ajoute indent au noeud texte qui précède le tag d'ouverture (node->previousSibling)
+        // pas de previous = node est le premier noeud de l'arbre
+        // previous != TEXT_NODE = <elem><node> : ne pas indenter
+        if (! $isChild)
+        {
+            $previous=$node->previousSibling;
+            if (is_null($previous))
+            {
+                $node->parentNode->insertBefore($node->ownerDocument->createTextNode($indent), $node);
+            }
+            else
+            {
+                if ($previous->nodeType===XML_TEXT_NODE)
+                {
+                    if (rtrim(strrchr($previous->data, 10), "\n\t- ")==='')
+                        $previous->data .= $indent;
+                }
+            }
+        }
+                
+        // Indente tous les fils
+        
+        if ($node->hasChildNodes()) foreach($node->childNodes as $child)
+        {
+            if ($child->nodeType===XML_TEXT_NODE)
+                $child->data=str_replace("\n", "\n".$indent, $child->data);
+            
+            if ($child->hasChildNodes()) self::indent($child, $indent, true);
+        }
+    }   
+     
+    // supprime la chaine indent à l'indentation du noeud et de tous ses descendants
+    private static function unindent(DOMNode$node, $indent, $isChild=false)
+    {
+        // ajoute indent au noeud texte qui précède le tag d'ouverture (node->previousSibling)
+        // pas de previous = node est le premier noeud de l'arbre
+        // previous != TEXT_NODE = <elem><node> : ne pas indenter
+        if (! $isChild)
+        {
+            $previous=$node->previousSibling;
+            if (is_null($previous))
+            {
+                $node->parentNode->insertBefore($node->ownerDocument->createTextNode($indent), $node);
+            }
+            else
+            {
+                if ($previous->nodeType===XML_TEXT_NODE)
+                {
+                    $previous->data=str_replace("\n".$indent, "\n", $previous->data);
+//                    if (rtrim(strrchr($previous->data, 10), "\n\t- ")==='')
+//                        $previous->data .= $indent;
+                }
+            }
+        }
+                
+        // Indente tous les fils
+        
+        if ($node->hasChildNodes()) foreach($node->childNodes as $child)
+        {
+            if ($child->nodeType===XML_TEXT_NODE)
+                $child->data=str_replace("\n".$indent, "\n", $child->data);
+            
+            if ($child->hasChildNodes()) self::unindent($child, $indent, true);
+        }
+        
+    }   
+     
     private static function compileLoop($node)
     {
 //echo "Je suis indenté de ", self::nodeGetIndent($node), " espaces\n";
