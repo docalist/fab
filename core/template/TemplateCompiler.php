@@ -121,62 +121,55 @@ class TemplateCompiler
      */
     public static function compile($source)
     {
-
         // TODO : voir si on peut rétablir les commentaires de templates /* ... */
         // Supprime les commentaires de templates : /* xxx */
         $source=preg_replace('~/\*.*?\*/~ms', null, $source);
         
-        // Englobe le template dans des balises <template>...</template>
+        // Ajoute si nécessaire une déclaration xml au template
         if (substr($source, 0, 6)==='<?xml ')
         {
-            // le fichier a une déclaration xml
-            // le premier tag trouvé est la racine, on l'entoure avec <template></template>
-            $source=preg_replace('~(\<[^!?])~', '<root collapse="true">$1', $source, 1);
-            $source.='</root>';
-            // TODO: A TESTER, si c'ets un fichier xml correct (il a une déclaration xml), il est censé
-            // être bien formé et donc contenir une racine unique
-            
             $xmlDeclaration=strtok($source, '>').'>';
         }
         else
         {
-            // Pas de déclaration xml, donc pas d'encoding : traduit en utf8
-            //$source=self::translate_entities($source);
-    
-            // si le fichier à un DTD <!DOCTYPE..., il faut prendre des précautions
-//            $source=preg_replace('~(\<!DOCTYPE [^>]+\>)~im', '$1<root collapse="true">', $source, 1, $nb);
-//            if ($nb==0) $source='<root collapse="true">'.$source;
-
-            $source=preg_replace('~(\<[^!?])~', '<root collapse="true">$1', $source, 1);
-            $source.='</root>';
-            
-            // on ajoute la déclaration xml
-            $source='<?xml version="1.0" encoding="ISO-8859-1" ?>' . $source;
-            
             $xmlDeclaration='';  
+            $source='<?xml version="1.0" encoding="ISO-8859-1" ?>' . $source;
         }
+
+        // Expression régulière utilisée pour déterminer la fin du prologue du fichier xml
+        // on sélectionne tout ce qui commence par <! ou <? suivis d'espaces
+        $re='~^(?:\<[?!][^>]*>\s*)*~';
+
+        // Ajoute une racine <root>...</root> au template
+        $source=preg_replace($re, '$0<root collapse="true">', $source, 1);
+        $source.='</root>';
         
-        // Charge le template comme s'il s'agissait d'un document xml
-        $xml=new domDocument();
-        if (Config::get('templates.removeblanks'))
-            $xml->preserveWhiteSpace=false; // à true par défaut
-            
         // Ajoute les fichiers auto-include dans le source
         $files=Config::get('templates.autoinclude');
         $h='';
         foreach($files as $file)
         	$h.=file_get_contents(Runtime::$fabRoot.'core/template/autoincludes/'.$file);
 
-        $source=str_replace('</root>', $h.'</root>', $source);
+        if ($h) $source=str_replace('</root>', '<div ignore="true">'.$h.'</div></root>', $source);
         if (Template::getLevel()==0) file_put_contents(dirname(__FILE__).'/dm.xml', $source);
 
+        // Crée un document XML
+        $xml=new domDocument();
+
+        if (Config::get('templates.removeblanks'))
+            $xml->preserveWhiteSpace=false; // à true par défaut
+
+        if (Config::get('templates.resolveexternals'))
+        {
+            $xml->resolveExternals=true;
+            $catalog='XML_CATALOG_FILES=' . dirname(__FILE__) . '/autoincludes/catalog.xml';
+            putenv($catalog);
+        }
+                    
         // gestion des erreurs : voir comment 1 à http://fr.php.net/manual/en/function.dom-domdocument-loadxml.php
         libxml_clear_errors(); // >PHP5.1
         libxml_use_internal_errors(true);// >PHP5.1
-        $xml->resolveExternals=true;
-//        if (! $xml->loadXML($source, LIBXML_COMPACT)) // options : >PHP5.1, fait planter php
-        $catalog='XML_CATALOG_FILES=' . dirname(__FILE__) . '/autoincludes/catalog.xml';
-        putenv($catalog);
+        
         if (! $xml->loadXML($source)) // options : >PHP5.1
         {
             $h="Impossible de compiler le template, ce n'est pas un fichier xml valide :<br />\n"; 
@@ -190,30 +183,26 @@ class TemplateCompiler
 
         // Instancie tous les templates présents dans le document
         self::compileMatches($xml);        
-//if (Template::getLevel()==1) $xml->save(dirname(__FILE__).'/dm.xml');
 
         // Normalize le document
 //        $xml->normalize();        
+        self::removeEmptyTextNodes($xml->documentElement);
 
-self::removeEmptyTextNodes($xml->documentElement);
         // Lance la compilation
-        ob_start();
         self::$stack[]=array(self::$loop, self::$opt, self::$datasources, self::$bindings);
         self::$loop=self::$opt=0;
         self::$datasources=array();
         self::$bindings=array();
+        ob_start();
         if ($xmlDeclaration) echo $xmlDeclaration, "\n";
         self::compileChildren($xml); //->documentElement
         $result=ob_get_clean();
 //        $result=str_replace(self::PHP_END_TAG."\n", self::PHP_END_TAG."\n\n", $result);
 
-    // Nettoyage
-    // si la balise de fin de php est \r, elle est mangée (cf http://fr2.php.net/manual/fr/language.basic-syntax.instruction-separation.php)
-       $result=str_replace(self::PHP_END_TAG."\r", self::PHP_END_TAG."\r\r", $result);
-       $result=str_replace(self::PHP_END_TAG."\n", self::PHP_END_TAG."\n\r", $result);
-//            $source=preg_replace('~[\r\n][ \t]*([\r\n])~', '$1', $source);
-//        $source=preg_replace("~([\r\n])\s+$~m", '$1', $source);
-            
+     // Nettoyage
+     // si la balise de fin de php est \r, elle est mangée (cf http://fr2.php.net/manual/fr/language.basic-syntax.instruction-separation.php)
+        $result=str_replace(self::PHP_END_TAG."\r", self::PHP_END_TAG."\r\r", $result);
+        $result=str_replace(self::PHP_END_TAG."\n", self::PHP_END_TAG."\n\r", $result);
         
         if (count(self::$bindings))
         {
@@ -600,34 +589,6 @@ self::removeEmptyTextNodes($xml->documentElement);
     } 
 
     /**
-     * Convertit en caractères les entités html présentes dans le template  
-     * 
-     * @param string $source le code source du template à convertir
-     * @return string le source convertit
-     */
-    private static function translate_entities($source, $reverse=true)
-    {
-        static $literal2NumericEntity=null;
-            
-        if (is_null($literal2NumericEntity))
-        {
-            $transTbl = get_html_translation_table(HTML_ENTITIES);
-    
-            foreach ($transTbl as $char => $entity)
-            {
-                if (strpos('&#038;"<>', $char) !== false) continue;
-                $literal2NumericEntity[$entity] = '&#'.ord($char).';';
-            }
-        }
-    
-        if ($reverse)
-            return strtr($source, array_flip($literal2NumericEntity));
-        else
-            return strtr($source, $literal2NumericEntity);
-    } 
-
-
-    /**
      * Compile un noeud (un tag) et tous ses fils   
      * 
      * @param DOMNode $node le noeud à compiler
@@ -650,6 +611,8 @@ self::removeEmptyTextNodes($xml->documentElement);
             'default'=>'elseError',
             'opt'=>'compileOpt'
         );
+        static $empty=null;
+        
         self::$currentNode=$node;
         switch ($node->nodeType)
         {
@@ -659,12 +622,12 @@ self::removeEmptyTextNodes($xml->documentElement);
 
             case XML_COMMENT_NODE:  // un commentaire
                 if (Config::get('templates.removehtmlcomments')) return;
-                echo utf8_decode($node->ownerDocument->saveXML($node));
+                echo $node->ownerDocument->saveXML($node);
                 // Serait plus efficace : $node->ownerDocument->save('php://output');
                 return;
                 
             case XML_PI_NODE:       // une directive (exemple : <?xxx ... ? >)
-                echo utf8_decode($node->ownerDocument->saveXML($node));
+                echo $node->ownerDocument->saveXML($node);
                 // Serait plus efficace : $node->ownerDocument->save('php://output');
                 return;
                 
@@ -714,7 +677,7 @@ self::removeEmptyTextNodes($xml->documentElement);
                                 ++self::$opt;
                                 $value=self::compileField($attribute->value, false, $flags);
                                 --self::$opt;
-                                $value=utf8_decode($value);
+                                $value=$value;
                                 $quot=(strpos($value,'"')===false) ? '"' : "'";
                                 
                                 // Si l'attribut ne contient que des variables (pas de texte), il devient optionnel
@@ -730,8 +693,45 @@ self::removeEmptyTextNodes($xml->documentElement);
                         }
                     }
       
+                    // Détermine s'il faut générer le tag complet (<div>...</div>) ou un tag vide (<br />)
+                    $emptyTag=false;
+                    if (! $node->hasChildNodes())
+                    {
+                        // Liste des éléments dont le "content model" est déclaré comme "EMPTY" dans les DTD
+                        if (is_null($empty))
+                        {
+                            //XHTML 1.0 strict et XHTML 1.1
+                            $empty['base']=true;
+                            $empty['meta']=true;
+                            $empty['link']=true;
+                            $empty['hr']=true;
+                            $empty['br']=true;
+                            $empty['param']=true;
+                            $empty['img']=true;
+                            $empty['area']=true;
+                            $empty['input']=true;
+                            $empty['col']=true;
+                            
+                            //XHTML 1.0 TRANSITIONAL : idem plus
+                            $empty['basefont']=true;
+                            $empty['isindex']=true;
+                            
+                            //XHTML 1.0 FRAMESET : idem plus
+                            $empty['frame']=true;
+                        }
+                        if (isset($empty[$node->tagName])) $emptyTag=true;
+                    }
+                    
+                    // Tag vide
+                    if ($emptyTag)
+                    {
+                        if (! $collapse) echo ' />';
+                        if ($if !== '')                     
+                            echo self::PHP_START_TAG, 'endif;',self::PHP_END_TAG;
+                    }
+                    
                     // Génère tous les fils et la fin du tag
-                    if ($node->hasChildNodes())
+                    else
                     {
                         if (! $collapse) echo '>';
                         if ($if !== '')                     
@@ -744,14 +744,6 @@ self::removeEmptyTextNodes($xml->documentElement);
                             echo self::PHP_START_TAG, 'endif;',self::PHP_END_TAG;
                     }
                     
-                    // Cas d'un noeud sans fils
-                    else
-                    {
-                        if (! $collapse) echo ' />';
-                        if ($if !== '')                     
-                            echo self::PHP_START_TAG, 'endif;',self::PHP_END_TAG;
-                    }
-    
                     if ($test !== '')                     
                         echo self::PHP_START_TAG, 'endif;',self::PHP_END_TAG;
                 }
@@ -763,16 +755,16 @@ self::removeEmptyTextNodes($xml->documentElement);
                 return;
                 
             case XML_DOCUMENT_TYPE_NODE:    // Le DTD du document
-                echo utf8_decode($node->ownerDocument->saveXML($node)), "\n";
+                echo $node->ownerDocument->saveXML($node), "\n";
                 return;
             
             case XML_CDATA_SECTION_NODE:    // Un bloc CDATA : <![CDATA[ on met <ce> <qu'on> $veut ]]>
-                echo utf8_decode($node->ownerDocument->saveXML($node));
+                echo $node->ownerDocument->saveXML($node);
                 return;
 
             case XML_ENTITY_REF_NODE:
             case XML_ENTITY_NODE:
-                echo utf8_decode($node->ownerDocument->saveXML($node));
+                echo $node->ownerDocument->saveXML($node);
                 return;
                             
             default:
@@ -845,8 +837,6 @@ self::removeEmptyTextNodes($xml->documentElement);
 //            $source
 //        );
 
-        // Convertit le texte utf8->iso8859-1
-        $source=utf8_decode($source);
         
         // Boucle tant qu'on trouve des choses dans le source passé en paramètre
         $start=0;
@@ -989,6 +979,10 @@ self::removeEmptyTextNodes($xml->documentElement);
                         
                     // Enlève le signe $ de début
                     $var=substr($data,1);
+        
+                    // Convertit le nom de la variable en iso8859-1 au cas où elle contienne des accents
+                    // if (php_version <6) ou qq chose comme (if PHP_SUPPORTS_UNICODE)
+                    $var=utf8_decode($var); // UTILE ?
                     
                     // Teste si c'est une variable créée par le template (loop, etc.)
                     foreach (self::$datasources as $datasource)
