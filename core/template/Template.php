@@ -1,13 +1,4 @@
 <?php
-function autoId()
-{
-    return 'id';
-}
-function lastId()
-{
-    return 'id';
-}
-
 /**
  * @package     fab
  * @subpackage  template
@@ -34,26 +25,18 @@ function lastId()
 class Template
 {
     /**
-     * @var boolean Indique s'il faut ou non forcer une recompilation complète
-     * des templates, que ceux-ci aient été modifiés ou non.
-     * @access public 
+     * options de configuration utilisées :
+     * 
+     * templates.forcecompile : indique s'il faut ou non forcer une recompilation 
+     * complète des templates, que ceux-ci aient été modifiés ou non.
+     * 
+     * tempaltes.checktime : indique si le gestionnaire de template doit vérifier 
+     * ou non si les templates ont été modifiés depuis leur dernière compilation.
+     * 
+     * cache.enabled: indique si le cache est utilisé ou non. Si vous n'utilisez
+     * pas le cache, les templates seront compilés à chaque fois et aucun fichier 
+     * compilé ne sera créé. 
      */
-    public static $forceCompile=false;
-
-    /**
-     * @var boolean Indique si le gestionnaire de template doit vérifier ou
-     * non si les templates ont été modifiés depuis leur dernière compilation.
-     * @access public
-     */
-    public static $checkTime=true;
-    
-    /**
-     * @var boolean Indique si le cache est utilisé ou non. Si vous n'utilisez
-     * pas le cache, les templates seront compilés à chaque fois et aucun
-     * fichier compilé ne sera créé. 
-     * @access public
-     */
-    public static $useCache=true;
 
 
     /**
@@ -122,9 +105,6 @@ class Template
     
     public static function setup()
     {
-        self::$useCache=Config::get('cache.enabled', false);
-        self::$forceCompile=Config::get('templates.forcecompile', false);
-        self::$checkTime=Config::get('templates.checktime', false);
     }
     
     public static function getLevel()
@@ -257,22 +237,18 @@ class Template
             debug && Debug::notice("'%s' doit être compilé", $template);
             
             // Charge le contenu du template
-            if ( ! $source=file_get_contents($template, 1) )
+            if ( ! $source=file_get_contents($template) )
                 throw new Exception("Le template '$template' est introuvable.");
             
             // Compile le code
             debug && Debug::log('Compilation du source');
             require_once dirname(__FILE__) . '/TemplateCompiler.php';
             $source=TemplateCompiler::compile($source);
-
-            // Nettoyage
-            // si la balise de fin de php est \r, elle est mangée (cf http://fr2.php.net/manual/fr/language.basic-syntax.instruction-separation.php)
-//            $source=str_replace(self::PHP_END_TAG."\r", self::PHP_END_TAG." \r", $source);
-//            $source=preg_replace('~[\r\n][ \t]*([\r\n])~', '$1', $source);
-            $source=preg_replace("~([\r\n])\s+$~m", '$1', $source);
-            
+//          if (php_version < 6) ou  if (! PHP_IS_UTF8)
+            $source=utf8_decode($source);
+                
             // Stocke le template dans le cache et l'exécute
-            if (self::$useCache)
+            if (config::get('cache.enabled'))
             {
                 debug && Debug::log("Mise en cache de '%s'", $template);
                 Cache::set($template, $source);
@@ -301,8 +277,8 @@ class Template
      * Teste si un template a besoin d'être recompilé en comparant la version
      * en cache avec la version source.
      * 
-     * La fonction prend également en compte les options {@link $forceCompile}
-     * et {link $checkTime}
+     * La fonction prend également en compte les options templates.forcecompile
+     * et templates.checkTime
      * 
      * @param string $template path du template à vérifier
      * @param string autres si le template dépend d'autres fichiers, vous pouvez
@@ -312,25 +288,25 @@ class Template
      */
     private static function needsCompilation($template /* ... */)
     {
-        // Si forceCompile est à true, on recompile systématiquement
-        if (self::$forceCompile) return true;
-        
+        // Si templates.forceCompile est à true, on recompile systématiquement
+        if (Config::get('templates.forcecompile')) return true;
+
         // Si le cache est désactivé, on recompile systématiquement
-        if (! self::$useCache) return true;
+        if (! Config::get('cache.enabled')) return true;
+        
         
         // si le fichier n'est pas encore dans le cache, il faut le générer
         $mtime=Cache::lastModified($template);
-        if ( $mtime==0 ) return true; 
+        if ( $mtime==0 ) return true;
         
-        // Si $checkTime est à false, terminé
-        if (! self::$checkTime) return false; 
+        // Si templates.checktime est à false, terminé
+        if (! Config::get('templates.checktime')) return false;
 
         // Compare la date du fichier en cache avec celle de chaque dépendance
         $argc=func_num_args();
         for($i=0; $i<$argc; $i++)
-            if ($mtime<=filemtime(func_get_arg($i)) ) 
-                return true;
-        
+            if ($mtime<=filemtime(func_get_arg($i)) ) return true;
+             
         // Aucune des dépendances n'est plus récente que le fichier indiqué
         return false;
     }
@@ -397,8 +373,11 @@ class Template
                         debug && Debug::log('Tentative d\'accès à %s[\'%s\']', get_class($data), $name);
                         $value=$data[$name]; // essaie d'accéder, pas d'erreur ?
 
-                        $code=$bindingName='$'.$name;
-                        $bindingValue='Template::$data['.$i.'][\''.$name.'\']';
+                        $bindingName='$'.$name;
+                        $code=$bindingName.'[\''.$name.'\']';
+                        $bindingValue='& Template::$data['.$i.']';
+// TODO: ne pas générer plusieurs fois le même binding                        
+//                        $bindingValue='& Template::$data['.$i.'][\''.$name.'\']';
                         // pas de référence : see http://bugs.php.net/bug.php?id=34783
                         // It is impossible to have ArrayAccess deal with references
                         return true;
