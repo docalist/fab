@@ -153,7 +153,7 @@ class Config
      * @return mixed La valeur de l'option si elle existe ou la valeur par
      * défaut passée en paramètre sinon.
      */
-    public static function get($name, $default = null)
+    public static function & get($name, $default = null)
     {
         $config=& self::$config;
         foreach (explode('.', $name) as $name)
@@ -169,7 +169,7 @@ class Config
      * Modifie une option de configuration.
      *
      * Si l'option est déjà définie dans la configuration en cours, la valeur
-     * existante est écrasée, même s'il s'agit d'un tableau. Utilier
+     * existante est écrasée, même s'il s'agit d'un tableau. Utiliser
      * {@link add} pour fusionner des valeurs.
      *
      * @param string $name Le nom de l'option à changer.
