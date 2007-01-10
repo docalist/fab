@@ -727,11 +727,11 @@ abstract class Database implements ArrayAccess, Iterator
      * @param array fields la liste des champs sur lesquels on effectue le chercher/remplacer
      * @param string $pattern le pattern à utiliser pour l'expression régulière de recherche
      * @param string $replace la chaîne de remplacement pour les occurences trouvées
-     * @param bool $caseSensitive indique si la recherche est sensible à la casse
+     * @param bool $caseInsensitive indique si la recherche est insensible à la casse
      * 
      * @return false s'il y a une erreur (pattern de recherche mal formé) et true sinon
      */
-    public function pregReplace($fields, $pattern, $replace, $caseSensitive = true)
+    public function pregReplace($fields, $pattern, $replace, $caseInsensitive = false)
     {
         // (une partie de cette vérification est faite plus bas et peut-être recopiée)
         
@@ -746,7 +746,7 @@ abstract class Database implements ArrayAccess, Iterator
         if ($end === false)     // pas de délimiteur de fin ou alors, problème avec le délimiteur de début
             return false;
         
-        if (! $caseSensitive)
+        if ($caseInsensitive)
         {            
             if ($end == strlen($pattern)-1 || strpos($pattern, 'i', $end) === false)
                 $pattern = $pattern . 'i';  // spécifie une recherche insensible à la casse
@@ -771,7 +771,7 @@ abstract class Database implements ArrayAccess, Iterator
      * @param array fields la liste des champs sur lesquels on effectue le chercher/remplacer
      * @param string $search la chaîne de caractère de recherche
      * @param string $replace la chaîne de remplacement pour les occurences trouvées
-     * @param bool $caseSensitive indique si la recherche est (true) ou non (false) sensible à la case
+     * @param bool $caseInsensitive indique si la recherche est (true) ou non (false) insensible à la case
      * @param bool $wholeWord indique si on recherche uniquement le(s) mot(s) entier(s) correspondant(s)
      * à search (true) dans l'enregistrement en cours
      * 
@@ -822,7 +822,7 @@ abstract class Database implements ArrayAccess, Iterator
 //        return true;
 //    }
     
-    public function strReplace($fields, $search, $replace, $caseSensitive = true, $wholeWord = false)
+    public function strReplace($fields, $search, $replace, $caseInsensitive = false, $wholeWord = false)
     {        
         if ( ($search == null) || trim($search) == '')
             return false;
@@ -832,12 +832,12 @@ abstract class Database implements ArrayAccess, Iterator
         if ($wholeWord)
         {
             $pattern = '~\b' . $search . '\b~';
-            if (! $caseSensitive)
+            if ($caseInsensitive)
                 $pattern = $pattern . 'i';
         }
         else
         {
-            if(! $caseSensitive)
+            if($caseInsensitive)
                 $search = strtolower($search);   // pour optimiser un peu la boucle principale
         }
 //        if ($wholeWord)
@@ -865,7 +865,7 @@ abstract class Database implements ArrayAccess, Iterator
                 }
                 else
                 {
-                    if ($caseSensitive)
+                    if (! $caseInsensitive)
                         $this->record[$field] = str_replace($search, $replace, $value);
                     else
                         $this->record[$field] = str_replace($search, $replace, strtolower($value));
@@ -890,7 +890,7 @@ abstract class Database implements ArrayAccess, Iterator
      {
         foreach($this->record as $field => $value)
         {
-            if (in_array($field, $fields))
+            if (in_array($field, $fields) && $value == '')
             {
                 $this->record[$field] = $replace;
             }
