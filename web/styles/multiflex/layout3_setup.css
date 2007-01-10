@@ -1,5 +1,5 @@
 /*************************************************************/
-/*   Design:   Multiflex-3 Update-2 / Layout-2               */
+/*   Design:   Multiflex-3 Update-2 / Layout-3               */
 /*   File:     Global layout structure                       */
 /*-----------------------------------------------------------*/
 /*   Author:   G. Wolfgang                                   */
@@ -19,8 +19,8 @@
 *{padding:0; margin:0;}
  body {font-size:62.5%; background-color:rgb(255,255,255); font-family:verdana,arial,sans-serif;} /*Font-size: 1.0em = 10px when browser default size is 16px*/
 .page-container {width:900px; margin:0px auto; margin-top:10px; margin-bottom:10px; border:solid 1px rgb(150,150,150); font-size:1.0em;}
-.main {clear:both; width:900px; padding-bottom:30px; background:transparent url(/fab/web/images/multiflex/bg_main_withnav.jpg) top left repeat-y;}
-.main-navigation {display:inline /*Fix IE floating margin bug*/; float:left; width:200px; overflow:visible !important /*Firefox*/; overflow:hidden /*IE6*/;}
+.main {clear:both; width:900px; padding-bottom:30px; background:transparent url(/fab/web/images/multiflex/bg_main_withnav_reverse.jpg) top left repeat-y;}
+.main-navigation {display:inline /*Fix IE floating margin bug*/; float:right; width:200px; overflow:visible !important /*Firefox*/; overflow:hidden /*IE6*/;}
 .main-content {display:inline; /*Fix IE floating margin bug*/; float:left; width:640px; margin:0 0 0 30px; overflow:visible !important /*Firefox*/; overflow:hidden /*IE6*/;}
 .footer {clear:both; width:900px; height:3.7em; padding:1.1em 0 0; background:rgb(225,225,225) url(/fab/web/images/multiflex/bg_foot.jpg) no-repeat; font-size:1.0em; overflow:visible !important /*Firefox*/; overflow:hidden /*IE6*/;}
 
@@ -43,7 +43,7 @@
 .sitename a {text-decoration:none; color:rgb(125,125,125);}
 .sitename a:hover {text-decoration:none; color:rgb(50,50,50);}
 
-.nav0 {width:350px; position:absolute; z-index:2; margin:25px 0 0 0; margin-left:550px !important /*Firefox*/; margin-left:553px /*IE6*/;}
+.nav0 {width:350px; position:absolute; z-index:2; margin:25px 0 0 0; margin-left:550px !important /*Non-IE6*/; margin-left:553px /*IE6*/;}
 .nav0 ul {float:right; padding:0 20px 0 0;}
 .nav0 li {display:inline; list-style:none;}
 .nav0 li a {padding:0 0 0 3px;}
@@ -104,15 +104,15 @@
 /******************/
 
 /* MAIN NAVIGATION */
-.main-navigation .round-border-topright {width:10px; height:10px; position:absolute; z-index:100; margin:0 0 0 190px; background:url(/fab/web/images/multiflex/bg_corner_topright.gif) no-repeat;}
+.main-navigation .round-border-topleft {width:10px; height:10px; position:absolute; z-index:100; margin:0; background:url(/fab/web/images/multiflex/bg_corner_topleft.gif) no-repeat;}
 
 /* MAIN CONTENT */
-.column1-unit {width:640px; margin-bottom:10px !important /*Non-IE6*/; margin-bottom:5px /*IE6*/;}
+.column1-unit {width:640px;  margin-bottom:10px !important /*Non-IE6*/; margin-bottom:5px /*IE6*/;}
 .column2-unit-left {float:left; width:300px; margin-bottom:10px !important /*Non-IE6*/; margin-bottom:5px /*IE6*/;}
 .column2-unit-right {float:right; width:300px; margin-bottom:10px !important /*Non-IE6*/; margin-bottom:5px /*IE6*/;}
-.column3-unit-left {float:left; width:186px; margin-bottom:10px !important /*Non-IE6*/; margin-bottom:5px /*IE6*/}
+.column3-unit-left {float:left; width:186px; margin-bottom:10px !important /*Non-IE6*/; margin-bottom:5px /*IE6*/;}
 .column3-unit-middle {float:left; width:186px; margin-bottom:10px !important /*Non-IE6*/; margin-bottom:5px /*IE6*/; margin-left:40px;}
-.column3-unit-right {float:right; width:186px; margin-bottom:10px !important /*Non-IE6*/; margin-bottom:5px /*IE6*/;}
+.column3-unit-right {float:right; width:186px;  margin-bottom:10px !important /*Non-IE6*/; margin-bottom:5px /*IE6*/;}
 
 /********************/
 /*  FOOTER SECTION  */
@@ -129,7 +129,7 @@
 .page-container:after, .header:after, .header-breadcrumbs:after, .main:after, .main-navigation:after, .main-content:after {content:"."; display:block; height:0; clear:both; visibility:hidden;}
 .column1-unit:after, .column2-unit-left:after, .column2-unit-right:after, .column3-unit-left:after, .column3-unit-middle:after, .column3-unit-right:after {content:"."; display:block; height:0; clear:both; visibility:hidden;}
 .footer:after, p:after {content:"."; display:block; height:0; clear:both; visibility:hidden;}
-.clear-contentunit {clear:both; width:640px; height:0.1em; border:none; background:rgb(210,210,210); color:rgb(210,210,210);}
+.clear-contentunit {clear:both; width:640px; height:0.2em; border:none; background:rgb(210,210,210); color:rgb(210,210,210);}
 
 /********************************/
 /*  PRINTING and MISCELLANEOUS  */
