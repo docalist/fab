@@ -82,6 +82,7 @@ class DatabaseModule extends Module
         
         if ($equation)
         {
+            // TODO: ne pas passer directement $_REQUEST
             $result=$this->selection->search($equation, $_REQUEST);
             debug && Debug::log("Requête : %s, %s réponse(s).", $equation, $this->selection->count());
             return $result;
@@ -155,7 +156,7 @@ class DatabaseModule extends Module
     {
         // Construit l'équation de recherche
         $this->equation=$this->makeEquation('start,max,sort');
-        
+
         // Si aucun paramètre de recherche n'a été passé, il faut afficher le formulaire
         // de recherche
         if (is_null($this->equation))
@@ -175,16 +176,149 @@ class DatabaseModule extends Module
         
         // Détermine le callback à utiliser
         $callback=$this->getCallback();
-        
+
         // Exécute le template
         Template::run
         (
             $template,  
             array($this, $callback),
-            array('selection'=>$this->selection),
-            array('equation'=>$this->equation),
+            array
+            (
+                'selection'=>$this->selection,
+                'equation'=>$this->equation
+            ),
+//            array('navBar'=>$this->getResNavigation(10, '<', '>', '<<', '>>')),
             $this->selection->record
         );                
+    }
+    
+    /**
+     * Reconstitue et retourne la query string
+     */
+    private static function buildQuery($t)
+    {
+        $query='';
+        foreach ($t as $key=>$value)
+        {
+            $key=urlencode($key);
+            if (is_array($value))
+            {
+                foreach ($value as $item)
+                {
+                    $query.='&'.$key.'='.urlencode($item);
+                }
+            }
+            else
+            {
+                $query.='&'.$key.'='.urlencode($value);
+            }
+        }
+        return substr($query,1);
+    }     
+    
+    /**
+     * A partir d'une sélection ouverte et de la queryString, retourne la barre de navigation entre
+     * les différentes pages de résultats (au format XHTML).
+     * Peut-être appelée directement depuis un template
+     * 
+     * @param $maxLinks integer le nombre de liens maximum à afficher dans la barre de navigation
+     * @param $prevLabel string le libellé du lien vers la page précédente
+     * @param $nextLabel string le libelle du lien vers la page suivante
+     * @param $firstLabel string le libelle du lien vers la première page de résultats pour la sélection (chaîne vide si aucun)
+     * @param $lastLabel string le libelle du lien vers la dernière page de résultats pour la sélection (chaîne vide si aucun)
+     */
+    public function getResNavigation($maxLinks = 10, $prevLabel = '<', $nextLabel = '>', $firstLabel = '', $lastLabel = '')
+    {
+        // TODO : modification en fonction des nouveaux paramètres de la fonction
+        
+        // la base de la query string pour la requête de type search
+        $queryStr=$_GET;
+        unset($queryStr['start']);
+        unset($queryStr['module']);
+        unset($queryStr['action']);
+        $baseQueryString=self::buildQuery($queryStr);
+
+        $currentStart = $this->selection->searchInfo('start');  // num dans la sélection du première enreg de la page en cours
+        $maxRes = $this->selection->searchInfo('max');          // le nombre de réponses max par page
+        
+        $startParam = 1;                // le param start pour les URL des liens générés dans la barre de navigation
+        $pageNum = 1;                   // le premier numéro de page à généré comme lien dans la barre de navigation
+        $navBar = '';                   // la barre de navigation au format XHTML
+        
+        // numéro de la page dont les résultats sont affichés
+        $currentPage = intval(($currentStart - 1) / $maxRes) + 1;
+        
+        // numéro de la dernière page de résultats pour la sélection en cours (indépendamment de $maxLinks)
+        $lastSelPageNum = ($this->selection->count() % $maxRes) == 0 ? (intval($this->selection->count()/$maxRes)) : (intval($this->selection->count()/$maxRes)+1);
+        // numéro de page du dernier lien qu'on affiche (<= $lastSelPageNum suivant la val de $maxLinks)
+        $lastDispPageNum = $lastSelPageNum;    
+        
+        // Ajustement de la valeur des variable pour la gestion de la "fenêtre" de liens : nombre de liens à afficher...
+        if ($maxLinks < $lastSelPageNum)
+        {
+            // nombre de liens à afficher avant le numéro de la page courante dans la barre
+            // de navigation en supposant que le numéro de la page courante sera centré sur celle-ci
+            $numLinksBefore = intval(($maxLinks - 1) / 2);
+            
+            // ici, le premier numéro de page à afficher dans la barre de navigation ($pageNum) vaut 1
+            // le recalcule si nécessaire
+            if ( ($currentPage - $numLinksBefore) >= 1 )
+            {
+                if (($currentPage + ($maxLinks - $numLinksBefore - 1)) > $lastSelPageNum)
+                {
+                    // on va afficher le lien vers la dernière page de résultats pour la sélection
+                    // le num de la page courante ne sera pas centré sur la barre (sinon on afficherait 
+                    // un ou des liens vers des pages de résultats inexistantes à droite)
+                    $pageNum = $currentPage - ($maxLinks - ($lastSelPageNum - $currentPage + 1));
+                }
+                else
+                {
+                    $pageNum = ($currentPage - $numLinksBefore);
+                }
+            }
+            
+            $lastDispPageNum = $pageNum + ($maxLinks - 1);  // ajuste le numéro de la dernière page à afficher dans la barre
+            $startParam =  ($pageNum - 1) * $maxRes + 1;    // ajuste $startParam pour le premier lien correspondant à un num de page
+        }
+        
+        // lien "page précédente" et éventuel lien vers la première page
+        if ($currentPage > 1)
+        {
+            if ( ($firstLabel != '') && ($pageNum > 1) )    // afficher lien vers la première page ?
+                $navBar = '<a href="search?' . $baseQueryString . "&start=1" . '">' . $firstLabel . '</a> ';
+                
+            // TODO: ligne suivante nécessaire ?
+            $prevStart = $currentStart-$maxRes >=1 ? $currentStart-$maxRes : 1; // param start pour le lien vers la page précédente
+            $navBar = $navBar . '<a href="search?' . $baseQueryString . "&start=$prevStart" . '">' . $prevLabel . '</a> ';
+        }
+        
+        // géncère les liens vers chaque numéro de page de résultats
+        for($pageNum; $pageNum <= $lastDispPageNum; ++$pageNum)
+        {
+            if($startParam == $currentStart)    // s'il s'agit du numéro de la page qu'on va afficher, pas de lien
+                $navBar = $navBar . $pageNum . ' ';
+            else
+                $navBar = $navBar . '<a href="search?' . $baseQueryString . "&start=$startParam" . '">'. $pageNum . '</a> ';
+                
+            $startParam += $maxRes;
+        }
+        
+        // lien "page suivante" et éventuellement, lien vers la dernière page de la sélection
+        if (($currentPage < $lastSelPageNum))
+        {
+//            TODO : ligne commentée nécessaire ?
+//            $nextStart = $currentStart+$maxRes <= $this->selection->count() ? $currentStart+$maxRes : ;
+            $nextStart = $currentStart + $maxRes;   // param start pour le lien vers la page suivante
+            $navBar = $navBar . '<a href="search?' . $baseQueryString . "&start=$nextStart" . '">' . $nextLabel . '</a> ';
+            
+            if ( ($lastLabel != '') && ($lastDispPageNum < $lastSelPageNum) )   // afficher lien vers la dernière page ?
+            {
+                $startParam = ($this->selection->count() % $maxRes) == 0 ? $this->selection->count() - $maxRes + 1 : intval($this->selection->count() / $maxRes) * $maxRes + 1;
+                $navBar = $navBar . '<a href="search?' . $baseQueryString . "&start=$startParam" . '">' . $lastLabel . '</a> ';
+            }
+        }
+        
+        return $navBar;
     }
     
     /**
@@ -284,7 +418,7 @@ class DatabaseModule extends Module
         (
             $template,  
             array($this, $callback),
-            array('selection'=>$this->selection, 'record'=>$this->selection->record),
+            array('selection'=>$this->selection),
             $this->selection->record
         );             
     }
@@ -352,7 +486,7 @@ class DatabaseModule extends Module
             (
                 $template,
 //                array($this, $callback),  TODO
-                array('selection'=>$this->selection, 'record'=>$this->selection->record),
+                array('selection'=>$this->selection),
                 $this->selection->record
             );
         }
