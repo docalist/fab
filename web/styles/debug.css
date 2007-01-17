@@ -151,7 +151,9 @@ div.debugLog ul
 {
     margin: 0 0 0 0.2em;
     padding-left: 0;
-    list-style: none url(none);
+    /*list-style: none url(none);*/
+    list-style: none;
+    
 }
 
 div.debugLog ul ul
