@@ -61,11 +61,15 @@ templates:
   
   # liste des fichiers à inclure dans le source lors de la compilation d'un template
   autoinclude:
-     - generators.xml
-#    - xhtml1-lat1.ent
-#    - xhtml1-special.ent
-#    - xhtml1-symbol.ent
+     - autoroute.html
+     - generators.html
 
+  # indique s'il faut tenir compte des DTD. Lorsque l'option est à true,
+  # le DTD indiqué dans le template sera chargé lors de la compilation est pris
+  # en compte. Le DTD est d'abord recherché dans le catalogue local. S'il n'y
+  # figure pas, il est chargé à l'url indiquée par le DTD.
+  resolveexternals:true
+  
 # Paramétrage du gestionnaire de configuration
 config:
   # false=ne vérifie pas les dates des fichiers et ne recompile jamais
