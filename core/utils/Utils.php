@@ -498,6 +498,16 @@ final class Utils
     }
     
     
+    public static function callerObject($level=1)
+    {
+        $stack=debug_backtrace();
+        // En 0, on a la trace pour la fonction qui nous a appellé
+        // En 1, on a la trace de la fonction qui a appellé celle qui nous a appellé.
+        // en général, c'est ça qu'on veut, donc $level=1 par défaut
+        
+        return isset($stack[$level]['object']) ? $stack[$level]['object'] : null;
+    }
+    
     public static function callerClass($level=1)
     {
         $stack=debug_backtrace();
