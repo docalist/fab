@@ -9,3 +9,7 @@ JS:
 
 CSS:
   - /FabWeb/styles/debug.css
+  
+templates:
+  forcecompile:true
+  
