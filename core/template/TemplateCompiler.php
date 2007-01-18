@@ -83,6 +83,18 @@ class TemplateCompiler
         'select'=>'executeSelect'
     );
     
+    private static function executeSelect($xpath)
+    {
+        echo "<pre>";
+        echo "Appel de executeSelect\n";
+        $t=func_get_args();
+        print_r($t);
+        
+        echo htmlentities(self::$currentNode->ownerDocument->saveXml(self::$currentNode));
+                   
+        echo "</pre>";           
+    } 
+    
     private static $currentNode=null;
     private static $lastId='';
     private static $usedId=array();
@@ -146,12 +158,14 @@ class TemplateCompiler
         
         // Ajoute les fichiers auto-include dans le source
         $files=Config::get('templates.autoinclude');
+        
+        // TODO: tester que le fichier existe et est lisible et générer une exception sinon 
         $h='';
         foreach($files as $file)
         	$h.=file_get_contents(Runtime::$fabRoot.'core/template/autoincludes/'.$file);
 
         if ($h) $source=str_replace('</root>', '<div ignore="true">'.$h.'</div></root>', $source);
-        if (Template::getLevel()==0) file_put_contents(dirname(__FILE__).'/dm.xml', $source);
+//        if (Template::getLevel()==0) file_put_contents(dirname(__FILE__).'/dm.xml', $source);
 
         // Crée un document XML
         $xml=new domDocument();
@@ -162,7 +176,7 @@ class TemplateCompiler
         if (Config::get('templates.resolveexternals'))
         {
             $xml->resolveExternals=true;
-            $catalog='XML_CATALOG_FILES=' . dirname(__FILE__) . '/autoincludes/catalog.xml';
+            $catalog='XML_CATALOG_FILES=' . dirname(__FILE__) . '/xmlcatalog/catalog.xml';
             putenv($catalog);
         }
                     
@@ -184,6 +198,17 @@ class TemplateCompiler
         // Instancie tous les templates présents dans le document
         self::compileMatches($xml);        
 
+//        if (Template::getLevel()==2) 
+//        {
+//            $ret=$xml->save(dirname(__FILE__).'/aftermatch.xml');
+//            file_put_contents(__FILE__ . '.trace2', print_r(debug_backtrace(),true));
+//            if ($ret===false)
+//                echo "IMPOSSIBLE DE SAUVER LE XML";
+//            else
+//                echo "SAVED";	
+//        }
+
+//die();
         // Normalize le document
 //        $xml->normalize();        
         self::removeEmptyTextNodes($xml->documentElement);
@@ -299,7 +324,7 @@ class TemplateCompiler
             {
                 // Clone le template pour créer un nouveau noeud 
                 $node=$template->cloneNode(true);
-                
+
                 // Supprime l'attribut match
                 $node->removeAttribute('match');
                 
@@ -314,6 +339,8 @@ class TemplateCompiler
 
                 // Applique au nouveau noeud les attributs de l'ancien noeud
                 self::instantiateMatch($template, $node, $replace, $match);
+//file_put_contents(__FILE__.'.clone', $node->ownerDocument->saveXml($node));
+//die();                
                 
                 // Remplace l'ancien noeud (l'appel de template) 
                 // par les fils (pour ne pas avoir le tag <template>) du nouveau (le template instancié)
@@ -360,13 +387,18 @@ class TemplateCompiler
                     {
                         $attribute->value=self::compileSelectsInAttribute($template, $attribute->value, $match);
                         $attribute->value=preg_replace(array_keys($replace),array_values($replace), $attribute->value);
-                        if ($attribute->value==='') 
-                            $emptyAttributes[]=$name; 
+//                        if ($attribute->value==='') 
+//                            $emptyAttributes[]=$name; 
                     }
+// TODO: revoir la gestion des attributs dans les templates match
+// si dans un template on génère le code name="$name" alors
+// - si l'attribut name a été spécifié dans l'appellant, et ce, même s'il est vide, alors il faut garder l'attribut
+// - sinon (non spécifié par l'appellant), il faut le supprimer (l'enlever du code généré)
+// Pour le moment, aucun traitement n'est fait sur les attributs vides : ils sont conservés
                     
-                    // Supprime tous les attrbuts vides à l'issue du match
-                    foreach ($emptyAttributes as $name)
-                        $node->removeAttribute($name);    
+                    // Supprime tous les attributs vides à l'issue du match
+//                    foreach ($emptyAttributes as $name)
+//                        $node->removeAttribute($name);    
                 }                
                 if ($node->hasChildNodes())
                     foreach ($node->childNodes as $child)
@@ -385,9 +417,10 @@ class TemplateCompiler
                 echo "\ninstantiateMatch non gere : ", $node->nodeType, '(', self::nodeType($node),')';
         }
     }
-    
+     
     private static function compileSelectsInAttribute(DOMElement $template, $value, DOMElement $matchNode)
     {
+//echo "\n", 'VALUE initial : [', $value, ']', "\n";
         // Expression régulière pour repérer les expressions {select('xxx')}
         $re=
             '~
@@ -417,7 +450,7 @@ class TemplateCompiler
 
             // Coupe le texte en en deux, au début de l'expression trouvée
             if ($offset > 0) 
-                $result .= ' ' . trim(substr($value, 0, $offset));
+                $result .= '' . trim(substr($value, 0, $offset));
             $value=substr($value, $offset+$len);	   
 //            echo "match trouvé. result actuel=", $result, ", select=", $expression, ", suite=", $value, "\n";
             
@@ -432,7 +465,7 @@ class TemplateCompiler
                 
             if (is_scalar($nodeSet))
             {
-                if ($nodeSet !== '') $result.=' ' . trim($nodeSet);
+                if ($nodeSet !== '') $result.='' . trim($nodeSet);
                 
             }
             else
@@ -442,6 +475,7 @@ class TemplateCompiler
                 
                 // Insère entre les deux noeuds texte les noeuds sélectionnés par l'expression xpath
                 // Il est important de cloner chaque noeud car il sera peut-être réutilisé par un autre select
+                $allInserts='';
                 foreach($nodeSet as $newNode)
                 {
                     switch ($newNode->nodeType)
@@ -468,13 +502,28 @@ class TemplateCompiler
                         default:
                             return __METHOD__ . " : type de noeud non géré ($node->nodeType)";
                     }
-                    if ($insert!=='') $result.=' ' . trim($insert);
+                    if ($insert!=='') 
+                    {
+                    	if ($allInserts) $allInserts .=' ';
+                        $allInserts.=trim($insert);
+                    }
+                }
+                if ($allInserts!=='') 
+                {
+//                    if ($result) $result .=' ';
+                    $result.=trim($allInserts);
                 }
             }
         }
         
-        if ($value !=='') $result .= ' ' . trim($value);
-        return trim($result);
+        if ($value !=='') 
+        {
+            //if ($result) $result .=' ';
+            $result .= trim($value);
+        }
+//echo "\n", 'result : [', $result, ']', "\n";
+        return $result;
+//        return trim($result);
     }
     
     private static function compileSelectsInTextNode(DOMElement $template, DOMNode $node, DOMElement $matchNode)
@@ -643,6 +692,10 @@ class TemplateCompiler
                 $collapse=($node->getAttribute('collapse')=='true');
                 $ignore=$node->getAttribute('ignore')=='true';
 
+//                if (($test=$node->getAttribute('dm')) !== '')
+//                {
+//                    file_put_contents(__FILE__.'.txt', $node->ownerDocument->saveXml($node));
+//                }
                 // Génère le noeud
                 if (! $ignore)
                 {
