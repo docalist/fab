@@ -154,9 +154,14 @@ class DatabaseModule extends Module
      */
     public function actionSearch()
     {
-        // Construit l'équation de recherche
-        $this->equation=$this->makeEquation('start,max,sort');
-
+        $this->equation = Utils::get($_REQUEST['equation']);
+        
+        if( is_null($this->equation))   // l'équation n'a pas été directement tapée par l'utilisateur ?
+        {        
+            // Construit l'équation de recherche à partir des param de la requête
+            $this->equation=$this->makeEquation('start,max,sort');
+        }
+        
         // Si aucun paramètre de recherche n'a été passé, il faut afficher le formulaire
         // de recherche
         if (is_null($this->equation))
@@ -164,7 +169,8 @@ class DatabaseModule extends Module
         
         // Des paramètres ont été passés, mais tous sont vides et l'équation obtenue est vide
         if ($this->equation==='')
-            return $this->showError('Vous n\'avez indiqué aucun critère de recherche.');
+            Runtime::redirect('searchform?err=nocriteria');
+//            return $this->showError('Vous n\'avez indiqué aucun critère de recherche.');
         
         // Lance la récherche
         if (! $this->openSelection($this->equation))
@@ -243,7 +249,7 @@ class DatabaseModule extends Module
         
         $startParam = 1;                // le param start pour les URL des liens générés dans la barre de navigation
         $pageNum = 1;                   // le premier numéro de page à généré comme lien dans la barre de navigation
-        $navBar = '';                   // la barre de navigation au format XHTML
+        $navBar = '<span class="navbar">';                   // la barre de navigation au format XHTML
         
         // numéro de la page dont les résultats sont affichés
         $currentPage = intval(($currentStart - 1) / $maxRes) + 1;
@@ -285,11 +291,11 @@ class DatabaseModule extends Module
         if ($currentPage > 1)
         {
             if ( ($firstLabel != '') && ($pageNum > 1) )    // afficher lien vers la première page ?
-                $navBar = '<a href="search?' . $baseQueryString . "&start=1" . '">' . $firstLabel . '</a> ';
+                $navBar = $navBar . '<span class="firstPage"><a href="search?' . $baseQueryString . "&start=1" . '">' . $firstLabel . '</a></span> ';
                 
             // TODO: ligne suivante nécessaire ?
             $prevStart = $currentStart-$maxRes >=1 ? $currentStart-$maxRes : 1; // param start pour le lien vers la page précédente
-            $navBar = $navBar . '<a href="search?' . $baseQueryString . "&start=$prevStart" . '">' . $prevLabel . '</a> ';
+            $navBar = $navBar . '<span class="prevPage"><a href="search?' . $baseQueryString . "&start=$prevStart" . '">' . $prevLabel . '</a></span> ';
         }
         
         // géncère les liens vers chaque numéro de page de résultats
@@ -298,7 +304,7 @@ class DatabaseModule extends Module
             if($startParam == $currentStart)    // s'il s'agit du numéro de la page qu'on va afficher, pas de lien
                 $navBar = $navBar . $pageNum . ' ';
             else
-                $navBar = $navBar . '<a href="search?' . $baseQueryString . "&start=$startParam" . '">'. $pageNum . '</a> ';
+                $navBar = $navBar . '<span class="pageNum"><a href="search?' . $baseQueryString . "&start=$startParam" . '">'. $pageNum . '</a></span> ';
                 
             $startParam += $maxRes;
         }
@@ -309,16 +315,16 @@ class DatabaseModule extends Module
 //            TODO : ligne commentée nécessaire ?
 //            $nextStart = $currentStart+$maxRes <= $this->selection->count() ? $currentStart+$maxRes : ;
             $nextStart = $currentStart + $maxRes;   // param start pour le lien vers la page suivante
-            $navBar = $navBar . '<a href="search?' . $baseQueryString . "&start=$nextStart" . '">' . $nextLabel . '</a> ';
+            $navBar = $navBar . '<span class="nextPage"><a href="search?' . $baseQueryString . "&start=$nextStart" . '">' . $nextLabel . '</a></span> ';
             
             if ( ($lastLabel != '') && ($lastDispPageNum < $lastSelPageNum) )   // afficher lien vers la dernière page ?
             {
                 $startParam = ($this->selection->count() % $maxRes) == 0 ? $this->selection->count() - $maxRes + 1 : intval($this->selection->count() / $maxRes) * $maxRes + 1;
-                $navBar = $navBar . '<a href="search?' . $baseQueryString . "&start=$startParam" . '">' . $lastLabel . '</a> ';
+                $navBar = $navBar . '<span class="lastPage"><a href="search?' . $baseQueryString . "&start=$startParam" . '">' . $lastLabel . '</a></span>';
             }
         }
         
-        return $navBar;
+        return $navBar . "</span>";
     }
     
     /**
