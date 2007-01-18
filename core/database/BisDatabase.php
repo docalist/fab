@@ -46,6 +46,8 @@ class BisDatabase extends Database
      */
     private $max=0;
     
+    private $maxRank=PHP_INT_MAX;
+    
     protected function doCreate($database, $def, $options=null)
     {
         throw new Exception('non implémenté');
@@ -92,9 +94,6 @@ class BisDatabase extends Database
             }
             else
                 $max=10;
-                
-//echo "sort=", var_export($sort,true), ", max=", var_export($max,true), ", start=", var_export($start,true), "<br />";
-                    
         }
         else
         {
@@ -124,6 +123,8 @@ class BisDatabase extends Database
         
         $this->rank=$this->start;
         
+        $this->maxRank=($this->max==-1 ? PHP_INT_MAX : $this->start+$this->max-1);
+
         // Gère l'ordre de tri et va sur la start-ième réponse
         switch($sort)
         {
@@ -149,7 +150,7 @@ class BisDatabase extends Database
     }
 
     public function searchInfo($what)
-    {
+    {        
     	switch ($what)
         {
         	case 'equation': return $this->selection->equation;
@@ -162,7 +163,7 @@ class BisDatabase extends Database
     
     public function moveNext()
     {
-        if($this->max !==-1 and $this->rank >= $this->max)
+        if ( $this->rank >= $this->maxRank )
             return !$this->eof=true;
             
         $this->rank++;
