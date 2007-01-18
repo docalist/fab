@@ -201,12 +201,13 @@ On obtient donc la sortie suivante : ::
 Remarques :
 
 - (Youenn Leborgne) S'il s'agit d'un paramètre transmis par l'appelant à
-Template::run, il sera remplacé lors de la phase de compilation.
+  Template::run, il sera remplacé lors de la phase de compilation.
 
-- si un template "interne" (tag template) a un attribut portant le même nom qu'une source de 
-données existante passée à Template::run, l'attribut du template "interne" est prioritaire.
-Dans ce cas, de la même façon que pour une fonction dans un langage de programmation, les
-variables du template "interne" ont une portée locale.
+- si un template "interne" (tag template) a un attribut portant le même nom 
+  qu'une source de données existante passée à Template::run, l'attribut du 
+  template "interne" est prioritaire. Dans ce cas, de la même façon que pour 
+  une fonction dans un langage de programmation, les variables du template 
+  "interne" ont une portée locale.
 
 
 Récupérer le contenu de l'élément instancié : fonction ``select()``
@@ -219,11 +220,13 @@ Il existe une pseudo-fonction nommée ``select()``, qui peut être utilisée dans
 le corps d'un template, et qui prends en argument une expression xpath.
 
 Cette fonction permet de récupérer tout ou partie du contenu du noeud instancié :
+
 - le texte : {select('text()')}
 - les éléments : {select('*')}
-- la valeur d'un ou de tous les attributs par ex. : {select('@nomAttribut')}; {select('@*')}
+- la valeur d'un ou de tous les attributs par ex. : {select('@nomAttribut')}; 
+  {select('@*')}
 - une combinaison de plusieurs de ces différents types de contenu en les séparant
-	au moyen de l'opérateur '|' 
+  au moyen de l'opérateur '|' 
 	
 
 Lorsque cette fonction est exécutée, le contexte courant de xpath est le noeud
@@ -259,15 +262,14 @@ Exemple 2 : transformer une liste <ul>...</ul> en liste <ol>...</ol>
 
 Remarque : ici, on ne récupère que les éléments (les tags) présents dans le tag ``<ul>``,
 pas le texte évenuel. Cela dis, un ul n'est pas censé contenir du texte (contrairement
-à un il)
+à un li)
 .
 
 Utiliser select() dans un attribut
 ----------------------------------
 
 La fonction select() peut également être utilisée dans les attributs des 
-éléments qui figurent dans le corps du template (TODO : non implémenté pour le 
-moment).
+éléments qui figurent dans le corps du template.
 
 Exemple : ::
 
@@ -399,6 +401,57 @@ s'agit d'un des paramètres du template.
 Cas d'erreurs, génèrent une exception : expression xpath vide, expression 
 xpath erronée, expression xpath qui retourne des types de noeuds incorrects
 (par exemple tout le document)
+
+
+Complément d'information sur le select
+--------------------------------------
+Select est une pseudo-function, elle n'a de sens et n'existe qu'au moment ou 
+un template match est instancié.
+
+Select prend un seul argument : une expression xpath qui sélectionne tout ou 
+partie du noeud instancié (l'appellant).
+
+Lorsque l'expression xpath est evaluée, c'est l'appellant qui est le noeud en 
+cours (select('.')=appellant)
+
+syntaxe complète : {select('xpath')}
+
+Actuellement: syntaxe rigide (si on met des espaces après les { ou avant les } 
+ou si on combine l'expression avec autre chose, ça ne marche pas (dû au regexp 
+utilisées).
+
+exemple : {'avant ' . select('@title')} { trim(select('.'))}
+
+
+On peut utiliser des select à deux endroits différents : 
+
+- dans la valeur d'un attribut
+  exemple : <div class="{select('@class')}"></div>
+- dans la valeur d'un noeud
+  exemple : <div>{select('node()')}</div>
+
+Lorque select est utilisée dans la valeur d'un attribut, seule les expressions 
+xpath retournant du texte ou un attribut sont autorisées.
+
+- scalaire (un entier, du texte, ...) : vient remplacer l'appel à select
+- noeud de type attribut : on prend la valeur de l'attribut
+- noeud de type texte : on prend la valeur du noeud
+- tout autre type de noeud (élément, commentaire, PI...) : génère une exception
+- liste de plsuieurs éléments : chaque élément est étudié en appliquant les 
+  règles ci dessus et les valeurs obtenues sont concaténées avec des espaces 
+  entre deux
+
+
+Lorque select est utilisée dans la valeur d'un noeud, n'importe quelle 
+expression xpath peut être utilisée :
+
+- scalaire : un noeud de type texte contenant le scalaire est inséré
+- noeud de type attribut : l'attribut est ajouté au noeud parent sauf s'il 
+  existe déjà ou s'il s'agit d'un des paramètres du template match (ie il existe 
+  un attribut portant ce nom dans le tag template)
+- tout autre type de noeud : le noeud est cloné puis inséré, avec tous ses fils
+- liste de plusieurs éléments : on applique les règles ci-dessus pour chaque 
+  noeud. (chaque noeud est inséré après le dernier noeud inséré).
 
 
 
