@@ -17,7 +17,7 @@ class NotFound extends Module
 
 	public function actionIndex()
     {
-        Template::run('NotFound.htm', 'Template::configCallback');
+        Template::run('NotFound.htm');
         //echo '<pre>';
         //debug_print_backtrace();
     }
