@@ -39,8 +39,10 @@ class Module
         if (! $dir=Utils::searchFileNoCase($module, Runtime::$root.'modules', Runtime::$fabRoot.'modules'))
         {
             debug && Debug::warning("Le module %s n'existe pas", $module);
-            throw new Exception("Module non trouvé : $module");
-            //Routing::notFound();
+            if (debug)
+                throw new Exception("Module non trouvé : $module");
+            else
+                Routing::notFound();
         }
         
         // Le répertoire obtenu nous donne le nom exact du module si la casse est différente
@@ -213,8 +215,10 @@ class Module
         if ( ! method_exists($this, $this->method))
         {
             debug && Debug::warning('Action non trouvée : %s', $this->method);
-            throw new Exception("Action non trouvée : $this->method");
-            //Routing::notFound();
+            if (debug)
+                throw new Exception("Action non trouvée : $this->method");
+            else
+                Routing::notFound();
         }
         
         // A ce stade, le module doit avoir définit le layout, les CSS/JS, le titre, les metas
@@ -272,9 +276,13 @@ class Module
     	switch($name)
         {
         	case 'title':
+                if (Template::$isCompiling) return true;
+
                 return Config::get('title','Votre site web');
                 
             case 'CSS':
+                if (Template::$isCompiling) return true;
+
                 if(is_null($t=Config::get('CSS'))) return '';
                 if (! is_array($t) ) $t=array($t);
                 $h='';
@@ -288,6 +296,8 @@ class Module
                 return trim($h);
                 
             case 'JS':
+                if (Template::$isCompiling) return true;
+
                 if (is_null($t=Config::get('JS'))) return '';
                 if (! is_array($t) ) $t=array($t);
                 $h='';
@@ -301,11 +311,11 @@ class Module
                 return trim($h);
                 
             case 'contents':
+                if (Template::$isCompiling) return true;
+                
                 $method=$this->method;
                // debug && Debug::log('Appel de la méthode %s->%s()', get_class($this), $method);
-                //echo '------------------ début --------------';
                 $this->$method();
-                //echo '------------------ fin --------------';
                 return '';
             
         }
