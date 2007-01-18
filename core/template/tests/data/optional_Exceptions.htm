@@ -1,0 +1,113 @@
+<!-- Fichier de tests des tags et des bloc optionnels qui génèrent des exceptions-->
+
+--TEST--
+Bloc optionnel mal formé : il manque les guillemets autour de la variable du "test="
+--FILE--
+<div test=$vAccentuée id="key">
+    Contenu du div
+</div>
+====
+--TEST--
+Bloc optionnel mal formé : il l'attribut "test" est mal formé
+--FILE--
+<div tes="$vAccentuée>
+    Contenu du div
+</div>
+====
+--TEST--
+Bloc optionnel <opt></opt> : tag fermant manquant
+--FILE--
+<opt>
+    Variable \$vValNoSpaces $vValNoSpaces
+====
+--TEST--
+Bloc optionnel <opt></opt> : tag fermant mal formé
+--FILE--
+<opt>
+    Variable \$vValNoSpaces $vValNoSpaces
+<
+====
+--TEST--
+Bloc optionnel <opt></opt> : tag fermant mal formé 2
+--FILE--
+<opt>
+    Variable \$vValNoSpaces $vValNoSpaces
+</
+====
+--TEST--
+Bloc optionnel <opt></opt> : tag fermant mal formé 3
+--FILE--
+<opt>
+    Variable \$vValNoSpaces $vValNoSpaces
+</opt
+====
+--TEST--
+Bloc optionnel <opt></opt> : tag ouvrant mal formé
+--FILE--
+<>
+    Variable \$vValNoSpaces $vValNoSpaces
+</opt>
+====
+--TEST--
+Bloc optionnel erronné : la variable de l'attribut "test" n'est pas valide
+--FILE--
+<div test="$_underscore">
+    Contenu du div
+</div>
+====
+--TEST--
+Bloc optionnel erronné : l'expression de l'attribut "test" est mal formée
+--FILE--
+<!--  TODO: enlever les commentaires ci-dessous-->
+<!--  <div test="$vAccentuée=="> -->
+<!--     Contenu du div -->
+<!-- </div> -->
+====
+--TEST--
+Tag optionnel mal formé : erreur de syntaxe du "if"
+--FILE--
+<a href="addresse" i=>
+    Lien
+</a>
+====
+--TEST--
+Tag optionnel mal formé : 2e erreur de syntaxe du "if"
+--FILE--
+<a href="addresse" if>
+    Lien
+</a>
+====
+--TEST--
+Tag optionnel mal formé : il manque la condition
+--FILE--
+<a href="addresse" if=>
+    Lien
+</a>
+====
+--TEST--
+Tag optionnel mal formé : il manque les guillemets autour de la condition
+--FILE--
+<a href="addresse" if=$vValNoSpaces>
+    Lien
+</a>
+====
+--TEST--
+Tag optionnel mal formé : il manque le guillement fermant après la condition
+--FILE--
+<a href="addresse" if="$vValNoSpaces>
+    Lien
+</a>
+====
+--TEST--
+Tag optionnel mal formé : il manque le nom de l'attribut HTML dans le tag ouvrant
+--FILE--
+<if="$vValNoSpaces">
+    Lien
+</a>
+====
+--TEST--
+Tag optionnel mal formé : le nom de la variable de la condition est invalide
+--FILE--
+<a href="adresse" if="$_underscore">
+    Lien
+</a>

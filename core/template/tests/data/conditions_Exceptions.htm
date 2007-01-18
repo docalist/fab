@@ -1,0 +1,191 @@
+<!-- Fichier de tests des conditionnelles qui doivent générer des exceptions-->
+
+--TEST--
+Conditionnelle de type if/elseif/else : tag if fermant manquant
+--FILE--
+<if test="$vAccentuée">
+    Texte quelconque
+====
+--TEST--
+Conditionnelle de type if/elseif/else : tag if fermant mal formé
+--FILE--
+<if test="$vAccentuée">
+    Texte quelconque
+<
+====
+--TEST--
+Conditionnelle de type if/elseif/else : tag if fermant manquant 2
+--FILE--
+<if test="$vAccentuée">
+    Texte quelconque
+<else>
+    Blabla
+</else>
+====
+--TEST--
+Conditionnelle de type if/elseif/else : tag elseif mal formé
+--FILE--
+<if test="$empty">
+    Texte quelconque
+<if>
+
+<else>
+    Bla bla
+</elseif>
+====
+--TEST--
+Conditionnelle de type if/elseif/else : tag elseif après un tag else
+--FILE--
+<if test="$empty">
+    bloc if vide
+</if>
+
+<else>
+    bloc else
+</else>
+
+<elseif test="$vAccentuée">
+    bloc elseif
+</elseif>
+====
+--TEST--
+Conditionnelle de type if/elseif/else : tag else avant le tag if
+--FILE--
+<else>
+    Bloc else
+</else>
+
+<if test="$vAccentuée">
+    Bloc if
+</if>
+====
+--TEST--
+Conditionnelle de type switch : switch fermant mal form
+--FILE--
+<switch test="$vAccentuée">
+
+    <case test="'Valeur 1'">
+        Dans le case
+    </case>
+    
+</switc>
+====
+--TEST--
+Conditionnelle de type switch : variable non déclarée
+--FILE--
+<switch test="$vInexistante">
+
+    <case test="'Valeur 1'">
+        Dans le case
+    </case>
+    
+</switch>
+====
+--TEST--
+Conditionnelle de type switch : tag test du switch mal formé
+--FILE--
+<switch tet="$vAccentuée">
+
+    <case test="'Valeur 1'">
+        Dans le case
+    </case>
+    
+</switch>
+====
+--TEST--
+Conditionnelle de type switch : tag case mal formé
+--FILE--
+<switch test="$vAccentuée">
+
+    <cas test="'Valeur 1'">
+        Valeur 1
+    </case>
+    
+</switch>
+====
+--TEST--
+Conditionnelle de type switch : tags case comportent expressions identiques
+--FILE--
+<switch test="$vAccentuée">
+
+    <case test="'Valeur 1'">
+        Cas 1
+    </case>
+    
+    <case test="'Valeur '">
+        Cas 2
+    </case>
+    
+</switch>
+====
+--TEST--
+Conditionnelle de type switch : tags case comportent expressions identiques 2
+--FILE--
+<!-- TODO: peut-être à rajouter ? --><switch test="$vAccentuée">
+<switch test="$vAccentuée">
+
+    <case test=" 'Valeur 1'">
+        Cas 1
+    </case>
+    
+    <case test="'Valeur 1'">
+        Cas 2
+    </case>
+    
+</switch>
+====
+--TEST--
+Conditionnelle de type switch : deux cas default
+--FILE--
+<switch test="$vAccentuée">
+
+    <default>
+        Default 1
+    </default>
+    
+    <default>
+        Default 2
+    </default>
+    
+</switch>
+====
+--TEST--
+Conditionnelle de type switch : default avant case
+--FILE--
+<switch test="$vAccentuée">
+
+    <default>
+        Cas par défaut
+    </default>
+    
+    <case test="'Valeur 1'">
+        Dans le case
+    </case>
+    
+</switch>
+====
+--TEST--
+Conditionelle de type switch : default entre deux case
+--FILE--
+<switch test="$vAccentuée">
+
+    <case test="'Valeur 2'">
+        Case 1
+    </case>
+    
+    <default>
+        Cas par défaut
+    </default>
+    
+    <case test="'Valeur 1'">
+        Case 2
+    </case>
+    
+</switch>
+====
+--TEST--
+Conditionnelle de type switch : switch vide
+--FILE--
+<switch test="$vAccentuée">
+    </case>
+</switch>

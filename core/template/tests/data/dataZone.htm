@@ -1,0 +1,68 @@
+<!-- Fichier de tests des zones de données simples -->
+
+<!--  ATTENTION : ne pas mettre de commentaires HTML n'importe où dans le fichier -->
+
+--TEST--
+Noms de variables autorisés
+--FILE--
+$empty
+$vAccentuée
+$camelCase
+$var_with_underscore
+$ du texte
+$$camelCase
+{$vAccentuée}
+--EXPECT--
+Valeur 1
+Valeur 4
+Valeur 5
+$ du texte
+$Valeur 4
+Valeur 1
+====
+--TEST--
+Noms de variables invalides ignorés par le gestionnaire de template
+--FILE--
+{$vAccentuée
+$_underscore
+$1Digit
+$*star
+$^notFound
+$!exclamation
+$?question
+$.dot
+$;semicolon
+$:colon'
+--EXPECT--
+{Valeur 1
+$_underscore
+$1Digit
+$*star
+$^notFound
+$!exclamation
+$?question
+$.dot
+$;semicolon
+$:colon
+====
+--TEST--
+Colliers valides
+--FILE--
+{$empty:$vAccentuée}
+{$empty}
+{$empty:"texte par défaut"}
+--EXPECT--
+Valeur 1 
+
+texte par défaut
+====
+--TEST--
+Expressions valides
+--FILE--
+{strtoupper($vAccentuée)}
+<h1 class="$vValNoSpaces">Titre</h1>
+<h1 class="$empty">Titre</h1>
+--EXPECT--
+VALEUR 1
+<h1 class="Valeur18">Titre</h1>
+<h1>Titre</h1>
