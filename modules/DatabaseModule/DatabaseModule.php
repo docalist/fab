@@ -154,12 +154,12 @@ class DatabaseModule extends Module
      */
     public function actionSearch()
     {
-        $this->equation = Utils::get($_REQUEST['equation']);
+        $this->equation = Utils::get($_REQUEST['_equation']);
         
         if( is_null($this->equation))   // l'équation n'a pas été directement tapée par l'utilisateur ?
         {        
             // Construit l'équation de recherche à partir des param de la requête
-            $this->equation=$this->makeEquation('start,max,sort');
+            $this->equation=$this->makeEquation('_start,_max,_sort');
         }
         
         // Si aucun paramètre de recherche n'a été passé, il faut afficher le formulaire
@@ -193,7 +193,6 @@ class DatabaseModule extends Module
                 'selection'=>$this->selection,
                 'equation'=>$this->equation
             ),
-//            array('navBar'=>$this->getResNavigation(10, '<', '>', '<<', '>>')),
             $this->selection->record
         );                
     }
@@ -818,11 +817,11 @@ class DatabaseModule extends Module
      * comme identifiant de session (sessin_name) sont ignorés. Vous pouvez
      * indiquer des noms supplémentaires à ignorer en passant dans le paramètre
      * ignore une chaine contenant les noms à ignorer (séparés par une virgule).
-     * Par exemple si votre formulaire a des paramètres nommés 'max' et 'order',
+     * Par exemple si votre formulaire a des paramètres nommés '_max' et '_order',
      * ceux-ci seront par défaut pris en compte pour construire l'équation (vous
      * obtiendrez quelque chose du style "tit=xxx et max=100 et order=1", ce qui
      * en général n'est pas le résultat souhaité). Pour obtenir le résultat
-     * correct, indiquez la chaine "max, order" en paramètre.
+     * correct, indiquez la chaine "_max, _order" en paramètre.
      * 
      * @param string $ignore optionnel, paramètres supplémentaires à ignorer, 
      * séparés par une virgule (remarque : insensible à la casse).
