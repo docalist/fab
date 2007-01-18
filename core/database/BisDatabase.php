@@ -72,18 +72,18 @@ class BisDatabase extends Database
         // Analyse les options indiquées (start et sort) 
         if (is_array($options))
         {
-            $sort=isset($options['sort']) ? $options['sort'] : null;
+            $sort=isset($options['_sort']) ? $options['_sort'] : null;
 //            if (is_array($sort))
 //                foreach ($sort as $i)
 //                    if ($i) { $sort=$i; break;}
 
-            $start=isset($options['start']) ? ((int)$options['start'])-1 : 0;
+            $start=isset($options['_start']) ? ((int)$options['_start'])-1 : 0;
 //            if (is_array($start))
 //                foreach ($start as $i)
 //                    if ($i) { $start=$i; break;}
             if ($start<0) $start=0;
 
-            $max=isset($options['max']) ? $options['max'] : 10;
+            $max=isset($options['_max']) ? $options['_max'] : 10;
             if (is_array($max))
                 foreach ($max as $i)
                     if ($i) { $max=$i; break;}
