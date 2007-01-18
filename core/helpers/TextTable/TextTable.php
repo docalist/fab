@@ -31,6 +31,8 @@
         $this->enclosure=$enclosure;
         $this->ignoreEmpty = $ignoreEmptyRecord;
         
+        // todo : traiter les chemins relatifs
+        
         if(! is_file($filePath))
             throw new Exception('Fichier non trouvée : ' . $filePath);
                 
