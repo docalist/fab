@@ -3,7 +3,7 @@
  * @package     fab
  * @subpackage  runtime
  * @author 		Daniel Ménard <Daniel.Menard@bdsp.tm.fr>
- * @version     SVN: $Id$
+ * @version     SVN: $Id: Runtime.php 235 2006-12-20 09:02:07Z dmenard $
  */
 
 
@@ -236,10 +236,10 @@ class Runtime
         
         // Initialise le gestionnaire de templates
         debug && Debug::log('Initialisation du gestionnaire de templates');
-        if (self::$env=='test')
-            require_once self::$fabRoot.'core/template/Template.php';
-        else
-            require_once self::$fabRoot.'Template.php';
+//        if (self::$env=='test')
+        require_once self::$fabRoot.'core/template/Template.php';
+//        else
+//            require_once self::$fabRoot.'Template.php';
          
         Template::setup();
         
@@ -261,13 +261,12 @@ class Runtime
 ////        session_set_cookie_params(Config::get('sessions.lifetime'));
 //        session_cache_limiter('none');
         Runtime::startSession();
-        
 
         // Initialise le gestionnaire d'exceptions
         debug && Debug::log("Initialisation du gestionnaire d'exceptions");
         require_once self::$fabRoot.'core/exception/ExceptionManager.php';
         self::setupExceptions(); 
-
+        
         // Includes supplémentaires
         // TODO: écrire un class manager pour ne pas inclure systématiquement tout (voir du coté du gestionnaire de modules)
         require_once self::$fabRoot.'core/database/Database.php';
