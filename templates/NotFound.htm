@@ -5,9 +5,12 @@
 
 <p>
     Si vous avez tapé vous-même l'adresse de la page, vérifiez que vous n'avez
-    pas introduit d'erreurs. Si vous avez suivi un lien présent sur notre site,
-    vous pouvez signaler le problème à l'administrateur : 
-    <a href="mailto:[admin.email]">[admin.name]</a>.
+    pas introduit d'erreurs.
+    <opt>
+        Si vous avez suivi un lien présent sur notre site,
+        vous pouvez signaler le problème à l'administrateur : 
+        <a href="mailto:{Config::get('admin.email')}">{Config::get('admin.name')}</a>.
+    </opt>
 </p>
 
 <ul>
@@ -18,5 +21,5 @@
 <hr />
 
 <p>
-    <em>Erreur 404&nbsp;: fichier non trouvé</em>
+    <em>Erreur 404 : fichier non trouvé</em>
 </p>
