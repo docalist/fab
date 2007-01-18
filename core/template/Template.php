@@ -89,6 +89,8 @@ class Template
      * @access private
      */
     private static $template='';
+
+    public static $isCompiling=0;
     
     /**
      * constructeur
@@ -230,6 +232,17 @@ class Template
         // Stocke les sources de données passées en paramètre
         self::$data=func_get_args();
         array_shift(self::$data);
+        array_unshift(self::$data,array('this'=>Utils::callerObject(2)));
+        
+//echo '<pre>Objet appellant : <br />';
+//var_dump(Utils::callerObject(2));
+//// au moment où callerxxx est appellée, on a 
+//// 0 = Utils::callerXxx()
+//// 1 = Template::run()
+//// 2 = notre appellant
+//echo 'Stack trace<br />';
+//var_dump(debug_backtrace());
+//echo '</pre>';
 
         // Compile le template s'il y a besoin
         if (self::needsCompilation($template))
@@ -360,7 +373,7 @@ class Template
                 if (property_exists($data, $name))
                 {
                     debug && Debug::log('C\'est une propriété de l\'objet %s', get_class($data));
-                    $code=$bindingName='$'.$name;
+                    $code=$bindingName='$b_'.$name;
                     $bindingValue='& Template::$data['.$i.']->'.$name;
                     return true;
                 }
@@ -373,7 +386,7 @@ class Template
                         debug && Debug::log('Tentative d\'accès à %s[\'%s\']', get_class($data), $name);
                         $value=$data[$name]; // essaie d'accéder, pas d'erreur ?
 
-                        $bindingName='$'.$name;
+                        $bindingName='$b_'.$name;
                         $code=$bindingName.'[\''.$name.'\']';
                         $bindingValue='& Template::$data['.$i.']';
 // TODO: ne pas générer plusieurs fois le même binding                        
@@ -395,7 +408,7 @@ class Template
             if (is_array($data) && array_key_exists($name, $data)) 
             {
                 debug && Debug::log('C\'est une clé du tableau de données');
-                $code=$bindingName='$'.$name;
+                $code=$bindingName='$b_'.$name;
                 $bindingValue='& Template::$data['.$i.'][\''.$name.'\']';
                 return true;
             }
@@ -403,9 +416,11 @@ class Template
             // Fonction de callback
             if (is_callable($data))
             {
+                Template::$isCompiling++;
                 ob_start();
-                $value=@call_user_func($data, $name);
+                $value=call_user_func($data, $name);
                 ob_end_clean();
+                Template::$isCompiling--;
                 
                 // Si la fonction retourne autre chose que "null", terminé
                 if ( ! is_null($value) )
