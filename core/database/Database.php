@@ -1,5 +1,33 @@
 <?php
 
+/**
+ * Charge les fichiers de configuration de base de données (db.yaml, db.
+ * debug.yaml...) dans la configuration en cours.
+ * 
+ * L'ordre de chargement est le suivant :
+ * 
+ * - fichier db.yaml de fab (si existant)
+ * 
+ * - fichier db.$env.yaml de fab (si existant)
+ * 
+ * - fichier db.yaml de l'application (si existant)
+ * 
+ * - fichier db.$env.yaml de l'application (si existant)
+ */
+debug && Debug::log("Chargement de la configuration des bases de données");
+if (file_exists($path=Runtime::$fabRoot.'config' . DIRECTORY_SEPARATOR . 'db.yaml'))
+    Config::load($path, 'db');
+if (file_exists($path=Runtime::$root.'config' . DIRECTORY_SEPARATOR . 'db.yaml'))
+    Config::load($path, 'db');
+
+if (!empty(Runtime::$env))   // charge la config spécifique à l'environnement
+{
+    if (file_exists($path=Runtime::$fabRoot.'config'.DIRECTORY_SEPARATOR.'db.' . Runtime::$env . '.yaml'))
+        Config::load($path, 'db');
+    if (file_exists($path=Runtime::$root.'config'.DIRECTORY_SEPARATOR.'db.' . Runtime::$env . '.yaml'))
+        Config::load($path, 'db');
+}
+
 // TODO : revoir API pour editRecord, saveRecord, addNew
 
 /**
