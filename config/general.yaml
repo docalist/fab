@@ -100,3 +100,13 @@ taskmanager:
 #  bgexec: 'start "FAB - Tasks Manager" /B %s'
   bgexec: 'psexec -s -d %s > nul 2>&1' 
 #  bgexec: %s
+
+# similaire à l'action show mais affiche les données non formatées telles qu'on
+# les trouve dans la BDD
+rawDBOutput:
+# TODO : accessible qu'en admin normalement
+  action: show
+  callback: none
+  template: rawDB.html
+  CSS:
+    - /FabWeb/styles/default/bdsp_content_layout.css
