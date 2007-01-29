@@ -3,7 +3,7 @@
  * @package     fab
  * @subpackage  template
  * @author 		Daniel Ménard <Daniel.Menard@bdsp.tm.fr>
- * @version     SVN: $Id: Template.php 105 2006-09-21 16:30:25Z dmenard $
+ * @version     SVN: $Id$
  */
 
 
