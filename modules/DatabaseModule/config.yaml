@@ -1,0 +1,24 @@
+# Fichier de configuration du module Database
+
+# database : nom symbolique (alias) ou path de la base de données à utiliser.
+# il est *fortement* conseillé d'utiliser un alias (définit dans le fichier
+# db.yaml de la config).
+
+database: 
+
+# callback : nom de la méthode à appeller comme callback lors des exécutions
+# de templates.
+# Par défaut, il y a un callback unique (getField) qui gère toutes les actions du 
+# module, mais vous pouvez indiquer dans le fichier de configuration le nom d'autres 
+# callbacks à utiliser en fonction de l'action en cours
+callback: getField
+
+# similaire à l'action show mais affiche les données non formatées telles qu'on
+# les trouve dans la BDD
+rawDBOutput:
+# TODO : accessible qu'en admin normalement
+  action: show
+  callback: none
+  template: rawDB.html
+  CSS:
+    - /FabWeb/styles/default/bdsp_content_layout.css

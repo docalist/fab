@@ -95,12 +95,3 @@ taskmanager:
   # -n : no php.ini file will be used
   # -C : Do not chdir to the script's directory (implicite dans les versions récentes)
 
-# similaire à l'action show mais affiche les données non formatées telles qu'on
-# les trouve dans la BDD
-rawDBOutput:
-# TODO : accessible qu'en admin normalement
-  action: show
-  callback: none
-  template: rawDB.html
-  CSS:
-    - /FabWeb/styles/default/bdsp_content_layout.css
