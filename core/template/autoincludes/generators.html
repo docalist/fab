@@ -1,93 +1,78 @@
-<!--IDEES A ETUDIER QUAND ON SERA EN RETRAITE :-->
-<!--<def name="i" value="toto" />-->
-<!---->
-<!--<template match="//def" name="" value="">-->
-<!--    <?php $$name="$value" ?>-->
-<!--</template>-->
+/* TODO : ajouter les commentaires présents dans generators_OLD.html */
+/* TODO : il faudrait que chaque contrôle utilisateur de type list (checklist, etc.) génère le contrôle sur
+lequel il se base au lieu de dupliquer le code comme on le fait actuellement. Or, on ne peut pas le faire pour l'instant */
 
-<!--<template match="//if" test="">-->
-<!--    <?php if($test) : ?>-->
-<!--        {select('text()|*')}-->
-<!--    <?php endif; ?>-->
-<!--</template>-->
-<!---->
-<!--tester les erreurs (par exemple vérifier qu'un switch ne contient pas plus de 1 default):-->
-<!--select('//switch[count(default) gt 1]')-->
+<!-- TEXTBOX multiligne = : <textarea ... ></textarea> -->
+<!-- @rows != "" -->
+<!-- {select('string(@value)')}{select('.//node()')} récupère la valeur de l'attribut @value et de l'élement (tag) -->
+<!-- {select('@*') ajoute les éventuels attributs supplémentaires indiqués par l'appelant à la liste d'attributs du textarea -->
 
-<!--Faut-il indiquer ou non dans le template les arguments qu'on utilise ?-->
-<!--- toutes les variables $xxx utilisées dans le corps du template doivent être déclarées-->
-<!--comme attributs du template-->
-<!--- au lieu d'utiliser une variable $xxx pour accéder à l'attribut xxx du template -->
-<!--il est possible d'utiliser à la place {select('@xxx')}-->
-<!--- si vous n'utilisez aucun $xxx, mais seulement des select, vous pouvez ne déclarer-->
-<!--aucun attribut dans le template-->
-<!---->
-<!--A voir à l'usage : si effectivement on n'utilise plus aucun $xxx, mais toujours-->
-<!--des select, virer de TemplateCompiler le code qui gère les variables de templates match-->
+<template match="//textbox[@rows]" name="" label="" value="" class="" rows="" cols="20">
+    <label if="'$label'" class="textarea $class" for="{autoId()}">$label</label>
+    <textarea
+        name="$name"
+        title="$label"
+        class="textarea $class"
+        rows="{'$rows':3}"
+        cols="$cols"
+        id="{lastId()}">{select('string(@value)')}{select('.//node()')}{select('@*')}</textarea>
+</template>
 
-<!--IDEA: utiliser xslt à la place/en plus des templates match ?-->
-<!--ou alors : autoriser dans un template l'utilisation de n'importe quel tag xslt-->
 
-<!-- TEXT -->
-<template match="//field[@type='text']" name="noname" type="" title="" class="">
-    <label if="'$title'" class="text $class" for="{autoId()}">$title</label>
-    <input 
-        type="text" 
-        class="text $class" 
-        id="{lastId()}" 
+
+<!-- TEXTBOX correspond à une zone simple de type password : <input type="password"... /> -->
+<!-- (pas d'attribut rows) -->
+
+<template match="//textbox[@password='true']" name="" label="" value="" class="" password="">
+    <label if="'$label'" class="text $class" for="{autoId()}">$label</label>
+    <input
+        type="password" 
         name="$name" 
-        title="$title">{select('@*')}</input>{select('node()')}</template>
-        
-
-<!-- TEXTLIST -->
-<template match="//field[@type='textlist']" type="" title="" class="" name="" src="">
-    <label if="'$title'" class="textlist $class">$title</label>
-    <div class="textlist $class">
-        <loop on="$src" as="$line, $record">
-            <label class="text $class" for="$name$line" >{$record['label']}</label>
-                <input
-                    type="text"
-                    class="text $class"
-                    id="$name$line"
-                    name="$name" />
-        </loop>
-    </div>
+        title="$label"
+        value="{select('string(@value)')}{select('.//text()')}"
+        class="text $class" 
+        id="{lastId()}">
+        {select('@*')}
+    </input>
 </template>
 
 
-<!-- CHECKBOX -->
-<template match="//field[@type='checkbox']" name="" type="" title="" class="" value="">
-    <fill values="$$name" code='checked="checked"' separator="$sep">
-        <input
-            type="checkbox"
-            class="check $class"
-            id="{autoId()}"
-            name="$name"
-            value="$value">
-            {select('@*')}
-            </input>
-        </fill>
-        <label if="'$title'" class="check $class" for="{lastId()}">$title</label>
-        <!-- Le contenu du tag -->
-        {select('node()')}
+
+
+<!-- TEXTBOX correspondant aux zones de texte simple : <input type="text" ... /> -->
+<!-- (pas d'attribut 'rows') -->
+
+<template match="//textbox" name="" label="" value="" class="">
+    <label if="'$label'" class="text $class" for="{autoId()}">$label</label>
+    <input
+        type="text" 
+        name="$name" 
+        title="$label"
+        value="{select('string(@value)')}{select('.//text()')}"
+        class="text $class" 
+        id="{lastId()}">
+        {select('@*')}
+    </input>
 </template>
 
 
-<!-- CHECKLIST -->
-<template match="//field[@type='checklist']" type="" title="" class="" name="" src="" tag="">
-    <label if="'$title'" class="checklist $class">$title</label>
+
+
+<!-- CHECKLIST : liste de <input type="checkbox"... /> dans un <div></div> -->
+
+<template match="//checklist" name="" label="" src="" class="">
+    <label if="'$label'" class="checklist $class">$label</label>
     <div class="checklist $class">
         <fill values="$name">
             <loop on="$src" as="$line, $record">
                 <span class="check $class">{select('@*')}
                     <input
                         type="checkbox"
+                        name="$name"
+                        value="{$record['code']}"
                         class="check $class"
-                        id="$name$line"
-                        name="$name"
-                        value="{$record['code']}" />
+                        id="$name$line" />
                     <label class="check $class" for="$name$line" >{$record['label']}</label>
-                    <if test="'$tag' != ''">&lt;$tag&gt;</if>
                 </span>
             </loop>
         </fill>
@@ -95,173 +80,50 @@
 </template>
 
 
-<!-- RADIO -->
-<template match="//field[@type='radio']" name="" type="" title="" class="" value="">
-    <fill values="$$name" code='selected="selected"' separator="$sep">
+
+
+
+<!-- CHECKBOX : <input type="checkbox"... /> -->
+
+<template match="//checkbox" name="" label="" value="" class="">
+    <fill values="$$name" code='checked="checked"' separator="$sep">
         <input
-            type="radio"
-            class="radio $class"
-            id="{autoId()}"
+            type="checkbox"
             name="$name"
-            value="$value">
+            value="$value"
+            class="check $class"
+            id="{autoId()}">
             {select('@*')}
-        </input>
-    </fill>
-    <label if="'$title'" class="radio $class" for="{lastId()}">$title</label>
-    <!-- Le contenu du tag -->
-    {select('node()')}
-</template>
-
-
-<!-- RADIOLIST -->
-<template match="//field[@type='radiolist']" type="" title="" class="" name="" src="">
-    <label if="'$title'" class="radiolist $class">$title</label>
-    <div class="radiolist $class">
-        <fill values="$name">
-            <loop on="$src" as="$line, $record">
-                <span class="radio class">
-                    <input
-                        type="radio"
-                        class="radio $class"
-                        id="$name$line"
-                        name="$name"
-                        value="{$record['code']}" />
-                    <label class="radio $class" for="$name$line" >{$record['label']}</label>
-                </span>
-            </loop>
+            </input>
         </fill>
-    </div>
+        <label if="'$label'" class="check $class" for="{lastId()}">$label</label>
+        <!-- Le contenu du tag -->
+        {select('node()')}
 </template>
 
 
-<!-- TEXTAREA -->
-<template match="//field[@type='textarea']" name="" type="" title="" class="" cols="" rows="">
-    <label if="'$title'" class="textarea $class" for="{autoId()}">$title</label>
-    <textarea
-        class="textarea $class"
-        name="$name"
-        title="$title"
-        cols="$cols"
-        rows="$rows"
-        id="{lastId()}">{select('@*')}{select('node()')}</textarea>
-</template>
 
 
-<!-- TEXTAREALIST -->
-<template match="//field[@type='textarealist']" type="" title="" class="" name="" src="" cols="" rows="">
-    <label if="'$title'" class="textarealist $class">$title</label>
-    <div class="textarealist $class">
-        <loop on="$src" as="$line, $record">
-            <label class="textarea $class" for="$name$line" >{$record['label']}</label>
-            <textarea
-                class="text $class"
-                id="$name$line"
-                name="$name"
-                cols="$cols"
-                rows="$rows"> </textarea>
-        </loop>
-    </div>
-</template>
+<!-- SELECT : <select...><option value=... >...</option></select> -->
+<!-- les différentes valeurs ou options du select sont chargées à partir du fichier spécifié comme @src -->
+<!-- l'utilisateur peut ajouter ses propres options comme par ex, une sélection = (vide) ou = (tous), ... -->
 
-
-<!-- SUBMIT -->
-<template match="//field[@type='submit']" name="" type="" class="" value="">
-    <input
-        type="submit"
-        class="submit $class"
-        name="$name"
-        value="$value">
-        {select('@*')}
-    </input>
-    <!-- Le contenu du tag s'il y en a un -->
-    {select('node()')} 
-</template>
-
-
-<!-- RESET -->
-<template match="//field[@type='reset']" name="" type="" class="" value="">
-    <input
-        type="reset"
-        class="reset $class"
-        name="$name"
-        value="$value">
-        {select('@*')}
-    </input>
-    <!-- Le contenu du tag s'il y en a un -->
-    {select('node()')} 
-</template>
-
-
-<!-- PASSWORD -->
-<template match="//field[@type='password']" name="" type="" title="" class="" value="">
-    <label if="'$title'" class="text $class" for="{autoId()}">$title</label>
-    <input
-        type="password"
-        class="text $class"
-        name="$name"
-        value="$value"
-        id="{lastId()}">
-        {select('@*')}  <!-- Eventuellement, les attributs donnÃ©s en plus -->
-    </input>
-    <!-- Le contenu du tag s'il y en a un -->
-    {select('node()')} 
-</template>
-
-
-<!-- FILE -->
-<template match="//field[@type='file']" type="" name="" title="" class="" value="">
-    <label if="'$title'" class="file $class" for="{autoId()}">$title</label>
-    <input
-        type="file"
-        class="file $class"
-        name="$name"
-        value="$value"
-        id="{lastId()}">
-        {select('@*')}  <!-- Eventuellement, les attributs donnÃ©s en plus -->
-    </input>
-    {select('node()')}
-</template>
-    
-
-<!-- FILELIST -->
-<template match="//field[@type='filelist']" type="" title="" class="" name="" src="">
-    <label if="'$title'" class="filelist $class">$title</label>
-    <div class="filelist $class">
-        <loop on="$src" as="$line, $record">
-            <label class="file $class" for="$name$line" >{$record['label']}</label>
-                <input
-                    type="file"
-                    class="file $class"
-                    id="$name$line"
-                    name="$name" />
-        </loop>
-    </div>
-</template>
-
-
-<!-- SELECT -->
-<!--
-Paramêtres :
-   - src : la source de données pour les options du select
-   - sep : le séparateur d'articles utilisé
-     TODO : à enlever ?    
-   - emptylabel="true" : indique s'il faut ajouter une valeur vide (-) au select
-   - multiple="true" : génère un select à choix multiples au lieu d'un select simple
--->
-<template match="//field[@type='select']" name="" type="" title="" class="" size="" emptylabel="" src="" sep="" >
-    <label if="'$title'" class="select $class" for="{autoId()}">$title</label>
+<template match="//select" name="" label="" src="" class="" size="" sep="" >
+    <label if="'$label'" class="select $class" for="{autoId()}">$label</label>
     <input type="hidden" name="$name" value="" />
     <fill values="$$name" code='selected="selected"' separator="$sep">
         <select
-            class="select $class"
-            id="{lastId()}"
             name="$name"
-            size="$size">
+            size="$size"
+            class="select $class"
+            id="{lastId()}">
             {select('@*')}
-            <option if="'$emptylabel'" value="" id="{lastId()}-0">-</option>
+            {select('.//node()')}
             <loop on="$src" as="$line, $record">
                 <option value="{$record['code']}"
-                        id="{lastId()}-{$record['line']}">{$record['label']}</option>
+                        id="{lastId()}-{$record['line']}">
+                        {$record['label']}
+                </option>
             </loop>
         </select>
     </fill>
@@ -269,14 +131,16 @@ Paramêtres :
 
 
 
-<!-- DIV -->
-<!-- conteneur générique pour d'autres contrôles -->
-<template match="//field[@type='div']" type="" name="" title="" class="">
-    <label if="'$title'" class="div $class" for="{autoId()}">$title</label>
-    <div id="{lastId()}" class="div $class">{select('@*|node()')}</div>
-</template>
 
-<!-- Erreur : aucun des templates field n'a instancié l'appellant -->
-<template match="//field" type="" name="" title="" class="">
-    <span style="background-color: #eee; color: red">field incorrect : &amp;lt;field type="$type" name="$name" title="$title" ... /&amp;gt;</span>
+<!-- SUBMIT bouton de type submit : <input type="submit"... /> -->
+<!-- Remarque : @label correspond au libellé du bouton (équivalent à @value en XHTML) -->
+
+<template match="//submit" name="" label="" class="">
+    <input
+        type="submit"
+        name="$name"
+        value="{select('string(@label)')}{select('.//text()')}"
+        class="submit $class">
+        {select('@*')}
+    </input>
 </template>
