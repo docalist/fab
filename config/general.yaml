@@ -91,15 +91,9 @@ taskmanager:
   # php: /usr/local/bin/php
   
   # options éventuelles à passer à l'exécutable php
-  phpoptions: "-C -f %s"
+  phpargs: "-C"
   # -n : no php.ini file will be used
   # -C : Do not chdir to the script's directory (implicite dans les versions récentes)
-  # -f "xxx" : path du fichier à exécuter
-
-  # comment lancer un programme en tâche de fonds et sans interface ?
-#  bgexec: 'start "FAB - Tasks Manager" /B %s'
-  bgexec: 'psexec -s -d %s > nul 2>&1' 
-#  bgexec: %s
 
 # similaire à l'action show mais affiche les données non formatées telles qu'on
 # les trouve dans la BDD

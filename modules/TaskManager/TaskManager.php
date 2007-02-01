@@ -711,50 +711,40 @@ class TaskManager extends Module
     private static function runBackgroundModule($fabUrl, $root='')
     {
         // Détermine le path de l'exécutable php-cli
-        if (!$phpPath = Config :: get('taskmanager.php', ''))
+        if (!$cmd = Config :: get('taskmanager.php', ''))
             throw new Exception('Le path de l\'exécutable php ne figure pas dans la config');
 
         // Vérifie que le programme php obtenu existe et est exécutable
-        if (!is_executable($phpPath))
+        if (!is_executable($cmd))
             throw new Exception("Le programme php (cli) est introuvable ou n'est pas exécutable");
-        $phpPath = '"' . $phpPath . '"';
+
+        // Si le path contient des espaces, ajoute des guillemets
+        if ( (strpos($cmd, ' ') !== false) and (substr($cmd,0,1) !=='"') )
+            $cmd = '"' . $cmd . '"';
 
         // Détermine les options éventuelles à ajouter à l'exécutable
-        $options = Config :: get('taskmanager.phpoptions');
-        if ($options)
-        {
-            $phpPath .= ' ' . $options;
-            debug && Debug :: log('Options de lancement de l\'exécutable php : %s', $phpPath);
-        }
-
-        // Vérifie que le phppath obtenu contient '%s'
-        if (strpos($phpPath, '%s') === false)
-            throw new Exception('La chaine %s ne figure pas dans le path indiqué pour php'); // TODO: revoir message
+        $args = Config :: get('taskmanager.phpargs');
+        if ($args)
+            $cmd .= ' ' . $args;
 
         // Ajoute au path php la faburl à exécuter
-        $h=$fabUrl;
-        if ($root) $h.= ' ' . $root;
+        $cmd .=' -f '.Runtime::$fabRoot.'bin'.DIRECTORY_SEPARATOR.'fab.php -- '.$fabUrl;        
+        if ($root) $cmd .= ' '.$root;
         
-        $phpPath = str_replace('%s', Runtime :: $fabRoot . 'bin' . DIRECTORY_SEPARATOR . 'fab.php -- ' . $h, $phpPath);
+        debug && Debug :: log('Exec %s', $cmd);
 
-        // Détermine la commande à utiliser pour lancer php en tâche de fond
-        $bgexec = Config :: get('taskmanager.bgexec', '');
-
-        // Vérifie que le bgexec obtenu contient '%s'
-        if (strpos($bgexec, '%s') === false)
-            throw new Exception('La chaine %s ne figure pas dans la commande indiquée pour bgexec'); // TODO: revoir message
-
-        // impossible d'utiliser start /B : le process est lancé, mais il est immédiatement tué,
-        // soit lors de l'appel à pclose, soit automatiquement lorsque notre script php se termine (timeout)
-        // pour le moment : obligation d'utiliser psexec
-
-        // Construit la commande finale
-        $command = str_replace('%s', $phpPath, $bgexec);
-        debug && Debug :: log('Exécution du process %s', $command);
-        echo $command, "\n";
-        // Lance le process
-        $handle = popen($command, 'r');
-        pclose($handle);
+        // Sous windows, utilise wscript.shell pour lancer le process en tâche de fond
+        if ( substr(PHP_OS,0,3) == 'WIN')
+        { 
+            $WshShell = new COM("WScript.Shell");
+            $oExec = $WshShell->Run($cmd, 0, false);
+        }
+        // Sinon, considère qu'on est sous *nix et utilise le & final
+        else
+        {
+        	$cmd .= ' &';
+            exec($cmd);
+        }
     }
     
 
@@ -888,7 +878,7 @@ class TaskManager extends Module
     public function actionStart()
     {
         self :: start();
-        Runtime::redirect('index');
+        //Runtime::redirect('index');
     }
 
     /**
