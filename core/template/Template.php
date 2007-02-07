@@ -30,7 +30,7 @@ class Template
      * templates.forcecompile : indique s'il faut ou non forcer une recompilation 
      * complète des templates, que ceux-ci aient été modifiés ou non.
      * 
-     * tempaltes.checktime : indique si le gestionnaire de template doit vérifier 
+     * templates.checktime : indique si le gestionnaire de template doit vérifier 
      * ou non si les templates ont été modifiés depuis leur dernière compilation.
      * 
      * cache.enabled: indique si le cache est utilisé ou non. Si vous n'utilisez
@@ -442,7 +442,7 @@ class Template
         return false;
     }
 
-    private static function filled($x)
+    public static function filled($x)
     {
         if ($x != '') 
             self::$optFilled[self::$optLevel]++;
@@ -476,7 +476,19 @@ class Template
         self::$template         =$t['template'];
         self::$data             =$t['data'];
     }
-    
+
+    public static function runSlot($slotName, $defaultAction='')
+    {
+        debug && Debug::log('Exécution du slot %s', $slotName);
+        if ('' === $action=Config::get('slot.'.$slotName, $defaultAction)) 
+        {
+            debug && Debug::log('Exécution du slot %s : aucune action définie', $slotName);
+            return;	
+        }
+        
+        debug && Debug::log('Exécution du slot %s : %s', $slotName, $action);
+        Routing::dispatch($action);
+    }    
 }
 
 ?>
