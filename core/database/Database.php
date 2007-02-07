@@ -148,7 +148,7 @@ abstract class Database implements ArrayAccess, Iterator
      * 
      * @param string $database alias ou path de la base de données à créer.
      * 
-     * @param array $def tableau contenant la définition de la structure de la
+     * @param array $structure tableau contenant la définition de la structure de la
      * base
      * 
      * @param string $type type de la base de données à créer. Ignoré si
@@ -159,7 +159,7 @@ abstract class Database implements ArrayAccess, Iterator
      * options disponibles dépendent du backend utilisée. Chaque backend ignore
      * silencieusement les options qu'il ne reconnait pas ou ne sait pas gérer.
      */
-    final public static function create($database, $def, $type=null, $options=null)
+    final public static function create($database, $structure, $type=null, $options=null)
     {
         /*
             DatabaseInterface
@@ -186,13 +186,13 @@ abstract class Database implements ArrayAccess, Iterator
             case 'bis':
                 require_once dirname(__FILE__).'/BisDatabase.php';
                 $db=new BisDatabase();
-                $db->doCreate($database, $def, $options);
+                $db->doCreate($database, $structure, $options);
                 break;
                 
             case 'xapian':
                 require_once dirname(__FILE__).'/XapianDatabase.php';
-                $db=new XapianDatabase();
-                $db->doCreate($database, $def, $options);
+                $db=new XapianDatabaseDriver();
+                $db->doCreate($database, $structure, $options);
                 break;
                 
             default:
@@ -275,6 +275,8 @@ abstract class Database implements ArrayAccess, Iterator
             if ($path=='')
                 throw new Exception("Impossible de trouver la base '$database'");
         }
+        else
+            $path=$database;
 
         // Crée une instance de la bonne classe en fonction du type, crée la base et retourne l'objet obtenu
         debug && Debug::log("Ouverture de la base '%s' de type '%s' (%s)", $database, $type, $path);
@@ -288,7 +290,7 @@ abstract class Database implements ArrayAccess, Iterator
                 
             case 'xapian':
                 require_once dirname(__FILE__).'/XapianDatabase.php';
-                $db=new XapianDatabase();
+                $db=new XapianDatabaseDriver();
                 $db->doOpen($path, $readOnly);
                 break;
                 
