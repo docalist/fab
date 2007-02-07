@@ -1,6 +1,6 @@
 <?php
 /*
-
+TODO: le if et le collapse sont redondants. Virer le if, gérer correctement le collapse
 A faire :
 - améliorer le système de bindings pour les cas où il s'agit d'un callback, 
 d'une propriété d'objet, etc.
@@ -231,11 +231,17 @@ class TemplateCompiler
         
         if (count(self::$bindings))
         {
-            $h=self::PHP_START_TAG . "\n//Liste des variables de ce template\n" ;
+            $h=self::PHP_START_TAG ;
+            $name='tpl_'.md5($result);
+            $h.="$name();function $name(){";                
+            
+            $h. "\n//Liste des variables de ce template\n" ;
             foreach (self::$bindings as $var=>$binding)
                 $h.='    ' . $var . '=' . $binding . ";\n";
+                
             $h.=self::PHP_END_TAG;
             $result = $h.$result;
+$result.=self::PHP_START_TAG . '}' . self::PHP_END_TAG;                
         }
         list(self::$loop, self::$opt, self::$datasources, self::$bindings)=array_pop(self::$stack);
         return $result;
@@ -476,6 +482,7 @@ class TemplateCompiler
                 // Insère entre les deux noeuds texte les noeuds sélectionnés par l'expression xpath
                 // Il est important de cloner chaque noeud car il sera peut-être réutilisé par un autre select
                 $allInserts='';
+                $insert='';
                 foreach($nodeSet as $newNode)
                 {
                     switch ($newNode->nodeType)
@@ -487,7 +494,7 @@ class TemplateCompiler
                             
                         // Idem si c'est un noeud texte
                         case XML_TEXT_NODE:
-                            $insert.=$newNode->nodeValue;
+                            $insert=$newNode->nodeValue;
                             break;
                             
                         // Types de noeuds illégaux : exception
@@ -658,7 +665,8 @@ class TemplateCompiler
             'switch'=>'compileSwitch',
             'case'=>'elseError',
             'default'=>'elseError',
-            'opt'=>'compileOpt'
+            'opt'=>'compileOpt',
+            'slot'=>'compileSlot'
         );
         static $empty=null;
         
@@ -1100,6 +1108,8 @@ class TemplateCompiler
                     // Si c'est autre chose qu'une variable, on se contente d'ajouter à l'expression en cours 
                     // concatène. Il faut que ce soit du php valide
                     $h.=$data;
+                    // TODO: à implémenter et à tester : <a href="/base/show?ref=$REF" ... /> doit être routé correctement, et le $REF soit être instancié.
+//                    $h.=self::compileField($data,true);  
                     break;
             }
         }
@@ -1606,6 +1616,22 @@ echo "Source desindente :\n",  $xml->saveXml($xml), "\n-------------------------
             array_shift(self::$datasources);    // dépile au début
         }
         echo self::PHP_START_TAG, 'endforeach;', self::PHP_END_TAG;
+    }
+
+    private static function compileSlot($node)
+    {
+        // Récupère le nom du slot
+        if (($name=$node->getAttribute('name')) === '')
+            throw new Exception("Tag slot incorrect : attribut 'name' manquant");
+
+        // Récupère l'action par défaut (optionnel)
+        if (($default=$node->getAttribute('default')) !== '')
+            $default=self::compileField($default, true);
+
+        echo self::PHP_START_TAG, "Template::runSlot('",addslashes($name), "'";
+        if ($default !== '') echo ",'",addslashes($default),"'";
+        echo ");", self::PHP_END_TAG;
+
     }
 }
 ?>
