@@ -20,6 +20,9 @@ lequel il se base au lieu de dupliquer le code comme on le fait actuellement. Or
 
 
 
+
+
+
 <!-- TEXTBOX correspond à une zone simple de type password : <input type="password"... /> -->
 <!-- (pas d'attribut rows) -->
 
@@ -84,9 +87,10 @@ lequel il se base au lieu de dupliquer le code comme on le fait actuellement. Or
 
 
 <!-- CHECKBOX : <input type="checkbox"... /> -->
+<!-- TODO : décommenter le <fill></fill> quand bug résolu -->
 
 <template match="//checkbox" name="" label="" value="" class="">
-    <fill values="$$name" code='checked="checked"' separator="$sep">
+<!--    <fill values="$$name" code='checked="checked"' separator="$sep">-->
         <input
             type="checkbox"
             name="$name"
@@ -95,12 +99,56 @@ lequel il se base au lieu de dupliquer le code comme on le fait actuellement. Or
             id="{autoId()}">
             {select('@*')}
             </input>
-        </fill>
+<!--        </fill>-->
         <label if="'$label'" class="check $class" for="{lastId()}">$label</label>
         <!-- Le contenu du tag -->
         {select('node()')}
 </template>
 
+
+
+
+
+<!-- RADIOLIST -->
+
+<template match="//radiolist" name="" label="" value="" src="" class="">
+    <label if="'$label'" class="radiolist $class">$label</label>
+    <div class="radiolist $class">
+        <fill values="$name">
+            <loop on="$src" as="$line, $record">{select('@*')}
+                <span class="radio class">
+                    <input
+                        type="radio"
+                        name="$name"
+                        value="{$record['code']}"
+                        class="radio $class"
+                        id="$name$line" />
+                    <label class="radio $class" for="$name$line" >{$record['label']}</label>
+                </span>
+            </loop>
+        </fill>
+    </div>
+</template>
+
+
+
+<!-- RADIO -->
+
+<template match="//radio" name="" label="" value="" class="">
+    <fill values="$$name" code='selected="selected"' separator="$sep">
+        <input
+            type="radio"
+            name="$name"
+            value="$value"
+            class="radio $class"
+            id="{autoId()}">
+            {select('@*')}
+        </input>
+    </fill>
+    <label if="'$label'" class="radio $class" for="{lastId()}">$label</label>
+    <!-- Le contenu du tag -->
+    {select('node()')}
+</template>
 
 
 
@@ -132,6 +180,20 @@ lequel il se base au lieu de dupliquer le code comme on le fait actuellement. Or
 
 
 
+
+<!-- FIELDSET : <fieldset><legend></legend></fieldset> -->
+
+<template match="//fieldset" label="" class="">
+    <fieldset class="fieldset $class">
+        <legend test="'$label'">$label</legend>
+        {select('./node()')}{select('@*')}
+    </fieldset>
+</template>
+
+
+
+
+
 <!-- SUBMIT bouton de type submit : <input type="submit"... /> -->
 <!-- Remarque : @label correspond au libellé du bouton (équivalent à @value en XHTML) -->
 
@@ -143,4 +205,31 @@ lequel il se base au lieu de dupliquer le code comme on le fait actuellement. Or
         class="submit $class">
         {select('@*')}
     </input>
+</template>
+
+
+
+
+<!-- BUTTON -->
+
+<template match="//button" name="" label="" class="">
+    <input
+        type="button"
+        name="$name"
+        value="{select('string(@label)')}{select('.//text()')}"
+        class="button $class">
+        {select('@*')}
+    </input>
+</template>
+
+
+
+
+
+<!-- UPLOAD -->
+<!-- Fichier à uploader -->
+
+<template match="//upload" name="" label="" value="" class="">
+    <label if="'$label'" class="select $class" for="{autoId()}">$label</label>
+    <input name="$name" type="file" title="$label" value="$value" class="file $class" id="{autoId()}" />
 </template>
