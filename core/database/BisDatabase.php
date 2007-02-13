@@ -55,12 +55,17 @@ class BisDatabase extends Database
         
     protected function doOpen($database, $readOnly=true)
     {
+        // Ouvre la base de données
         $bis=new COM('Bis.Engine');
-        $dataset='bdsp'; // TODO: à virer
-        if ($readOnly)
-            $this->selection=$bis->openSelection($database, $dataset);
-        else
-            $this->selection=$bis->openDatabase($database, false, false)->openSelection($dataset);
+        $db=$bis->openDatabase($database, false, $readOnly);
+        
+        // Détermine le nom du premier (et normallement unique) dataset
+        $dataset=$db->datasets(1)->name;
+        
+        // Ouvre une sélection sur ce dataset
+        $this->selection=$db->openSelection($dataset);
+
+        // Crée l'objet record
         $this->record=new BisDatabaseRecord($this, $this->selection->fields);
     }
         
@@ -244,6 +249,13 @@ class BisDatabaseRecord extends DatabaseRecord
 
     public function offsetGet($offset)
     {
+//        $h=$this->fields[$offset]->value;
+//        if (strpos($h, '¨') == false) return $h;
+//        return explode('¨', $h);
+        
+//        if (isChampArticle($offset))
+//            $h=explode($h, SepUsedInDatabase());
+//            
         return $this->fields[$offset]->value;
         //return (string) $this->fields[$offset]->value;
         //return $this->fields->item($offset)->value;
