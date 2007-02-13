@@ -270,6 +270,11 @@ class Module
         
     }
     
+    public static function forward($fabUrl)
+    {
+        Routing::dispatch($fabUrl);
+        Runtime::shutdown();
+    }
     
     public function layoutCallback($name)
     {
