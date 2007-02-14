@@ -389,11 +389,11 @@ class DatabaseModule extends Module
         // Exécute le template
         Template::run
         (
-            $template, 
+            $template,
+            array('REF'=>'0'),        // indique qu'on veut créer une nouvelle notice 
             array($this, $callback)
         );      
     } 
-    
     
     /**
      * Edition d'une notice
@@ -483,20 +483,31 @@ class DatabaseModule extends Module
             
         }            
         
-       // Mise à jour de chacun des champs
-        $record=& $this->selection->record;
+        // Détermine le callback à utiliser
+        $callback=$this->getCallback();
+        
+        // Mise à jour de chacun des champs
         foreach($this->selection->record as $fieldName => $fieldValue)
         {         
-            //echo "fieldName=$fieldName, fieldValue=$fieldValue<br />";
             if ($fieldName==='REF') continue;
                 
-            $newValue=Utils::get($_REQUEST[$fieldName], '');
-            $record[$fieldName]=$newValue;
+            $fieldValue=Utils::get($_REQUEST[$fieldName], null);
+                
+            // Permet à l'application d'interdire la modification du champ ou de modifier la valeur
+//            $this->$callback($fieldName, $fieldValue)
+            if (call_user_func(array($this, $callback), $fieldName, $fieldValue) !== false)
+            {
+                // Si la valeur est un tableau, convertit en articles séparés par le séparateur
+                if (is_array($fieldValue))
+                    $fieldValue=implode(' / ', array_filter($fieldValue)); // TODO : comment accéder au séparateur ???
+
+                // Met à jour le champ
+                $this->selection[$fieldName]=$fieldValue;
+            }
         }
         
         // Enregistre la notice
         debug && Debug::log('Sauvegarde de la notice');
-        
         $this->selection->saveRecord();   // TODO: gestion d'erreurs
 
         // redirige vers le template s'il y en a un, vers l'action show sinon
