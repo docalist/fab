@@ -8,10 +8,8 @@ database:
 
 # callback : nom de la méthode à appeller comme callback lors des exécutions
 # de templates.
-# Par défaut, il y a un callback unique (getField) qui gère toutes les actions du 
-# module, mais vous pouvez indiquer dans le fichier de configuration le nom d'autres 
-# callbacks à utiliser en fonction de l'action en cours
-callback: getField
+# Par défaut, il n'y a aucun callback de définit.
+callback: none
 
 # similaire à l'action show mais affiche les données non formatées telles qu'on
 # les trouve dans la BDD
