@@ -74,6 +74,7 @@ class DatabaseModule extends Module
     {
         // Le fichier de config du module indique la base à utiliser
         $database=Config::get('database');
+
         if (is_null($database))
             throw new Exception('La base de données à utiliser n\'a pas été indiquée dans le fichier de configuration du module');
 
@@ -114,7 +115,6 @@ class DatabaseModule extends Module
             $template,  
             array($this, $callback),           // Priorité à la fonction utilisateur
             new Optional($_REQUEST)
-//            $_REQUEST,                          // Champs passés en paramètre
         );
     }
 
@@ -155,7 +155,7 @@ class DatabaseModule extends Module
     public function actionSearch()
     {
         $this->equation = Utils::get($_REQUEST['_equation']);
-        
+
         if( is_null($this->equation))   // l'équation n'a pas été directement tapée par l'utilisateur ?
         {        
             // Construit l'équation de recherche à partir des param de la requête
@@ -169,9 +169,9 @@ class DatabaseModule extends Module
         
         // Des paramètres ont été passés, mais tous sont vides et l'équation obtenue est vide
         if ($this->equation==='')
-            Runtime::redirect('searchform?err=nocriteria');
-//            return $this->showError('Vous n\'avez indiqué aucun critère de recherche.');
-        
+            return $this->showError('Vous n\'avez indiqué aucun critère de recherche.');
+//        echo 'equation = ', $this->equation;
+//        die();
         // Lance la récherche
         if (! $this->openSelection($this->equation))
             return $this->showError("Aucune réponse. Equation : $this->equation");
@@ -363,7 +363,11 @@ class DatabaseModule extends Module
         (
             $template,  
             array($this, $callback),
-            array('selection'=>$this->selection, 'record'=>$this->selection->record),
+            array
+            (
+                'selection'=>$this->selection,
+                'record'=>$this->selection->record
+            ),
             $this->selection->record
         );  
     }
@@ -374,15 +378,18 @@ class DatabaseModule extends Module
      * Affiche le formulaire indiqué dans la clé 'template' de la configuration.
      */
     public function actionNew()
-    {        
-        $template = $this->getTemplate();
+    {    
+        // Détermine le template à utiliser
+        if (! $template=$this->getTemplate('template'))
+            throw new Exception('Le template à utiliser n\'a pas été indiqué');
+            
         $callback = $this->getCallback();
         
         // On exécute le template correspondant
         // Exécute le template
         Template::run
         (
-            $template,  
+            $template, 
             array($this, $callback)
         );      
     } 
@@ -394,7 +401,7 @@ class DatabaseModule extends Module
      * La notice correspondant au paramètre 'REF' est chargée dans le formulaire
      */
     public function actionLoad()
-    {        
+    {
         // Construit l'équation de recherche
         $this->equation=$this->makeEquation('start,nb');
         
@@ -417,7 +424,11 @@ class DatabaseModule extends Module
         // Si un numéro de référence a été indiqué, on charge cette notice         
         // Vérifie qu'elle existe
         if (! $this->openSelection($this->equation))
-            throw new Exception('La référence demandée n\'existe pas');      
+            throw new Exception('La référence demandée n\'existe pas');    
+        
+        // Plusieurs enregistrements renseignés par l'équation
+        if ($this->selection->count() > 1)
+            throw new Exception('L\'équation a retourné plusieurs enregistrements.');  
 
         Template::run
         (
@@ -432,13 +443,21 @@ class DatabaseModule extends Module
      * Sauvegarde la notice désignée par 'REF' avec les champs passés en
      * paramètre.
      * Redirige ensuite l'utilisateur vers l'action 'show'
+     * 
+     * REF doit toujours être indiqué. Si REF==0, une nouvelle notice sera
+     * créée. Si REF>0, la notice correspondante sera écrasée. Si REF est absent
+     * ou invalide, une exception est levée.
      */
     public function actionSave()
     {
-        global $selection;
+        // Si ref n'a pas été transmis ou contient autre chose qu'un entier >= 0, erreur
+        if (is_null($ref=Utils::get($_REQUEST['REF'])) || (! ctype_digit($ref)))
+            throw new Exception('Appel incorrect de save : REF non transmis ou invalide');
+        
+        $ref=(int) $ref; 
         
         // Si un numéro de référence a été indiqué, on charge cette notice         
-        if ($ref=Utils::get($_REQUEST['REF']))
+        if ($ref>0)
         {
             // Ouvre la sélection
             debug && Debug::log('Chargement de la notice numéro %i', $ref);
@@ -447,11 +466,11 @@ class DatabaseModule extends Module
                 
             // Edite la notice
             $this->selection->editRecord();
-        }
-        
+        } 
+
         // Sinon, on en créée une nouvelle
-        else
-        {
+        else // ref==0
+        {        
             // Ouvre la sélection
             debug && Debug::log('Création d\'une nouvelle notice');
             $this->openSelection('', false); 
@@ -461,29 +480,31 @@ class DatabaseModule extends Module
             // Récupère le numéro de la notice créée
             $ref=$this->selection['REF'];
             debug && Debug::log('Numéro de la notice créée : %s', $ref);
+            
         }            
-       
+        
        // Mise à jour de chacun des champs
         $record=& $this->selection->record;
         foreach($this->selection->record as $fieldName => $fieldValue)
-        {
+        {         
             //echo "fieldName=$fieldName, fieldValue=$fieldValue<br />";
             if ($fieldName==='REF') continue;
-            
+                
             $newValue=Utils::get($_REQUEST[$fieldName], '');
             $record[$fieldName]=$newValue;
         }
-
+        
         // Enregistre la notice
         debug && Debug::log('Sauvegarde de la notice');
-        $this->selection->saveRecord();   // TODO: gestion d'erreurs
         
+        $this->selection->saveRecord();   // TODO: gestion d'erreurs
+
         // redirige vers le template s'il y en a un, vers l'action show sinon
         if (! $template=$this->getTemplate())
         {
             // Redirige l'utilisateur vers l'action show
             debug && Debug::log('Redirection pour afficher la notice enregistrée');
-            Runtime::redirect('show?REF='.$ref);
+            Runtime::redirect('/base/show?REF='.$ref);
         }
         else
         {
@@ -655,7 +676,7 @@ class DatabaseModule extends Module
         if (! $this->openSelection($this->equation))            // TODO : il n'y a rien a remplacer, qu'est-ce qu'on fait ?
             return $this->showError("Aucune réponse. Equation : $this->equation");
                 
-        // TODO: déléguer le boulot au TaskManager (exécution peut être longue)
+        // ******** TODO: déléguer le boulot au TaskManager (exécution peut être longue) **********
         
         // effectue le chercher/remplacer
         foreach($this->selection as & $record)
@@ -729,7 +750,7 @@ class DatabaseModule extends Module
         $value=Config::get($key);
         if (empty($value))
             return null;
-        
+
         if (is_array($value))
         {
             foreach($value as $right=>$value)
