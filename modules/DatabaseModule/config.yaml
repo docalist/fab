@@ -10,7 +10,7 @@ database:
 # de templates.
 # Par défaut, il n'y a aucun callback de définit.
 callback: none
-
+	
 # similaire à l'action show mais affiche les données non formatées telles qu'on
 # les trouve dans la BDD
 rawDBOutput:
