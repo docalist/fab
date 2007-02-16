@@ -494,8 +494,7 @@ class DatabaseModule extends Module
             $fieldValue=Utils::get($_REQUEST[$fieldName], null);
                 
             // Permet à l'application d'interdire la modification du champ ou de modifier la valeur
-//            $this->$callback($fieldName, $fieldValue)
-            if (call_user_func(array($this, $callback), $fieldName, $fieldValue) !== false)
+            if ($callback == 'none' || $this->$callback($fieldName, $fieldValue) !== false)
             {
                 // Si la valeur est un tableau, convertit en articles séparés par le séparateur
                 if (is_array($fieldValue))
@@ -509,7 +508,7 @@ class DatabaseModule extends Module
         // Enregistre la notice
         debug && Debug::log('Sauvegarde de la notice');
         $this->selection->saveRecord();   // TODO: gestion d'erreurs
-
+        
         // redirige vers le template s'il y en a un, vers l'action show sinon
         if (! $template=$this->getTemplate())
         {
