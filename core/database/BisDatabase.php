@@ -71,6 +71,7 @@ class BisDatabase extends Database
         
     public function search($equation=null, $options=null)
     {
+        
         // a priori, pas de réponses
         $this->eof=true;
 
@@ -125,7 +126,7 @@ class BisDatabase extends Database
             $this->selection->moveNext();
             return false;	
         }
-        
+
         $this->rank=$this->start;
         
         $this->maxRank=($this->max==-1 ? PHP_INT_MAX : $this->start+$this->max-1);
@@ -160,7 +161,7 @@ class BisDatabase extends Database
         {
         	case 'equation': return $this->selection->equation;
             case 'rank': return $this->rank;
-            case 'start': return $this->start;
+            case '_start': return $this->start;
             case 'max': return $this->max;
             default: return null;
         }
@@ -197,6 +198,14 @@ class BisDatabase extends Database
     public function saveRecord()
     {
         $this->selection->update();
+
+//        for ($i=1; $i<=$this->selection->fields->count(); $i++)
+//        {
+//            echo $this->selection->fields($i)->name,
+//            ':',
+//            $this->selection->fields($i)->value,
+//            "<br />\n";
+//        }
     }
 
     public function cancelUpdate()
