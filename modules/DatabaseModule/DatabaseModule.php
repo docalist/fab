@@ -162,6 +162,9 @@ class DatabaseModule extends Module
             $this->equation=$this->makeEquation('_start,_max,_sort');
         }
         
+//        echo "equation = $this->equation";
+//        die();
+        
         // Si aucun paramètre de recherche n'a été passé, il faut afficher le formulaire
         // de recherche
         if (is_null($this->equation))
@@ -238,12 +241,13 @@ class DatabaseModule extends Module
         
         // la base de la query string pour la requête de type search
         $queryStr=$_GET;
-        unset($queryStr['start']);
+        unset($queryStr['_start']);
         unset($queryStr['module']);
         unset($queryStr['action']);
         $baseQueryString=self::buildQuery($queryStr);
 
-        $currentStart = $this->selection->searchInfo('start');  // num dans la sélection du première enreg de la page en cours
+        $currentStart = $this->selection->searchInfo('_start');  // num dans la sélection du première enreg de la page en cours
+//        echo "currentStart = $currentStart<br />"; 
         $maxRes = $this->selection->searchInfo('max');          // le nombre de réponses max par page
         
         $startParam = 1;                // le param start pour les URL des liens générés dans la barre de navigation
@@ -290,11 +294,11 @@ class DatabaseModule extends Module
         if ($currentPage > 1)
         {
             if ( ($firstLabel != '') && ($pageNum > 1) )    // afficher lien vers la première page ?
-                $navBar = $navBar . '<span class="firstPage"><a href="search?' . $baseQueryString . "&start=1" . '">' . $firstLabel . '</a></span> ';
+                $navBar = $navBar . '<span class="firstPage"><a href="search?' . $baseQueryString . "&_start=1" . '">' . $firstLabel . '</a></span> ';
                 
             // TODO: ligne suivante nécessaire ?
             $prevStart = $currentStart-$maxRes >=1 ? $currentStart-$maxRes : 1; // param start pour le lien vers la page précédente
-            $navBar = $navBar . '<span class="prevPage"><a href="search?' . $baseQueryString . "&start=$prevStart" . '">' . $prevLabel . '</a></span> ';
+            $navBar = $navBar . '<span class="prevPage"><a href="search?' . $baseQueryString . "&_start=$prevStart" . '">' . $prevLabel . '</a></span> ';
         }
         
         // géncère les liens vers chaque numéro de page de résultats
@@ -303,7 +307,7 @@ class DatabaseModule extends Module
             if($startParam == $currentStart)    // s'il s'agit du numéro de la page qu'on va afficher, pas de lien
                 $navBar = $navBar . $pageNum . ' ';
             else
-                $navBar = $navBar . '<span class="pageNum"><a href="search?' . $baseQueryString . "&start=$startParam" . '">'. $pageNum . '</a></span> ';
+                $navBar = $navBar . '<span class="pageNum"><a href="search?' . $baseQueryString . "&_start=$startParam" . '">'. $pageNum . '</a></span> ';
                 
             $startParam += $maxRes;
         }
@@ -314,12 +318,12 @@ class DatabaseModule extends Module
 //            TODO : ligne commentée nécessaire ?
 //            $nextStart = $currentStart+$maxRes <= $this->selection->count() ? $currentStart+$maxRes : ;
             $nextStart = $currentStart + $maxRes;   // param start pour le lien vers la page suivante
-            $navBar = $navBar . '<span class="nextPage"><a href="search?' . $baseQueryString . "&start=$nextStart" . '">' . $nextLabel . '</a></span> ';
+            $navBar = $navBar . '<span class="nextPage"><a href="search?' . $baseQueryString . "&_start=$nextStart" . '">' . $nextLabel . '</a></span> ';
             
             if ( ($lastLabel != '') && ($lastDispPageNum < $lastSelPageNum) )   // afficher lien vers la dernière page ?
             {
                 $startParam = ($this->selection->count() % $maxRes) == 0 ? $this->selection->count() - $maxRes + 1 : intval($this->selection->count() / $maxRes) * $maxRes + 1;
-                $navBar = $navBar . '<span class="lastPage"><a href="search?' . $baseQueryString . "&start=$startParam" . '">' . $lastLabel . '</a></span>';
+                $navBar = $navBar . '<span class="lastPage"><a href="search?' . $baseQueryString . "&_start=$startParam" . '">' . $lastLabel . '</a></span>';
             }
         }
         
@@ -338,7 +342,7 @@ class DatabaseModule extends Module
     {
         // Construit l'équation de recherche
         $this->equation=$this->makeEquation('start,nb');
-        
+                
         // Si aucun paramètre de recherche n'a été passé, erreur
         if (is_null($this->equation))
             return $this->showError('Le numéro de la référence à afficher n\'a pas été indiqué');
@@ -412,7 +416,7 @@ class DatabaseModule extends Module
         // Des paramètres ont été passés, mais tous sont vides et l'équation obtenue est vide
         if ($this->equation==='')
             echo 'EQUATION VIDE';
-            //TODO
+            //TODO: à gérer
         
         // Détermine le template à utiliser
         if (! $template=$this->getTemplate())
@@ -450,15 +454,18 @@ class DatabaseModule extends Module
      */
     public function actionSave()
     {
+        echo 'actionSave<br />';
+
         // Si ref n'a pas été transmis ou contient autre chose qu'un entier >= 0, erreur
         if (is_null($ref=Utils::get($_REQUEST['REF'])) || (! ctype_digit($ref)))
             throw new Exception('Appel incorrect de save : REF non transmis ou invalide');
         
-        $ref=(int) $ref; 
+        $ref=(int) $ref;
         
         // Si un numéro de référence a été indiqué, on charge cette notice         
         if ($ref>0)
         {
+//            echo 'dans le if <br />';
             // Ouvre la sélection
             debug && Debug::log('Chargement de la notice numéro %i', $ref);
             if (! $this->openSelection("REF=$ref", false))
@@ -467,10 +474,10 @@ class DatabaseModule extends Module
             // Edite la notice
             $this->selection->editRecord();
         } 
-
         // Sinon, on en créée une nouvelle
         else // ref==0
         {        
+//            echo 'dans le else <br />';
             // Ouvre la sélection
             debug && Debug::log('Création d\'une nouvelle notice');
             $this->openSelection('', false); 
@@ -583,7 +590,7 @@ class DatabaseModule extends Module
         
         // Paramètre equation manquant
         if (is_null($this->equation) || (! $this->equation))
-            $this->showError('Vous n\'avez indiqué aucun critère de recherche sur les enregistrements de la base de données.');
+            return $this->showError('Vous n\'avez indiqué aucun critère de recherche sur les enregistrements de la base de données.');
             
         // Lance la récherche
         if (! $this->openSelection($this->equation) )
