@@ -607,24 +607,37 @@ class DatabaseModule extends Module
         
         // TODO: code à revoir, et à descendre à un niveau plus bas (avoir dans les drivers une fonction qui retourne un tableau contenant la liste de tous les champs possibles de la base)
 
-        // Construit le tableau de tous les champs des enregistrements retournés par la recherche
+        // Construit le tableau de des champs modifiables des enregistrements retournés par la recherche
         // au cas où l'utilisateur voudrait effectuer un chercher/remplacer
         // Par compatibilité avec les générateurs de contrôles utilisateurs (fichier generators.xml)
         // il faut un tableau de tableaux contenant chacun une clé 'code' et une clé 'label'
         // On suppose que la sélection peut contenir des enregistrements provenants de différentes tables (pas la même structure)
         $fieldList = array();   // le tableau global qui contient les tableaux de champs
-        $fieldsFound = array(); // la liste de tous les champs déjà trouvés
+        
+        // la liste de tous les champs à ignorer : les champs en lecture seule indiqués dans la config (identifiant tel que REF par ex)
+        // plus ceux déjà ajoutés au tableau principal $fieldList
+        $ignore = Config::get('readonly');
+        if ($ignore == NULL)
+        {
+            $ignore = array();
+        }
+        else
+        {
+            if (! is_array($ignore))
+                $ignore = array($ignore);   
+        }
+        
         foreach($this->selection as $record)
         {
             $newField = array();    // un tableau par champ trouvé
             foreach($record as $fieldName => $fieldValue)
             {
-                if (in_array($fieldName, $fieldsFound) === false)
+                if (in_array($fieldName, $ignore) === false)
                 {
                     $newField['code'] = $fieldName;
                     $newField['label'] = $fieldName;    // on affichera directement le code du champs tel que dans la BDD
                     $fieldList[] = $newField;           // ajoute au tableau global
-                    $fieldsFound[] = $fieldName;        // pour ne pas le rajouter la prochaine fois qu'on le trouve
+                    $ignore[] = $fieldName;        // pour ne pas le rajouter la prochaine fois qu'on le trouve
                 }
             }
         }
