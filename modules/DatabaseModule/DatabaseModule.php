@@ -234,6 +234,8 @@ class DatabaseModule extends Module
      * @param $nextLabel string le libelle du lien vers la page suivante
      * @param $firstLabel string le libelle du lien vers la première page de résultats pour la sélection (chaîne vide si aucun)
      * @param $lastLabel string le libelle du lien vers la dernière page de résultats pour la sélection (chaîne vide si aucun)
+     * 
+     * @return chaîne XHTML correspond à la barre de navigation ou une chaîne vide s'il n'y a qu'une seule page à afficher
      */
     public function getResNavigation($maxLinks = 10, $prevLabel = '<', $nextLabel = '>', $firstLabel = '', $lastLabel = '')
     {
@@ -290,44 +292,51 @@ class DatabaseModule extends Module
             $startParam =  ($pageNum - 1) * $maxRes + 1;    // ajuste $startParam pour le premier lien correspondant à un num de page
         }
         
-        // lien "page précédente" et éventuel lien vers la première page
-        if ($currentPage > 1)
-        {
-            if ( ($firstLabel != '') && ($pageNum > 1) )    // afficher lien vers la première page ?
-                $navBar = $navBar . '<span class="firstPage"><a href="search?' . $baseQueryString . "&_start=1" . '">' . $firstLabel . '</a></span> ';
-                
-            // TODO: ligne suivante nécessaire ?
-            $prevStart = $currentStart-$maxRes >=1 ? $currentStart-$maxRes : 1; // param start pour le lien vers la page précédente
-            $navBar = $navBar . '<span class="prevPage"><a href="search?' . $baseQueryString . "&_start=$prevStart" . '">' . $prevLabel . '</a></span> ';
-        }
-        
-        // géncère les liens vers chaque numéro de page de résultats
-        for($pageNum; $pageNum <= $lastDispPageNum; ++$pageNum)
-        {
-            if($startParam == $currentStart)    // s'il s'agit du numéro de la page qu'on va afficher, pas de lien
-                $navBar = $navBar . $pageNum . ' ';
-            else
-                $navBar = $navBar . '<span class="pageNum"><a href="search?' . $baseQueryString . "&_start=$startParam" . '">'. $pageNum . '</a></span> ';
-                
-            $startParam += $maxRes;
-        }
-        
-        // lien "page suivante" et éventuellement, lien vers la dernière page de la sélection
-        if (($currentPage < $lastSelPageNum))
-        {
-//            TODO : ligne commentée nécessaire ?
-//            $nextStart = $currentStart+$maxRes <= $this->selection->count() ? $currentStart+$maxRes : ;
-            $nextStart = $currentStart + $maxRes;   // param start pour le lien vers la page suivante
-            $navBar = $navBar . '<span class="nextPage"><a href="search?' . $baseQueryString . "&_start=$nextStart" . '">' . $nextLabel . '</a></span> ';
-            
-            if ( ($lastLabel != '') && ($lastDispPageNum < $lastSelPageNum) )   // afficher lien vers la dernière page ?
+        if ($pageNum < $lastDispPageNum)    // plusieurs pages de résultats : génère les liens 
+        {            
+            // lien "page précédente" et éventuel lien vers la première page
+            if ($currentPage > 1)
             {
-                $startParam = ($this->selection->count() % $maxRes) == 0 ? $this->selection->count() - $maxRes + 1 : intval($this->selection->count() / $maxRes) * $maxRes + 1;
-                $navBar = $navBar . '<span class="lastPage"><a href="search?' . $baseQueryString . "&_start=$startParam" . '">' . $lastLabel . '</a></span>';
+                if ( ($firstLabel != '') && ($pageNum > 1) )    // afficher lien vers la première page ?
+                    $navBar = $navBar . '<span class="firstPage"><a href="search?' . $baseQueryString . "&_start=1" . '">' . $firstLabel . '</a></span> ';
+                    
+                // TODO: ligne suivante nécessaire ?
+                $prevStart = $currentStart-$maxRes >=1 ? $currentStart-$maxRes : 1; // param start pour le lien vers la page précédente
+                $navBar = $navBar . '<span class="prevPage"><a href="search?' . $baseQueryString . "&_start=$prevStart" . '">' . $prevLabel . '</a></span> ';
             }
+            
+            // géncère les liens vers chaque numéro de page de résultats
+            for($pageNum; $pageNum <= $lastDispPageNum; ++$pageNum)
+            {
+                if($startParam == $currentStart)    // s'il s'agit du numéro de la page qu'on va afficher, pas de lien
+                    $navBar = $navBar . $pageNum . ' ';
+                else
+                    $navBar = $navBar . '<span class="pageNum"><a href="search?' . $baseQueryString . "&_start=$startParam" . '">'. $pageNum . '</a></span> ';
+                    
+                $startParam += $maxRes;
+            }
+            
+            // lien "page suivante" et éventuellement, lien vers la dernière page de la sélection
+            if (($currentPage < $lastSelPageNum))
+            {
+    //            TODO : ligne commentée nécessaire ?
+    //            $nextStart = $currentStart+$maxRes <= $this->selection->count() ? $currentStart+$maxRes : ;
+                $nextStart = $currentStart + $maxRes;   // param start pour le lien vers la page suivante
+                $navBar = $navBar . '<span class="nextPage"><a href="search?' . $baseQueryString . "&_start=$nextStart" . '">' . $nextLabel . '</a></span> ';
+                
+                if ( ($lastLabel != '') && ($lastDispPageNum < $lastSelPageNum) )   // afficher lien vers la dernière page ?
+                {
+                    $startParam = ($this->selection->count() % $maxRes) == 0 ? $this->selection->count() - $maxRes + 1 : intval($this->selection->count() / $maxRes) * $maxRes + 1;
+                    $navBar = $navBar . '<span class="lastPage"><a href="search?' . $baseQueryString . "&_start=$startParam" . '">' . $lastLabel . '</a></span>';
+                }
+            }
+            
+            return $navBar . "</span>";
         }
-        
-        return $navBar . "</span>";
+        else    // une seule page à afficher : on ne revoie pas de liens (chaîne vide)
+        {
+            return '';   
+        }
     }
     
     /**
