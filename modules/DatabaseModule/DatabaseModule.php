@@ -70,14 +70,14 @@ class DatabaseModule extends Module
      * @return boolean true si une recherche a été lancée et qu'on a au moins 
      * une réponse, false sinon
      */
-    private function OpenSelection($equation=null, $readOnly=false)
+    protected function OpenSelection($equation=null, $readOnly=false)
     {
         // Le fichier de config du module indique la base à utiliser
         $database=Config::get('database');
 
         if (is_null($database))
             throw new Exception('La base de données à utiliser n\'a pas été indiquée dans le fichier de configuration du module');
-
+        
         debug && Debug::log("Ouverture de la base '%s' en mode '%s'", $database, $readOnly ? 'lecture seule' : 'lecture/écriture');
         $this->selection=Database::open($database, $readOnly);
         
@@ -87,6 +87,7 @@ class DatabaseModule extends Module
             $result=$this->selection->search($equation, $_REQUEST);
             debug && Debug::log("Requête : %s, %s réponse(s).", $equation, $this->selection->count());
             return $result;
+            echo 'Après le search<br />';
         }
             
         return false;	
@@ -144,6 +145,34 @@ class DatabaseModule extends Module
         );
     }
     
+    
+    
+    /**
+     * Affiche un message si aucune réponse n'est associée la recherche.
+     * Le template à utiliser est indiqué dans la clé 'noanswertemplate' de la 
+     * configuration de l'action 'search'.
+     */
+    public function showNoAnswer($message='')
+    {
+        // Détermine le template à utiliser
+        if (! $template=$this->getTemplate('noanswertemplate'))
+        {
+            echo $message ? $message : 'La requête n\' retourné aucune réponse';
+            return;
+        }
+
+        // Détermine le callback à utiliser
+        $callback=$this->getCallback();
+
+        // Exécute le template
+        Template::run
+        (
+            $template,  
+            array($this, $callback),
+            array('error'=>$message)
+        );
+    }
+    
     /**
      * Lance une recherche si une équation peut être construite à partir des 
      * paramètres passés et affiche les notices obtenues en utilisant le template 
@@ -162,9 +191,6 @@ class DatabaseModule extends Module
             $this->equation=$this->makeEquation('_start,_max,_sort');
         }
         
-//        echo "equation = $this->equation";
-//        die();
-        
         // Si aucun paramètre de recherche n'a été passé, il faut afficher le formulaire
         // de recherche
         if (is_null($this->equation))
@@ -173,11 +199,9 @@ class DatabaseModule extends Module
         // Des paramètres ont été passés, mais tous sont vides et l'équation obtenue est vide
         if ($this->equation==='')
             return $this->showError('Vous n\'avez indiqué aucun critère de recherche.');
-//        echo 'equation = ', $this->equation;
-//        die();
-        // Lance la récherche
+
         if (! $this->openSelection($this->equation))
-            return $this->showError("Aucune réponse. Equation : $this->equation");
+            return $this->showNoAnswer("La requête $this->equation n'a donné aucune réponse.", 'noanswertemplate');
         
         // Détermine le template à utiliser
         if (! $template=$this->getTemplate('template'))
@@ -194,7 +218,7 @@ class DatabaseModule extends Module
             array
             (
                 'selection'=>$this->selection,
-                'equation'=>$this->equation
+                'equation'=>$this->equation,
             ),
             $this->selection->record
         );                
@@ -550,39 +574,76 @@ class DatabaseModule extends Module
      * 
      * Si aucun template n'est indiqué, affiche un message 'notice supprimée'.
      */
+     // Ancienne version de actionDelete utilisée pour supprimer une notice dont REF est passée en param
+//    public function actionDelete()
+//    {
+//        // Détermine la référence à supprimer         
+//        if (! $ref=Utils::get($_REQUEST['REF']))
+//            throw new Exception('Le numéro de la référence à supprimer n\'a pas été indiqué');
+//        
+//        // Ouvre la base sur la référence demandée
+//        if( ! $this->openSelection("REF=$ref", false) )
+//            throw new Exception('La référence demandée n\'existe pas');
+//        
+//        // Vérifie qu'elle existe
+//        if ($this->selection->count()==0)
+//            throw new Exception('La référence demandée n\'existe pas');
+//            
+//        // Supprime la notice
+//        $this->selection->deleteRecord();
+//        
+//        // Détermine le template à utiliser
+//        if (! $template=$this->getTemplate())
+//            echo '<p>Notice supprimée.</p>';
+//
+//        // Exécute le template
+//        else
+//        {
+//            // Détermine le callback à utiliser
+//            $callback=$this->getCallback();
+//
+//            Template::run
+//            (
+//                $template,  
+//                array($this, $callback)
+//            );
+//        }
+//    }
+    // réécriture de actionDelete pour fonctionner à partir d'une équation (toutes les applications basées
+    // sur Fab ne fonctionneront pas nécessairement avec un champ REF
     public function actionDelete()
     {
-        // Détermine la référence à supprimer         
-        if (! $ref=Utils::get($_REQUEST['REF']))
-            throw new Exception('Le numéro de la référence à supprimer n\'a pas été indiqué');
-        
-        // Ouvre la base sur la référence demandée
-        if( ! $this->openSelection("REF=$ref", false) )
-            throw new Exception('La référence demandée n\'existe pas');
-        
-        // Vérifie qu'elle existe
-        if ($this->selection->count()==0)
-            throw new Exception('La référence demandée n\'existe pas');
+        // récupère l'équation de recherche qui donne les enregistrements sur lesquels travailler
+        $this->equation = Utils::get($_REQUEST['equation']);
+        //$this->equation = substr($equation, 1, strlen($equation)-2);
+
+        // Paramètre equation manquant
+        if (is_null($this->equation) || (! $this->equation))
+            return $this->showError('Vous n\'avez indiqué aucun critère de recherche sur les enregistrements de la base de données.');
             
-        // Supprime la notice
-        $this->selection->deleteRecord();
+        // Lance la récherche
+        if (! $this->openSelection($this->equation) )
+            return $this->showError("Aucune réponse. Equation : $this->equation");
         
+        foreach ($this->selection as $record)
+        {
+            // Supprime la notice
+            $this->selection->deleteRecord();
+        }
         // Détermine le template à utiliser
         if (! $template=$this->getTemplate())
             echo '<p>Notice supprimée.</p>';
 
-        // Exécute le template
-        else
-        {
-            // Détermine le callback à utiliser
-            $callback=$this->getCallback();
+        // Détermine le callback à utiliser
+        $callback=$this->getCallback();
 
-            Template::run
-            (
-                $template,  
-                array($this, $callback)
-            );
-        }
+        // Exécute le template
+        Template::run
+        (
+            $template,  
+            array($this, $callback),
+            array('equation'=>$this->equation)
+        );
     }
     
     /**
@@ -591,8 +652,6 @@ class DatabaseModule extends Module
      */
      public function actionReplaceForm()
      {
-        // TODO : callback définit dans BaseDoc qui supprime 'REF' de la liste
-
         // récupère l'équation de recherche qui donne les enregistrements sur lesquels travailler
         $this->equation = Utils::get($_REQUEST['equation']);
         //$this->equation = substr($equation, 1, strlen($equation)-2);
@@ -730,7 +789,7 @@ class DatabaseModule extends Module
                 
                 case 'regExp' :         // Chercher/remplacer par expression régulière
                     if( ! $this->selection->pregReplace($fields, $search, $replace, $caseInsensitive))    // cf. Database.php
-                        echo 'L\'expression régulière ou vide ou mal formée : veillez à utiliser le même délimiteur de début et de fin<br />';
+                        echo 'L\'expression régulière est vide ou mal formée : veillez à utiliser le même délimiteur de début et de fin<br />';
                     break;
                 
                 case 'emptyFields' :    // Chercher/remplacer les champs vides
