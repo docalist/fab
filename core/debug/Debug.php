@@ -40,7 +40,15 @@ class Debug
         $format=array_shift($t);
         foreach($t as &$value)
         	$value=Debug::dump($value);
-        return vsprintf($format, $t);
+            
+//        echo "format = $format; t=";
+//        print_r($t);
+//        echo '<br />';
+
+        if ($t == array())
+            return '';
+        else
+            return vsprintf($format, $t);
     }
     
     public static function dump($var, $sortkeys=true)
