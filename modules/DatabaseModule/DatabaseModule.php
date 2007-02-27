@@ -190,7 +190,7 @@ class DatabaseModule extends Module
             // Construit l'équation de recherche à partir des param de la requête
             $this->equation=$this->makeEquation('_start,_max,_sort');
         }
-        
+        echo "equation = $this->equation";
         // Si aucun paramètre de recherche n'a été passé, il faut afficher le formulaire
         // de recherche
         if (is_null($this->equation))
@@ -424,6 +424,7 @@ class DatabaseModule extends Module
         
         // On exécute le template correspondant
         // Exécute le template
+
         Template::run
         (
             $template,
@@ -487,7 +488,7 @@ class DatabaseModule extends Module
      */
     public function actionSave()
     {
-        echo 'actionSave<br />';
+//        echo 'actionSave<br />';
 
         // Si ref n'a pas été transmis ou contient autre chose qu'un entier >= 0, erreur
         if (is_null($ref=Utils::get($_REQUEST['REF'])) || (! ctype_digit($ref)))
@@ -499,6 +500,7 @@ class DatabaseModule extends Module
         if ($ref>0)
         {
 //            echo 'dans le if <br />';
+//            die();
             // Ouvre la sélection
             debug && Debug::log('Chargement de la notice numéro %i', $ref);
             if (! $this->openSelection("REF=$ref", false))
@@ -510,7 +512,8 @@ class DatabaseModule extends Module
         // Sinon, on en créée une nouvelle
         else // ref==0
         {        
-//            echo 'dans le else <br />';
+            echo 'dans le else <br />';
+//            die();
             // Ouvre la sélection
             debug && Debug::log('Création d\'une nouvelle notice');
             $this->openSelection('', false); 
@@ -548,7 +551,8 @@ class DatabaseModule extends Module
         // Enregistre la notice
         debug && Debug::log('Sauvegarde de la notice');
         $this->selection->saveRecord();   // TODO: gestion d'erreurs
-        
+//        echo "ref = $ref";
+        die();
         // redirige vers le template s'il y en a un, vers l'action show sinon
         if (! $template=$this->getTemplate())
         {
@@ -616,7 +620,9 @@ class DatabaseModule extends Module
         // récupère l'équation de recherche qui donne les enregistrements sur lesquels travailler
         $this->equation = Utils::get($_REQUEST['equation']);
         //$this->equation = substr($equation, 1, strlen($equation)-2);
-
+        
+        echo "equation = $this->equation<br />";
+        
         // Paramètre equation manquant
         if (is_null($this->equation) || (! $this->equation))
             return $this->showError('Vous n\'avez indiqué aucun critère de recherche sur les enregistrements de la base de données.');
@@ -625,8 +631,11 @@ class DatabaseModule extends Module
         if (! $this->openSelection($this->equation) )
             return $this->showError("Aucune réponse. Equation : $this->equation");
         
+        echo "<strong>this->selection</strong> = ", var_dump($this->selection), " <strong>count</strong> = ", $this->selection->count(), "<br /><br />";
+        
         foreach ($this->selection as $record)
         {
+            echo "deleteRecord called for ", var_dump($record), 'REF = ', $this->selection['REF'], "<br />";
             // Supprime la notice
             $this->selection->deleteRecord();
         }
@@ -638,12 +647,12 @@ class DatabaseModule extends Module
         $callback=$this->getCallback();
 
         // Exécute le template
-        Template::run
-        (
-            $template,  
-            array($this, $callback),
-            array('equation'=>$this->equation)
-        );
+//        Template::run
+//        (
+//            $template,  
+//            array($this, $callback),
+//            array('equation'=>$this->equation)
+//        );
     }
     
     /**
@@ -752,7 +761,7 @@ class DatabaseModule extends Module
         else
         {
             if(! is_null($regExp))
-            {
+            {                
                 $searchType = 'regExp';
                 $search = '~' . $search . '~';  // délimiteurs de l'expression régulière
             }
@@ -776,24 +785,27 @@ class DatabaseModule extends Module
                 
         // ******** TODO: déléguer le boulot au TaskManager (exécution peut être longue) **********
         
+        $status = 0;    // y-a-t-il eu au moins un remplacement d'effectué (si oui, vaut 1 à la sortie de la boucle) ?
+        
         // effectue le chercher/remplacer
         foreach($this->selection as & $record)
-        {            
+        {          
             $this->selection->editRecord(); // on passe en mode édition de l'enregistrement
             switch($searchType)
             {
                 case 'string' :         // Recherche par chaîne de caractères
-                    if( ! $this->selection->strReplace($fields, $search, $replace, $caseInsensitive, $wholeWord))    // cf. Database.php
-                        echo 'La chaîne de recherche que vous avez indiquée est vide.<br />';
+                    if ($this->selection->strReplace($fields, $search, $replace, $caseInsensitive, $wholeWord))    // cf. Database.php
+                        $status = 1;
                     break;
-                
+                    
                 case 'regExp' :         // Chercher/remplacer par expression régulière
-                    if( ! $this->selection->pregReplace($fields, $search, $replace, $caseInsensitive))    // cf. Database.php
-                        echo 'L\'expression régulière est vide ou mal formée : veillez à utiliser le même délimiteur de début et de fin<br />';
+                    if ($this->selection->pregReplace($fields, $search, $replace, $caseInsensitive))    // cf. Database.php
+                        $status = 1;
                     break;
-                
+                    
                 case 'emptyFields' :    // Chercher/remplacer les champs vides
-                    $this->selection->replaceEmpty($fields, $replace);    
+                    if ($this->selection->replaceEmpty($fields, $replace))  
+                        $status = 1;
                     break;
             }
             $this->selection->saveRecord();
@@ -811,7 +823,7 @@ class DatabaseModule extends Module
         (
             $template,  
             array($this, $callback),
-            array('selection'=>$this->selection),
+            array('selection'=>$this->selection, 'replaceStatus'=>$status, 'equation'=>$this->equation),
             $this->selection->record
         ); 
      }
