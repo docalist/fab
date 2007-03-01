@@ -15,23 +15,32 @@
 class Debug
 {
     public static $log=array();
+    const LOG=0, NOTICE=1, WARNING=2;
+    private static function logMessage($level, $args)
+    {
+        if (count($args)>1)
+            $h=call_user_func_array(array('self','sprintfColor'), $args);
+        else
+            $h=$args[0];
+        self::$log[]=array(Utils::callLevel()-2, Utils::callerClass(3), $level, $h);
+    }
     
     public static function log()
     {
         $t=func_get_args();
-        self::$log[]=array(Utils::callLevel()-1, Utils::callerClass(2), 0, call_user_func_array(array('self','sprintfColor'), $t));
+        self::logMessage(self::LOG, $t);
     }
     
     public static function notice()
     {
         $t=func_get_args();
-        self::$log[]=array(Utils::callLevel()-1, Utils::callerClass(2), 1, call_user_func_array(array('self','sprintfColor'), $t));
+        self::logMessage(self::NOTICE, $t);
     }
     
     public static function warning()
     {
         $t=func_get_args();
-        self::$log[]=array(Utils::callLevel()-1, Utils::callerClass(2), 2, call_user_func_array(array('self','sprintfColor'), $t));
+        self::logMessage(self::WARNING, $t);
     }
     
     public static function sprintfColor()
@@ -40,15 +49,7 @@ class Debug
         $format=array_shift($t);
         foreach($t as &$value)
         	$value=Debug::dump($value);
-            
-//        echo "format = $format; t=";
-//        print_r($t);
-//        echo '<br />';
-
-        if ($t == array())
-            return '';
-        else
-            return vsprintf($format, $t);
+        return vsprintf($format, $t);
     }
     
     public static function dump($var, $sortkeys=true)
