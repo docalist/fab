@@ -87,7 +87,6 @@ class DatabaseModule extends Module
             $result=$this->selection->search($equation, $_REQUEST);
             debug && Debug::log("Requête : %s, %s réponse(s).", $equation, $this->selection->count());
             return $result;
-            echo 'Après le search<br />';
         }
             
         return false;	
@@ -202,7 +201,7 @@ class DatabaseModule extends Module
 
         if (! $this->openSelection($this->equation))
             return $this->showNoAnswer("La requête $this->equation n'a donné aucune réponse.", 'noanswertemplate');
-        
+            
         // Détermine le template à utiliser
         if (! $template=$this->getTemplate('template'))
             throw new Exception('Le template à utiliser n\'a pas été indiqué');
@@ -489,6 +488,8 @@ class DatabaseModule extends Module
     public function actionSave()
     {
 //        echo 'actionSave<br />';
+        ftrace(str_repeat('-', 80));
+        ftrace('Entrée dans actionSave');
 
         // Si ref n'a pas été transmis ou contient autre chose qu'un entier >= 0, erreur
         if (is_null($ref=Utils::get($_REQUEST['REF'])) || (! ctype_digit($ref)))
@@ -502,7 +503,7 @@ class DatabaseModule extends Module
 //            echo 'dans le if <br />';
 //            die();
             // Ouvre la sélection
-            debug && Debug::log('Chargement de la notice numéro %i', $ref);
+            debug && Debug::log('Chargement de la notice numéro %s', $ref);
             if (! $this->openSelection("REF=$ref", false))
                 throw new Exception('La référence demandée n\'existe pas');
                 
@@ -512,7 +513,7 @@ class DatabaseModule extends Module
         // Sinon, on en créée une nouvelle
         else // ref==0
         {        
-            echo 'dans le else <br />';
+//            echo 'dans le else <br />';
 //            die();
             // Ouvre la sélection
             debug && Debug::log('Création d\'une nouvelle notice');
@@ -537,7 +538,7 @@ class DatabaseModule extends Module
             $fieldValue=Utils::get($_REQUEST[$fieldName], null);
                 
             // Permet à l'application d'interdire la modification du champ ou de modifier la valeur
-            if ($callback == 'none' || $this->$callback($fieldName, $fieldValue) !== false)
+            if ($callback === 'none' || $this->$callback($fieldName, $fieldValue) !== false)
             {
                 // Si la valeur est un tableau, convertit en articles séparés par le séparateur
                 if (is_array($fieldValue))
@@ -549,26 +550,59 @@ class DatabaseModule extends Module
         }
         
         // Enregistre la notice
-        debug && Debug::log('Sauvegarde de la notice');
+        debug && Debug::log('Sauvegarde de la notice %s', $ref);
+        ftrace('Appel de SaveRecord');
+        ob_start();
         $this->selection->saveRecord();   // TODO: gestion d'erreurs
+        $output=ob_get_clean();
+        ftrace('Après SaveRecord');
+        ftrace('ob output : ' . $output);
+        foreach($this->selection->record as $fieldName => $fieldValue)
+            if ($fieldValue) ftrace($fieldName . '=' . $fieldValue);         
+
+            unset($this->selection);
+            unset($this->record);
+            unset($fieldName);
+            unset($fieldValue);
+        ftrace('fermeture te ré-ouverture de la base');
+
+        $bis=new COM('Bis.Engine');
+        $dbpath='d:/WebApache/AscoFuturSite/data/db/ascodocpsy.bed';
+        $db=$bis->openDatabase($dbpath, false, true);
+        $dataset=$db->datasets(1)->name;
+        $selection=$db->openSelection($dataset);
+        $selection->equation='REF=' . $ref;
+        $fields=$selection->fields;
+        for ($i=1; $i<=$fields->count;$i++)
+            ftrace($fields[$i]->name . '=' . $fields[$i]->value);         
+             
+//            $this->openSelection("REF=$ref", false);
+//        foreach($this->selection->record as $fieldName => $fieldValue)
+//            if ($fieldValue) ftrace($fieldName . '=' . $fieldValue);         
+//sleep(5);
+        
 //        echo "ref = $ref";
-        die();
+//        die();
         // redirige vers le template s'il y en a un, vers l'action show sinon
         if (! $template=$this->getTemplate())
         {
+            ftrace('Aucun template indiqué, redirection vers le show');
             // Redirige l'utilisateur vers l'action show
-            debug && Debug::log('Redirection pour afficher la notice enregistrée');
+            debug && Debug::log('Redirection pour afficher la notice enregistrée %s', $ref);
             Runtime::redirect('/base/show?REF='.$ref);
+            ftrace('not reached');
         }
         else
         {
+            ftrace('Un template a été indiqué, template::run');
             Template::run
             (
                 $template,
 //                array($this, $callback),  TODO
-                array('selection'=>$this->selection),
+                array('selection'=>$this->selection, 'equationAnswers'=>'NA', 'ShowModifyBtn'=>false),
                 $this->selection->record
             );
+            ftrace('Template exécuté');
         }
     }
     
@@ -633,9 +667,9 @@ class DatabaseModule extends Module
         
         echo "<strong>this->selection</strong> = ", var_dump($this->selection), " <strong>count</strong> = ", $this->selection->count(), "<br /><br />";
         
-        foreach ($this->selection as $record)
+        while ($this->selection->count())
         {
-            echo "deleteRecord called for ", var_dump($record), 'REF = ', $this->selection['REF'], "<br />";
+//            echo "deleteRecord called for ", var_dump($record), 'REF = ', $this->selection['REF'], "<br />";
             // Supprime la notice
             $this->selection->deleteRecord();
         }
@@ -730,85 +764,98 @@ class DatabaseModule extends Module
     /**
      * Effectue le chercher/remplacer et appelle le template indiqué dans la clé
      * template de la configuration ensuite : feedback
+     * 
+     * La source de donnée $status est passé à Template::run et permet au template d'afficher
+     * s'il y a eu une erreur ($status == -1) et si non ($status >= 0), d'afficher le nombre d'occurences
+     * remplacées par le chercher/remplacer
+     *  
      */
      public function actionReplace()
      {
-        //TODO : gestion d'erreurs
-                
-        // Récupérer l'équation de recherche
-        $this->equation=Utils::get($_REQUEST['equation']);
-        $search=Utils::get($_REQUEST['search']);
-        $replace=Utils::get($_REQUEST['replaceStr']);
-        $wholeWord=Utils::get($_REQUEST['wholeWord']);
-        $caseInsensitive=Utils::get($_REQUEST['caseInsensitive']);
-        $regExp=Utils::get($_REQUEST['regExp']);
-        $fields = Utils::get($_REQUEST['fields']);
+        // Récupérer les paramètres
+        $this->equation=Utils::get($_REQUEST['equation'], '');
+
+        $search=Utils::get($_REQUEST['search'], '');
+        $replace=Utils::get($_REQUEST['replaceStr'], '');
+        $fields = (array) Utils::get($_REQUEST['fields']);
         
+        $wholeWord=is_null(Utils::get($_REQUEST['wholeWord'])) ? false : true;
+        $caseInsensitive=is_null(Utils::get($_REQUEST['caseInsensitive'])) ? false : true;
+        $regExp=is_null(Utils::get($_REQUEST['regExp'])) ? false : true;
+        
+        // Vérifie que les données sont renseignées
         if ($this->equation==='')
             return $this->showError('Vous n\'avez indiqué aucun critère de recherche sur les enregistrements de la base de données.');
-            
-        // données non renseignées
-        if (is_null($fields) || (is_null($search) && is_null($replace)))
+
+        if (count($fields)==0 || ($search==='' && $replace===''))
             Runtime::redirect('replaceform?equation=' . urlencode($this->equation));
             
-        // Ajustement des valeurs des variables pour les passer aux fonctions de bas niveau
+        // Lance la requête qui détermine les enregistrements sur lesquels on va opérer le chercher/remplacer 
+        if (! $this->openSelection($this->equation))
+            return $this->showError("Aucune réponse. Equation : $this->equation");
+            
+        $count = 0;         // nombre de remplacements effectués par enregistrement
+        $totalCount = 0;    // nombre total de remplacements effectués sur le sous-ensemble de notices
         
-        if (! is_array($fields))
-            $fields = array(0=>$fields);    // il nous faut un tableau pour fields
-         
-        if (is_null($search))
-            $searchType = 'emptyFields';
-        else
+        // TODO: déléguer le boulot au TaskManager (exécution peut être longue)
+
+        // Search est vide : on injecte la valeur indiquée par replace dans les champs
+        if ($search==='')
         {
-            if(! is_null($regExp))
-            {                
-                $searchType = 'regExp';
-                $search = '~' . $search . '~';  // délimiteurs de l'expression régulière
+            foreach($this->selection as $record)
+            {          
+                $this->selection->editRecord(); // on passe en mode édition de l'enregistrement
+                $this->selection->replaceEmpty($fields, $replace, $count);             
+                $this->selection->saveRecord();
+                $totalCount += $count;
             }
-            else
-                $searchType = 'string';
         }
         
-        if(! is_null($wholeWord))
-            $wholeWord = true;
-        else
-            $wholeWord = false;
-            
-        if(! is_null($caseInsensitive))
-            $caseInsensitive = true;
-        else
-            $caseInsensitive = false;
-
-        // Lance la requête qui détermine les enregistrements sur lesquels on va opérer le chercher/remplacer 
-        if (! $this->openSelection($this->equation))            // TODO : il n'y a rien a remplacer, qu'est-ce qu'on fait ?
-            return $this->showError("Aucune réponse. Equation : $this->equation");
-                
-        // ******** TODO: déléguer le boulot au TaskManager (exécution peut être longue) **********
-        
-        $status = 0;    // y-a-t-il eu au moins un remplacement d'effectué (si oui, vaut 1 à la sortie de la boucle) ?
-        
-        // effectue le chercher/remplacer
-        foreach($this->selection as & $record)
-        {          
-            $this->selection->editRecord(); // on passe en mode édition de l'enregistrement
-            switch($searchType)
+        // chercher/remplacer sur exp reg ou chaîne
+        else        
+        {
+            if ($regExp || $wholeWord)
             {
-                case 'string' :         // Recherche par chaîne de caractères
-                    if ($this->selection->strReplace($fields, $search, $replace, $caseInsensitive, $wholeWord))    // cf. Database.php
-                        $status = 1;
-                    break;
+                // expr reg ou alors chaîne avec 'Mot entier' non sélectionné
+                // dans ces deux-cas, on appellera pregReplace pour simplier
+
+                // échappe le '~' éventuellement entré par l'utilisateur car on l'utilise comme délimiteur
+                $search = str_replace('~', '\~', $search);
+                
+                if ($wholeWord)
+                    $search = $search = '~\b' . $search . '\b~';
+                else
+                    $search = '~' . $search . '~';  // délimiteurs de l'expression régulière
                     
-                case 'regExp' :         // Chercher/remplacer par expression régulière
-                    if ($this->selection->pregReplace($fields, $search, $replace, $caseInsensitive))    // cf. Database.php
-                        $status = 1;
-                    break;
+                if ($caseInsensitive)
+                    $search = $search . 'i';
+
+                foreach($this->selection as $record)
+                {          
+                    $this->selection->editRecord(); // on passe en mode édition de l'enregistrement
                     
-                case 'emptyFields' :    // Chercher/remplacer les champs vides
-                    if ($this->selection->replaceEmpty($fields, $replace))  
-                        $status = 1;
-                    break;
+                    if (! $this->selection->pregReplace($fields, $search, $replace, $count))    // cf. Database.php
+                    {
+                        $totalCount = false;
+                        break;   
+                    }    
+                    
+                    $this->selection->saveRecord();
+                    $totalCount += $count;
+                }
             }
-            $this->selection->saveRecord();
+            
+            // chercher/remplacer sur une chaîne
+            else
+            {
+                foreach($this->selection as $record)
+                {          
+                    $this->selection->editRecord(); // on passe en mode édition de l'enregistrement
+                    $this->selection->strReplace($fields, $search, $replace, $caseInsensitive, $count);    // cf. Database.php
+                    $this->selection->saveRecord();
+                    $totalCount += $count;
+                }
+            }
         }
         
         // Détermine le template à utiliser
@@ -823,11 +870,10 @@ class DatabaseModule extends Module
         (
             $template,  
             array($this, $callback),
-            array('selection'=>$this->selection, 'replaceStatus'=>$status, 'equation'=>$this->equation),
+            array('selection'=>$this->selection, 'count'=>$totalCount, 'equation'=>$this->equation),
             $this->selection->record
         ); 
      }
-
      
     // ****************** fonctions surchargeables ***************
     /**
@@ -1034,4 +1080,10 @@ class DatabaseModule extends Module
     }
     
 }
+function ftrace($h)
+{
+    $f=fopen(__FILE__ . '.txt', 'a');
+    fwrite($f, $h . "\n");
+    fclose($f);
+}    
 ?>
