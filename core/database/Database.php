@@ -730,33 +730,32 @@ abstract class Database implements ArrayAccess, Iterator
      * @param string $pattern le pattern à utiliser pour l'expression régulière de recherche
      * @param string $replace la chaîne de remplacement pour les occurences trouvées
      * @param bool $caseInsensitive indique si la recherche est insensible à la casse
+     * @param int $totalCount référence qui stockera le nombre d'occurences remplacées par la fonction
      * 
-     * @return false si rien n'a été remplacé
+     * @return bool false si erreur et true sinon
      */
-    public function pregReplace($fields, $pattern, $replace, $caseInsensitive = false)
+    public function pregReplace($fields, $pattern, $replace, & $totalCount)
     {
-        // (une partie de cette vérification est faite plus bas et peut-être recopiée)
-//        $endDelimiter = strpos($pattern, $pattern[0], 1); // position du délimiteur de fin de pattern de recherche
+        $totalCount = 0;    // nombre total de remplacements effectués
+        $count = 0;         // nombre de remplacements effectués pour un champ
         
-        if ($caseInsensitive)
-        {            
-//            if ($end == strlen($pattern) - 1 || strpos($pattern, 'i', $end) === false)
-//            if ($endDelimiter == strlen($pattern) - 1)
-                $pattern = $pattern . 'i';  // spécifie une recherche insensible à la casse
-        }
-
-        $replaced = false;     // nombre de champs pour lequel au moins un remplacement à été effectué
-        
-        // boucle sur les champs pour effectuer le remplacement éventuel
-        foreach($this->record as $field => $value)
+        // boucle sur tous les champs à remplacer
+        foreach($fields as $field)
         {
-            if (in_array($field, $fields))
-                $this->record[$field] = preg_replace($pattern, $replace, $value);  
+            $value=$this->record[$field];
+//            echo "$field => $value<br />";
+            
+            if (is_null($value) || $value==='' ) continue;
+            
+            // TODO: si possible, utiliser preg_last_error à partir de PHP 5.2.0
+            if (is_null($value = @preg_replace($pattern, $replace, $value, -1, $count))) 
+                return false;
                 
-            if ($this->record[$field] != $value)
-                $replaced = true;  
-        } 
-        return $replaced;
+            $this->record[$field] = $value;
+            $totalCount += $count;   
+        }
+        
+        return true;   // tout s'est bien déroulé        
     }
     
  
@@ -773,74 +772,34 @@ abstract class Database implements ArrayAccess, Iterator
      * si nécessaire par cette fonction
      * @param bool $wholeWord indique si on recherche uniquement le(s) mot(s) entier(s) correspondant(s)
      * à search (true) dans l'enregistrement en cours
+     * @param int $totalCount référence qui stockera le nombre d'occurences remplacées par la fonction
      * 
-     * @return false si rien n'a été remplacé
+     * @return bool false si erreur et true sinon
      */
-    public function strReplace($fields, $search, $replace, $caseInsensitive = false, $wholeWord = false)
+    public function strReplace($fields, $search, $replace, $caseInsensitive = false, & $totalCount)
     {
-        // TODO: que faire ici ? Quand faire trim etc. ? Assimiler chaîne ' ' à chaîne vide ?
-//        if ( ($search == null) || trim($search) == '')
-//            return false;
-//        else
-//            $search = trim($search);
-            
-        if ($wholeWord)
-        {
-            $pattern = '~\b' . $search . '\b~';
-            if ($caseInsensitive)
-                $pattern = $pattern . 'i';
-        }
-        else
-        {
-            if($caseInsensitive)
-                $search = strtolower($search);   // pour optimiser un peu la boucle principale
-        }
-//        if ($wholeWord)
-//        {
-//            $search = ' ' . $search . ' ';   // ajoute des espaces pour simplifier la suite
-//            $replace = ' ' . $replace . ' ';
-//        }
+        if($caseInsensitive)
+            $search = strtolower($search);   // pour optimiser un peu la boucle principale
         
-        $replaced = false;    // indique si au moins un remplacement à été effectué ou pas
-        
+        $totalCount = 0;    // nombre total de remplacements effectués
+        $count = 0;         // nombre de remplacements effectués pour chaque champ
+                            
         // boucle sur les champs et effecue le chercher/remplacer
-        foreach($this->record as $field => $value)
+        foreach($fields as $field)
         {
-            if (in_array($field, $fields))
-            {
-                // TODO : ne fonctionne pas avec des tabulations, "'", etc.
-                // Exemple : dans "l'ensemble", "ensemble" est bien un mot mais il n'est pas remplacé
-                // si on sélectionne "Mots entiers"
-                // => Il faudra sûrement utiliser des expressions régulières si $wholeWord vaut true
-                
-//                if ($wholeWord)
-//                    $value = ' ' . $value . ' ';    // pré-traitement : ajoute des espaces pour simplifier la suite
-                
-                if ($wholeWord)
-                {
-                    // TODO: que faire si preg_replace génère une erreur (expr reg mal formée etc.) ?
-                    // ne pas passer $caseInsensitive puisque le modificateur 'i' a déjà été ajouté à $pattern
-                    $this->record[$field] = preg_replace($pattern, $replace, $value);
-                }
-                else
-                {
-                    $count = 0;     // nombre de remplacements effectuées
-                    if (! $caseInsensitive)
-                        $this->record[$field] = str_replace($search, $replace, $value);
-                    else
-                        $this->record[$field] = str_replace($search, $replace, strtolower($value));
-                        
-                }
-                
-                if ($this->record[$field] != $value)    // au moins un remplacement effectué
-                    $replaced = true;
-                    
-//                if($wholeWord)      // post-traitement : supprime les 2 espaces ajoutés en pré-traitement       
-//                    $this->record[$field] = substr($this->record[$field], 1, strlen($this->record[$field])-2);
-            }    
-        } 
+            $value = $this->record[$field];  
         
-        return $replaced;
+            if (is_null($value) || $value === '') continue;
+
+            if ($caseInsensitive)
+                $value = strtolower($value);
+                
+            $this->record[$field] = str_replace($search, $replace, $value, $count); // effectue le remplacement
+
+            $totalCount += $count;  // Met à jour le compteur
+        }      
+        
+        return true;
     }
     
     /**
@@ -849,22 +808,21 @@ abstract class Database implements ArrayAccess, Iterator
      * 
      * @param array fields la liste des champs sur lesquels on effectue le chercher/remplacer
      * @param string $replace la chaîne de remplacement pour les champs vides trouvés
+     * @param int $count référence qui stockera le nombre d'occurences remplacées par la fonction
      * 
      */
-     public function replaceEmpty($fields, $replace)
+     public function replaceEmpty($fields, $replace, & $count)
      {
-        $replaced = false;      // au moins un remplacement effectué ?
+        $count = 0;      // nombre de remplacements
         
-        foreach($this->record as $field => $value)
+        foreach($fields as $field)
         {
-            if (in_array($field, $fields) && $value == '')
+            if ($this->record[$field] === '')
             {
                 $this->record[$field] = $replace;
-                $replaced = true;   // un nouveau remplacement effectué
-            }
+                ++$count;
+            }               
         }
-        
-        return $replaced;
      }
 }
 
