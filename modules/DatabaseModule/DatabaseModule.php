@@ -184,7 +184,8 @@ class DatabaseModule extends Module
     {
         $this->equation=$this->makeEquation('_start,_max,_sort');
 
-        echo "equation = $this->equation";
+//        echo "equation = $this->equation";
+
         // Si aucun paramètre de recherche n'a été passé, il faut afficher le formulaire
         // de recherche
         if (is_null($this->equation))
@@ -486,8 +487,6 @@ class DatabaseModule extends Module
         // Si un numéro de référence a été indiqué, on charge cette notice         
         if ($ref>0)
         {
-//            echo 'dans le if <br />';
-//            die();
             // Ouvre la sélection
             debug && Debug::log('Chargement de la notice numéro %s', $ref);
             if (! $this->openSelection("REF=$ref", false))
@@ -499,8 +498,6 @@ class DatabaseModule extends Module
         // Sinon, on en créée une nouvelle
         else // ref==0
         {        
-//            echo 'dans le else <br />';
-//            die();
             // Ouvre la sélection
             debug && Debug::log('Création d\'une nouvelle notice');
             $this->openSelection('', false); 
@@ -684,7 +681,7 @@ class DatabaseModule extends Module
      * template de la configuration
      */
      public function actionReplaceForm()
-     {
+     {        
         // récupère l'équation de recherche qui donne les enregistrements sur lesquels travailler
         $this->equation=$this->makeEquation('_start,_max,_sort');
         
@@ -705,25 +702,30 @@ class DatabaseModule extends Module
         // On suppose que la sélection peut contenir des enregistrements provenants de différentes tables (pas la même structure)
         $fieldList = array();   // le tableau global qui contient les tableaux de champs
         
-        // la liste de tous les champs à ignorer : les champs en lecture seule indiqués dans la config (identifiant tel que REF par ex)
-        // plus ceux déjà ajoutés au tableau principal $fieldList
-        $ignore = Config::get('readonly');
-        if ($ignore == NULL)
-        {
-            $ignore = array();
-        }
-        else
-        {
-            if (! is_array($ignore))
-                $ignore = array($ignore);   
-        }
+//        // la liste de tous les champs à ignorer : les champs en lecture seule indiqués dans la config (identifiant tel que REF par ex)
+//        // plus ceux déjà ajoutés au tableau principal $fieldList
+//        $ignore = Config::get('readonly');
+//        if ($ignore == NULL)
+//        {
+//            $ignore = array();
+//        }
+//        else
+//        {
+//            if (! is_array($ignore))
+//                $ignore = array($ignore);   
+//        }
         
+        // Si on est certain de n'avoir que des enregistrements de même nature (même noms de champs),
+        // on peut vouloir boucler sur un seul enregistrement (au lieu de tous à l'heure actuelle)
+        // Cependant, dans le cas de nombreuses BDD relationnelles, une selection peut être composé d'enreg
+        // de nature différente (différentes tables)
+        // TODO: optimisation possible si on a un fichier structure BDD
         foreach($this->selection as $record)
         {
             $newField = array();    // un tableau par champ trouvé
             foreach($record as $fieldName => $fieldValue)
             {
-                if (in_array($fieldName, $ignore) === false)
+                if ($fieldName !== 'REF')   // REF n'est pas modifiable
                 {
                     $newField['code'] = $fieldName;
                     $newField['label'] = $fieldName;    // on affichera directement le code du champs tel que dans la BDD
