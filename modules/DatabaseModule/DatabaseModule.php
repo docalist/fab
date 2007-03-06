@@ -182,13 +182,8 @@ class DatabaseModule extends Module
      */
     public function actionSearch()
     {
-        $this->equation = Utils::get($_REQUEST['_equation']);
+        $this->equation=$this->makeEquation('_start,_max,_sort');
 
-        if( is_null($this->equation))   // l'équation n'a pas été directement tapée par l'utilisateur ?
-        {        
-            // Construit l'équation de recherche à partir des param de la requête
-            $this->equation=$this->makeEquation('_start,_max,_sort');
-        }
         echo "equation = $this->equation";
         // Si aucun paramètre de recherche n'a été passé, il faut afficher le formulaire
         // de recherche
@@ -214,11 +209,6 @@ class DatabaseModule extends Module
         (
             $template,  
             array($this, $callback),
-            array
-            (
-                'selection'=>$this->selection,
-                'equation'=>$this->equation,
-            ),
             $this->selection->record
         );                
     }
@@ -333,7 +323,7 @@ class DatabaseModule extends Module
             {
                 if($startParam == $currentStart)    // s'il s'agit du numéro de la page qu'on va afficher, pas de lien
                     $navBar = $navBar . $pageNum . ' ';
-                else
+                else 
                     $navBar = $navBar . '<span class="pageNum"><a href="search?' . $baseQueryString . "&_start=$startParam" . '">'. $pageNum . '</a></span> ';
                     
                 $startParam += $maxRes;
@@ -373,7 +363,8 @@ class DatabaseModule extends Module
     public function actionShow()
     {
         // Construit l'équation de recherche
-        $this->equation=$this->makeEquation('start,nb');
+        $this->equation=$this->makeEquation('_start,_max,_sort,_nb');
+//        $this->equation=$this->makeEquation('start,nb');
                 
         // Si aucun paramètre de recherche n'a été passé, erreur
         if (is_null($this->equation))
@@ -399,11 +390,6 @@ class DatabaseModule extends Module
         (
             $template,  
             array($this, $callback),
-            array
-            (
-                'selection'=>$this->selection,
-                'record'=>$this->selection->record
-            ),
             $this->selection->record
         );  
     }
@@ -440,7 +426,8 @@ class DatabaseModule extends Module
     public function actionLoad()
     {
         // Construit l'équation de recherche
-        $this->equation=$this->makeEquation('start,nb');
+        $this->equation=$this->makeEquation('_start,_max,_sort,_nb');
+//        $this->equation=$this->makeEquation('start,nb');
         
         // Si aucun paramètre de recherche n'a été passé, erreur
         if (is_null($this->equation))
@@ -471,7 +458,6 @@ class DatabaseModule extends Module
         (
             $template,  
             array($this, $callback),
-            array('selection'=>$this->selection),
             $this->selection->record
         );             
     }
@@ -599,7 +585,7 @@ class DatabaseModule extends Module
             (
                 $template,
 //                array($this, $callback),  TODO
-                array('selection'=>$this->selection, 'equationAnswers'=>'NA', 'ShowModifyBtn'=>false),
+                array('equationAnswers'=>'NA', 'ShowModifyBtn'=>false),
                 $this->selection->record
             );
             ftrace('Template exécuté');
@@ -652,8 +638,8 @@ class DatabaseModule extends Module
     public function actionDelete()
     {
         // récupère l'équation de recherche qui donne les enregistrements sur lesquels travailler
-        $this->equation = Utils::get($_REQUEST['equation']);
-        //$this->equation = substr($equation, 1, strlen($equation)-2);
+        $this->equation=$this->makeEquation('_start,_max,_sort');
+//        $this->equation = Utils::get($_REQUEST['_equation']);
         
         echo "equation = $this->equation<br />";
         
@@ -665,14 +651,19 @@ class DatabaseModule extends Module
         if (! $this->openSelection($this->equation) )
             return $this->showError("Aucune réponse. Equation : $this->equation");
         
-        echo "<strong>this->selection</strong> = ", var_dump($this->selection), " <strong>count</strong> = ", $this->selection->count(), "<br /><br />";
-        
-        while ($this->selection->count())
+        echo "Entrée dans la boucle<br />";
+        while ($count = $this->selection->count())
         {
+            echo "Avant deleteRecord : count = ", var_dump($count), "<br />";
+            echo "this->selection->record = ", var_dump($this->selection->record), "<br />";
 //            echo "deleteRecord called for ", var_dump($record), 'REF = ', $this->selection['REF'], "<br />";
             // Supprime la notice
+//            echo "current['REF'] = ", var_dump($this->selection->current());
             $this->selection->deleteRecord();
+            echo "Après deleteRecord : count = ", var_dump($count), "<br />";
         }
+        echo "Sortie de la boucle<br />";
+        
         // Détermine le template à utiliser
         if (! $template=$this->getTemplate())
             echo '<p>Notice supprimée.</p>';
@@ -681,12 +672,11 @@ class DatabaseModule extends Module
         $callback=$this->getCallback();
 
         // Exécute le template
-//        Template::run
-//        (
-//            $template,  
-//            array($this, $callback),
-//            array('equation'=>$this->equation)
-//        );
+        Template::run
+        (
+            $template,  
+            array($this, $callback)
+        );
     }
     
     /**
@@ -696,8 +686,7 @@ class DatabaseModule extends Module
      public function actionReplaceForm()
      {
         // récupère l'équation de recherche qui donne les enregistrements sur lesquels travailler
-        $this->equation = Utils::get($_REQUEST['equation']);
-        //$this->equation = substr($equation, 1, strlen($equation)-2);
+        $this->equation=$this->makeEquation('_start,_max,_sort');
         
         // Paramètre equation manquant
         if (is_null($this->equation) || (! $this->equation))
@@ -765,15 +754,16 @@ class DatabaseModule extends Module
      * Effectue le chercher/remplacer et appelle le template indiqué dans la clé
      * template de la configuration ensuite : feedback
      * 
-     * La source de donnée $status est passé à Template::run et permet au template d'afficher
-     * s'il y a eu une erreur ($status == -1) et si non ($status >= 0), d'afficher le nombre d'occurences
-     * remplacées par le chercher/remplacer
+     * La source de donnée $count est passé à Template::run et permet au template d'afficher
+     * s'il y a eu une erreur ($count === false) ou le nombre de remplacements effectués s'il n'y a pas d'erreur
+     * ($count contient alors le nombre d'occurences remplacées)
      *  
      */
      public function actionReplace()
      {
         // Récupérer les paramètres
-        $this->equation=Utils::get($_REQUEST['equation'], '');
+        $this->equation=$this->makeEquation('_start,_max,_sort,search,replaceStr,fields,wholeWord,caseInsensitive,regExp');
+//        $this->equation=Utils::get($_REQUEST['_equation'], '');
 
         $search=Utils::get($_REQUEST['search'], '');
         $replace=Utils::get($_REQUEST['replaceStr'], '');
@@ -870,7 +860,7 @@ class DatabaseModule extends Module
         (
             $template,  
             array($this, $callback),
-            array('selection'=>$this->selection, 'count'=>$totalCount, 'equation'=>$this->equation),
+            array('count'=>$totalCount),
             $this->selection->record
         ); 
      }
@@ -1011,6 +1001,12 @@ class DatabaseModule extends Module
      */
     public function makeEquation($ignore='')
     {
+        // si '_equation' a été transmis, on prend tel quel
+        if (! is_null($equation = Utils::get($_REQUEST['_equation']))) return $equation;
+        
+//        echo "makeEquation: equation = $equation<br />";
+
+        // Sinon, construit l'équation de recherche à partir des param de la requête
         if ($ignore) $ignore='|' . str_replace(',', '|', preg_quote($ignore, '~'));
         $namesToIgnore="~module|action|bq.+|".preg_quote(session_name())."$ignore~i";
         
