@@ -27,11 +27,6 @@ class BisDatabase extends Database
     private $reverse=false;
     
     /**
-     * @var int le nombre de notices pour l'utilisateur
-     */ 
-    private $count=0;   
-    
-    /**
      * @var int le "rang" de la notice en cours
      */
     private $rank=0;
@@ -109,18 +104,17 @@ class BisDatabase extends Database
         }
         $this->start=$start+1;
         $this->max=$max;
-        //echo 'equation=', $equation, ', options=', print_r($options,true), ', sort=', $sort, ', start=', $start, "\n";
+//        echo 'equation=', $equation, ', options=', print_r($options,true), ', sort=', $sort, ', start=', $start, "\n";
         
         // Lance la recherche
         $this->rank=0;
         $this->selection->equation=$equation;
-        
         // Pas de réponse ? return false
-        $this->count=$this->selection->count();
-        if ($this->count==0) return false;
-        
+        $count=$this->selection->count();
+        if ($count==0) return false;
+
         // Si start est supérieur à count, return false
-        if ($this->start>$this->count)
+        if ($this->start>$count)
         {
             $this->selection->moveLast();
             $this->selection->moveNext();
@@ -152,7 +146,7 @@ class BisDatabase extends Database
 
     public function count($countType=0)
     {
-    	return $this->count;
+    	return $this->selection->count();
     }
 
     public function searchInfo($what)
