@@ -396,12 +396,131 @@ final class Utils
                     /* D0 */    'dnooooo 0uuuuy s'.
                     /* E0 */    'aaaaaaaceeeeiiii'.
                     /* F0 */    'dnooooo  uuuuyby',
+
+                'CP1252 to CP850' => // Table de conversion CP1252 vers CP850 (ANSI to DOS)
+                    /*          00  01  02  03  04  05  06  07  08  09  0a  0b  0c  0d  0e  0f */
+                    /* 00 */ "\x00\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f" .
+                    /* 10 */ "\x10\x11\x12\x13\x14\x15\x16\x17\x18\x19\x1a\x1b\x1c\x1d\x1e\x1f" .
+                    /* 20 */ "\x20\x21\x22\x23\x24\x25\x26\x27\x28\x29\x2a\x2b\x2c\x2d\x2e\x2f" .
+                    /* 30 */ "\x30\x31\x32\x33\x34\x35\x36\x37\x38\x39\x3a\x3b\x3c\x3d\x3e\x3f" .
+                    /* 40 */ "\x40\x41\x42\x43\x44\x45\x46\x47\x48\x49\x4a\x4b\x4c\x4d\x4e\x4f" .
+                    /* 50 */ "\x50\x51\x52\x53\x54\x55\x56\x57\x58\x59\x5a\x5b\x5c\x5d\x5e\x5f" .
+                    /* 60 */ "\x60\x61\x62\x63\x64\x65\x66\x67\x68\x69\x6a\x6b\x6c\x6d\x6e\x6f" .
+                    /* 70 */ "\x70\x71\x72\x73\x74\x75\x76\x77\x78\x79\x7a\x7b\x7c\x7d\x7e\x7f" .
+                    /* 80 */ "\x45\x81\x60\x9f\x22\x2e\x2b\x87\x5e\x6f\x53\x3c\x4f\x8d\x5a\x8f" .
+                    /* 90 */ "\x90\x60\xef\x22\x22\x6f\x2d\x2d\x7e\x54\x73\x3e\x6f\x9d\x7a\x22" .
+                    /* a0 */ "\xff\xad\xbd\x9c\xcf\xbe\xdd\xf5\xf9\xb8\xa6\xae\xaa\xf0\xa9\xee" .
+                    /* b0 */ "\xf8\xf1\xfd\xfc\xef\xe6\xf4\xfa\xf7\xfb\xa7\xaf\xac\xab\xf3\xa8" .
+                    /* c0 */ "\xb7\xb5\xb6\xc7\x8e\x8f\x92\x80\xd4\x90\xd2\xd3\xde\xd6\xd7\xd8" .
+                    /* d0 */ "\xd1\xa5\xe3\xe0\xe2\xe5\x99\x9e\x9d\xeb\xe9\xea\x9a\xed\xe8\xe1" .
+                    /* e0 */ "\x85\xa0\x83\xc6\x84\x86\x91\x87\x8a\x82\x88\x89\x8d\xa1\x8c\x8b" .
+                    /* f0 */ "\xd0\xa4\x95\xa2\x93\xe4\x94\xf6\x9b\x97\xa3\x96\x81\xec\xe7\x98",
+                    
+                'CP850 to CP1252' => // Table de conversion CP850 vers CP1252 (DOS TO ANSI)
+                    /*          00  01  02  03  04  05  06  07  08  09  0a  0b  0c  0d  0e  0f */
+                    /* 00 */ "\x00\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f" .
+                    /* 10 */ "\x10\x11\x12\x13\x14\x15\x16\x17\x18\x19\x1a\x1b\x1c\x1d\x1e\x1f" .
+                    /* 20 */ "\x20\x21\x22\x23\x24\x25\x26\x27\x28\x29\x2a\x2b\x2c\x2d\x2e\x2f" .
+                    /* 30 */ "\x30\x31\x32\x33\x34\x35\x36\x37\x38\x39\x3a\x3b\x3c\x3d\x3e\x3f" .
+                    /* 40 */ "\x40\x41\x42\x43\x44\x45\x46\x47\x48\x49\x4a\x4b\x4c\x4d\x4e\x4f" .
+                    /* 50 */ "\x50\x51\x52\x53\x54\x55\x56\x57\x58\x59\x5a\x5b\x5c\x5d\x5e\x5f" .
+                    /* 60 */ "\x60\x61\x62\x63\x64\x65\x66\x67\x68\x69\x6a\x6b\x6c\x6d\x6e\x6f" .
+                    /* 70 */ "\x70\x71\x72\x73\x74\x75\x76\x77\x78\x79\x7a\x7b\x7c\x7d\x7e\x7f" .
+                    /* 80 */ "\xc7\xfc\xe9\xe2\xe4\xe0\xe5\xe7\xea\xeb\xe8\xef\xee\xec\xc4\xc5" .
+                    /* 90 */ "\xc9\xe6\xc6\xf4\xf6\xf2\xfb\xf9\xff\xd6\xdc\xf8\xa3\xd8\xd7\x83" .
+                    /* a0 */ "\xe1\xed\xf3\xfa\xf1\xd1\xaa\xba\xbf\xae\xac\xbd\xbc\xa1\xab\xbb" .
+                    /* b0 */ "\xb0\xb1\xb2\x7c\x2b\xc1\xc2\xc0\xa9\xb9\xba\xbb\xbc\xa2\xa5\x2b" .
+                    /* c0 */ "\x2b\x2b\x2b\x2b\x2d\x2b\xe3\xc3\xc8\xc9\xca\xcb\xcc\xcd\xce\xa4" .
+                    /* d0 */ "\xf0\xd0\xca\xcb\xc8\x69\xcd\xce\xcf\x2b\x2b\xdb\xdc\xa6\xcc\xdf" .
+                    /* e0 */ "\xd3\xdf\xd4\xd2\xf5\xd5\xb5\xfe\xde\xda\xdb\xd9\xfd\xdd\xaf\xb4" .
+                    /* f0 */ "\xad\xb1\xf2\xbe\xb6\xa7\xf7\xb8\xb0\xa8\xb7\xb9\xb3\xb2\xfe\xa0",
+                    
             );
         }
         if (! isset($tables[$table]))
             throw new Exception("La table de conversion de caractères '$table' n'existe pas");
             
     	return strtr($string, $charFroms, $tables[$table]);
+    }
+    
+    /**
+     * Créée une table de conversion utilisable dans la fonction convertString ci-dessus.
+     * 
+     * La fonction utilise iconv (qui doit être disponible) pour générer le source php d'une
+     * table permettant la conversion de caractères SBCS (un octet=un caractère).
+     * 
+     * Utilisation : faire un echo du résultat obtenu et intégrer ce source dans la fonction
+     * convertString.
+     * 
+     * Exemple : pour créer une table conversion dos to ansi (plus exactement CP850 vers CP1252)
+     * il suffit de faire echo createConversionTable('CP850','CP1252');
+     * 
+     * Remarques :
+     * 
+     * <li>l'option //TRANSLIT est ajoutée au charset de destination pour essayer de traduire
+     * approximativement les caractères qui n'ont pas de correspondance exacte.
+     * Par exemple, le caractère 'ƒ' sera traduit par 'f' pour en CP850.
+     * 
+     * <li>les caractères sans correspondance sont conservés tels quels dans la table.
+     * 
+     * @param string $fromCharset le jeu de caractère source
+     * @param string $toCharset le jeu de caractère destination
+     * @return string l'extrait de code PHP permettant de définir la table 
+     */
+    public static function createConversionTable($fromCharset, $toCharset='CP1252')
+    {
+        // Ajoute l'option translit au charset de destination
+        $toOri=$toCharset;
+        $toCharset.='//TRANSLIT';
+
+        // Vérifie que la fonction iconv est disponible
+        if (! function_exists('iconv'))
+            throw new Exception("La fonction iconv n'est pas disponible");
+            
+        // Vérifie que les charset indiqués sont valides    
+        if (false===@iconv($fromCharset,$toCharset, 'a'))
+            throw new Exception("L'un des charset indiqués n'est pas valide : '$fromCharset', '$toCharset'");
+            
+        // Génère l'entête de la table
+        $table = '$table = // Table de conversion ' . $fromCharset . ' vers ' . $toOri . "\n";
+        $table.= '/*          00  01  02  03  04  05  06  07  08  09  0a  0b  0c  0d  0e  0f */' . "\n";
+        
+        // Génère chacune des lignes 
+        for ($i=0; $i<16; $i++)
+        {
+            // Génère l'entête de la ligne
+            $table .= '/* '. dechex($i). '0 */ "';
+            
+            // Génère les 16 valeurs de la ligne
+            for ($j=0; $j<16; $j++)
+            {
+                // Essaie de convertir le caractère
+                $code=$i*16 + $j;
+                $char=@iconv($fromCharset, $toCharset, chr($code));
+                
+                // iconv retourne '' si elle n'arraive pas à convertir le caractère
+                if ($char!=='') $code=ord($char);
+        
+                $table .= '\x'. str_pad(dechex($code), 2, '0', STR_PAD_LEFT);
+            }
+            
+            // Fin de la lgne
+            $table .= '"'. ($i<15?' .':';'). "\n";
+        }
+    
+        // Génère un exemple
+        $table.= '// Exemple :' . "\n";
+        $h='Le cœur déçu mais l\'âme plutôt naïve, Louÿs rêva de crapaüter en canoë au delà des îles, près du mälström où brûlent les novæ (http://en.wikipedia.org/wiki/Pangram)';
+        $len=max(strlen($fromCharset),strlen($toOri));
+        $table .= '// ' . str_pad($fromCharset,$len) . " : $h\n";
+        for($i=0; $i<strlen($h);$i++)
+        	if ('' !== $char=@iconv($fromCharset, $toCharset, $h[$i])) $h[$i]=$char;
+        $table .= '// ' . str_pad($toOri,$len) . " : $h\n";
+        
+        for($i=128; $i<256; $i++)
+            $h.=chr($i);
+        // Retourne le résultat
+        return $table;
     }
     
     
