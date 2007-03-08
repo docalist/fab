@@ -77,7 +77,7 @@ class DatabaseModule extends Module
 
         if (is_null($database))
             throw new Exception('La base de données à utiliser n\'a pas été indiquée dans le fichier de configuration du module');
-        
+                
         debug && Debug::log("Ouverture de la base '%s' en mode '%s'", $database, $readOnly ? 'lecture seule' : 'lecture/écriture');
         $this->selection=Database::open($database, $readOnly);
         
@@ -96,8 +96,8 @@ class DatabaseModule extends Module
      * Affiche le formulaire de recherche indiqué dans la clé 'template' de la
      * configuration, en utilisant le callback indiqué dans la clé 'callback' de
      * la configuration. Si le callback indiqué est 'none' alors aucun callback 
-     * n'est appliqué. Si la clé 'callback' n'est pas défini, c'est le callback
-     * par défaut 'getField' qui est utilisé.
+     * n'est appliqué.
+     * 
      */
     public function actionSearchForm()
     {
@@ -109,12 +109,10 @@ class DatabaseModule extends Module
         $callback=$this->getCallback();
                
         // Exécute le template
-//        echo $template;
         Template::run
         (
             $template,  
-            array($this, $callback),           // Priorité à la fonction utilisateur
-            new Optional($_REQUEST)
+            array($this, $callback)           // Priorité à la fonction utilisateur
         );
     }
 
@@ -122,6 +120,9 @@ class DatabaseModule extends Module
      * Affiche un message si une erreur s'est produite lors de la recherche.
      * Le template à utiliser est indiqué dans la clé 'errortemplate' de la 
      * configuration de l'action 'search'.
+     * 
+     * @param $error string le message d'erreur a afficher (passé à Template::run) via
+     * la source de donnée 'error'
      */
     public function showError($error='')
     {
@@ -150,25 +151,29 @@ class DatabaseModule extends Module
      * Affiche un message si aucune réponse n'est associée la recherche.
      * Le template à utiliser est indiqué dans la clé 'noanswertemplate' de la 
      * configuration de l'action 'search'.
+     * 
+     * @param $message string le message a afficher (passé à Template::run) via
+     * la source de donnée 'message'
+     * 
      */
     public function showNoAnswer($message='')
     {
         // Détermine le template à utiliser
         if (! $template=$this->getTemplate('noanswertemplate'))
         {
-            echo $message ? $message : 'La requête n\' retourné aucune réponse';
+            echo $message ? $message : 'La requête n\'a retourné aucune réponse';
             return;
         }
 
         // Détermine le callback à utiliser
         $callback=$this->getCallback();
-
+        
         // Exécute le template
         Template::run
         (
             $template,  
             array($this, $callback),
-            array('error'=>$message)
+            array('message'=>$message)
         );
     }
     
@@ -179,12 +184,12 @@ class DatabaseModule extends Module
      * Si aucun paramètre n'a été passé, redirige vers le formulaire de recherche.
      * Si erreur lors de la recherche, affiche l'erreur en utilisant le template
      * indiqué dans la clé 'errortemplate' de la configuration. 
+     * 
+     * Le template peut ensuite boucler sur {$this->selection} pour afficher les résultats
      */
     public function actionSearch()
     {
         $this->equation=$this->makeEquation('_start,_max,_sort');
-
-//        echo "equation = $this->equation";
 
         // Si aucun paramètre de recherche n'a été passé, il faut afficher le formulaire
         // de recherche
@@ -194,10 +199,11 @@ class DatabaseModule extends Module
         // Des paramètres ont été passés, mais tous sont vides et l'équation obtenue est vide
         if ($this->equation==='')
             return $this->showError('Vous n\'avez indiqué aucun critère de recherche.');
-
+        
+        // Aucune réponse
         if (! $this->openSelection($this->equation))
-            return $this->showNoAnswer("La requête $this->equation n'a donné aucune réponse.", 'noanswertemplate');
-            
+            return $this->showNoAnswer("La requête $this->equation n'a donné aucune réponse.");
+        
         // Détermine le template à utiliser
         if (! $template=$this->getTemplate('template'))
             throw new Exception('Le template à utiliser n\'a pas été indiqué');
@@ -209,10 +215,10 @@ class DatabaseModule extends Module
         Template::run
         (
             $template,  
-            array($this, $callback),
-            $this->selection->record
+            array($this, $callback)
         );                
     }
+    
     
     /**
      * Reconstitue et retourne la query string
@@ -253,8 +259,6 @@ class DatabaseModule extends Module
      */
     public function getResNavigation($maxLinks = 10, $prevLabel = '<', $nextLabel = '>', $firstLabel = '', $lastLabel = '')
     {
-        // TODO : modification en fonction des nouveaux paramètres de la fonction
-        
         // la base de la query string pour la requête de type search
         $queryStr=$_GET;
         unset($queryStr['_start']);
@@ -262,8 +266,7 @@ class DatabaseModule extends Module
         unset($queryStr['action']);
         $baseQueryString=self::buildQuery($queryStr);
 
-        $currentStart = $this->selection->searchInfo('_start');  // num dans la sélection du première enreg de la page en cours
-//        echo "currentStart = $currentStart<br />"; 
+        $currentStart = $this->selection->searchInfo('_start');  // num dans la sélection du première enreg de la page en cours 
         $maxRes = $this->selection->searchInfo('max');          // le nombre de réponses max par page
         
         $startParam = 1;                // le param start pour les URL des liens générés dans la barre de navigation
@@ -333,8 +336,8 @@ class DatabaseModule extends Module
             // lien "page suivante" et éventuellement, lien vers la dernière page de la sélection
             if (($currentPage < $lastSelPageNum))
             {
-    //            TODO : ligne commentée nécessaire ?
-    //            $nextStart = $currentStart+$maxRes <= $this->selection->count() ? $currentStart+$maxRes : ;
+                // TODO : ligne commentée suivante nécessaire ?
+//                $nextStart = $currentStart+$maxRes <= $this->selection->count() ? $currentStart+$maxRes : ;
                 $nextStart = $currentStart + $maxRes;   // param start pour le lien vers la page suivante
                 $navBar = $navBar . '<span class="nextPage"><a href="search?' . $baseQueryString . "&_start=$nextStart" . '">' . $nextLabel . '</a></span> ';
                 
@@ -347,7 +350,7 @@ class DatabaseModule extends Module
             
             return $navBar . "</span>";
         }
-        else    // une seule page à afficher : on ne revoie pas de liens (chaîne vide)
+        else    // une seule page à afficher : on ne renvoie pas de liens (chaîne vide)
         {
             return '';   
         }
@@ -355,18 +358,16 @@ class DatabaseModule extends Module
     
     /**
      * Affiche une ou plusieurs notices en "format long"
-     * Le(s) numéro(s) de la (des) notice(s) à afficher doit être indiqué
-     * dans 'REF'. 
+     * Le(s) notice(s) à afficher sont donnés par une equation de recherche
+     * Génère une erreur si aucune équation n'est accessible ou si elle ne retourne aucune notice
      * 
-     * Génère une erreur si REF n'est pas renseigné ou ne correspond pas à une
-     * notice existante de la base.
+     * Le template instancié peut ensuite boucler sur {$this->selection} pour afficher les résultats
      */
     public function actionShow()
     {
         // Construit l'équation de recherche
         $this->equation=$this->makeEquation('_start,_max,_sort,_nb');
-//        $this->equation=$this->makeEquation('start,nb');
-                
+        
         // Si aucun paramètre de recherche n'a été passé, erreur
         if (is_null($this->equation))
             return $this->showError('Le numéro de la référence à afficher n\'a pas été indiqué');
@@ -377,7 +378,7 @@ class DatabaseModule extends Module
         
         // Ouvre la sélection
         if (! $this->openSelection($this->equation))
-            return $this->showError('La référence demandée n\'existe pas');
+            return $this->showNoAnswer("La requête $this->equation n'a donné aucune réponse.");
 
         // Détermine le template à utiliser
         if (! $template=$this->getTemplate())
@@ -390,8 +391,7 @@ class DatabaseModule extends Module
         Template::run
         (
             $template,  
-            array($this, $callback),
-            $this->selection->record
+            array($this, $callback)
         );  
     }
     
@@ -399,18 +399,19 @@ class DatabaseModule extends Module
     /**
      * Création d'une notice
      * Affiche le formulaire indiqué dans la clé 'template' de la configuration.
+     * 
+     * Lui passe la source de donnée 'REF' = 0 pour indiquer à l'action save qu'on créé une nouvelle notice
+     *
      */
     public function actionNew()
     {    
         // Détermine le template à utiliser
-        if (! $template=$this->getTemplate('template'))
+        if (! $template=$this->getTemplate())
             throw new Exception('Le template à utiliser n\'a pas été indiqué');
             
         $callback = $this->getCallback();
         
         // On exécute le template correspondant
-        // Exécute le template
-
         Template::run
         (
             $template,
@@ -422,7 +423,9 @@ class DatabaseModule extends Module
     /**
      * Edition d'une notice
      * Affiche le formulaire indiqué dans la clé 'template' de la configuration.
-     * La notice correspondant au paramètre 'REF' est chargée dans le formulaire
+     * 
+     * La notice correspondant à l'équation donnée est chargée dans le formulaire : l'équation ne doit
+     * retourner qu'un seul enregistrement sinon erreur.
      */
     public function actionLoad()
     {
@@ -436,7 +439,7 @@ class DatabaseModule extends Module
         
         // Des paramètres ont été passés, mais tous sont vides et l'équation obtenue est vide
         if ($this->equation==='')
-            echo 'EQUATION VIDE';
+            return $this->showError('Vous n\'avez indiqué aucun critère permettant de sélectionner la notice à afficher');
             //TODO: à gérer
         
         // Détermine le template à utiliser
@@ -449,11 +452,11 @@ class DatabaseModule extends Module
         // Si un numéro de référence a été indiqué, on charge cette notice         
         // Vérifie qu'elle existe
         if (! $this->openSelection($this->equation))
-            throw new Exception('La référence demandée n\'existe pas');    
-        
-        // Plusieurs enregistrements renseignés par l'équation
+            throw new Exception('La référence demandée n\'existe pas');
+            
+        // Si sélection contient plusieurs enreg, erreur
         if ($this->selection->count() > 1)
-            throw new Exception('L\'équation a retourné plusieurs enregistrements.');  
+            showError('Vous ne pouvez pas éditer plusieurs enregistrements à la fois.');     
 
         Template::run
         (
@@ -474,11 +477,12 @@ class DatabaseModule extends Module
      */
     public function actionSave()
     {
-//        echo 'actionSave<br />';
-        ftrace(str_repeat('-', 80));
-        ftrace('Entrée dans actionSave');
+        // CODE DE DEBUGGAGE : save ne sauvegarde pas la notice si Runtime::redirect ne se termine
+        // pas par exit(0) (voir plus bas)
+//        ftrace(str_repeat('-', 80));
+//        ftrace('Entrée dans actionSave');
 
-        // Si ref n'a pas été transmis ou contient autre chose qu'un entier >= 0, erreur
+        // Si REF n'a pas été transmis ou contient autre chose qu'un entier >= 0, erreur
         if (is_null($ref=Utils::get($_REQUEST['REF'])) || (! ctype_digit($ref)))
             throw new Exception('Appel incorrect de save : REF non transmis ou invalide');
         
@@ -492,22 +496,20 @@ class DatabaseModule extends Module
             if (! $this->openSelection("REF=$ref", false))
                 throw new Exception('La référence demandée n\'existe pas');
                 
-            // Edite la notice
-            $this->selection->editRecord();
+            $this->selection->editRecord();     // mode édition enregistrement
         } 
-        // Sinon, on en créée une nouvelle
-        else // ref==0
+        // Sinon (REF == 0), on en créée une nouvelle
+        else
         {        
             // Ouvre la sélection
             debug && Debug::log('Création d\'une nouvelle notice');
             $this->openSelection('', false); 
 
-            // Crée une nouvelle notice
             $this->selection->addRecord();
+            
             // Récupère le numéro de la notice créée
             $ref=$this->selection['REF'];
             debug && Debug::log('Numéro de la notice créée : %s', $ref);
-            
         }            
         
         // Détermine le callback à utiliser
@@ -516,11 +518,13 @@ class DatabaseModule extends Module
         // Mise à jour de chacun des champs
         foreach($this->selection->record as $fieldName => $fieldValue)
         {         
-            if ($fieldName==='REF') continue;
+            if ($fieldName==='REF') continue;   // Pour l'instant, REF non modifiable codé en dur
                 
             $fieldValue=Utils::get($_REQUEST[$fieldName], null);
                 
-            // Permet à l'application d'interdire la modification du champ ou de modifier la valeur
+            // Appel le callback qui peut :
+            // - indiquer à l'application d'interdire la modification du champ
+            // - ou modifier sa valeur avant l'enregistrement (validation données utilisateur)
             if ($callback === 'none' || $this->$callback($fieldName, $fieldValue) !== false)
             {
                 // Si la valeur est un tableau, convertit en articles séparés par le séparateur
@@ -534,30 +538,32 @@ class DatabaseModule extends Module
         
         // Enregistre la notice
         debug && Debug::log('Sauvegarde de la notice %s', $ref);
-        ftrace('Appel de SaveRecord');
-        ob_start();
+        
+        // CODE DE DEBUGGAGE
+//        ftrace('Appel de SaveRecord');
+//        ob_start();
+        
         $this->selection->saveRecord();   // TODO: gestion d'erreurs
-        $output=ob_get_clean();
-        ftrace('Après SaveRecord');
-        ftrace('ob output : ' . $output);
-        foreach($this->selection->record as $fieldName => $fieldValue)
-            if ($fieldValue) ftrace($fieldName . '=' . $fieldValue);         
-
-            unset($this->selection);
-            unset($this->record);
-            unset($fieldName);
-            unset($fieldValue);
-        ftrace('fermeture te ré-ouverture de la base');
-
-        $bis=new COM('Bis.Engine');
-        $dbpath='d:/WebApache/AscoFuturSite/data/db/ascodocpsy.bed';
-        $db=$bis->openDatabase($dbpath, false, true);
-        $dataset=$db->datasets(1)->name;
-        $selection=$db->openSelection($dataset);
-        $selection->equation='REF=' . $ref;
-        $fields=$selection->fields;
-        for ($i=1; $i<=$fields->count;$i++)
-            ftrace($fields[$i]->name . '=' . $fields[$i]->value);         
+        
+//        $output=ob_get_clean();
+//        ftrace('Après SaveRecord');
+//        ftrace('ob output : ' . $output);
+//        foreach($this->selection->record as $fieldName => $fieldValue)
+//            if ($fieldValue) ftrace($fieldName . '=' . $fieldValue);         
+//        unset($this->selection);
+//        unset($this->record);
+//        unset($fieldName);
+//        unset($fieldValue);
+//        ftrace('fermeture te ré-ouverture de la base');
+//        $bis=new COM('Bis.Engine');
+//        $dbpath='d:/WebApache/AscoFuturSite/data/db/ascodocpsy.bed';
+//        $db=$bis->openDatabase($dbpath, false, true);
+//        $dataset=$db->datasets(1)->name;
+//        $selection=$db->openSelection($dataset);
+//        $selection->equation='REF=' . $ref;
+//        $fields=$selection->fields;
+//        for ($i=1; $i<=$fields->count;$i++)
+//            ftrace($fields[$i]->name . '=' . $fields[$i]->value);         
              
 //            $this->openSelection("REF=$ref", false);
 //        foreach($this->selection->record as $fieldName => $fieldValue)
@@ -569,74 +575,39 @@ class DatabaseModule extends Module
         // redirige vers le template s'il y en a un, vers l'action show sinon
         if (! $template=$this->getTemplate())
         {
-            ftrace('Aucun template indiqué, redirection vers le show');
+//            ftrace('Aucun template indiqué, redirection vers le show');
+            
             // Redirige l'utilisateur vers l'action show
             debug && Debug::log('Redirection pour afficher la notice enregistrée %s', $ref);
             Runtime::redirect('/base/show?REF='.$ref);
-            ftrace('not reached');
+            
+//            ftrace('not reached');
         }
         else
         {
-            ftrace('Un template a été indiqué, template::run');
+//            ftrace('Un template a été indiqué, template::run');
+
             Template::run
             (
                 $template,
-//                array($this, $callback),  TODO
                 array('equationAnswers'=>'NA', 'ShowModifyBtn'=>false),
                 $this->selection->record
             );
-            ftrace('Template exécuté');
+            
+//            ftrace('Template exécuté');
         }
     }
     
     /**
-     * Supprime la notice indiquée puis affiche le template indiqué dans la clé
-     * 'template' de la configuration.
+     * Supprime la ou les notice(s) indiquée(s) par l'équation puis affiche le template
+     * indiqué dans la clé 'template' de la configuration.
      * 
      * Si aucun template n'est indiqué, affiche un message 'notice supprimée'.
      */
-     // Ancienne version de actionDelete utilisée pour supprimer une notice dont REF est passée en param
-//    public function actionDelete()
-//    {
-//        // Détermine la référence à supprimer         
-//        if (! $ref=Utils::get($_REQUEST['REF']))
-//            throw new Exception('Le numéro de la référence à supprimer n\'a pas été indiqué');
-//        
-//        // Ouvre la base sur la référence demandée
-//        if( ! $this->openSelection("REF=$ref", false) )
-//            throw new Exception('La référence demandée n\'existe pas');
-//        
-//        // Vérifie qu'elle existe
-//        if ($this->selection->count()==0)
-//            throw new Exception('La référence demandée n\'existe pas');
-//            
-//        // Supprime la notice
-//        $this->selection->deleteRecord();
-//        
-//        // Détermine le template à utiliser
-//        if (! $template=$this->getTemplate())
-//            echo '<p>Notice supprimée.</p>';
-//
-//        // Exécute le template
-//        else
-//        {
-//            // Détermine le callback à utiliser
-//            $callback=$this->getCallback();
-//
-//            Template::run
-//            (
-//                $template,  
-//                array($this, $callback)
-//            );
-//        }
-//    }
-    // réécriture de actionDelete pour fonctionner à partir d'une équation (toutes les applications basées
-    // sur Fab ne fonctionneront pas nécessairement avec un champ REF
     public function actionDelete()
     {
         // récupère l'équation de recherche qui donne les enregistrements sur lesquels travailler
         $this->equation=$this->makeEquation('_start,_max,_sort');
-//        $this->equation = Utils::get($_REQUEST['_equation']);
         
         echo "equation = $this->equation<br />";
         
@@ -653,10 +624,10 @@ class DatabaseModule extends Module
         {
             echo "Avant deleteRecord : count = ", var_dump($count), "<br />";
             echo "this->selection->record = ", var_dump($this->selection->record), "<br />";
-//            echo "deleteRecord called for ", var_dump($record), 'REF = ', $this->selection['REF'], "<br />";
+
             // Supprime la notice
-//            echo "current['REF'] = ", var_dump($this->selection->current());
             $this->selection->deleteRecord();
+            
             echo "Après deleteRecord : count = ", var_dump($count), "<br />";
         }
         echo "Sortie de la boucle<br />";
@@ -678,7 +649,7 @@ class DatabaseModule extends Module
     
     /**
      * Affiche le formulaire de type Chercher/Remplacer indiqué dans la clé
-     * template de la configuration
+     * 'template' de la configuration
      */
      public function actionReplaceForm()
      {        
@@ -692,45 +663,33 @@ class DatabaseModule extends Module
         // Lance la récherche
         if (! $this->openSelection($this->equation) )
             return $this->showError("Aucune réponse. Equation : $this->equation");
-        
-        // TODO: code à revoir, et à descendre à un niveau plus bas (avoir dans les drivers une fonction qui retourne un tableau contenant la liste de tous les champs possibles de la base)
 
         // Construit le tableau de des champs modifiables des enregistrements retournés par la recherche
-        // au cas où l'utilisateur voudrait effectuer un chercher/remplacer
         // Par compatibilité avec les générateurs de contrôles utilisateurs (fichier generators.xml)
         // il faut un tableau de tableaux contenant chacun une clé 'code' et une clé 'label'
         // On suppose que la sélection peut contenir des enregistrements provenants de différentes tables (pas la même structure)
         $fieldList = array();   // le tableau global qui contient les tableaux de champs
         
-//        // la liste de tous les champs à ignorer : les champs en lecture seule indiqués dans la config (identifiant tel que REF par ex)
-//        // plus ceux déjà ajoutés au tableau principal $fieldList
-//        $ignore = Config::get('readonly');
-//        if ($ignore == NULL)
-//        {
-//            $ignore = array();
-//        }
-//        else
-//        {
-//            if (! is_array($ignore))
-//                $ignore = array($ignore);   
-//        }
-        
         // Si on est certain de n'avoir que des enregistrements de même nature (même noms de champs),
         // on peut vouloir boucler sur un seul enregistrement (au lieu de tous à l'heure actuelle)
         // Cependant, dans le cas de nombreuses BDD relationnelles, une selection peut être composé d'enreg
         // de nature différente (différentes tables)
-        // TODO: optimisation possible si on a un fichier structure BDD
+        // TODO: optimisation possible si on a un fichier structure BDD de bas niveau
+        
+        $ignore = array('REF');  // liste des champs à ignorer : REF plus ceux déjà ajoutés à $fieldList
+        
         foreach($this->selection as $record)
         {
             $newField = array();    // un tableau par champ trouvé
+            
             foreach($record as $fieldName => $fieldValue)
             {
-                if ($fieldName !== 'REF')   // REF n'est pas modifiable
+                if (! in_array($fieldName, $ignore))   // REF n'est pas modifiable
                 {
                     $newField['code'] = $fieldName;
                     $newField['label'] = $fieldName;    // on affichera directement le code du champs tel que dans la BDD
                     $fieldList[] = $newField;           // ajoute au tableau global
-                    $ignore[] = $fieldName;        // pour ne pas le rajouter la prochaine fois qu'on le trouve
+                    $ignore[] = $fieldName;             // pour ne pas le rajouter la prochaine fois qu'on le trouve
                 }
             }
         }
@@ -747,8 +706,7 @@ class DatabaseModule extends Module
         (
             $template,  
             array($this, $callback),           // Priorité à la fonction utilisateur
-            array('fieldList'=>$fieldList),
-            new Optional($_REQUEST)
+            array('fieldList'=>$fieldList)
         );
      }
     
@@ -763,9 +721,7 @@ class DatabaseModule extends Module
      */
      public function actionReplace()
      {
-        // Récupérer les paramètres
         $this->equation=$this->makeEquation('_start,_max,_sort,search,replaceStr,fields,wholeWord,caseInsensitive,regExp');
-//        $this->equation=Utils::get($_REQUEST['_equation'], '');
 
         $search=Utils::get($_REQUEST['search'], '');
         $replace=Utils::get($_REQUEST['replaceStr'], '');
@@ -779,8 +735,9 @@ class DatabaseModule extends Module
         if ($this->equation==='')
             return $this->showError('Vous n\'avez indiqué aucun critère de recherche sur les enregistrements de la base de données.');
 
+        // S'il n'y a rien à faire,on redirige vers replaceform
         if (count($fields)==0 || ($search==='' && $replace===''))
-            Runtime::redirect('replaceform?equation=' . urlencode($this->equation));
+            Runtime::redirect('replaceform?_equation=' . urlencode($this->equation));
             
         // Lance la requête qui détermine les enregistrements sur lesquels on va opérer le chercher/remplacer 
         if (! $this->openSelection($this->equation))
@@ -791,7 +748,7 @@ class DatabaseModule extends Module
         
         // TODO: déléguer le boulot au TaskManager (exécution peut être longue)
 
-        // Search est vide : on injecte la valeur indiquée par replace dans les champs
+        // Search est vide : on injecte la valeur indiquée par replace dans les champs vides
         if ($search==='')
         {
             foreach($this->selection as $record)
@@ -862,10 +819,11 @@ class DatabaseModule extends Module
         (
             $template,  
             array($this, $callback),
-            array('count'=>$totalCount),
-            $this->selection->record
+            array('count'=>$totalCount)
         ); 
      }
+     
+     
      
     // ****************** fonctions surchargeables ***************
     /**
@@ -1005,8 +963,6 @@ class DatabaseModule extends Module
     {
         // si '_equation' a été transmis, on prend tel quel
         if (! is_null($equation = Utils::get($_REQUEST['_equation']))) return $equation;
-        
-//        echo "makeEquation: equation = $equation<br />";
 
         // Sinon, construit l'équation de recherche à partir des param de la requête
         if ($ignore) $ignore='|' . str_replace(',', '|', preg_quote($ignore, '~'));
@@ -1014,6 +970,8 @@ class DatabaseModule extends Module
         
         $equation='';
         $hasFields=false;
+        
+        // Boucle sur les attributs passés
         foreach((Utils::isGet() ? $_GET : $_POST) as $name=>$value)
         {
             
@@ -1022,18 +980,27 @@ class DatabaseModule extends Module
             $hasFields=true; // il y a au moins un nom de champ non ignoré passé en paramètre
 
             if (! is_array($value))
-                if ($value=='') continue; else $value=array($value);
+                if ($value=='') continue; else $value=array($value);    // $value sous forme de tableau
                 
             $h='';
             
             $parent=false;
             
+            // Boucle sur chaque valeur d'un attribut donné (exemple: s'il y a plusieurs champs Dates dans
+            // un formulaire, l'attribut Dates aura plusieurs valeurs)
+            
+//            echo "value = ", print_r($value), "<br />";
+            
             foreach ($value as $item)
             {
+//                echo "item = $item<br />";
+
                 if ($item == '') continue;
                 
                 // remplace 'et/ou/sauf' par 'op $name=', mais pas dans les trucs entre guillemets
                 $t=explode('"',$item);
+                
+//                echo "t = ", print_r($t), "<br />";
                 $parent=false;
                 for ($i=0; $i<count($t); $i+=2)
                 {
@@ -1042,8 +1009,8 @@ class DatabaseModule extends Module
                     {
                         $t[$i]=str_ireplace
                         (
-                            array(' ou ', ' or ', ' et ', ' sauf ', ' and not ', ' but ', ' and '),
-                            array(" OR $name=", " OR $name=", " AND $name=", " sauf $name=", " sauf $name=", " sauf $name=", " AND $name="),
+                            array(' ou ', ' or ', ' et ', ' and ', ' sauf ', ' and not ', ' but '),
+                            array(" OU $name=", " OR $name=", " ET $name=", " AND $name=", " sauf $name=", " sauf $name=", " sauf $name="),
                             $t[$i],
                             $nb
                         );
@@ -1073,7 +1040,8 @@ class DatabaseModule extends Module
             if ($parent) $h='(' . $h . ')';
             if ($h) if ($equation) $equation .= ' AND ' . $h; else $equation=$h;
         }
-        //echo "equation : [$equation]";
+
+//        echo "makeEquation: equation = $equation<br />";
         if ($hasFields) return $equation; else return null;
     }
     
