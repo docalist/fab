@@ -249,6 +249,7 @@ class DatabaseModule extends Module
      * les différentes pages de résultats (au format XHTML).
      * Peut-être appelée directement depuis un template
      * 
+     * @param $actionName string l'action qui donne les résultats pour lesquels on créé une barre de navigation
      * @param $maxLinks integer le nombre de liens maximum à afficher dans la barre de navigation
      * @param $prevLabel string le libellé du lien vers la page précédente
      * @param $nextLabel string le libelle du lien vers la page suivante
@@ -258,14 +259,16 @@ class DatabaseModule extends Module
      * @return chaîne XHTML correspond à la barre de navigation ou une chaîne vide s'il n'y a qu'une seule page à afficher
      */
     public function getResNavigation($maxLinks = 10, $prevLabel = '<', $nextLabel = '>', $firstLabel = '', $lastLabel = '')
-    {
-        // la base de la query string pour la requête de type search
+    {        
+        // la base de la query string pour la requête
         $queryStr=$_GET;
         unset($queryStr['_start']);
         unset($queryStr['module']);
         unset($queryStr['action']);
         $baseQueryString=self::buildQuery($queryStr);
-
+        
+        $actionName = $this->action;    // on adapte l'URL en fonction de l'action en cours (search, show, ...)
+        
         $currentStart = $this->selection->searchInfo('_start');  // num dans la sélection du première enreg de la page en cours 
         $maxRes = $this->selection->searchInfo('max');          // le nombre de réponses max par page
         
@@ -315,11 +318,11 @@ class DatabaseModule extends Module
             if ($currentPage > 1)
             {
                 if ( ($firstLabel != '') && ($pageNum > 1) )    // afficher lien vers la première page ?
-                    $navBar = $navBar . '<span class="firstPage"><a href="search?' . $baseQueryString . "&_start=1" . '">' . $firstLabel . '</a></span> ';
+                    $navBar = $navBar . '<span class="firstPage"><a href="' . $actionName . '?' . $baseQueryString . "&_start=1" . '">' . $firstLabel . '</a></span> ';
                     
                 // TODO: ligne suivante nécessaire ?
                 $prevStart = $currentStart-$maxRes >=1 ? $currentStart-$maxRes : 1; // param start pour le lien vers la page précédente
-                $navBar = $navBar . '<span class="prevPage"><a href="search?' . $baseQueryString . "&_start=$prevStart" . '">' . $prevLabel . '</a></span> ';
+                $navBar = $navBar . '<span class="prevPage"><a href="' . $actionName . '?' . $baseQueryString . "&_start=$prevStart" . '">' . $prevLabel . '</a></span> ';
             }
             
             // géncère les liens vers chaque numéro de page de résultats
@@ -328,7 +331,7 @@ class DatabaseModule extends Module
                 if($startParam == $currentStart)    // s'il s'agit du numéro de la page qu'on va afficher, pas de lien
                     $navBar = $navBar . $pageNum . ' ';
                 else 
-                    $navBar = $navBar . '<span class="pageNum"><a href="search?' . $baseQueryString . "&_start=$startParam" . '">'. $pageNum . '</a></span> ';
+                    $navBar = $navBar . '<span class="pageNum"><a href="' . $actionName . '?' . $baseQueryString . "&_start=$startParam" . '">'. $pageNum . '</a></span> ';
                     
                 $startParam += $maxRes;
             }
@@ -339,12 +342,12 @@ class DatabaseModule extends Module
                 // TODO : ligne commentée suivante nécessaire ?
 //                $nextStart = $currentStart+$maxRes <= $this->selection->count() ? $currentStart+$maxRes : ;
                 $nextStart = $currentStart + $maxRes;   // param start pour le lien vers la page suivante
-                $navBar = $navBar . '<span class="nextPage"><a href="search?' . $baseQueryString . "&_start=$nextStart" . '">' . $nextLabel . '</a></span> ';
+                $navBar = $navBar . '<span class="nextPage"><a href="' . $actionName . '?' . $baseQueryString . "&_start=$nextStart" . '">' . $nextLabel . '</a></span> ';
                 
                 if ( ($lastLabel != '') && ($lastDispPageNum < $lastSelPageNum) )   // afficher lien vers la dernière page ?
                 {
                     $startParam = ($this->selection->count() % $maxRes) == 0 ? $this->selection->count() - $maxRes + 1 : intval($this->selection->count() / $maxRes) * $maxRes + 1;
-                    $navBar = $navBar . '<span class="lastPage"><a href="search?' . $baseQueryString . "&_start=$startParam" . '">' . $lastLabel . '</a></span>';
+                    $navBar = $navBar . '<span class="lastPage"><a href="' . $actionName . '?' . $baseQueryString . "&_start=$startParam" . '">' . $lastLabel . '</a></span>';
                 }
             }
             
@@ -609,8 +612,6 @@ class DatabaseModule extends Module
         // récupère l'équation de recherche qui donne les enregistrements sur lesquels travailler
         $this->equation=$this->makeEquation('_start,_max,_sort');
         
-        echo "equation = $this->equation<br />";
-        
         // Paramètre equation manquant
         if (is_null($this->equation) || (! $this->equation))
             return $this->showError('Vous n\'avez indiqué aucun critère de recherche sur les enregistrements de la base de données.');
@@ -618,19 +619,12 @@ class DatabaseModule extends Module
         // Lance la récherche
         if (! $this->openSelection($this->equation) )
             return $this->showError("Aucune réponse. Equation : $this->equation");
-        
-        echo "Entrée dans la boucle<br />";
-        while ($count = $this->selection->count())
-        {
-            echo "Avant deleteRecord : count = ", var_dump($count), "<br />";
-            echo "this->selection->record = ", var_dump($this->selection->record), "<br />";
 
-            // Supprime la notice
+        // TODO: déléguer au TaskManager
+
+        // Supprime toutes les notices de la sélection
+        while ($this->selection->count())
             $this->selection->deleteRecord();
-            
-            echo "Après deleteRecord : count = ", var_dump($count), "<br />";
-        }
-        echo "Sortie de la boucle<br />";
         
         // Détermine le template à utiliser
         if (! $template=$this->getTemplate())
