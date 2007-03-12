@@ -5,7 +5,7 @@
 
 <form class="form " method="post" action="edit">
     <fieldset label="Liste des fichiers de configuration disponibles :">
-        <loop if="{(array)$files}" on="$files" as="$cle, $val" order="asc">
+        <loop on="(array) $files" as="$cle, $val" order="asc">
             <radio name="file" value="$cle" label="$val" />
             <br />
         </loop>
