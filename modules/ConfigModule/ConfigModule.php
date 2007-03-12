@@ -26,7 +26,7 @@ class ConfigModule extends Module
         $files[$path . 'config.php']='Configuration du cache';
         $files[$path . 'test.yaml']='Test/divers';
         
-        Template::run('list.yaml', array('error'=>$error));
+        Template::run('list.html', array('error'=>$error, 'files'=>$files));
     }
     
     public function actionEdit()
@@ -79,7 +79,7 @@ class ConfigModule extends Module
             default:echo '???' . $path . Utils::getExtension($file);
         }
         
-        Template::run('edit.yaml', array('file'=>$file, 'data'=>$data));
+        Template::run('edit.html', array('file'=>$file, 'data'=>$data));
     }
     
     // TODO: pas secure : à vérifier (paramètres attendus présents, pas d'autres file que ceux autorisés...)
