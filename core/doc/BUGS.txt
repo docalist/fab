@@ -1,0 +1,26 @@
+************* Bugs à résoudre ***************
+*********************************************
+
+1. Les URLs commençant par '/' et qui comportent des variables n'apparaissent pas dans la sortie :
+elles sont routées par le template autoroute qui ne peut pas instancier la/les variables. Il faudrait examiner
+le code PHP produit pour pouvoir instancier ces variables.
+Une fois le bug résolu, réécrire les URLs sous la forme "/module/action?param1=$param1..."
+
+2. Faire fonctionner le routage correctement : actuellement linkFor ne route pas toujours correctement les URL
+du type /module/action. Une fois que c'est le cas, il faudra renommer les URL de tous les projets basés sur Fab
+pour qu'ils fonctionnent sur ce modèle. Par exemple, dans DatabaseModule, getResNavigation ne spécifie pas l'action
+à utiliser dans son URL et celle-ci n'est pas routée par autoroute. Du coup, 'search'/'show', ... apparait dans 
+la sortie final même si on utilise les smart URLs
+
+3. Si un <loop /> utilise $key et $value comme paramètre "as" et qu'un template match est appelé
+(exemple radio) avec ces paramètres, les variables correspondantes dans le template match ne contiennent
+pas les bonnes valeurs.
+Par exemple, dans list.html de ConfigModule, le bug a été illustré par un code tel que celui-ci :
+
+<loop on="$files" as="$key, $value" order="asc">
+    <radio name="file" value="$key" label="$value" />
+    <br />
+</loop>
+
+Au final, le bouton radio avait son attribut value égal à son label alors que deux valeurs
+différentes étaient passées.
