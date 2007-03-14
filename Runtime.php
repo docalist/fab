@@ -159,8 +159,7 @@ class Runtime
         // TODO : faire en sorte que ça fonctionne sous IIS
         
         // Enlève l'éventuel slash de fin de document_root(sous linux, on a un slash final, pas sous windows)
-        if (substr($_SERVER['DOCUMENT_ROOT'], -1) === DIRECTORY_SEPARATOR)
-            $_SERVER['DOCUMENT_ROOT']= substr($_SERVER['DOCUMENT_ROOT'], 0, -1);
+        $_SERVER['DOCUMENT_ROOT']= rtrim($_SERVER['DOCUMENT_ROOT'], DIRECTORY_SEPARATOR);
 
         // Initialise $home : la "différence" entre server[DOCUMENT_ROOT] et webroot
         self::$realHome=self::$home=strtr(substr(self::$webRoot, strlen($_SERVER['DOCUMENT_ROOT'])), DIRECTORY_SEPARATOR, '/');
