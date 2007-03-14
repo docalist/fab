@@ -20,7 +20,7 @@ final class Cache
     /**
      * @var array $caches Liste des caches gérés par le gestionnaire de cache.
      * 
-     * Chaque item du tableau est un tableau contenant trois éléments :
+     * Chaque item du tableau est un tableau contenant deux éléments :
      * <li>le répertoire racine des fichiers qui seront mis en cache
      * <li>le répertoire à utiliser pour la version en cache des fichiers
      */
