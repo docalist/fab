@@ -24,14 +24,14 @@ Config::addArray
             // Path du répertoire dans lequel seront stockés les fichiers 
             // de l'application mis en cache. 
             // Il peut s'agir d'un chemin absolu (c:/temp/cache/) ou
-            // d'un chemin relatif à la racine de l'application ($root) 
-            'path'      => 'cache',
-
-            // Path du répertoire dans lequel seront stockés les fichiers 
-            // du framework mis en cache. 
-            // Il peut s'agir d'un chemin absolu (c:/temp/cache/) ou
-            // d'un chemin relatif à la racine du framework ($fabRoot) 
-            'pathforfab'=> 'cache'
+            // d'un chemin relatif à la racine de l'application ($root)
+            // Si cette clé est vide ou absente, fab essaiera de stocker
+            // les fichiers dans le répertoire temporaire du système 
+            // (/tmp, c:\temp...), sous-répertoire 'fabapps' puis sous
+            // répertoire correspondant au nom de l'application
+            // Dans tous les cas, deux sous-répertoires seront créés,
+            // un pour fab, un pour l'application  
+            //'path'      => '/tmp',
         )
     )
 );

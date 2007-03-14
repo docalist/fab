@@ -339,26 +339,37 @@ $fab_init_time=microtime(true);
         {
             require_once self::$fabRoot.'core/cache/Cache.php';
             
-            // Cache de l'application
-            $path=Config::get('cache.path');
-            if (Utils::isRelativePath($path))
-                $path=Utils::makePath(self::$root, $path);
-            $path=Utils::cleanPath($path);
-            Cache::addCache(self::$root, $path);
+            // Détermine le nom de l'application
+            $appname=basename(self::$root);
+
+            // Détermine le path de base du cache
+            if (is_null($path=Config::get('cache.path')))
+            {
+                $path=Utils::getTempDirectory();
+            }
+            else
+            {
+                if (Utils::isRelativePath($path))
+                    $path=Utils::makePath(self::$root, $path);
+                $path=Utils::cleanPath($path);
+            }
             
-            // Cache du framework
-            $fabPath=Config::get('cache.pathforfab');
-            if (Utils::isRelativePath($fabPath))
-                $fabPath=Utils::makePath(self::$fabRoot, $fabPath);
-            $fabPath=Utils::cleanPath($fabPath);
-            if ($path==$fabPath && self::$root!=self::$fabRoot) // root==fabRoot pour un script présent dans fab/bin
-                throw new Exception("L'application et le framework doivent utiliser des caches différents (cache de l'application : [$path], cache du framework : [$fabPath])");
-                
-            Cache::addCache(self::$fabRoot, $fabPath);
-            Debug::log('Cache initialisé. Application : %s, framework : %s', $path, $fabPath);
+            // Détermine le path du cache de l'application et de fab
+            $path.=DIRECTORY_SEPARATOR.'fabcache'.DIRECTORY_SEPARATOR.$appname;
+            $appPath=$path.DIRECTORY_SEPARATOR.'app';
+            $fabPath=$path.DIRECTORY_SEPARATOR.'fab';
+            
+            // Créée les caches
+            if (Cache::addCache(self::$root, $appPath) && Cache::addCache(self::$fabRoot, $fabPath)) 
+                Debug::log('Cache initialisé. Application : %s, framework : %s', $appPath, $fabPath);
+            else
+            {
+                Config::set('cache.enabled', false);
+                Debug::warning('Cache désactivé : impossible d\'utiliser les répertoires indiqués (application : %s, framework : %s', $appPath, $fabPath);
+            }
         }
         else
-            Debug::notice('Cache désactivé');
+            Debug::notice('Le cache est désactivé dans la config');
     }
     
     // Modules requis : Config
