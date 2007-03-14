@@ -36,13 +36,34 @@ final class Cache
     {
     }
 
+    /**
+     * Crée un nouveau cache
+     * 
+     * @param string $root la racine des fichiers qui pourront être stockés
+     * dans ce cache. Seuls les fichiers dont le path commence par $root
+     * pourront être stockés.
+     * 
+     * @param string $cacheDir le path du répertoire dans lequel les fichiers
+     * de cache seront stockés.
+     * 
+     * @return boolean true si le cache a été créé, false si les droits sont 
+     * insuffisants
+     */
     public static function addCache($root, $cacheDir)
     {
-        self::$caches[]=array
-        (
-            rtrim($root,'/\\') . DIRECTORY_SEPARATOR,
-            rtrim($cacheDir,'/\\') . DIRECTORY_SEPARATOR
-        );
+        $root=rtrim($root,'/\\') . DIRECTORY_SEPARATOR;
+        $cacheDir=rtrim($cacheDir,'/\\') . DIRECTORY_SEPARATOR;
+        if (! is_dir($cacheDir))
+        {
+            if (! Utils::makeDirectory($cacheDir)) return false;
+        }
+        else
+        {
+        	if (! is_writable($cacheDir)) return false;
+        }
+            
+        self::$caches[]=array($root, $cacheDir);
+        return true;
     }
     
     /**
@@ -101,7 +122,18 @@ final class Cache
     public static function set($path, $data)
     {
         $path=self::getPath($path);
-        Utils::makeDirectory(dirname($path));
+        if (! is_dir($dir=dirname($path))) 
+            if (! Utils::makeDirectory($dir))
+            {
+                echo 'Impossible de créer ' . $dir;
+                return false;
+            }
+         // Créée les fichiers avec tous les droits.
+         // Raison : lors d'une mise à jour d'apache, le 'user' utilisé par le daemon apache peut changer (daemon, nobody, www-data...)
+         // Si des fichiers sont créés dans le cache par l'utilisateur 'daemon', par exemple, et que par la suite, on passe à
+         // 'www-data', on ne pourra pas écraser le fichier existant.
+         // En faisant umask(0), tout le monde a les droits en lecture/écriture
+        umask(0);
         file_put_contents($path, $data, LOCK_EX);
     }
 
