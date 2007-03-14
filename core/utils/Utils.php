@@ -761,5 +761,36 @@ final class Utils
         $spyc = new Spyc();
         return $spyc->load($path);
     }
+    
+    /**
+     * Retourne le path du répertoire 'temp' du système.
+     * Le path obtenu n'a jamais de slash final.
+     * 
+     * @return string le path obtenu
+     */
+    public static function getTempDirectory()
+    {
+        static $dir=null;
+        
+        // Si on a déjà déterminé le répertoire temp, terminé
+        if (!is_null($dir)) return $dir;
+        
+        // Si la fonction sys_get_temp_dir est dispo (php 6 ?), on l'utilise
+        if ( function_exists('sys_get_temp_dir') )
+            return $dir=rtrim(sys_get_temp_dir(), '/\\');
+        
+        // Regarde si on a l'une des variables d'environnement connues
+        if ($h=Utils::get($_ENV['TMPDIR'], $_ENV['TMP'], $_ENV['TEMP'])) return $dir=rtrim($h, '/\\');
+        
+        // Crée un fichier temporaire, récupère son path, puis le détruit
+        if (false !== $file = tempnam( md5(uniqid(rand(), TRUE)), '' ))
+        {
+            $dir = rtrim(realpath( dirname($file) ), '/\\');
+            unlink( $file );
+            return $dir;
+        }
+        return $dir='/dm tmp';
+    }
+    
 }
 ?>
