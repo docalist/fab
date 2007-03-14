@@ -118,7 +118,7 @@ final class Utils
 	{
         if (is_dir($path)) return true;
 		umask(0);
-		return mkdir($path, 0777, true);
+		return @mkdir($path, 0777, true);
 	}
 
 
