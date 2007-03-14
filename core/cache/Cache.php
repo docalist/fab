@@ -118,23 +118,21 @@ final class Cache
      *  
      * @param string $path le path du fichier à écrire
      * @param string $data les données à écrire
+     * @return boolean true si le fichier a été mis en cache, false sinon
      */
     public static function set($path, $data)
     {
         $path=self::getPath($path);
         if (! is_dir($dir=dirname($path))) 
             if (! Utils::makeDirectory($dir))
-            {
-                echo 'Impossible de créer ' . $dir;
                 return false;
-            }
          // Créée les fichiers avec tous les droits.
          // Raison : lors d'une mise à jour d'apache, le 'user' utilisé par le daemon apache peut changer (daemon, nobody, www-data...)
          // Si des fichiers sont créés dans le cache par l'utilisateur 'daemon', par exemple, et que par la suite, on passe à
          // 'www-data', on ne pourra pas écraser le fichier existant.
          // En faisant umask(0), tout le monde a les droits en lecture/écriture
         umask(0);
-        file_put_contents($path, $data, LOCK_EX);
+        return (false !== @file_put_contents($path, $data, LOCK_EX));
     }
 
     /**
