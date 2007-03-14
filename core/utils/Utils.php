@@ -780,16 +780,21 @@ final class Utils
             return $dir=rtrim(sys_get_temp_dir(), '/\\');
         
         // Regarde si on a l'une des variables d'environnement connues
-        if ($h=Utils::get($_ENV['TMPDIR'], $_ENV['TMP'], $_ENV['TEMP'])) return $dir=rtrim($h, '/\\');
+        if ($h=Utils::get($_ENV['TMPDIR'], $_ENV['TMP'], $_ENV['TEMP'])) 
+            return $dir=rtrim($h, '/\\');
         
         // Crée un fichier temporaire, récupère son path, puis le détruit
-        if (false !== $file = tempnam( md5(uniqid(rand(), TRUE)), '' ))
-        {
-            $dir = rtrim(realpath( dirname($file) ), '/\\');
-            unlink( $file );
-            return $dir;
-        }
-        return $dir='/dm tmp';
+//        if (false !== $file = tempnam( md5(uniqid(rand(), TRUE)), '' ))
+//        {
+//            $dir = rtrim(realpath( dirname($file) ), '/\\');
+//            unlink( $file );
+//            return $dir;
+//        }
+        
+        if (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN')         
+            return $dir='c:\\temp';
+        else
+            return $dir='/tmp';
     }
     
 }
