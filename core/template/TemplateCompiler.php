@@ -1598,6 +1598,7 @@ echo "Source desindente :\n",  $xml->saveXml($xml), "\n-------------------------
                 $value=$matches[1];
             }            
         }
+        
         $keyReal='$_key';
         $valueReal='$_val';
 //        if (self::$loop)
