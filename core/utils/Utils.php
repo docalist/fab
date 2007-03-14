@@ -110,16 +110,15 @@ final class Utils
 	 * 
 	 * Le répertoire créé a tous les droits (777).
 	 * 
-	 * @param string $path le chemin complet du répertoire à créer 
+	 * @param string $path le chemin complet du répertoire à créer
+     * @return bool true si le répertoire a été créé, false sinon 
+     * (droits insuffisants, par exemple) 
 	 */
 	public static function makeDirectory($path)
 	{
-        if (! is_dir($path))
-        {
-    		$current_umask = umask(0000);
-    		mkdir($path, 0777, true);
-    		umask($current_umask);
-        }
+        if (is_dir($path)) return true;
+		umask(0);
+		return mkdir($path, 0777, true);
 	}
 
 
