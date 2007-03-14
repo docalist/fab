@@ -158,14 +158,12 @@ class Runtime
         
         // TODO : faire en sorte que ça fonctionne sous IIS
         
+        // Enlève l'éventuel slash de fin de document_root(sous linux, on a un slash final, pas sous windows)
+        if (substr($_SERVER['DOCUMENT_ROOT'], -1) === DIRECTORY_SEPARATOR)
+            $_SERVER['DOCUMENT_ROOT']= substr($_SERVER['DOCUMENT_ROOT'], 0, -1);
+
         // Initialise $home : la "différence" entre server[DOCUMENT_ROOT] et webroot
         self::$realHome=self::$home=strtr(substr(self::$webRoot, strlen($_SERVER['DOCUMENT_ROOT'])), DIRECTORY_SEPARATOR, '/');
-
-echo 'self::webRoot: ', self::$webRoot, '<br />';
-echo 'self::root: ', self::$root, '<br />';
-echo 'DOCUMENT_ROOT : ', $_SERVER['DOCUMENT_ROOT'], '<br />';
-echo 'self::realHome : ', self::$realHome, '<br />';
-echo 'self::home : ', self::$home, '<br />';
 
         // cas spécial, lancé en ligne de commande
         if (php_sapi_name()=='cli')
@@ -189,17 +187,15 @@ echo 'self::home : ', self::$home, '<br />';
         else
         {
             self::$url=$_SERVER['REQUEST_URI'];
-echo 'REQUEST_URI=', $_SERVER['REQUEST_URI'], '<br />';
             self::$url=substr(self::$url, strlen(self::$home)-1); // avec smarturls
-echo 'self::url=', self::$url, '<br />';
-die();
+
             // TODO : ne marche pas, à réétudier
             if (($pt=strpos(self::$url,'?')) !== false) self::$url=substr(self::$url, 0, $pt);
             if (self::$url=='') self::$url='/';
     
             // Redirige l'utilisateur si l'url qu'il a demandé ne correspond pas à l'option smarturls
             $fcName=basename($caller);
-                echo 'here';
+
             // Si les smarturls sont actives (pas de FC) et que l'url mentionne le FC, redirection
             if (Config::get('smarturls'))
             {
