@@ -221,7 +221,6 @@ class Debug
         echo '<div>'; // Cookies : panel
             echo '<div class="accordionTabTitleBar">Cookies</div>'; // Cookies: header
             echo '<div class="accordionTabContentBox">'; // Cookies : content
-            $class=new ReflectionClass('Runtime');
             echo Debug::dump($_COOKIE);
             echo '</div>'; // fin de Cookies:content
         echo '</div>'; // fin de Cookies:panel
