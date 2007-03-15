@@ -272,50 +272,63 @@ final class Utils
      * @param mixed $directory... les autres paramêtres indiquent les
      * répertoires dans lesquels le fichier sera recherché.
      * 
-     * @return string une chaine vide si le fichier n'a pas été trouvé, le
+     * @return mixed false si le fichier n'a pas été trouvé, le
      * chemin exact du fichier dans le cas contraire.
      */
     public static function searchFile($file /* , $directory1, $directory2... $directoryn */)
     {
-        if (self::isAbsolutePath($file)) return realpath($file);
         $nb=func_num_args();
-        
         for ($i=1; $i<$nb; $i++)
         {
             $dir=func_get_arg($i);
             debug && Debug::log("Recherche du fichier [%s]. result=[%s]", rtrim($dir,'/\/').DIRECTORY_SEPARATOR.$file, realpath(rtrim($dir,'/\/').DIRECTORY_SEPARATOR.$file));
-            if ($path=realpath(rtrim($dir,'/\/').DIRECTORY_SEPARATOR.$file)) return $path;
-            
+            if ($path=realpath(rtrim($dir,'/\/').DIRECTORY_SEPARATOR.$file)) 
+                return $path;
         }
-        return '';
+        return false;
     }
 
     
-    // TODO: doc à faire
+    /**
+     * Recherche un fichier dans une liste de répertoires, sans tenir compte de la
+     * casse du fichier recherché.
+     * 
+     * Les répertoires sont examinés dans l'ordre où ils sont fournis.
+     * 
+     * @param string $file le fichier à chercher. Vous pouvez soit indiquer un
+     * simple nom de fichier (par exemple 'test.php') ou bien un 'bout' de
+     * chemin ('/modules/test.php')
+     * 
+     * @param mixed $directory... les autres paramêtres indiquent les
+     * répertoires dans lesquels le fichier sera recherché.
+     * 
+     * @return mixed false si le fichier n'a pas été trouvé, le
+     * chemin exact du fichier dans le cas contraire.
+     */
     public static function searchFileNoCase($file /* , $directory1, $directory2... $directoryn */)
     {
         $nb=func_num_args();
         for ($i=1; $i<$nb; $i++)
         {
             $dir=rtrim(func_get_arg($i), '/\\');
-            if (($handle=opendir($dir))===false)
-                throw new Exception("Le répertoire '$dir' passé à ".__CLASS__.'::'.__METHOD__ . "() n'existe pas");
-                
-            while (($thisFile=readdir($handle)) !==false)
-            {
-            	if (strcasecmp($file, $thisFile)==0)
+            if (($handle=opendir($dir))!==false) // si le répertoire n'existe pas, on ignore
+            {   
+                while (($thisFile=readdir($handle)) !==false)
                 {
-                    // pas de test && is_dir($thisFile)
-                    // faut être tordu pour mettre dans le même répertoire
-                    // un fichier et un sous-répertoire portant le même nom
-                    
-                    closedir($handle);
-                    return $dir . DIRECTORY_SEPARATOR . $thisFile;
+                	if (strcasecmp($file, $thisFile)==0)
+                    {
+                        // pas de test && is_dir($thisFile)
+                        // faut être tordu pour mettre dans le même répertoire
+                        // un fichier et un sous-répertoire portant le même nom
+                        
+                        closedir($handle);
+                        return realpath($dir . DIRECTORY_SEPARATOR . $thisFile);
+                    }
                 }
+                closedir($handle);
             }
-            closedir($handle);
         }
-        return '';
+        return false;
     }
 
     
