@@ -61,6 +61,20 @@ lequel il se base au lieu de dupliquer le code comme on le fait actuellement. Or
 
 
 
+<!-- HIDDEN : champ <input type="hidden" ... /> -->
+
+<template match="//hidden" name="" value="">
+    <input
+        type="hidden"
+        name="$name"
+        value="{select('string(@value)')}{select('.//text()')}">
+    {select('@*')}
+    </input>
+</template>
+
+
+
+
 <!-- CHECKLIST : liste de <input type="checkbox"... /> dans un <div></div> -->
 
 <template match="//checklist" name="" label="" src="" class="">
@@ -78,6 +92,7 @@ lequel il se base au lieu de dupliquer le code comme on le fait actuellement. Or
                     <label class="check $class" for="$name$line" >{$record['label']}</label>
                 </span>
             </loop>
+            {select('.//node()')}
         </fill>
     </div>
 </template>
@@ -126,6 +141,7 @@ lequel il se base au lieu de dupliquer le code comme on le fait actuellement. Or
                     <label class="radio $class" for="$name$line" >{$record['label']}</label>
                 </span>
             </loop>
+            {select('.//node()')}
         </fill>
     </div>
 </template>
@@ -135,7 +151,6 @@ lequel il se base au lieu de dupliquer le code comme on le fait actuellement. Or
 <!-- RADIO -->
 
 <template match="//radio" name="" label="" value="" class="">
-    <fill values="$$name" code='selected="selected"' separator="$sep">
         <input
             type="radio"
             name="$name"
@@ -144,7 +159,7 @@ lequel il se base au lieu de dupliquer le code comme on le fait actuellement. Or
             id="{autoId()}">
             {select('@*')}
         </input>
-    </fill>
+
     <label if="'$label'" class="radio $class" for="{lastId()}">$label</label>
     <!-- Le contenu du tag -->
     {select('node()')}
@@ -159,7 +174,7 @@ lequel il se base au lieu de dupliquer le code comme on le fait actuellement. Or
 <template match="//select" name="" label="" src="" class="" size="" sep="" >
     <label if="'$label'" class="select $class" for="{autoId()}">$label</label>
     <input type="hidden" name="$name" value="" />
-    <fill values="$$name" code='selected="selected"' separator="$sep">
+<!--    <fill values="$$name" code='selected="selected"' separator="$sep">-->
         <select
             name="$name"
             size="$size"
@@ -174,7 +189,7 @@ lequel il se base au lieu de dupliquer le code comme on le fait actuellement. Or
                 </option>
             </loop>
         </select>
-    </fill>
+<!--    </fill>-->
 </template>
 
 
@@ -208,6 +223,18 @@ lequel il se base au lieu de dupliquer le code comme on le fait actuellement. Or
 </template>
 
 
+
+<!-- RESET bouton de reset : <input type="reset" ... /> -->
+
+<template match="//reset" name="" label="" class="">
+    <input
+        type="reset"
+        name="$name"
+        value="{select('string(@label)')}{select('.//text()')}"
+        class="reset $class">
+        {select('@*')}
+    </input>
+</template>
 
 
 <!-- BUTTON -->
