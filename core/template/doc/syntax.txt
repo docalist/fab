@@ -215,7 +215,7 @@ Bloc ignoré : ``ignore="true"``
 Le bloc est complètement ignoré dans la sortie généré par le template (ie : ol
 n'apparaîtra pas).
 
-Bloc collapsé : ``collaps="true"``
+Bloc collapsé : ``collapse="true"``
 .........................///......
 (implémenté)
 Le bloc est remplacé par son contenu
