@@ -74,7 +74,7 @@ final class Utils
 	 * @param string $ext l'extension à appliquer à $path, ou vide pour supprimer
 	 * l'extension existante. $ext peut être indiqué avec ou sans point de début
 	 */
-	public static function setExtension(& $path, $ext = '')
+	public static function setExtension($path, $ext = '')
 	{
 		if ($ext && $ext {0} != '.')
 		  $ext = ".$ext";

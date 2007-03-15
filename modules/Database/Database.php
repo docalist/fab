@@ -474,8 +474,7 @@ class Database extends Module
         {
         	case 'bis':
                 // Détermine le dataset à utiliser
-                $dataset=basename($database);
-                Utils::setExtension($dataset);
+                $dataset=Utils::setExtension(basename($database));
         
                 // Crée une instance de Bis
                 $Bis=new COM("Bis.PHPEngine");
