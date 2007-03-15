@@ -49,22 +49,15 @@ final class Utils
 	/**
 	 * Ajoute une extension au path indiqué si celui-ci n'en a pas
 	 * 
-     * Remarque : la fonction retourne le path obtenu mais le paramètre path,
-     * passé par référence, est également modifié. Cela permet d'écrire :
-     * <code>
-     * defaultExtension($h,'txt');
-     * $h=defaultExtension('test', 'txt');
-     * </code>
-     * 
 	 * @param string $path le path à modifier
      * 
 	 * @param string $ext l'extension à ajouter
      * 
 	 * @return string le nouveau path
 	 */
-	public static function defaultExtension(& $path, $ext)
+	public static function defaultExtension($path, $ext)
 	{
-		if (self :: getExtension($path) == '')
+		if (self :: getExtension($path) === '')
 			$path .= ($ext{0} == '.' ? $ext : ".$ext");
 		return $path;
 	}

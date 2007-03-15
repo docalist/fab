@@ -339,7 +339,7 @@ class Module
         {
         
             // Ajoute l'extension par défaut des feuilles de style
-            Utils::defaultExtension($path, $defaultExtension); // TODO: dans config
+            $path=Utils::defaultExtension($path, $defaultExtension); // TODO: dans config
             
             // Si c'est un chemin relatif, on cherche dans /web/styles
             if (Utils::isRelativePath($path))
