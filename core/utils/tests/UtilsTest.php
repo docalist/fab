@@ -10,23 +10,22 @@ class UtilsTest extends AutoTestCase
     {
     }
     
-    function testCompare()
-    {
-    	$this->assertNoDiff
-        (
-'
-<a>
-    essai
-</a>
-',
-'
-<a>essais
-</a>
-
-',
-false
-        );
-    }
+//    function testCompare()
+//    {
+//    	$this->assertNoDiff
+//        (
+//'
+//<a>
+//    essai
+//</a>
+//',
+//'
+//<a>essais
+//</a>
+//
+//'
+//        );
+//    }
     
     function testGetExtension()
     {
@@ -70,10 +69,7 @@ false
 
         );
         foreach($tests as $path=>$result)
-        {
-            $liveResult=Utils::getExtension($path);
-            $this->assertEquals($liveResult, $result, "path=[$path], result=[$liveResult], attendu=[$result]");
-        }
+            $this->assertNoDiff(Utils::getExtension($path), $result, "Erreur pour getExtension('$path')");
     }
     
     function testDefaultExtension()
@@ -93,11 +89,10 @@ false
             'temp/test.txt' => 'temp/test.txt',
             'temp/test.txt.bak' => 'temp/test.txt.bak',
         );
-        foreach($tests as $path=>$ext)
+        foreach($tests as $path=>$result)
         {
-            $h=$path;
-            $result=Utils::defaultExtension($h, 'ext');
-            $this->assertTrue($result===$ext && $h===$result, "path initial=[$path], path obtenu=[$h], result=[$result], attendu=[$ext]");
+            $this->assertNoDiff(Utils::defaultExtension($path,'ext'), $result, "Erreur pour defaultExtension('$path', 'ext')");
+            $this->assertNoDiff(Utils::defaultExtension($path,'.ext'), $result, "Erreur pour defaultExtension('$path', '.ext')");
         }
     }
     
@@ -144,22 +139,33 @@ false
               
         foreach($tests as $path=>$result)
         {
-            $h1=$path;
-            $r1=Utils::setExtension($h1, '.ext');
-
-            $h2=$path;
-            $r2=Utils::setExtension($h2, 'ext');
-
-            $this->assertTrue
-            (
-                    $h1===$result        // on a le résultat attendu (ext avec .)
-                &&  $r1===$h1            // la fonction retourne le chemin modifié
-                &&  $h2===$result        // on a le résultat attendu (ext sans .)
-                &&  $r2===$h2            // la fonction retourne le chemin modifié
-                &&  $r1===$r2            // même résultat qu'on indique ou non un point
-                ,
-                "path initial=[$path], path obtenu=[$h1][$h2], result=[$r1][$r2], attendu=[$result]");
+            $this->assertNoDiff(Utils::setExtension($path,'ext'), $result, "Erreur pour setExtension('$path', 'ext')");
+            $this->assertNoDiff(Utils::setExtension($path,'.ext'), $result, "Erreur pour setExtension('$path', '.ext')");
         }
+    }
+    
+    function testMakeDirectory()
+    {
+        // crée un fichier temporaire pour avoir un path où on peut écrire
+        $this->assertTrue(false !== $file=tempnam('kzbrvg!!!not existant dir so tempnam create the file in temp', ''), 'tempname a échoué');
+
+        $this->assertFalse(Utils::makeDirectory($file), "makeDirectory('$file') a retourné true alors qu'il existe déjà un fichier portant ce nom");
+        unlink($file);
+        $this->assertTrue(Utils::makeDirectory($file) && is_dir($file), "makeDirectory('$file') n'a pas réussie a créer le répertoire demandé");
+        $mod=fileperms($file) & 0777;
+        $this->assertTrue($mod===0777, "le répertoire makeDirectory('$file') a les droits $mod au lieu de 777");
+
+        $this->assertTrue(Utils::makeDirectory($file), "makeDirectory('$file') a retourné false alors que le répertoire demandé existe déjà");
+        rmdir($file);
+
+        $file2=$file.'/this/is/a/test';
+        $this->assertTrue(Utils::makeDirectory($file2) && is_dir($file), "makeDirectory('$file2') n'a pas réussie a créer la hiérarchie de répertoires demandée");
+
+        rmdir($file.'/this/is/a/test');
+        rmdir($file.'/this/is/a');
+        rmdir($file.'/this/is');
+        rmdir($file.'/this');
+        rmdir($file);
     }
     
     function testIsRelativePath_and_IsAbsolutePath()
@@ -195,16 +201,20 @@ false
         $tests=array
         (
             '' => array('','','',''),
-            'temp/test.txt' => array('temp','test.txt'),
-            'c:\\temp\\dm\\test.txt' => array('c:\\temp','dm','test.txt'),
-            'c:\\temp\\dm\\test.txt' => array('c:\\temp\\','\\dm','\\test.txt'),
-            '/temp/dm/test.txt' => array('/temp/','/dm/','test.txt'),
+            'temp/test1.txt' => array('temp','test1.txt'),
+            'c:/temp/dm/test2.txt' => array('c:\\temp','dm','test2.txt'),
+            'c:/temp/dm/test3.txt' => array('c:\\temp\\','\\dm','\\test3.txt'),
+            '/temp/dm/test4.txt' => array('/temp/','/dm/','test4.txt'),
         );
         foreach($tests as $result=>$args)
         {
             $result=strtr($result, '/', DIRECTORY_SEPARATOR);
-            $r=call_user_func_array(array('Utils','makePath'), $args);
-            $this->assertTrue($r=== $result, "args=['" . join($args, '\',\'') . "'], result=[$r], attendu=[$result]");
+            $this->assertNoDiff
+            (
+                $result, 
+                call_user_func_array(array('Utils','makePath'), $args),
+                "Erreur pour makePath('".implode("', '", $args)."')"
+            );
         }
     }
     
@@ -264,6 +274,79 @@ false
             $result=strtr($result, '/', DIRECTORY_SEPARATOR);
             $r=Utils::isCleanPath($path);
             $this->assertTrue($r== $result, "path=[$path], result=[$r], attendu=[$result]");
+        }
+    }
+    
+    function testSearchFile_and_searchFileNoCase()
+    {
+        $file=basename(__FILE__);
+        $dir=dirname(__FILE__);
+        
+        // tests qui retournent tous __FILE__
+        $tests=array
+        (
+            array($file, $dir),
+            array($file, '/', '/tmp', $dir),
+            array($file, $dir, '/tmp', '/'),
+            array($file, '/', '/tmp', "$dir/../tests/"),
+        );
+        
+        foreach($tests as $args)
+        {
+            $this->assertEquals
+            (
+                __FILE__, 
+                call_user_func_array(array('Utils','searchFile'), $args),
+                "Erreur pour searchFile('".implode("', '", $args)."')"
+            );
+            $this->assertEquals
+            (
+                __FILE__, 
+                call_user_func_array(array('Utils','searchFileNoCase'), $args),
+                "Erreur pour searchFileNoCase('".implode("', '", $args)."')"
+            );
+            
+            $args[0]=strtoupper($args[0]);
+            
+            $this->assertEquals
+            (
+                __FILE__, 
+                call_user_func_array(array('Utils','searchFileNoCase'), $args),
+                "Erreur pour searchFileNoCase('".implode("', '", $args)."')"
+            );
+        }
+
+        // tests qui doivent retourner false (fichier non trouvé)
+        $tests=array
+        (
+            array($file),
+            array($file, "$dir/.."),
+            array($file, realpath("$dir/..")),
+            array($file, "$dir/..", "$dir/../..", '/'),
+            array('does.not.exists', '/', $dir),
+        );
+        
+        foreach($tests as $args)
+        {
+            $this->assertFalse
+            (
+                call_user_func_array(array('Utils','searchFile'), $args),
+                "Erreur pour searchFile('".implode("', '", $args)."')"
+            );
+
+            $this->assertFalse
+            (
+                call_user_func_array(array('Utils','searchFileNoCase'), $args),
+                "Erreur pour searchFileNoCase('".implode("', '", $args)."')"
+            );
+
+            $args[0]=strtoupper($args[0]);
+
+            $this->assertFalse
+            (
+                call_user_func_array(array('Utils','searchFileNoCase'), $args),
+                "Erreur pour searchFileNoCase('".implode("', '", $args)."')"
+            );
         }
     }
 }
