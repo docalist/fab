@@ -1,0 +1,68 @@
+/* AutoTest.css */
+ul
+{
+    border: 1px solid;
+    border-color: #888 #eee #eee #888;
+    padding: 0;
+    list-style: none;
+}
+li
+{
+    padding: 0.1em 0em;
+    margin: 0;
+    list-style-type: none;
+}
+li.odd
+{
+	background-color: #f7f7f7;
+}
+li.pass
+{
+    color: #080;
+    background: url("http://apache/asco/web/test.php/FabWeb/images/famfamfam/sylk/accept.png") top left no-repeat;
+    padding-left: 20px;
+    clear: both;
+}
+li.incomplete
+{
+    background: url("http://apache/asco/web/test.php/FabWeb/images/famfamfam/sylk/bell.png") top left no-repeat;
+}
+li.fail
+{
+    color: #f00;
+    background: url("http://apache/asco/web/test.php/FabWeb/images/famfamfam/sylk/exclamation.png") top left no-repeat;
+    padding-left: 20px;
+    clear: both;
+}
+
+div.diff
+{
+    font-family: 'courier new';
+    background-color: #fff;
+    z-order: 9990;
+}
+
+div.diff div
+{
+    width: 47%;
+    float: left;
+    border: 1px solid;
+    border-color: #888 #eee #eee #888;
+    margin: 1%;
+    background-color: #ffe;
+    overflow-x: scroll;
+}
+
+span.delete
+{
+    color: darkred;
+/*    font-weight: bold;*/
+    background-color: yellow;
+}
+
+span.insert
+{
+    color: darkgreen;
+   /* font-weight: bold;*/
+    background-color: yellow;
+}
