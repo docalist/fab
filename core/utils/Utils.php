@@ -162,6 +162,9 @@ final class Utils
 	 * 
 	 * Le path obtenu n'est pas normalisé : si les arguments passés contiennent
 	 * des '.' ou des '..' le résultat les contiendra aussi.
+     * 
+     * Le séparateur de répertoire, par contre, est normalisé (slashs et
+     * anti-slash sont remplacés par le séparateur du système hôte.)
 	 * 
 	 * @param string paramname un nombre variable d'arguments à concaténer 
      * 
@@ -170,27 +173,20 @@ final class Utils
 	public static function makePath()
 	{
 		$path = '';
-		$nb = func_num_args();
-		for ($i = 0; $i < $nb; $i++)
+        $t=func_get_args();
+		foreach ($t as $arg)
 		{
-			$h = func_get_arg($i);
-			$h = strtr($h, '/\\', DIRECTORY_SEPARATOR);
+            $arg = strtr($arg, '/\\', DIRECTORY_SEPARATOR.DIRECTORY_SEPARATOR);
 			if ($path)
 			{
-				if ($h && ($h{0}== DIRECTORY_SEPARATOR))
-				{
-					//                    $path = rtrim($path, DIRECTORY_SEPARATOR).$h;
-					$path = $path . substr($h, 1);
-				}
+				if ($arg && ($arg[0] === DIRECTORY_SEPARATOR))
+					$path = rtrim($path, DIRECTORY_SEPARATOR).$arg;
 				else
-				{
-					//                  $path = rtrim($path, DIRECTORY_SEPARATOR).DIRECTORY_SEPARATOR.$h;
-					$path .= $h;
-				}
+					$path = rtrim($path, DIRECTORY_SEPARATOR).DIRECTORY_SEPARATOR.$arg;
 			}
 			else
 			{
-				$path = $h;
+				$path = $arg;
 			}
 		}
 		return $path;
