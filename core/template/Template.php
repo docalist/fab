@@ -197,33 +197,18 @@ class Template
         $caller=dirname(Utils::callerScript()).DIRECTORY_SEPARATOR;
         
         // Recherche le template
-        $sav=$template;
-        if (strncasecmp($caller, Runtime::$fabRoot, strlen(Runtime::$fabRoot)) ==0)
+        if (! file_exists($template))
         {
-            // module du framework : le répertoire templates de l'application est prioritaire
+            $sav=$template;
             $template=Utils::searchFile
             (
                 $template,                          // On recherche le template :
-                Runtime::$root . 'templates',       // 1. dans le répertoire 'templates' de l'application
                 $caller,                            // 2. dans le répertoire du script appellant
-                Runtime::$fabRoot . 'templates',     // 3. dans le répertoire 'templates' du framework
                 $parentDir
             );
+            if (! $template) 
+                throw new Exception("Impossible de trouver le template $sav");
         }
-        else
-        {        
-            // module de l'application : le répertoire du script appellant est prioritaire
-            $template=Utils::searchFile
-            (
-                $template,                          // On recherche le template :
-                $caller,                            // 1. dans le répertoire du script appellant
-                Runtime::$root . 'templates',       // 2. dans le répertoire 'templates' de l'application
-                Runtime::$fabRoot . 'templates',     // 3. dans le répertoire 'templates' du framework
-                $parentDir
-            );
-        }
-        if (! $template) 
-            throw new Exception("Impossible de trouver le template $sav");
 
         // Stocke le path du template
         debug && Debug::log("Path du template : '%s'", $template);
