@@ -729,7 +729,6 @@ abstract class Database implements ArrayAccess, Iterator
      * @param array fields la liste des champs sur lesquels on effectue le chercher/remplacer
      * @param string $pattern le pattern à utiliser pour l'expression régulière de recherche
      * @param string $replace la chaîne de remplacement pour les occurences trouvées
-     * @param bool $caseInsensitive indique si la recherche est insensible à la casse
      * @param int $totalCount référence qui stockera le nombre d'occurences remplacées par la fonction
      * 
      * @return bool false si erreur et true sinon
@@ -768,13 +767,8 @@ abstract class Database implements ArrayAccess, Iterator
      * @param string $search la chaîne de caractère de recherche
      * @param string $replace la chaîne de remplacement pour les occurences trouvées
      * @param bool $caseInsensitive indique si la recherche est (true) ou non (false) insensible à la case
-     * si on vient de str_replace, caseInsensitive vaudra false puisque le pattern aura déjà été mis à jour
-     * si nécessaire par cette fonction
-     * @param bool $wholeWord indique si on recherche uniquement le(s) mot(s) entier(s) correspondant(s)
-     * à search (true) dans l'enregistrement en cours
      * @param int $totalCount référence qui stockera le nombre d'occurences remplacées par la fonction
-     * 
-     * @return bool false si erreur et true sinon
+     *
      */
     public function strReplace($fields, $search, $replace, $caseInsensitive = false, & $totalCount)
     {
@@ -798,8 +792,6 @@ abstract class Database implements ArrayAccess, Iterator
 
             $totalCount += $count;  // Met à jour le compteur
         }      
-        
-        return true;
     }
     
     /**
