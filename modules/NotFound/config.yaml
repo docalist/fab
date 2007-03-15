@@ -1,11 +1,2 @@
-default:
-  layout: default
-  title: fdsfds
-  CSS:
-    - style.css
-    - formulaire.css
-
-load:
-  layout: fullscreen.htm
-  JS: controls.js
-  bqmaxlist: 20
+template: notfound.htm
+title: Page non trouvée

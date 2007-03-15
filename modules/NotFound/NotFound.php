@@ -1,25 +1,38 @@
 <?php
 /**
- * Module NotFound - retourne une erreur '404 - fichier non trouvé'
+ * @package     fab
+ * @subpackage  modules
+ * @author      Daniel Ménard <Daniel.Menard@bdsp.tm.fr>
+ * @version     SVN: $Id$
+ */
+
+
+
+/**
+ * Module NotFound
+ * 
+ * Génère une erreur "404 - page non trouvée".
+ * Ce module est appellé automatiquement lorsqu'on n'est pas en mode debug
+ * et que l'utilisateur demande un module ou une action qui n'existent 
+ * pas.
+ * 
+ * En mode debug, ce module n'est pas appellé, fab affiche à la place une
+ * exception permettant de vérifier l'erreur.
+ * 
+ * @package     fab
+ * @subpackage  modules
  */
 class NotFound extends Module
 {
     public function preExecute()
     {
-        header("HTTP/1.0 404 Not Found");
-        $this->setLayout('error.htm');
-//        $this->addCSS('main.css');
-//        $this->addCSS('help.css');
-//        $this->addJavascript('library.js');
-//        $this->addJavascript('controls.js');
-        $this->setTitle('Erreur 404');
+        if (! headers_sent())
+            header("HTTP/1.0 404 Not Found");
     }
 
 	public function actionIndex()
     {
-        Template::run('NotFound.htm');
-        //echo '<pre>';
-        //debug_print_backtrace();
+        Template::run(config::get('template'));
     }
 }
 ?>
