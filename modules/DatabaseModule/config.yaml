@@ -18,5 +18,8 @@ rawDBOutput:
   action: show
   callback: none
   template: rawDB.html
-  CSS:
-    - /FabWeb/styles/default/bdsp_content_layout.css
+
+#save:
+#    template: saved.html
+	
+    

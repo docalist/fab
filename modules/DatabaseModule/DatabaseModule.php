@@ -217,7 +217,7 @@ class DatabaseModule extends Module
             $template,  
             array($this, $callback)
         );                
-    }
+    }   
     
     
     /**
