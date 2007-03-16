@@ -799,6 +799,59 @@ final class Utils
         else
             return $dir='/tmp';
     }
+
+    /**
+     * Affiche ou retourne la représentation sous forme de code php
+     * du contenu de la variable passée en paramètre.
+     * 
+     * Cette fonction fait la même chose que la fonction standard
+     * var_export() de php, mais elle génère un code plus compact,
+     * pour les tableaux (pour les autres variables, la sortie 
+     * générée est la même qu'avec var_expor())
+     * 
+     * - pas de retours chariots ni d'espaces inutiles dans le code généré
+     * - ne génère les index de tableau que s'ils sont différents de
+     * l'index qui serait automatiquement attribué s'il n'avait pas été
+     * spécifié  
+     * 
+     * Exemple : avec le tableau
+     * <code>$t=array('a', 10=>'b', 'c', 'key'=>'d', 'e');</code>
+     * 
+     * On génère le code :
+     * <code>array('a',10=>'b','c','key'=>'d','e')</code>
+     * 
+     * Alors que la fonction var_export de php génère :
+     * <code>array (
+     *   0 => 'a',
+     *   10 => 'b',
+     *   11 => 'c',
+     *   'key' => 'd',
+     *   12 => 'e',
+     * )</code>
+     */
+    public static function varExport($var, $return = false)
+    {
+        if (! is_array($var)) return var_export($var, $return);
+        
+        $t = array();
+        $index=0;
+        foreach ($var as $key => $value)
+        {
+            if ($key<>$index)
+            {
+                $t[] = var_export($key, true).'=>'.varExport($value, true);
+                if (is_int($key)) $index=$key+1;
+            }
+            else
+            {
+                $t[] = varExport($value, true);
+                $index++;
+            }
+        }
+        $code = 'array('.implode(',', $t).')';
+        if ($return) return $code;
+        echo $code;
+    }    
     
 }
 ?>
