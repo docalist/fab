@@ -843,12 +843,12 @@ final class Utils
         {
             if ($key<>$index)
             {
-                $t[] = var_export($key, true).'=>'.varExport($value, true);
+                $t[] = var_export($key, true).'=>'.self::varExport($value, true);
                 if (is_int($key)) $index=$key+1;
             }
             else
             {
-                $t[] = varExport($value, true);
+                $t[] = self::varExport($value, true);
                 $index++;
             }
         }
