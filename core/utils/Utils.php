@@ -828,6 +828,10 @@ final class Utils
      *   'key' => 'd',
      *   12 => 'e',
      * )</code>
+     * 
+     * @param mixed $var la variable à afficher
+     * @param boolean $return false : la fonction affiche le résultat, 
+     * true : la fonction retourne le résultat
      */
     public static function varExport($var, $return = false)
     {
@@ -852,6 +856,22 @@ final class Utils
         if ($return) return $code;
         echo $code;
     }    
+
+    /**
+     * Retourne une version colorisée du code php passé en paramètre
+     * 
+     * Il s'agit d'un wrapper autour de la fonction php highlight_string()
+     * qui se charge d'ajouter (puis d'enlever) les tags de début et de fin 
+     * de code php
+     * 
+     * @param string $php le code php à coloriser
+     * @return string
+     */
+    public static function highlight($php)
+    {
+        return str_replace(array('&lt;?php&nbsp;', '?&gt;'), '', highlight_string('<?php '.$php.'?>', true));
+    
+    }
     
 }
 ?>
