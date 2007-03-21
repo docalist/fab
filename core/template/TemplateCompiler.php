@@ -1,4 +1,6 @@
 <?php
+define('debugexp',false);
+
 /*
 TODO: le if et le collapse sont redondants. Virer le if, gérer correctement le collapse
 A faire :
@@ -98,6 +100,36 @@ class TemplateCompiler
     private static $currentNode=null;
     private static $lastId='';
     private static $usedId=array();
+
+
+    /**
+     * @staticvar string Expression régulière utilisée pour trouver les variables et les expressions présentes dans le source du template
+     * @access private
+     */
+    static $reCode=
+        '~
+                                            # SOIT une variable
+
+                (?<!\\\\)                   # si on a un antislash devant le dollar, on ignore 
+                \$                          # le signe dollar
+                [a-zA-Z][a-zA-Z0-9_]*       # un identifiant : lettres+chiffres+underscore
+
+            |                               # SOIT une expression entre accolades
+
+                (?<!\\\\)                   # si on a un antislash devant le signe "{" , on ignore 
+                \{                          # une accolade ouvrante
+                .*?                         # toute suite de caractères 
+                (?<!\\\\)                   # si le "}" est précédé de antislash, on ignore
+                \}                          # le "}" fermant
+        ~x';
+
+
+    /**
+     * @staticvar DOMNodeList Lorsqu'un template match contient un appel à la pseudo fonction select(), les noeuds
+     * sélectionnés sont stockés dans $selectNodes
+     */
+    private static $selectNodes=null;
+
     
     private static function getAutoId()
     {
@@ -131,9 +163,8 @@ class TemplateCompiler
      * @param string $source le code source du template à compiler
      * @return string le code php du template compilé
      */
-    public static function compile($source)
+    public static function compile($source, $datasources=null)
     {
-        // TODO : voir si on peut rétablir les commentaires de templates /* ... */
         // Supprime les commentaires de templates : /* xxx */
         $source=preg_replace('~/\*.*?\*/~ms', null, $source);
         
@@ -158,10 +189,10 @@ class TemplateCompiler
         
         // Ajoute les fichiers auto-include dans le source
         $files=Config::get('templates.autoinclude');
-        
+
         // TODO: tester que le fichier existe et est lisible et générer une exception sinon 
         $h='';
-        foreach($files as $file)
+        foreach((array)$files as $file)
         	$h.=file_get_contents(Runtime::$fabRoot.'core/template/autoincludes/'.$file);
 
         if ($h) $source=str_replace('</root>', '<div ignore="true">'.$h.'</div></root>', $source);
@@ -172,7 +203,7 @@ class TemplateCompiler
 
         if (Config::get('templates.removeblanks'))
             $xml->preserveWhiteSpace=false; // à true par défaut
-
+//$xml->strictErrorChecking=true;
         if (Config::get('templates.resolveexternals'))
         {
             $xml->resolveExternals=true;
@@ -193,10 +224,12 @@ class TemplateCompiler
             throw new Exception($h);
         }
         unset($source);
+//        self::walkDOM($xml);
+//        die();
 //self::collapseNodes($xml);
-
+//        self::dumpNodes($xml, 'Source original');
         // Instancie tous les templates présents dans le document
-        self::compileMatches($xml);        
+       // self::compileMatches($xml);        
 
 //        if (Template::getLevel()==2) 
 //        {
@@ -216,12 +249,13 @@ class TemplateCompiler
         // Lance la compilation
         self::$stack[]=array(self::$loop, self::$opt, self::$datasources, self::$bindings);
         self::$loop=self::$opt=0;
-        self::$datasources=array();
+        self::$datasources=$datasources;
         self::$bindings=array();
         ob_start();
         if ($xmlDeclaration) echo $xmlDeclaration, "\n";
         self::compileChildren($xml); //->documentElement
         $result=ob_get_clean();
+        
 //        $result=str_replace(self::PHP_END_TAG."\n", self::PHP_END_TAG."\n\n", $result);
 
      // Nettoyage
@@ -231,22 +265,80 @@ class TemplateCompiler
         
         if (count(self::$bindings))
         {
-            $h=self::PHP_START_TAG ;
+            $h=self::PHP_START_TAG ."\n\n";
             $name='tpl_'.md5($result);
-            $h.="$name();function $name(){";                
+            $h.="$name();\n\nfunction $name()\n{\n\n";                
             
-            $h. "\n//Liste des variables de ce template\n" ;
+            $h.="\n    //Liste des variables de ce template\n" ;
             foreach (self::$bindings as $var=>$binding)
                 $h.='    ' . $var . '=' . $binding . ";\n";
                 
-            $h.=self::PHP_END_TAG;
+            $h.="\n".self::PHP_END_TAG;
             $result = $h.$result;
 $result.=self::PHP_START_TAG . '}' . self::PHP_END_TAG;                
         }
         list(self::$loop, self::$opt, self::$datasources, self::$bindings)=array_pop(self::$stack);
         return $result;
     }
+    private static function WalkDOM(DOMNode $node)
+    {
+        echo self::nodeType($node), '(', $node->nodeType, ') ';
+//        echo ' nodeValue=', htmlentities($node->nodeValue);
+        echo htmlentities($node->nodeName);
+        
+        if ($node instanceof DOMCharacterData || $node instanceof DOMProcessingInstruction) // #text, #comment...
+        {
+            echo ' VALUE: [', htmlentities($node->data), ']<br />';
+            echo ' parent : ', self::nodeType($node->parentNode), '<br />';
+        }
+        
+        if ($node->hasAttributes())
+        {
+            foreach ($node->attributes as $name=>$attribute)
+            {
+                echo '<blockquote>attrs';
+                self::walkDOM($attribute);
+                echo '</blockquote>';
+            }
+//            	echo ' ', $name, '="', $attribute->value, '"';
+        }	
+        echo "<br />";
+
+        if ($node->hasChildNodes())
+            foreach ($node->childNodes as $child)
+            {
+                echo '<blockquote>childs';
+                self::walkDOM($child);
+                echo '</blockquote>';
+            }
+    }
     
+    private static function dumpNodes($node, $title='')
+    {
+        echo "<fieldset>\n";
+        if ($title) echo "<legend>$title</legend>\n";
+        echo '<pre>';
+        if (is_scalar($node))
+        {
+            echo htmlentities($node);
+        }
+        elseif ($node instanceof DOMNodeList)
+        {
+            foreach($node as $index=>$n)
+                echo "nodeList($index) : ",self::nodeType($n)," <code>", htmlentities($n->ownerDocument->saveXml($n)), "</code>\n";
+        }
+        else
+        {
+            echo self::nodeType($node)," : ";
+            if ($node->nodeType===XML_DOCUMENT_NODE)
+                echo htmlentities($node->saveXml());
+            else 
+                echo htmlentities($node->ownerDocument->saveXml($node));
+        } 
+        echo '</pre>';
+        echo "</fieldset>\n";
+    }
+
     private static function removeEmptyTextNodes(DOMElement $node)
     {
         if (!$node->hasChildNodes()) return;
@@ -276,6 +368,8 @@ $result.=self::PHP_START_TAG . '}' . self::PHP_END_TAG;
         }
     }
     
+private static $matchNode=null;
+private static $matchTemplate=null;
 
     /**
      * Compile les templates match présents dans le document
@@ -285,10 +379,11 @@ $result.=self::PHP_START_TAG . '}' . self::PHP_END_TAG;
      * les noeuds du document qui correspondent
      * 
      * @param DOMDocument $xml le document xml à traiter
+     * @access private
      */
-    private static function compileMatches(DOMDocument $xml)
+    public static function compileMatches(DOMDocument $xml) // public : uniquement pour les tests unitaires
     {
-        // Crée la liste des templates = tous les noeuds qui ont un attribut match="xxx""
+        // Crée la liste des templates match (tous les noeuds qui ont un attribut match="xxx")
         $xpath=new DOMXPath($xml);
         $templates=$xpath->query('//template'); // , $xml->documentElement
         if ($templates->length ==0) return;
@@ -302,8 +397,8 @@ $result.=self::PHP_START_TAG . '}' . self::PHP_END_TAG;
         // Exécute chaque template dans l'ordre
         foreach($templates as $template)
         {
+            // Récupère l'expression xpath du template
             $expression=$template->getAttribute('match');
-//            echo 'template match=', $expression, '<br />';
             if ($expression==='')
                 throw new Exception
                 (
@@ -311,228 +406,235 @@ $result.=self::PHP_START_TAG . '}' . self::PHP_END_TAG;
                     htmlentities($template->ownerDocument->saveXml($template))
                 );
                     
-            // Crée la liste de tous les noeuds sélectionnés par ce template
-            $matches=$xpath->query($expression);
-
-            // Expression xpath erronée ?
-            if ($matches===false)
+            // Exécute la requête xpath pour obtenir la liste des noeuds sélectionnés par ce template
+            if (false === $nodes=$xpath->query($expression))
                 throw new Exception("Erreur dans l'expression xpath [$expression]");
                 
             // Aucun résultat : rien à faire
-            if ($matches->length==0) 
-            {
-//                echo 'aucun match<br />';
+            if ($nodes->length==0) 
                 continue;	   
-            }
 
-            // Traite chaque noeud trouvé dans l'ordre
-            foreach($matches as $match)
+            // Remplace chacun des noeuds sélectionnés par la version instanciée du template
+            foreach($nodes as $node)
             {
-                // Clone le template pour créer un nouveau noeud 
-                $node=$template->cloneNode(true);
+//    self::dumpNodes($node, 'INSTANCIATION DU NOEUD');
+                // Clone le template pour créer le noeud résultat 
+                $result=$template->cloneNode(true);
 
                 // Supprime l'attribut match
-                $node->removeAttribute('match');
+//                $result->removeAttribute('match');
                 
-                // Recopie tous les arguments (les attributs du match qui existent dans le template)
-                $replace=array();
-                foreach ($node->attributes as $attribute)
-                {
-                    if ($match->hasAttribute($attribute->name))
-                        $attribute->value=$match->getAttribute($attribute->name);
-                    $replace['~\$'.$attribute->name.'($|[^a-zA-Z0-9_\x7f-\xff])~']=$attribute->value.'\1';
-                }
+                // Recopie dans le noeud résultat les attributs qui existent dans le noeud d'origine mais pas dans le template
+                // Remplace la valeur par défaut des attributs présents dans le template par la valeur indiquée dans le noeud appellant
+//    self::dumpNodes($result, 'RESULT AVANT');
 
-                // Applique au nouveau noeud les attributs de l'ancien noeud
-                self::instantiateMatch($template, $node, $replace, $match);
-//file_put_contents(__FILE__.'.clone', $node->ownerDocument->saveXml($node));
-//die();                
+//                foreach ($result->attributes as $attribute)
+//                    if ($node->hasAttribute($attribute->name))
+//                        $attribute->value=$node->getAttribute($attribute->name);
                 
-                // Remplace l'ancien noeud (l'appel de template) 
-                // par les fils (pour ne pas avoir le tag <template>) du nouveau (le template instancié)
-//                while ($node->hasChildNodes())
-//                    $match->parentNode->insertBefore($node->childNodes->item(0), $match);
-//                $match->parentNode->removeChild($match);    
-                // ci-dessus, on ne peut pas utiliser une boucle foreach :
-                // comme on modifie la liste des fils, le foreach perd la boule                    
-
+                self::$matchNode=$node;
+//    self::dumpNodes($result, 'RESULT APRES');
+                self::$matchTemplate=$template;
+                
+                // Instancie le noeud
+                self::instantiateMatch($result);
+                
                 // Ajoute un attribut collapse
-                $node->setAttribute('collapse','true');
+                $result->setAttribute('collapse','true');
                 
                 // ancien code : remplace l'ancien noeud par le noeud template
-                $match->parentNode->replaceChild($node, $match); // remplace match par node
+                $node->parentNode->replaceChild($result, $node); // remplace match par node
              
             }
         }
+        
+        
+        //self::dumpNodes($xml, 'Après compileMatch');
     }
     
-    
+    public static function handleMatchVar(& $var)
+    {
+        // Enlève le signe $ de début
+        $attr=substr($var,1);
+        
+        // Regarde si le template match a un attribut portant ce nom
+        if (self::$matchTemplate->hasAttribute($attr))
+        {
+            // Si l'appellant a spécifié une valeur, on la prends
+            if (self::$matchNode->hasAttribute($attr))
+                $var=self::$matchNode->getAttribute($attr);
+                
+            // Sinon on prends la valeur par défaut du template
+            else
+                $var=self::$matchTemplate->getAttribute($attr);
+            
+                
+            return false;
+        }
+
+        // IDEA : si on voulait, on pourrait rendre accessibles tous les attributs de l'appellant
+        // sous forme de variables , que ceux-ci soient ou non des attributs du template. 
+        // Peut-être que cela simplifierait l'écriture des templates match et éviterait d'avoir 
+        // à déclarer toutes les variables utilisés.
+        // Par contre, est-ce souhaitable en terme de lisibilité du code ?
+        
+        // Variable non trouvée, retourne inchangée
+        return true;
+    }
+
+    public static function instantiateMatch(DOMNode $node)
+    {
+        // Traite les attributs du noeud
+        if ($node->hasAttributes())
+            foreach ($node->attributes as $attribute)
+                self::instantiateMatch($attribute);
+
+        // Exécute le code présent dans les données du noeud
+        if ($node instanceof DOMCharacterData) // #text, #comment... pour les PI :  || $node instanceof DOMProcessingInstruction
+        {
+            if (preg_match_all(self::$reCode, $node->data, $matches, PREG_PATTERN_ORDER|PREG_OFFSET_CAPTURE)>0)
+            { 
+                // Le tableau obtenu a un seul element, simplifions l'accès
+                $matches=$matches[0];
+                
+                // Evalue toutes les expressions dans l'ordre où elles apparaissent
+                foreach($matches as & $match)
+                {
+                	// Initialement, $match contient : 
+                    //    $match[0] = l'expression trouvée
+                    //    $match[1] = l'offset de l'expression dans data
+                    // on va y ajouter
+                    //    $match[3] = le résultat de l'évaluation de l'expression
+                    //    $match[4] = les noeuds éventuels à insérer devant expression si elle contient un appel à select()
+                    
+                    // Récupère l'expression à exécuter
+                    $code=$match[0];
+                    if ($code[0]==='{') $code=substr($code, 1, -1); // TODO : à mettre dans parseExpression
+                    
+                    // Evalue l'expression
+                    self::$selectNodes=null; // si select() est utilisée, on aura en sortie les noeuds sélectionnés
+                    $canEval=self::parseExpression($code, 'handleMatchVar', array('select'=>array(__CLASS__,'select')));
+                    if ($canEval) $code=self::evalExpression($code);
+                    
+                    // Stocke le résultat
+                    $match[2]=$code;
+                    $match[3]=self::$selectNodes; // les noeuds éventuels retournés par select et qu'il faut insérer
+                }
+                
+                // Remplace l'expression par sa valeur et insère les noeuds sélectionnés par select()
+                
+                // On travaille en ordre inverse pour deux raisons :
+                // - l'offset de l'expression reste valide jusqu'à la fin
+                // - après un splitText, le noeud en cours ne change pas
+                foreach(array_reverse($matches) as $match)
+                {
+                	// Remplace l'expression par sa valeur
+                    $node->replaceData($match[1], strlen($match[0]), $match[2]);
+                    
+                    // Si select a été appellée et a retourné des noeuds, on les insère devant l'expression
+                    if (! is_null($match[3]))
+                    {
+                        // Cas 1 : c'est un noeud de type texte (mais ce n'est pas la valeur d'un attribut)
+                        if ($node instanceof DOMText && (!$node->parentNode instanceof DOMAttr))
+                        {
+                            // Utiliser splittext sur le noeud en cours et insère tous les noeuds à insérer devant le noeud créé
+                            $newNode=$node->splitText($match[1]);
+                            foreach($match[3] as $nodeToInsert)
+                            {
+                                // Si le noeud à insérer est un attribut, on l'ajoute au parent du noeud en cours
+                                if ($nodeToInsert instanceof DOMAttr)
+                                {
+                                    // sauf si le parent a déjà cet attribut ou s'il s'agit d'un paramètre du template    
+                                    if (! $node->parentNode->hasAttribute($nodeToInsert->name) &&
+                                        ! self::$matchTemplate->hasAttribute($nodeToInsert->name))
+                                        $node->parentNode->setAttributeNode($nodeToInsert->cloneNode(true));
+                                }
+                                
+                                // Sinon on clone le noeud sélectionné et on l'insère devant l'expression
+                                else
+                                {
+                                    $newNode->parentNode->insertBefore($nodeToInsert->cloneNode(true), $newNode);
+                                }
+                            }
+                        }
+
+                        // Cas 2 :concatène la valeur de tous les noeuds et insère le résultat devant l'expression
+                        else
+                        {
+                            $h='';
+                            foreach ($match[3] as $nodeToInsert)
+                                $h.=$nodeToInsert->nodeValue;
+                            if ($h!=='') $node->insertData($match[1], $h);
+                        }
+                    }
+                }
+            }
+        }
+        
+        // Traite les enfants du noeud
+        if ($node->hasChildNodes())
+            foreach ($node->childNodes as $child)
+                self::instantiateMatch($child);
+    }
 
     /**
-     * Instancie récursivement un template match avec une liste d'attributs
+     * Insère un noeud dans un noeud existant à l'offset indiqué
      * 
-     * @param DOMNode $node le template à instancier
-     * @param array $replace un tableau contenant les attributs à appliquer
-     * au template
+     * @param DOMNode $node le noeud existant
+     * @param int $offset la position à laquelle le nouveau noeud doit être inséré
+     * @param DOMNode $newNode le noeud à insérer
      */
-    private static function instantiateMatch(DOMElement $template, DOMNode $node, $replace, DOMNode $match)
+    private static function insertNode(DOMNode $node, $offset, DOMNode $newNode)
     {
-        switch ($node->nodeType)
-        {
-            case XML_TEXT_NODE:
-                if ($node->isWhitespaceInElementContent()) return;
-                $node->nodeValue=preg_replace(array_keys($replace),array_values($replace), $node->nodeValue);
-                self::compileSelectsInTextNode($template, $node, $match);
-                return;
-                
-            case XML_ELEMENT_NODE:
-                if ($node->hasAttributes())
-                {
-                    $emptyAttributes=array();
-                    foreach ($node->attributes as $name=>$attribute)
-                    {
-                        $attribute->value=self::compileSelectsInAttribute($template, $attribute->value, $match);
-                        $attribute->value=preg_replace(array_keys($replace),array_values($replace), $attribute->value);
-//                        if ($attribute->value==='') 
-//                            $emptyAttributes[]=$name; 
-                    }
-// TODO: revoir la gestion des attributs dans les templates match
-// si dans un template on génère le code name="$name" alors
-// - si l'attribut name a été spécifié dans l'appellant, et ce, même s'il est vide, alors il faut garder l'attribut
-// - sinon (non spécifié par l'appellant), il faut le supprimer (l'enlever du code généré)
-// Pour le moment, aucun traitement n'est fait sur les attributs vides : ils sont conservés
-                    
-                    // Supprime tous les attributs vides à l'issue du match
-//                    foreach ($emptyAttributes as $name)
-//                        $node->removeAttribute($name);    
-                }                
-                if ($node->hasChildNodes())
-                    foreach ($node->childNodes as $child)
-                        self::instantiateMatch($template, $child, $replace, $match);
+/*                                                      Type du noeud à insérer
+                |---------------|-----------+-------+-----------+-------+-----------+-----------+-----------+---------------+
+                |               | ATTRIBUTE | TEXT  | COMMENT   | PI    | ELEMENT   | DOCUMENT  | DOCUMENT  | CDATA_SECTION |
+                |---------------|-----------+-------+-----------+-------+-----------+-----------+-----------+---------------+
+                | ATTRIBUTE     | la valeur textuelle du noeud à insérer est insérée dans la valeur de l'attribut           |
+                |---------------|-----------+-------+-----------+-------+-----------+-----------+-----------+---------------+
+                | TEXT          |add in par |       |           |       |           |           |           |               |
+                |---------------|-----------+-------+-----------+-------+-----------+-----------+-----------+---------------+
+                | COMMENT       |           |       |           |       |           |           |           |               |
+         Noeud  |---------------|-----------+-------+-----------+-------+-----------+-----------+-----------+---------------+
+          en    | PI            |           |       |           |       |           |           |           |               |
+         Cours  |---------------|-----------+-------+-----------+-------+-----------+-----------+-----------+---------------+
+                | ELEMENT       |           |       |           |       |           |           |           |               |
+                |---------------|-----------+-------+-----------+-------+-----------+-----------+-----------+---------------+
+                | DOCUMENT      |           |       |           |       |           |           |           |               |
+                |---------------|-----------+-------+-----------+-------+-----------+-----------+-----------+---------------+
+                | DOCUMENT      |           |       |           |       |           |           |           |               |
+                |---------------|-----------+-------+-----------+-------+-----------+-----------+-----------+---------------+
+                | CDATA_SECTION |           |       |           |       |           |           |           |               |
+                |---------------|-----------+-------+-----------+-------+-----------+-----------+-----------+---------------+
+*/
 
-                return;
-            case XML_COMMENT_NODE:
-            case XML_PI_NODE:
-            case XML_CDATA_SECTION_NODE:
-                $node->nodeValue=preg_replace(array_keys($replace),array_values($replace), $node->nodeValue);
-                self::compileSelectsInTextNode($template, $node, $match);
-                return;
-//            case XML_DOCUMENT_TYPE_NODE:
-//            case XML_DOCUMENT_NODE:
-            default:
-                echo "\ninstantiateMatch non gere : ", $node->nodeType, '(', self::nodeType($node),')';
-        }
-    }
-     
-    private static function compileSelectsInAttribute(DOMElement $template, $value, DOMElement $matchNode)
-    {
-//echo "\n", 'VALUE initial : [', $value, ']', "\n";
-        // Expression régulière pour repérer les expressions {select('xxx')}
-        $re=
-            '~
-                (?<!\\\\)\{             # Une accolade ouvrante non précédée de antislash
-                \s*select\s*            # Le nom de la fonction : select
-                \(\s*                   # Début des paramètres
-                (?:
-                    (?:"([^"]*)")       # Expression xpath entre guillemets doubles
-                    |                   # soit
-                    (?:\'([^\']*)\')    # Expression xpath entre guillemets simples
-                )
-                \s*\)\s*                # Fin des paramètres
-                (?<!\\\\)\}             # Une accolade fermante non précédée de antislash
-            ~sx';
-        
-        $result='';
-        
-        // Boucle tant qu'on trouve des choses dans le source passé en paramètre
-        for(;;)
-        {
-            // Recherche la prochaine expression {select('xpath')}
-            if (preg_match($re, $value, $match, PREG_OFFSET_CAPTURE)==0) break;
-            $offset=$match[0][1];
-            $len=strlen($match[0][0]);
-            $expression=$match[1][0];
-            if ($expression=='') $expression=$match[2][0];
-
-            // Coupe le texte en en deux, au début de l'expression trouvée
-            if ($offset > 0) 
-                $result .= '' . trim(substr($value, 0, $offset));
-            $value=substr($value, $offset+$len);	   
-//            echo "match trouvé. result actuel=", $result, ", select=", $expression, ", suite=", $value, "\n";
-            
-            // Exécute l'expression xpath trouvée
-            $xpath=new DOMXPath($matchNode->ownerDocument);
-            //$nodeSet=$xpath->query($expression, $matchNode);
-            $nodeSet=$xpath->evaluate($expression, $matchNode);
-
-            // Expression xpath erronée ?
-            if ($nodeSet===false)
-                throw new Exception("Erreur dans l'expression xpath [$expression]");
-                
-            if (is_scalar($nodeSet))
-            {
-                if ($nodeSet !== '') $result.='' . trim($nodeSet);
-                
-            }
-            else
-            {            
-                // Aucun résultat : rien à faire
-                if ($nodeSet->length==0) continue;
-                
-                // Insère entre les deux noeuds texte les noeuds sélectionnés par l'expression xpath
-                // Il est important de cloner chaque noeud car il sera peut-être réutilisé par un autre select
-                $allInserts='';
-                $insert='';
-                foreach($nodeSet as $newNode)
-                {
-                    switch ($newNode->nodeType)
-                    {
-                        // S'il s'agit d'un attribut, on insère sa valeur
-                        case XML_ATTRIBUTE_NODE:
-                            $insert=$newNode->value;
-                            break;
-                            
-                        // Idem si c'est un noeud texte
-                        case XML_TEXT_NODE:
-                            $insert=$newNode->nodeValue;
-                            break;
-                            
-                        // Types de noeuds illégaux : exception
-                        case XML_COMMENT_NODE:
-                        case XML_PI_NODE:
-                        case XML_ELEMENT_NODE:
-                        case XML_DOCUMENT_TYPE_NODE:
-                        case XML_CDATA_SECTION_NODE:
-                        case XML_DOCUMENT_NODE:
-                            throw new Exception("Expression xpath incorrecte : $expression. Les noeuds retournés ne peuvent pas être insérés à la postion actuelle");
-                            
-                        default:
-                            return __METHOD__ . " : type de noeud non géré ($node->nodeType)";
-                    }
-                    if ($insert!=='') 
-                    {
-                    	if ($allInserts) $allInserts .=' ';
-                        $allInserts.=trim($insert);
-                    }
-                }
-                if ($allInserts!=='') 
-                {
-//                    if ($result) $result .=' ';
-                    $result.=trim($allInserts);
-                }
-            }
-        }
-        
-        if ($value !=='') 
-        {
-            //if ($result) $result .=' ';
-            $result .= trim($value);
-        }
-//echo "\n", 'result : [', $result, ']', "\n";
-        return $result;
-//        return trim($result);
+    	
     }
     
+    private static function select($xpath=null)
+    {
+        // Vérifie que le nombre d'arguments passés en paramètre est correct
+    	if (func_num_args()!==1)
+            throw new Exception('la fonction select() prends un et un seul argument');
+
+        // Exécute l'expression xpath
+        $xpather=new DOMXPath(self::$matchNode->ownerDocument);
+        if (false === $nodeSet=$xpather->evaluate($xpath, self::$matchNode))
+            throw new Exception("Erreur dans l'expression xpath [$xpath]");
+
+        self::$selectNodes=null; // il n'y a aucun noeud à insérer
+
+        // Si le résultat est un scalaire (un entier, une chaine...), on le retourne tel quel
+        if (is_scalar($nodeSet)) return $nodeSet;
+
+        // Si le résultat est un ensemble vide, rien à faire
+        if ($nodeSet->length==0) return;
+            
+        // Stocke la liste des noeuds à insérer
+        self::$selectNodes=$nodeSet;
+        
+        return null;
+    }
     private static function compileSelectsInTextNode(DOMElement $template, DOMNode $node, DOMElement $matchNode)
     {
         // Expression régulière pour repérer les expressions {select('xxx')}
@@ -674,7 +776,9 @@ $result.=self::PHP_START_TAG . '}' . self::PHP_END_TAG;
         switch ($node->nodeType)
         {
             case XML_TEXT_NODE:     // du texte
-                echo self::compileField($node->nodeValue); // ou textContent ? ou wholeText ? ou data ?
+                $h=$node->nodeValue;
+                echo self::parseCode($h,'handleVariable',null,false); // ou textContent ? ou wholeText ? ou data ?
+                $node->nodeValue=$h;
                 return;
 
             case XML_COMMENT_NODE:  // un commentaire
@@ -709,13 +813,13 @@ $result.=self::PHP_START_TAG . '}' . self::PHP_END_TAG;
                 {
                     if (($test=$node->getAttribute('test')) !== '')
                     {
-                        $test=self::compileField($test, true);
+                        self::parseExpression($test);
                         echo self::PHP_START_TAG, 'if (', $test, '):',self::PHP_END_TAG;
                         $node->removeAttribute('test');
                     }
                     if (($if=$node->getAttribute('if')) !== '')
                     {
-                        $if=self::compileField($if, true);
+                        self::parseExpression($if);
                         echo self::PHP_START_TAG, 'if ($tmp=(', $if, ')):', self::PHP_END_TAG;
                         $node->removeAttribute('if');
                     }
@@ -736,7 +840,8 @@ $result.=self::PHP_START_TAG . '}' . self::PHP_END_TAG;
                             foreach ($node->attributes as $key=>$attribute)
                             {
                                 ++self::$opt;
-                                $value=self::compileField($attribute->value, false, $flags);
+                                $value=$attribute->value;
+                                self::parseExpression($value);
                                 --self::$opt;
                                 $value=$value;
                                 $quot=(strpos($value,'"')===false) ? '"' : "'";
@@ -854,350 +959,89 @@ $result.=self::PHP_START_TAG . '}' . self::PHP_END_TAG;
         return strtr($source, array('\\$'=>'$', '\\{'=>'{', '\\}'=>'}'));	
     }
 
-    /**
-     * Compile les balises de champ présents dans un texte   
-     * 
-     * Remarque : la fonction applique automatiquement utf8_decode à l'expression
-     * passée en paramêre : ne pas le faire ni avant ni après.
-     * 
-     * @param string $source le texte à examiner
-     * 
-     * @param boolean $phpTags indique q'il faut ou non ajouter les tags 
-     * d'ouverture et de fermeture de php dans le code généré
-     * 
-     * @param int $flags (optionnel) en sortie, un entier indiquant le
-     * statut de la compilation (0=le source passé en paramètre ne contenait
-     * pas de champs, 1=le source passé en paramètre contenait des champs et
-     * du texte, 2=le source passé en paramètre ne contenait que des champs)
-     * 
-     * @return string la version compilée du source
-     */
-    private static function compileField($source, $asExpression=false, &$flags=null)
+    public static function getDataSource($name, & $bindingName, & $bindingValue, & $code)
     {
-        // Expression régulière pour un nom de variable php valide
-        // Source : http://fr2.php.net/variables (dans l'intro 'essentiel')
-        // Modif du 14/11/06 : interdiction d'avoir une variable qui commence
-        // par un underscore (réservé aux variables internes du template, le fait
-        // de l'interdire assure que les variables internes n'écrasent pas les
-        // sources de données)
-        $var='(?<!\\\\)\$([a-zA-Z\x7f-\xff][a-zA-Z0-9_\x7f-\xff]*)';
-        // TODO : voir si un \w fait la même chose
-        
-        // Expression régulière pour une expression valide dans un template
-        $exp='(?<!\\\\)\{[^}]*(?<!\\\\)\}';
-        
-        // Expression régulière combinant les deux
-        $re="~$var|$exp~";
-        
-        // Convertit l'ancienne syntaxe des champs dans la nouvelle syntaxe 
-//        $source=preg_replace('~\[([a-zA-Z]+)\]~', '$$1', $source);  // [titre]
-//        $source=preg_replace                                        // [titoriga:titorigm]
-//        (
-//            '~\[([^\]]+)\]~e', 
-//            "'{\$' . preg_replace('~:(?=[a-zA-Z])~',':\$','$1') . '}'", 
-//            $source
-//        );
+        debug && Debug::log('%s', $name);
 
-        
-        // Boucle tant qu'on trouve des choses dans le source passé en paramètre
-        $start=0;
-        $result='';
-        
-        $hasFields=false;
-        $hasText=false;
-        for($i=1;;$i++)
+        // Parcours toutes les sources de données
+        foreach (self::$datasources as $i=>$data)
         {
-            // Recherche la prochaine expression
-            if (preg_match($re, $source, $match, PREG_OFFSET_CAPTURE, $start)==0) break;
-            $expression=$match[0][0];
-            $len=strlen($expression);
-            $offset=$match[0][1];
-            $hasFields=true; // pour indiquer dans flags qu'on a trouvé au moins un champ
-            
-            // Envoie le texte qui précède l'expression trouvée
-            if ('' != $text=substr($source, $start, $offset-$start))
+            // Objet
+            if (is_object($data))
             {
-                $result.=self::unescape($text);
-                $hasText=true;
-            }
-                        
-            // Enlève les accolades qui entourent l'expression
-            if ($expression[0]==='{') $expression=substr($expression, 1, -1);
-            if (trim($expression) != '')
-            {
-                // Compile l'expression
-                $t=self::compileExpression($expression);
-                //echo '<pre>$expression=', print_r($t,true), '</pre>';
-                // Il s'agit d'une simple expression, pas d'un collier
-                if (count($t)==1)
+                // Propriété d'un objet
+                if (property_exists($data, $name))
                 {
-                    $h=$t[0];
-                    if (self::$opt) $h="Template::filled($h)";	
+                    debug && Debug::log('C\'est une propriété de l\'objet %s', get_class($data));
+                    $code=$bindingName='$b_'.$name;
+                    $bindingValue='& Template::$data['.$i.']->'.$name;
+                    return true;
                 }
                 
-                // Il y a plusieurs alternatives dans l'expression
-                else
+                // Clé d'un objet ArrayAccess
+                if ($data instanceof ArrayAccess)
                 {
-                    $h='($tmp=' . join($t, ' or $tmp=') . ') ? ';	
-                    if (self::$opt) 
-                        $h.='Template::filled($tmp)';
-                    else
-                        $h.='$tmp';
-                    $h.=' : null';  
+                    try
+                    {
+                        debug && Debug::log('Tentative d\'accès à %s[\'%s\']', get_class($data), $name);
+                        $value=$data[$name]; // essaie d'accéder, pas d'erreur ?
+
+                        $bindingName='$b_'.$name;
+                        $code=$bindingName.'[\''.$name.'\']';
+                        $bindingValue='& Template::$data['.$i.']';
+// TODO: ne pas générer plusieurs fois le même binding                        
+//                        $bindingValue='& Template::$data['.$i.'][\''.$name.'\']';
+                        // pas de référence : see http://bugs.php.net/bug.php?id=34783
+                        // It is impossible to have ArrayAccess deal with references
+                        return true;
+                    }
+                    catch(Exception $e)
+                    {
+                        debug && Debug::log('Génère une erreur %s', $e->getMessage());
+                    }
                 }
-                
-                if ($asExpression)
-                    $result.= $h;
                 else
-                    $result.=self::PHP_START_TAG . 'echo ' . $h . self::PHP_END_TAG;
+                    debug && Debug::log('Ce n\'est pas une clé de l\'objet %s', get_class($data));
             }
-                        
-            // Passe au suivant
-            $start=$offset + $len;
-        }
 
-        // Envoie le texte qui suit le dernier match 
-        if ('' != $text=substr($source, $start))
-        {
-            $result.=self::unescape($text);
-            $hasText=true;
-        }
+            // Clé d'un tableau de données
+            if (is_array($data) && array_key_exists($name, $data)) 
+            {
+                debug && Debug::log('C\'est une clé du tableau de données');
+                $code=$bindingName='$b_'.$name;
+                $bindingValue='& Template::$data['.$i.'][\''.$name.'\']';
+                return true;
+            }
 
-        // Positionne les flags en fonction de ce q'on a trouvé
-        if (! $hasFields) 
-            $flags=0;           // aucun champ, que du texte
-        elseif ($hasText)       
-            $flags=1;           // champ et texte mélangés
-        else
-            $flags=2;           // que des champs
+            // Fonction de callback
+            if (is_callable($data))
+            {
+                Template::$isCompiling++;
+                ob_start();
+                $value=call_user_func($data, $name);
+                ob_end_clean();
+                Template::$isCompiling--;
+                
+                // Si la fonction retourne autre chose que "null", terminé
+                if ( ! is_null($value) )
+                {
+                    $bindingName='$callback';
+                    if ($i) $bindingName .= $i;
+                    $bindingValue='& Template::$data['.$i.']';
+//                    $bindingValue.= 'print_r('.$bindingName.')';
+                    $code=$bindingName.'(\''.$name.'\')';
+                    $code='call_user_func(' . $bindingName.', \''.$name.'\')';
+                    return true;
+                    //return 'call_user_func(Template::$data['.$i.'], \''.$name.'\')';
+                }
+            }
             
-        return $result;
+            //echo('Datasource incorrecte : <pre>'.print_r($data, true). '</pre>');
+        }
+        //echo('Aucune source ne connait <pre>'. $name.'</pre>');
+        return false;
     }
 
-
-    /**
-     * Compile un "collier" d'expression présent dans une zone de données et
-     * retourne un tableau contenant les différentes alternatives.
-     * 
-     * Par exemple, avec l'expression "$titoriga:$titorigm", la fonction 
-     * retournera un tableau contenant deux éléments : un pour la version compilée
-     * de l'expression $titoriga, un second pour la version compilée de l'expression
-     * titorigm
-     * 
-     * @param string $expression l'expression à compiler
-     * @return array un tableau contenant les différentes alternatives de l'expression
-     */
-    public static function compileExpression($expression)
-    {
-        // Utilise l'analyseur syntaxique de php pour décomposer l'expression en tokens
-        $tokens = token_get_all(self::PHP_START_TAG . $expression . self::PHP_END_TAG);
-        
-        // Enlève le premier et le dernier token (PHP_START_TAG et PHP_END_TAG)
-        array_shift($tokens);
-        array_pop($tokens);
-        
-        $result=array();    // le tableau résultat
-        $h='';              // l'expression en cours dans le collier
-
-        // Supprime les espaces du source
-        foreach ($tokens as $index=>$token)
-        {
-            if (is_array($token) and $token[0]==T_WHITESPACE) unset($tokens[$index]);
-        }
-        $tokens=array_values($tokens);
-        
-        reset($tokens);
-        while(list($index,$token)=each($tokens))
-        {
-            // Le token est un bloc de texte
-            if (is_string($token))
-            {
-                // Si c'est le signe ':', on ajoute l'expression en cours au tableau résultat
-                if ($token===':')
-                {
-                    if ($h) 
-                    {
-                        $result[]=$h;
-                        $h='';  
-                    }
-                }
-
-                // Sinon, on ajoute le texte à l'expression en cours
-                else
-                    $h.=$token;
-
-                // Passe au token suivant
-                continue;
-            }
-            
-            // Il s'agit d'un vrai token, extrait le type et la valeur du token 
-            list($type, $data) = $token;
-            
-            switch ($type)
-            {          
-                case T_VARIABLE:
-                    // C'est une variable, on la compile
-                        
-                    // Enlève le signe $ de début
-                    $var=substr($data,1);
-        
-                    // Convertit le nom de la variable en iso8859-1 au cas où elle contienne des accents
-                    // if (php_version <6) ou qq chose comme (if PHP_SUPPORTS_UNICODE)
-                    $var=utf8_decode($var); // UTILE ?
-                    
-                    // Teste si c'est une variable créée par le template (loop, etc.)
-                    foreach (self::$datasources as $datasource)
-                    {
-                        if (isset($datasource[$var]))
-                        {
-                            // trouvé !
-                            $h.= $datasource[$var];
-        
-                            // Passe au token suivant
-                            continue 2;
-                        }    
-                    }
-        
-                    // C'est une source de données
-                    $name=$value=$code=null;
-                    if (!Template::getDataSource($var, $name, $value, $code))
-                        throw new Exception("Impossible de compiler le template : la source de données <code>$var</code> n'est pas définie.");
-        
-                    self::$bindings[$name]=$value;
-                    $h.= $code;
-                    break;
-                
-                case T_STRING:
-                    if (isset($tokens[$index+1]) && is_string($tokens[$index+1]) && ($tokens[$index+1]=='(') && isset(self::$functions[$data]))
-                    {
-                        // todo: check fonction à nous
-                        ++$index;
-                        unset($tokens[$index]); // supprime la parenthèses ouvrante
-                        ++$index;
-                        $args='';
-                        $level=0;
-                        for(;;)
-                        {
-                            if (! isset($tokens[$index])) throw new Exception("parenthèse fermante attendue");
-                            $token=$tokens[$index];
-                            unset($tokens[$index]);
-                            $index++;
-                            if (is_string($token))
-                            {
-                                if ($token=='(')
-                                    $level++;
-                                elseif ($token==')')
-                                {
-                                     if ($level==0) break;
-                                     $level--;
-                                }
-                                $args.=$token;
-                            }
-                            else
-                            {
-                                $args.=$token[1];
-                            }
-                        }
-                        $h.=var_export(eval('return self::' . self::$functions[$data].'('.$args.');'), true);
-                    }
-                    else
-                        $h.=$data;
-                    break;
-                
-                default:
-                    // Si c'est autre chose qu'une variable, on se contente d'ajouter à l'expression en cours 
-                    // concatène. Il faut que ce soit du php valide
-                    $h.=$data;
-                    // TODO: à implémenter et à tester : <a href="/base/show?ref=$REF" ... /> doit être routé correctement, et le $REF soit être instancié.
-//                    $h.=self::compileField($data,true);  
-                    break;
-            }
-        }
-        
-        // Ajoute l'expression en cours au tableau et retourne le résultat
-        if ($h) $result[]=$h;
-        return $result;
-    }
-    private static function OLDcompileExpression($expression)
-    {
-        // Utilise l'analyseur syntaxique de php pour décomposer l'expression en tokens
-        $tokens = token_get_all(self::PHP_START_TAG . $expression . self::PHP_END_TAG);
-        
-        // Enlève le premier et le dernier token (PHP_START_TAG et PHP_END_TAG)
-        array_shift($tokens);
-        array_pop($tokens);
-
-        $result=array();    // le tableau résultat
-        $h='';              // l'expression en cours dans le collier
-
-        foreach ($tokens as $token) 
-        {
-            // Le token est un bloc de texte
-            if (is_string($token))
-            {
-                // Si c'est le signe ':', on ajoute l'expression en cours au tableau résultat
-                if ($token===':')
-                {
-                    if ($h) 
-                    {
-                        $result[]=$h;
-                        $h='';	
-                    }
-                }
-                
-                // Sinon, on ajoute le texte à l'expression en cours
-                else
-                    $h.=$token;
-
-                // Passe au token suivant
-                continue;
-            }
-            
-            // Il s'agit d'un vrai token, extrait le type et la valeur du token 
-            list($type, $data) = $token;
-            
-            // Si c'est autre chose qu'une variable, on se contente d'ajouter à l'expression en cours 
-            if ($type !== T_VARIABLE)
-            {
-                // concatène. Il faut que ce soit du php valide
-            	$h.=$data;
-
-                // Passe au token suivant
-                continue;
-            }
-
-            // C'est une variable, on la compile
-                
-            // Enlève le signe $ de début
-            $var=substr($data,1);
-            
-            // Teste si c'est une variable créée par le template (loop, etc.)
-            foreach (self::$datasources as $datasource)
-            {
-                if (isset($datasource[$var]))
-                {
-                    // trouvé !
-                    $h.= $datasource[$var];
-
-                    // Passe au token suivant
-                    continue 2;
-                }    
-            }
-
-            // C'est une source de données
-            $name=$value=$code=null;
-            if (!Template::getDataSource($var, $name, $value, $code))
-                throw new Exception("Impossible de compiler le template : la source de données <code>$var</code> n'est pas définie.");
-
-            self::$bindings[$name]=$value;
-            $h.= $code;
-        }
-        
-        // Ajoute l'expression en cours au tableau et retourne le résultat
-        if ($h) $result[]=$h;
-        return $result;
-    }
-    
     
     /**
      * Compile le tag 'template' représentant la racine de l'arbre xml
@@ -1272,7 +1116,7 @@ $result.=self::PHP_START_TAG . '}' . self::PHP_END_TAG;
                     // Récupère la condition
                     if (($test=$next->getAttribute('test')) === '')
                         throw new Exception("Tag $tag incorrect : attribut test manquant");
-                    $test=self::compileField($test, true);
+                    self::parseExpression($test);
                     
                     // Génère le tag et sa condition
                     echo self::PHP_START_TAG, $tag, ' (', $test, '):', self::PHP_END_TAG;
@@ -1329,7 +1173,7 @@ $result.=self::PHP_START_TAG . '}' . self::PHP_END_TAG;
         // Récupère la condition du switch
         if (($test=$node->getAttribute('test')) === '')
             $test='true';
-        $test=self::compileField($test, true);
+        self::parseExpression($test);
                 
         // Génère le tag et sa condition
 //        echo self::PHP_START_TAG, 'switch (', $test, '):', self::PHP_END_TAG, "\n";
@@ -1371,7 +1215,7 @@ $result.=self::PHP_START_TAG . '}' . self::PHP_END_TAG;
                             if (isset($seen[$test]))
                                 throw new Exception('Switch : plusieurs blocs case avec la même condition');
                             $seen[$test]=true;
-                            $test=self::compileField($test, true);
+                            self::parseExpression($test);
                             echo ($first?'':self::PHP_START_TAG.'break;'), 'case ', $test, ':', self::PHP_END_TAG;
                             self::compileChildren($node);
                             break;
@@ -1577,14 +1421,14 @@ echo "Source desindente :\n",  $xml->saveXml($xml), "\n-------------------------
         // Récupère l'objet sur lequel il faut itérer
         if (($on=$node->getAttribute('on')) === '')
             throw new Exception("Tag loop incorrect : attribut 'on' manquant");
-        $on=self::compileField($on, true);
+        self::parseExpression($on);
             
         // Récupère et traite l'attribut as
         $key='key';
         $value='value';
         if (($as=$node->getAttribute('as')) !== '')
         {
-            $var='\$([a-zA-Z\x7f-\xff][a-zA-Z0-9_\x7f-\xff]*)'; // synchro avec le $var de compileField 
+            $var='\$([a-zA-Z][a-zA-Z0-9_]*)'; // synchro avec le $var de parseCode 
             $re="~^\s*$var\s*(?:,\s*$var\s*)?\$~"; // as="value", as="key,value", as=" $key, $value "
             if (preg_match($re, $as, $matches) == 0)
                 throw new Exception("Tag loop : syntaxe incorrecte pour l'attribut 'as'");
@@ -1627,7 +1471,7 @@ echo "Source desindente :\n",  $xml->saveXml($xml), "\n-------------------------
 
         // Récupère l'action par défaut (optionnel)
         if (($default=$node->getAttribute('default')) !== '')
-            $default=self::compileField($default, true);
+            self::parseExpression($default);
 
         echo self::PHP_START_TAG, "Template::runSlot('",addslashes($name), "'";
         if ($default !== '') echo ",'",addslashes($default),"'";
@@ -1785,47 +1629,35 @@ echo "Source desindente :\n",  $xml->saveXml($xml), "\n-------------------------
         throw new Exception('Erreur dans l\'expression PHP [ ' . $h . ' ] : ' . $errstr);
     } 
 
-    public static function handleVariable($name, $inString=false, &$canEval=null)
+    // return true si c'est du code, false sinon
+    public static function handleVariable(& $var)
     {
-//        echo '-> ', $name, ', inString=', ($this->inString ? 'true' : 'false'), "\n";
-        
-        // on a un nom de variable. On l'instancie. Au final, soit on a sa valeur (simple chaine)
-        // soit une expression php plus complexe (par exemple) $this->bindings['var']
-        if (false)
-        {
-            $var='(contenu de la variable)';
-            $exp=false;
-        }
-        else
-        {
-            $var='$this->bindings[\''.$name.'\']';
-            $exp=true;
-            $canEval=false;
-        }
-                
-        if ($inString) 
-        {
-            if ($exp) // il faut stopper la chaine, concaténer l'expression puis la suite de la chaine
-                return array(array(self::T_CHAR,'"'), array(self::T_CHAR,'.'), array(self::T_CHAR,$var), array(self::T_CHAR,'.'), array(self::T_CHAR,'"'));
-            else // il faut insérer la valeur telle quelle dans la chaine
-                return array(array(self::T_CHAR,addslashes($var)));
-        }
-        else
-        {
-            if ($exp)
-                return array(array(self::T_CHAR,$var));
-            else
-                return array(array(T_CONSTANT_ENCAPSED_STRING, '\''.addslashes($var). '\'')); 
-        }
+        // Enlève le signe $ de début
+        $var=substr($var,1);
+
+        // Teste si c'est une variable créée par le template (loop, etc.)
+//        foreach (self::$datasources as $datasource)
+//        {
+//            if (isset($datasource[$var]))
+//            {
+//                // trouvé !
+//                $h.= $datasource[$var];
+//
+//                // Passe au token suivant
+//                continue 2;
+//            }    
+//        }
+
+        // Teste si c'est une source de données
+        $name=$value=$code=null;
+        if (!self::getDataSource($var, $name, $value, $code))
+            throw new Exception("Impossible de compiler le template : la source de données <code>$var</code> n'est pas définie.");
+
+        self::$bindings[$name]=$value;
+        $var=$code;
+        return true;
     }
     
-    // analyse l'expression php passée en paramètre
-    // vérifie que les fonctions appellées sont autorisées
-    // essaie d'optimiser l'expression
-    // essaie de l'exécuter
-    //
-    // En sortie, expression est modifiée et contient l'expression optimisée
-    // Retourne true si l'expression est évaluable (dans ce cas expression contient un varExport du résultat)
     /**
      * Analyse et optimise une expression PHP
      * 
@@ -1839,24 +1671,23 @@ echo "Source desindente :\n",  $xml->saveXml($xml), "\n-------------------------
      * dans l'expression analysée. Si vous indiquez 'null', aucun traitement ne sera effectué 
      * sur les variables. Sinon, $varCallback doit être le nom d'une méthode de la classe Template TODO: à revoir
      * 
-     * @param mixed $funcCallback la méthode à appeller lorsqu'une fonction est rencontrée TODO: à compléter
-     * et que ses arguments sont évaluables
+     * @param array|null $pseudoFunctions un tableau de pseudo fonctions ("nom pour l'utilisateur"=>callback)
      */
-    public static function parseExpression(&$expression, $varCallback=null, $funcCallback=null)
+    public static function parseExpression(&$expression, $varCallback='handleVariable', $pseudoFunctions=null)
     {
         // Si $expression est un tableau de tokens, on ajoute juste T_END à la fin
-        echo '<blockquote>';
+        if(debugexp) echo '<blockquote>';
         if (is_array($expression))
         {
             $tokens=$expression;
             $tokens[]=array(self::T_END,null);
-            echo '<code>', Utils::highlight(self::unTokenize($expression)), '</code>';
+            if(debugexp) echo '<code>', Utils::highlight(self::unTokenize($expression)), '</code>';
         }
         
         // Sinon, on tokenise l'expression
         else
         {
-            echo '<code>', Utils::highlight($expression), '</code>';
+            if(debugexp) echo '<code>', Utils::highlight($expression), '</code>';
             $tokens=self::tokenize($expression);
         }
         
@@ -1864,6 +1695,7 @@ echo "Source desindente :\n",  $xml->saveXml($xml), "\n-------------------------
         $inString=false;
         
         $curly=0;
+        
         // Compteur pour l'opérateur ternaire (xx?yy:zz). Incrémenté lors du '?', décrémenté lors du ':'. 
         // Lorsqu'on rencontre le signe ':' et que $ternary est à zéro, c'est que c'est un collier d'expressions
         $ternary=0;
@@ -1952,11 +1784,34 @@ echo "Source desindente :\n",  $xml->saveXml($xml), "\n-------------------------
                     
                 // Gestion/instanciation des variables : si on a un callback, on l'appelle                  
                 case T_VARIABLE:    
-                    if (! is_null($varCallback))
+                    if (is_null($varCallback))
+                        $canEval=false;
+                    else
                     {
-                        array_splice($tokens, $index, 1, self::$varCallback($token, $inString, $canEval));
+                        $var=$token[1];
+                        $isCode=self::$varCallback($var, $inString, $canEval);
+
+                        if ($inString) 
+                        {
+                            if ($isCode) // il faut stopper la chaine, concaténer l'expression puis la suite de la chaine
+                                $t=array(array(self::T_CHAR,'"'), array(self::T_CHAR,'.'), array(self::T_CHAR,$var), array(self::T_CHAR,'.'), array(self::T_CHAR,'"'));
+                            else // il faut insérer la valeur telle quelle dans la chaine
+                                $t=array(array(self::T_CHAR,addslashes($var)));
+                        }
+                        else
+                        {
+                            if ($isCode)
+                                $t=array(array(self::T_CHAR,$var));
+                            else
+                                $t=array(array(T_CONSTANT_ENCAPSED_STRING, '\''.addslashes($var). '\'')); 
+                        }
+                
+                        array_splice($tokens, $index, 1, $t);
+
+                        if ($isCode) $canEval=false; 
                     }
                     break;
+                    
                 case T_CURLY_OPEN: // une { dans une chaine . exemple : "nom: {$h}"
                     $tokens[$index][1]=null;
                     $curly++;
@@ -1971,7 +1826,7 @@ echo "Source desindente :\n",  $xml->saveXml($xml), "\n-------------------------
                     // Appel de fonction
                     if ($tokens[$index+1][1]==='(')
                     {
-                        $canEval &= self::parseFunctionCall($tokens, $index, $varCallback, $funcCallback);
+                        $canEval &= self::parseFunctionCall($tokens, $index, $varCallback, $pseudoFunctions);
                         break;
                     }
 
@@ -2154,25 +2009,24 @@ echo "Source desindente :\n",  $xml->saveXml($xml), "\n-------------------------
 
         $expression=self::unTokenize($tokens);
 
-        echo ' &rArr; <code>', Utils::highlight($expression), '</code>';
+        if(debugexp) echo ' &rArr; <code>', Utils::highlight($expression), '</code>';
 
         if ($canEval)
         {
             $expression=Utils::varExport(self::evalExpression($expression),true);
-            echo ' &rArr; <code>', Utils::highlight($expression), '</code>';
+            if(debugexp) echo ' &rArr; <code>', Utils::highlight($expression), '</code>';
         }
         else
-            echo ' &rArr; &otimes;';
-        echo '</blockquote>';
+        {
+            if(debugexp) echo ' &rArr; &otimes;';
+        }
+        if(debugexp) echo '</blockquote>';
         return $canEval;
     }
 
-    private static function parseFunctionCall(& $tokens, $index, $varCallback, $funcCallback)
+    private static function parseFunctionCall(& $tokens, $index, $varCallback, $pseudoFunctions)
     {
         $function=$tokens[$index][1];
-        
-        // Pseudo fonctions utilisables uniquement lors de la compilation des templates
-        static $pseudoFunctions=null;
         
         // Fonctions qui peuvent être appellées lors de la compilation
         static $compileTimeFunctions=null;
@@ -2182,10 +2036,6 @@ echo "Source desindente :\n",  $xml->saveXml($xml), "\n-------------------------
 
         if (is_null($compileTimeFunctions))
         {
-            $pseudoFunctions=array_flip(array
-            (
-                'autoid','lastid','select',
-            ));
         	$compileTimeFunctions=array_flip(array
             (
                 'empty', 'isset',
@@ -2197,19 +2047,21 @@ echo "Source desindente :\n",  $xml->saveXml($xml), "\n-------------------------
             $runtimeFunctions=array_flip(array
             (
                 'array', 'range',
-                'substr','str_replace','str_repeat',
                 'implode','explode',
             ));
         }
 
         // Détermine si cette fonction est autorisée et ce à quoi on a affaire
-        $function=strtolower($function);    // autorise les noms de fonction aussi bien en maju qu'en minu
+        $handler=strtolower($function);    // autorise les noms de fonction aussi bien en maju qu'en minu
         $canEval=true;
-        if (isset($pseudoFunctions[$function]))
+        if (isset($pseudoFunctions[$handler]))
+        {
+            $handler=$pseudoFunctions[$handler];
             $functype=0;
-        elseif (isset($compileTimeFunctions[$function]))
+        }
+        elseif (isset($compileTimeFunctions[$handler]))
             $functype=1;
-        elseif (isset($runtimeFunctions[$function]))
+        elseif (isset($runtimeFunctions[$handler]))
         {
             $functype=2;
             $canEval=false;
@@ -2235,7 +2087,7 @@ echo "Source desindente :\n",  $xml->saveXml($xml), "\n-------------------------
                         if ($i>$start)
                         {
                             $arg=array_slice($tokens, $start, $i-$start);
-                            $canEval &= self::parseExpression($arg, $varCallback, $funcCallback); // pas de shortcircuit avec un &=
+                            $canEval &= self::parseExpression($arg, $varCallback, $pseudoFunctions); // pas de shortcircuit avec un &=
                             $args[]=$arg;
                         }
                         break 2;
@@ -2245,7 +2097,7 @@ echo "Source desindente :\n",  $xml->saveXml($xml), "\n-------------------------
                     if ($level===1)
                     {
                         $arg=array_slice($tokens, $start, $i-$start);
-                        $canEval &= self::parseExpression($arg, $varCallback, $funcCallback); // pas de shortcircuit avec un &=
+                        $canEval &= self::parseExpression($arg, $varCallback, $pseudoFunctions); // pas de shortcircuit avec un &=
                         $args[]=$arg;
                         $start=$i+1;
                     }
@@ -2260,7 +2112,7 @@ echo "Source desindente :\n",  $xml->saveXml($xml), "\n-------------------------
                 $arg=self::evalExpression($arg);
             
             // Appelle la fonction
-            $result=call_user_func_array($function, $args); // TODO : gestion d'erreur
+            $result=call_user_func_array($handler, $args); // TODO : gestion d'erreur
             
             // Génère le code PHP du résultat obtenu
             $result=Utils::varExport($result, true);
@@ -2283,9 +2135,65 @@ echo "Source desindente :\n",  $xml->saveXml($xml), "\n-------------------------
         }
     	return $canEval;
     }
-    
-    
+
+    public static function parseCode(& $source, $varCallback=null, $pseudoFunctions=null, $doEval=false)
+    {
+        // Expression régulière pour un nom de variable php valide
+        // Source : http://fr2.php.net/variables (dans l'intro 'essentiel')
+        // Modif du 14/11/06 : interdiction d'avoir une variable qui commence
+        // par un underscore (réservé aux variables internes du template, le fait
+        // de l'interdire assure que les variables internes n'écrasent pas les
+        // sources de données)
+        // Modif du 20/03/07 : les accents sont désormais interdits
+        $var='(?<!\\\\)\$([a-zA-Z][a-zA-Z0-9_]*)';   // trouve $ident, ignore \$ident
+        
+        // Expression régulière pour une expression valide dans un template
+        $exp='(?<!\\\\)\{[^}]*(?<!\\\\)\}';         // trouve { xxx } mais pas \{ xxx }, { xxx \}, \{ xxx \}
+        
+        // Expression régulière combinant les deux
+        $re="~$var|$exp~";
+        
+        // Boucle tant qu'on trouve des choses dans le source passé en paramètre
+        $start=0;
+        $result='';
+        
+        for($i=1;;$i++)
+        {
+            // Recherche la prochaine expression
+            if (preg_match($re, $source, $match, PREG_OFFSET_CAPTURE, $start)==0) break;
+            $expression=$match[0][0];
+            $len=strlen($expression);
+            $offset=$match[0][1];
+            
+            // Envoie le texte qui précède l'expression trouvée
+            if ('' != $text=substr($source, $start, $offset-$start))
+                $result.=self::unescape($text);
+                        
+            // Enlève les accolades qui entourent l'expression
+            if ($expression[0]==='{') $expression=substr($expression, 1, -1);
+            if (trim($expression) != '')
+            {
+                // Compile l'expression
+                $canEval=self::parseExpression($expression, $varCallback, $pseudoFunctions);
+                if ($canEval && $doEval)
+                    $result.=self::evalExpression($expression);
+                else
+                    $result.=self::PHP_START_TAG . 'echo ' . $expression . self::PHP_END_TAG;
+            }
+                        
+            // Passe au suivant
+            $start=$offset + $len;
+        }
+
+        // Envoie le texte qui suit le dernier match 
+        if ('' != $text=substr($source, $start))
+            $result.=self::unescape($text);
+
+        $source= $result;
+    }
+
 }
+
 function dmtrim($h)
 {
     $result=trim($h);

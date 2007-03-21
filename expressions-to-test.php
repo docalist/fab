@@ -49,7 +49,7 @@ array(array(PHP_OS,1,1+1),$mode)
 trim("aa"."bb".substr("cc",1).str_replace("dd","d","ee"))
 explode(' ', 'une chaîne avec des espaces')
 explode(' ', '')
-explode('', 'une chaîne')
+explode(' ', 'une chaîne')
 select(trim(trim("aa"."bb")))
 "variable $h dans une chaine"
 {"variable {$h[0]} dans une chaine"}
