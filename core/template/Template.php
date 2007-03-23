@@ -179,14 +179,67 @@ class Template
      * essaiera d'utiliser une fonction dont le nom correspond au nom du
      * script appellant suffixé avec "_callback".
      */
+    public static function runSource($source /* $dataSource1, $dataSource2, ..., $dataSourceN */ )
+    {
+        debug && Debug::log('Exécution du source %s', $source);
+
+        // Sauvegarde l'état
+        self::saveState();
+
+        // Détermine le path du répertoire du script qui nous appelle
+        $template=dirname(Utils::callerScript()).DIRECTORY_SEPARATOR;
+        
+        // Stocke le path du template
+        debug && Debug::log("Path du template initialisé au path de l'appellant : '%s'", $template);
+        self::$template=$template; // enregistre le path du template en cours (cf walkTable)
+        
+        // Stocke les sources de données passées en paramètre
+        self::$data=func_get_args();
+        array_shift(self::$data);
+        array_unshift(self::$data,array('this'=>Utils::callerObject(2)));
+        
+        // Compile le template s'il y a besoin
+        if (true)
+        {
+            debug && Debug::notice("'%s' doit être compilé", $template);
+            
+            // Compile le code
+            debug && Debug::log('Compilation du source');
+            require_once dirname(__FILE__) . '/TemplateCompiler.php';
+            $source=TemplateCompiler::compile($source, self::$data);
+            $source=utf8_decode($source);
+echo $source;
+return;
+                
+            // Stocke le template dans le cache et l'exécute
+            if (config::get('cache.enabled'))
+            {
+                debug && Debug::log("Mise en cache de '%s'", $template);
+                Cache::set($template, $source);
+                debug && Debug::log("Exécution à partir du cache");
+                require(Cache::getPath($template));
+            }
+            else
+            {
+                debug && Debug::log("Cache désactivé, evaluation du template compilé");
+                eval(self::PHP_END_TAG . $source);
+            }            
+        }
+        
+        // Sinon, exécute le template à partir du cache
+        else
+        {
+            debug && Debug::log("Exécution à partir du cache");
+            require(Cache::getPath($template));
+        }
+
+        // restaure l'état du gestionnaire
+        self::restoreState();
+    }
+    
     public static function run($template /* $dataSource1, $dataSource2, ..., $dataSourceN */ )
     {
         debug && Debug::log('Exécution du template %s', $template);
-//        if (count(self::$stateStack)==0)
-//        {
-//            // On est au niveau zéro, c'est un tout nouveau template, réinitialise les id utilisés.
-//            self::$usedId=array();
-//        }
 
         $parentDir=dirname(self::$template);
 
@@ -219,16 +272,6 @@ class Template
         array_shift(self::$data);
         array_unshift(self::$data,array('this'=>Utils::callerObject(2)));
         
-//echo '<pre>Objet appellant : <br />';
-//var_dump(Utils::callerObject(2));
-//// au moment où callerxxx est appellée, on a 
-//// 0 = Utils::callerXxx()
-//// 1 = Template::run()
-//// 2 = notre appellant
-//echo 'Stack trace<br />';
-//var_dump(debug_backtrace());
-//echo '</pre>';
-
         // Compile le template s'il y a besoin
         if (self::needsCompilation($template))
         {
@@ -241,7 +284,7 @@ class Template
             // Compile le code
             debug && Debug::log('Compilation du source');
             require_once dirname(__FILE__) . '/TemplateCompiler.php';
-            $source=TemplateCompiler::compile($source);
+            $source=TemplateCompiler::compile($source, self::$data);
 //          if (php_version < 6) ou  if (! PHP_IS_UTF8)
             $source=utf8_decode($source);
                 
@@ -344,89 +387,6 @@ class Template
         }
     }
     
-    public static function getDataSource($name, & $bindingName, & $bindingValue, & $code)
-    {
-        debug && Debug::log('%s', $name);
-
-        // Parcours toutes les sources de données
-        foreach (self::$data as $i=>$data)
-        {
-            // Objet
-            if (is_object($data))
-            {
-                // Propriété d'un objet
-                if (property_exists($data, $name))
-                {
-                    debug && Debug::log('C\'est une propriété de l\'objet %s', get_class($data));
-                    $code=$bindingName='$b_'.$name;
-                    $bindingValue='& Template::$data['.$i.']->'.$name;
-                    return true;
-                }
-                
-                // Clé d'un objet ArrayAccess
-                if ($data instanceof ArrayAccess)
-                {
-                    try
-                    {
-                        debug && Debug::log('Tentative d\'accès à %s[\'%s\']', get_class($data), $name);
-                        $value=$data[$name]; // essaie d'accéder, pas d'erreur ?
-
-                        $bindingName='$b_'.$name;
-                        $code=$bindingName.'[\''.$name.'\']';
-                        $bindingValue='& Template::$data['.$i.']';
-// TODO: ne pas générer plusieurs fois le même binding                        
-//                        $bindingValue='& Template::$data['.$i.'][\''.$name.'\']';
-                        // pas de référence : see http://bugs.php.net/bug.php?id=34783
-                        // It is impossible to have ArrayAccess deal with references
-                        return true;
-                    }
-                    catch(Exception $e)
-                    {
-                        debug && Debug::log('Génère une erreur %s', $e->getMessage());
-                    }
-                }
-                else
-                    debug && Debug::log('Ce n\'est pas une clé de l\'objet %s', get_class($data));
-            }
-
-            // Clé d'un tableau de données
-            if (is_array($data) && array_key_exists($name, $data)) 
-            {
-                debug && Debug::log('C\'est une clé du tableau de données');
-                $code=$bindingName='$b_'.$name;
-                $bindingValue='& Template::$data['.$i.'][\''.$name.'\']';
-                return true;
-            }
-
-            // Fonction de callback
-            if (is_callable($data))
-            {
-                Template::$isCompiling++;
-                ob_start();
-                $value=call_user_func($data, $name);
-                ob_end_clean();
-                Template::$isCompiling--;
-                
-                // Si la fonction retourne autre chose que "null", terminé
-                if ( ! is_null($value) )
-                {
-                    $bindingName='$callback';
-                    if ($i) $bindingName .= $i;
-                    $bindingValue='& Template::$data['.$i.']';
-//                    $bindingValue.= 'print_r('.$bindingName.')';
-                    $code=$bindingName.'(\''.$name.'\')';
-                    $code='call_user_func(' . $bindingName.', \''.$name.'\')';
-                    return true;
-                    //return 'call_user_func(Template::$data['.$i.'], \''.$name.'\')';
-                }
-            }
-            
-            //echo('Datasource incorrecte : <pre>'.print_r($data, true). '</pre>');
-        }
-        //echo('Aucune source ne connait <pre>'. $name.'</pre>');
-        return false;
-    }
-
     public static function filled($x)
     {
         if ($x != '') 
