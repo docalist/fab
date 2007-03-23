@@ -181,6 +181,9 @@ class Template
      */
     public static function runSource($source /* $dataSource1, $dataSource2, ..., $dataSourceN */ )
     {
+echo 'Template :<pre>';
+echo htmlentities($source);
+echo '</pre>';
         debug && Debug::log('Exécution du source %s', $source);
 
         // Sauvegarde l'état
@@ -208,7 +211,10 @@ class Template
             require_once dirname(__FILE__) . '/TemplateCompiler.php';
             $source=TemplateCompiler::compile($source, self::$data);
             $source=utf8_decode($source);
-echo $source;
+            
+echo 'Version compilée :<pre>';
+echo htmlentities($source);
+echo '</pre>';
 return;
                 
             // Stocke le template dans le cache et l'exécute
