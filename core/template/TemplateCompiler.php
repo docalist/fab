@@ -156,7 +156,7 @@ class TemplateCompiler
      */
     public static function compile($source, $datasources=null)
     {
-        self::addCodePosition($source);
+        //self::addCodePosition($source);
         
         // Supprime les commentaires de templates : /* xxx */
         $source=preg_replace('~/\*.*?\*/~ms', null, $source);
@@ -290,7 +290,8 @@ $result.=self::PHP_START_TAG . '}' . self::PHP_END_TAG;
      */  
     public static function mergePhpBlocks(& $source)
     {
-    	$endStart=preg_quote(self::PHP_END_TAG.self::PHP_START_TAG, '~');
+    	return; // désactivé pour le moment, à étudier de plus près
+        $endStart=preg_quote(self::PHP_END_TAG.self::PHP_START_TAG, '~');
         $search=array
         (
             // un bloc echo suivi d'un bloc echo
@@ -818,13 +819,30 @@ private static $line=0, $column=0;
                 {
                     if (($test=$node->getAttribute('test')) !== '')
                     {
-                        TemplateCode::parseExpression($test);
+                        TemplateCode::parseExpression($test,
+                                    'handleVariable',
+                                    array
+                                    (
+                                        'setcurrentposition'=>array(__CLASS__,'setCurrentPosition'),
+                                        'autoid'=>array(__CLASS__,'autoid'),
+                                        'lastid'=>array(__CLASS__,'lastid')
+                                    )
+                        );
+                        
                         echo self::PHP_START_TAG, 'if (', $test, '):',self::PHP_END_TAG;
                         $node->removeAttribute('test');
                     }
                     if (($if=$node->getAttribute('if')) !== '')
                     {
-                        TemplateCode::parseExpression($if);
+                        TemplateCode::parseExpression($if,
+                                    'handleVariable',
+                                    array
+                                    (
+                                        'setcurrentposition'=>array(__CLASS__,'setCurrentPosition'),
+                                        'autoid'=>array(__CLASS__,'autoid'),
+                                        'lastid'=>array(__CLASS__,'lastid')
+                                    )
+                        );
                         echo self::PHP_START_TAG, 'if ($tmp=(', $if, ')):', self::PHP_END_TAG;
                         $node->removeAttribute('if');
                     }
@@ -1114,7 +1132,15 @@ private static $line=0, $column=0;
                     // Récupère la condition
                     if (($test=$next->getAttribute('test')) === '')
                         throw new Exception("Tag $tag incorrect : attribut test manquant");
-                    TemplateCode::parseExpression($test);
+                    TemplateCode::parseExpression($test,
+                                    'handleVariable',
+                                    array
+                                    (
+                                        'setcurrentposition'=>array(__CLASS__,'setCurrentPosition'),
+                                        'autoid'=>array(__CLASS__,'autoid'),
+                                        'lastid'=>array(__CLASS__,'lastid')
+                                    )
+                    );
                     
                     // Génère le tag et sa condition
                     echo self::PHP_START_TAG, $tag, ' (', $test, '):', self::PHP_END_TAG;
@@ -1165,7 +1191,15 @@ private static $line=0, $column=0;
         // Récupère la condition du switch
         if (($test=$node->getAttribute('test')) === '')
             $test='true';
-        TemplateCode::parseExpression($test);
+        TemplateCode::parseExpression($test,
+                                    'handleVariable',
+                                    array
+                                    (
+                                        'setcurrentposition'=>array(__CLASS__,'setCurrentPosition'),
+                                        'autoid'=>array(__CLASS__,'autoid'),
+                                        'lastid'=>array(__CLASS__,'lastid')
+                                    )
+        );
                 
         // Génère le tag et sa condition
         echo self::PHP_START_TAG, 'switch (', $test, '):', "\n";
@@ -1205,7 +1239,15 @@ private static $line=0, $column=0;
                             if (isset($seen[$test]))
                                 throw new Exception('Switch : plusieurs blocs case avec la même condition');
                             $seen[$test]=true;
-                            TemplateCode::parseExpression($test);
+                            TemplateCode::parseExpression($test,
+                                    'handleVariable',
+                                    array
+                                    (
+                                        'setcurrentposition'=>array(__CLASS__,'setCurrentPosition'),
+                                        'autoid'=>array(__CLASS__,'autoid'),
+                                        'lastid'=>array(__CLASS__,'lastid')
+                                    )
+                            );
                             echo ($first?'':self::PHP_START_TAG.'break;'), 'case ', $test, ':', self::PHP_END_TAG;
                             self::compileChildren($node);
                             break;
@@ -1411,7 +1453,15 @@ echo "Source desindente :\n",  $xml->saveXml($xml), "\n-------------------------
         // Récupère l'objet sur lequel il faut itérer
         if (($on=$node->getAttribute('on')) === '')
             throw new Exception("Tag loop incorrect : attribut 'on' manquant");
-        TemplateCode::parseExpression($on);
+        TemplateCode::parseExpression($on,
+                                    'handleVariable',
+                                    array
+                                    (
+                                        'setcurrentposition'=>array(__CLASS__,'setCurrentPosition'),
+                                        'autoid'=>array(__CLASS__,'autoid'),
+                                        'lastid'=>array(__CLASS__,'lastid')
+                                    )
+        );
             
         // Récupère et traite l'attribut as
         $key='key';
@@ -1461,7 +1511,15 @@ echo "Source desindente :\n",  $xml->saveXml($xml), "\n-------------------------
 
         // Récupère l'action par défaut (optionnel)
         if (($default=$node->getAttribute('default')) !== '')
-            TemplateCode::parseExpression($default);
+            TemplateCode::parseExpression($default,
+                                    'handleVariable',
+                                    array
+                                    (
+                                        'setcurrentposition'=>array(__CLASS__,'setCurrentPosition'),
+                                        'autoid'=>array(__CLASS__,'autoid'),
+                                        'lastid'=>array(__CLASS__,'lastid')
+                                    )
+            );
 
         echo self::PHP_START_TAG, "Template::runSlot('",addslashes($name), "'";
         if ($default !== '') echo ",'",addslashes($default),"'";
