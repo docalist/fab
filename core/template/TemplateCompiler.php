@@ -106,7 +106,7 @@ class TemplateCompiler
      * @staticvar string Expression régulière utilisée pour trouver les variables et les expressions présentes dans le source du template
      * @access private
      */
-    static $reCode=
+    public static $reCode=
         '~
                                             # SOIT une variable
 
@@ -280,6 +280,57 @@ $result.=self::PHP_START_TAG . '}' . self::PHP_END_TAG;
         list(self::$loop, self::$opt, self::$datasources, self::$bindings)=array_pop(self::$stack);
         return $result;
     }
+
+    /**
+     * Ajoute devant chaque variable ($xxx) et expression ({xxx}) du source de template 
+     * passé en paramètre un appel à la pseudo fonction setCurrentPosition permettant, lors
+     * du traitement des expressions de connaître la position (ligne,colonne) de cette expression
+     * au sein du fichier source.
+     * 
+     * @param string $template le source du template à modifier
+     * @return string le template dotté des informations de position 
+     */
+    public static function addCodePosition($template)
+    {
+        $lines=explode("\n",$template);
+        foreach($lines as $line=> & $text)
+            if (preg_match_all(TemplateCompiler::$reCode, $text, $matches, PREG_PATTERN_ORDER|PREG_OFFSET_CAPTURE)>0)
+                foreach(array_reverse($matches[0]) as $match)
+                    $text=substr_replace($text, '{setCurrentPosition('.($line+1).','.($match[1]+1).')}',$match[1],0);   
+
+        $template=implode("\n", $lines);
+        return $template;
+    }
+    
+    /**
+     * Supprime d'un arbre xml les informations de positions ajoutées au source
+     * par la fonction {@link addCodePosition()}
+     * 
+     * @param striong|DOMNode $template le template à modifier. Il peut s'agir soit d'une chaine de 
+     * caractères contenant le source du template, soit de l'arbre XML du template (DOMNode)
+     * 
+     * @return void
+     */
+    public static function removeCodePosition(& $template)
+    {
+        if (! $template instanceof DOMNode)
+        {
+            $template=preg_replace('~{setCurrentPosition\(\d+,\d+\)}~','',$template);
+            return;
+        }
+        
+        if ($template instanceof DOMCharacterData || $template instanceof DOMProcessingInstruction) // #text, #comment...
+            $template->data=preg_replace('~{setCurrentPosition\(\d+,\d+\)}~','',$template->data);
+        
+        if ($template->hasAttributes())
+            foreach ($template->attributes as $name=>$attribute)
+                self::removeCodePosition($attribute);
+
+        if ($template->hasChildNodes())
+            foreach ($template->childNodes as $child)
+                self::removeCodePosition($child);
+    }
+    
     private static function WalkDOM(DOMNode $node)
     {
         echo self::nodeType($node), '(', $node->nodeType, ') ';
@@ -481,7 +532,14 @@ private static $matchTemplate=null;
         // Variable non trouvée, retourne inchangée
         return true;
     }
-
+private static $line=0, $column=0;
+    
+    private static function setCurrentPosition($line, $column)
+    {
+    	self::$line=0;
+        self::$column=0;
+    }
+    
     public static function instantiateMatch(DOMNode $node)
     {
         // Traite les attributs du noeud
@@ -509,11 +567,21 @@ private static $matchTemplate=null;
                     
                     // Récupère l'expression à exécuter
                     $code=$match[0];
-                    if ($code[0]==='{') $code=substr($code, 1, -1); // TODO : à mettre dans parseExpression
+//                    if ($code[0]==='{') $code=substr($code, 1, -1); // TODO : à mettre dans parseExpression
                     
                     // Evalue l'expression
                     self::$selectNodes=null; // si select() est utilisée, on aura en sortie les noeuds sélectionnés
-                    $canEval=self::parseExpression($code, 'handleMatchVar', array('select'=>array(__CLASS__,'select')));
+                    $canEval=self::parseExpression
+                    (
+                        $code, 
+                        'handleMatchVar', 
+                        array
+                        (
+                            'select'=>array(__CLASS__,'select'),
+                            'setcurrentposition'=>array(__CLASS__,'setCurrentPosition')
+                        )
+                    );
+                    
                     if ($canEval) $code=self::evalExpression($code);
                     
                     // Stocke le résultat
@@ -632,7 +700,7 @@ private static $matchTemplate=null;
             
         // Stocke la liste des noeuds à insérer
         self::$selectNodes=$nodeSet;
-        
+
         return null;
     }
     private static function compileSelectsInTextNode(DOMElement $template, DOMNode $node, DOMElement $matchNode)
@@ -777,7 +845,14 @@ private static $matchTemplate=null;
         {
             case XML_TEXT_NODE:     // du texte
                 $h=$node->nodeValue;
-                echo self::parseCode($h,'handleVariable',null,false); // ou textContent ? ou wholeText ? ou data ?
+                echo self::parseCode($h,'handleVariable',
+                        array
+                        (
+                            'setcurrentposition'=>array(__CLASS__,'setCurrentPosition')
+                        )
+                ,
+                false); // ou textContent ? ou wholeText ? ou data ?
+
                 $node->nodeValue=$h;
                 return;
 
@@ -841,7 +916,8 @@ private static $matchTemplate=null;
                             {
                                 ++self::$opt;
                                 $value=$attribute->value;
-                                self::parseExpression($value);
+    //public static function parseCode(& $source, $varCallback=null, $pseudoFunctions=null, $doEval=false)
+                                self::parseCode($value);
                                 --self::$opt;
                                 $value=$value;
                                 $quot=(strpos($value,'"')===false) ? '"' : "'";
@@ -1601,6 +1677,7 @@ echo "Source desindente :\n",  $xml->saveXml($xml), "\n-------------------------
         set_error_handler(array(__CLASS__,'evalError'));
         
         // Exécute l'expression
+        if ($expression[0]==='{') $expression=substr($expression, 1, -1);
         ob_start();
         $result=eval('return '.$expression.';');
         $h=ob_get_clean();
@@ -1677,6 +1754,9 @@ echo "Source desindente :\n",  $xml->saveXml($xml), "\n-------------------------
     {
         // Si $expression est un tableau de tokens, on ajoute juste T_END à la fin
         if(debugexp) echo '<blockquote>';
+
+        $addCurly=false;
+
         if (is_array($expression))
         {
             $tokens=$expression;
@@ -1688,6 +1768,11 @@ echo "Source desindente :\n",  $xml->saveXml($xml), "\n-------------------------
         else
         {
             if(debugexp) echo '<code>', Utils::highlight($expression), '</code>';
+            if ($expression[0]==='{')
+            {
+                $expression=substr($expression, 1, -1);
+                $addCurly=true;	
+            }
             $tokens=self::tokenize($expression);
         }
         
@@ -1761,7 +1846,7 @@ echo "Source desindente :\n",  $xml->saveXml($xml), "\n-------------------------
 
                         // L'opérateur '=' (affectation) n'est pas autorisé
                         case '=': 
-                            throw new Exception('affectation interdite dans une expression, utilisez "=="');
+                            throw new Exception('affectation interdite dans une expression, utilisez "=="'.$expression);
                             
                         // Symbole '?' : mémorise qu'on est dans un opérateur ternaire (xx?yy:zz)
                         case '?':
@@ -2019,6 +2104,7 @@ echo "Source desindente :\n",  $xml->saveXml($xml), "\n-------------------------
         else
         {
             if(debugexp) echo ' &rArr; &otimes;';
+            if ($addCurly) $expression='{'.$expression.'}';
         }
         if(debugexp) echo '</blockquote>';
         return $canEval;
@@ -2192,6 +2278,7 @@ echo "Source desindente :\n",  $xml->saveXml($xml), "\n-------------------------
         $source= $result;
     }
 
+
 }
 
 function dmtrim($h)
@@ -2200,4 +2287,6 @@ function dmtrim($h)
 	//echo "appel de dmtrim([$h]) = [$result]<br />";
     return $result;
 }
+
+
 ?>
