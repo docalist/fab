@@ -291,6 +291,9 @@ return;
             debug && Debug::log('Compilation du source');
             require_once dirname(__FILE__) . '/TemplateCompiler.php';
             $source=TemplateCompiler::compile($source, self::$data);
+//echo 'Version compilée :<pre>';
+//echo htmlentities($source);
+//echo '</pre>';
 //          if (php_version < 6) ou  if (! PHP_IS_UTF8)
             $source=utf8_decode($source);
                 

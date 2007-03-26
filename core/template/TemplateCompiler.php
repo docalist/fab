@@ -26,6 +26,7 @@ seule variable
 
 
 require_once(dirname(__FILE__).'/TemplateCode.php');
+require_once(dirname(__FILE__).'/TemplateEnvironment.php');
 
 /**
  * Compilateur de templates
@@ -64,19 +65,6 @@ class TemplateCompiler
      * @access private
      */
     private static $loop=0;
-    
-    /**
-     * @var array Liaisons entre chacune des variables rencontrées dans le template
-     * et la source de données correspondante.
-     * Ce tableau est construit au cours de la compilation. Les bindings sont ensuite
-     * générés au début du template généré.
-     * 
-     * @access private
-     */
-    private static $bindings=array();
-    
-    
-    private static $datasources=array();
     
     private static $stack=array();
     
@@ -120,6 +108,7 @@ class TemplateCompiler
      */
     private static $selectNodes=null;
 
+    private static $env;    // TemplateEnvironment 
     
     public static function autoId()
     {
@@ -152,9 +141,11 @@ class TemplateCompiler
      * Génère une exception si le template est mal formé ou contient des erreurs.
      * 
      * @param string $source le code source du template à compiler
+     * @param array l'environnement d'exécution du template
+     * 
      * @return string le code php du template compilé
      */
-    public static function compile($source, $datasources=null)
+    public static function compile($source, $env=null)
     {
         //self::addCodePosition($source);
         
@@ -208,9 +199,9 @@ class TemplateCompiler
         libxml_clear_errors(); // >PHP5.1
         libxml_use_internal_errors(true);// >PHP5.1
 
-echo 'Source xml à compiler :<pre>';
-echo htmlentities($source);
-echo '</pre>';
+//echo 'Source xml à compiler :<pre>';
+//echo htmlentities($source);
+//echo '</pre>';
         
         if (! $xml->loadXML($source)) // options : >PHP5.1
         {
@@ -228,9 +219,9 @@ echo '</pre>';
 
         // Instancie tous les templates présents dans le document
        self::compileMatches($xml);        
-echo 'Après instanciation des templates match :<pre>';
-echo htmlentities($xml->saveXml());
-echo '</pre>';
+//echo 'Après instanciation des templates match :<pre>';
+//echo htmlentities($xml->saveXml());
+//echo '</pre>';
 
 //        if (Template::getLevel()==2) 
 //        {
@@ -248,10 +239,9 @@ echo '</pre>';
         self::removeEmptyTextNodes($xml->documentElement);
 
         // Lance la compilation
-        self::$stack[]=array(self::$loop, self::$opt, self::$datasources, self::$bindings);
+        self::$stack[]=array(self::$loop, self::$opt, self::$env);
         self::$loop=self::$opt=0;
-        self::$datasources=$datasources;
-        self::$bindings=array();
+        self::$env=new TemplateEnvironment($env);
         ob_start();
         if ($xmlDeclaration) echo $xmlDeclaration, "\n";
         self::compileChildren($xml); //->documentElement
@@ -267,21 +257,17 @@ echo '</pre>';
         $result=str_replace(self::PHP_END_TAG."\r", self::PHP_END_TAG."\r\r", $result);
         $result=str_replace(self::PHP_END_TAG."\n", self::PHP_END_TAG."\n\r", $result);
         
-        if (count(self::$bindings))
-        {
-            $h=self::PHP_START_TAG ."\n\n";
-            $name='tpl_'.md5($result);
-            $h.="$name();\n\nfunction $name()\n{\n\n";                
-            
-            $h.="\n    //Liste des variables de ce template\n" ;
-            foreach (self::$bindings as $var=>$binding)
-                $h.='    ' . $var . '=' . $binding . ";\n";
-                
-            $h.="\n".self::PHP_END_TAG;
-            $result = $h.$result;
-$result.=self::PHP_START_TAG . '}' . self::PHP_END_TAG;                
-        }
-        list(self::$loop, self::$opt, self::$datasources, self::$bindings)=array_pop(self::$stack);
+        $h=self::PHP_START_TAG ."\n\n";
+        $name='tpl_'.md5($result);
+        $h.="$name();\n\nfunction $name()\n{\n\n";                
+        
+        $h.=self::$env->getBindings();
+        
+        $h.="\n".self::PHP_END_TAG;
+        $result = $h.$result;
+        $result.=self::PHP_START_TAG . '}' . self::PHP_END_TAG;                
+
+        list(self::$loop, self::$opt, self::$env)=array_pop(self::$stack);
         return $result;
     }
 
@@ -834,7 +820,7 @@ private static $line=0, $column=0;
                     }
                     if (($if=$node->getAttribute('if')) !== '')
                     {
-                        TemplateCode::parseExpression($if,
+                        $canEval=TemplateCode::parseExpression($if,
                                     'handleVariable',
                                     array
                                     (
@@ -843,7 +829,19 @@ private static $line=0, $column=0;
                                         'lastid'=>array(__CLASS__,'lastid')
                                     )
                         );
-                        echo self::PHP_START_TAG, 'if ($tmp=(', $if, ')):', self::PHP_END_TAG;
+
+                        // Si l'expression est évaluable, pas besoin de code pour le if : on évalue tout de suite
+                        if ($canEval)
+                        {
+                        	if (! TemplateCode::evalExpression($if)) return; // le if est à false, on ignore le noeud
+                            $if=''; // le if est à true, on génère tout le noeud sans condition
+                        }
+                        // non évaluable, entour les tags de début et de fin de noeud par un if
+                        else
+                        {
+                            $ifVar=self::$env->getTemp('if');
+                            echo self::PHP_START_TAG, 'if ('.$ifVar.'=(', $if, ')):', self::PHP_END_TAG;
+                        }
                         $node->removeAttribute('if');
                     }
     
@@ -935,8 +933,11 @@ private static $line=0, $column=0;
                         if ($if !== '')                     
                             echo self::PHP_START_TAG, 'endif;',self::PHP_END_TAG;
                         self::compileChildren($node);
-                        if ($if !== '')                     
-                            echo self::PHP_START_TAG, 'if ($tmp):',self::PHP_END_TAG;
+                        if ($if !== '')
+                        {
+                            echo self::PHP_START_TAG, 'if ('.$ifVar.'):',self::PHP_END_TAG;
+                            self::$env->freeTemp($ifVar);
+                        }
                         if (! $collapse) echo '</', $node->tagName, '>';
                         if ($if !== '')                     
                             echo self::PHP_START_TAG, 'endif;',self::PHP_END_TAG;
@@ -989,89 +990,6 @@ private static $line=0, $column=0;
     private static function unescape($source)
     {
         return strtr($source, array('\\$'=>'$', '\\{'=>'{', '\\}'=>'}'));	
-    }
-
-    public static function getDataSource($name, & $bindingName, & $bindingValue, & $code)
-    {
-        debug && Debug::log('%s', $name);
-
-        // Parcours toutes les sources de données
-        foreach (self::$datasources as $i=>$data)
-        {
-            // Objet
-            if (is_object($data))
-            {
-                // Propriété d'un objet
-                if (property_exists($data, $name))
-                {
-                    debug && Debug::log('C\'est une propriété de l\'objet %s', get_class($data));
-                    $code=$bindingName='$b_'.$name;
-                    $bindingValue='& Template::$data['.$i.']->'.$name;
-                    return true;
-                }
-                
-                // Clé d'un objet ArrayAccess
-                if ($data instanceof ArrayAccess)
-                {
-                    try
-                    {
-                        debug && Debug::log('Tentative d\'accès à %s[\'%s\']', get_class($data), $name);
-                        $value=$data[$name]; // essaie d'accéder, pas d'erreur ?
-
-                        $bindingName='$b_'.$name;
-                        $code=$bindingName.'[\''.$name.'\']';
-                        $bindingValue='& Template::$data['.$i.']';
-// TODO: ne pas générer plusieurs fois le même binding                        
-//                        $bindingValue='& Template::$data['.$i.'][\''.$name.'\']';
-                        // pas de référence : see http://bugs.php.net/bug.php?id=34783
-                        // It is impossible to have ArrayAccess deal with references
-                        return true;
-                    }
-                    catch(Exception $e)
-                    {
-                        debug && Debug::log('Génère une erreur %s', $e->getMessage());
-                    }
-                }
-                else
-                    debug && Debug::log('Ce n\'est pas une clé de l\'objet %s', get_class($data));
-            }
-
-            // Clé d'un tableau de données
-            if (is_array($data) && array_key_exists($name, $data)) 
-            {
-                debug && Debug::log('C\'est une clé du tableau de données');
-                $code=$bindingName='$b_'.$name;
-                $bindingValue='& Template::$data['.$i.'][\''.$name.'\']';
-                return true;
-            }
-
-            // Fonction de callback
-            if (is_callable($data))
-            {
-                Template::$isCompiling++;
-                ob_start();
-                $value=call_user_func($data, $name);
-                ob_end_clean();
-                Template::$isCompiling--;
-                
-                // Si la fonction retourne autre chose que "null", terminé
-                if ( ! is_null($value) )
-                {
-                    $bindingName='$callback';
-                    if ($i) $bindingName .= $i;
-                    $bindingValue='& Template::$data['.$i.']';
-//                    $bindingValue.= 'print_r('.$bindingName.')';
-                    $code=$bindingName.'(\''.$name.'\')';
-                    $code='call_user_func(' . $bindingName.', \''.$name.'\')';
-                    return true;
-                    //return 'call_user_func(Template::$data['.$i.'], \''.$name.'\')';
-                }
-            }
-            
-            //echo('Datasource incorrecte : <pre>'.print_r($data, true). '</pre>');
-        }
-        //echo('Aucune source ne connait <pre>'. $name.'</pre>');
-        return false;
     }
 
     /**
@@ -1483,24 +1401,22 @@ echo "Source desindente :\n",  $xml->saveXml($xml), "\n-------------------------
             }            
         }
         
-        $keyReal='$_key';
-        $valueReal='$_val';
-//        if (self::$loop)
-//        {
-            $keyReal.=self::$loop;
-            $valueReal.=self::$loop;
-//        }
+        $keyReal=self::$env->getTemp($key);
+        $valueReal=self::$env->getTemp($value);
+
         echo self::PHP_START_TAG, "foreach($on as $keyReal=>$valueReal):", self::PHP_END_TAG;
         if ($node->hasChildNodes())
         {
-//            echo '<pre>ajout ds datasources de ', $key, ' et de ', $value, '</pre>';
-            array_unshift(self::$datasources, array($key=>$keyReal, $value=>$valueReal)); // empile au début
+            self::$env->push(array($key=>$keyReal, $value=>$valueReal));
             ++self::$loop;
             self::compileChildren($node);
             --self::$loop;
-            array_shift(self::$datasources);    // dépile au début
+            self::$env->pop();
         }
         echo self::PHP_START_TAG, 'endforeach;', self::PHP_END_TAG;
+        
+        self::$env->freeTemp($keyReal);
+        self::$env->freeTemp($valueReal);
     }
 
     private static function compileSlot($node)
@@ -1592,34 +1508,18 @@ echo "Source desindente :\n",  $xml->saveXml($xml), "\n-------------------------
     public static function handleVariable(& $var)
     {
         // Enlève le signe $ de début
-        $var=substr($var,1);
-
-        // Teste si c'est une variable créée par le template (loop, etc.)
-//        foreach (self::$datasources as $datasource)
-//        {
-//            if (isset($datasource[$var]))
-//            {
-//                // trouvé !
-//                $h.= $datasource[$var];
-//
-//                // Passe au token suivant
-//                continue 2;
-//            }    
-//        }
+        $name=substr($var,1);
 
         // Teste si c'est une source de données
-        $name=$value=$code=null;
-        if (!self::getDataSource($var, $name, $value, $code))
-            throw new Exception("Impossible de compiler le template : la source de données <code>$var</code> n'est pas définie."
+        $var=self::$env->get($name);
+        if ($var === false)
+            throw new Exception("Impossible de compiler le template : la source de données <code>$name</code> n'est pas définie."
             . 'ligne '.self::$line . ', colonne '.self::$column
             );
 
-        self::$bindings[$name]=$value;
-        $var=$code;
         return true;
     }
     
-
 
 }
 
