@@ -5,3 +5,5 @@ CSS: [/fabweb/styles/autotest.css]
 
 run:
   JS: [/fabweb/js/autotest.js]
+theme: default
+layout:default.htm
