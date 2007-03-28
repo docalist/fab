@@ -795,6 +795,7 @@ class TaskManager extends Module
                 $i++; 
             }
             $data['hastasks']=count($tasks)>0;
+            $data['tasks']=$tasks;
         }
         else
         {
@@ -802,6 +803,7 @@ class TaskManager extends Module
             $data['status']='non démarré';
             $tasks=array();
             $data['hastasks']=false;
+            $data['tasks']=$tasks;
         	
         }
         $data['now']=date('d/m/y H:i:s');

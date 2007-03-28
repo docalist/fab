@@ -68,7 +68,7 @@ templates:
   # le DTD indiqué dans le template sera chargé lors de la compilation est pris
   # en compte. Le DTD est d'abord recherché dans le catalogue local. S'il n'y
   # figure pas, il est chargé à l'url indiquée par le DTD.
-  resolveexternals:true
+  resolveexternals:false
   
 # Paramétrage du gestionnaire de configuration
 config:
@@ -86,9 +86,9 @@ taskmanager:
   
   # où se trouve l'exécutable php à utiliser en ligne de commande ?
   # Exemple windows :
-  php: "c:\php-5.1.4-Win32\php.exe"
+  #php: "c:\php-5.1.4-Win32\php.exe"
   # Exemple linux :
-  # php: /usr/local/bin/php
+  php: /usr/local/bin/php
   
   # options éventuelles à passer à l'exécutable php
   phpargs: "-C"

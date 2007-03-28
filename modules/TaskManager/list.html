@@ -1,36 +1,28 @@
 <h1>Gestionnaire de tâches</h1>
 
 <form action="index" method="GET" style="float: right">
-    <button type="submit" id="btnRefresh">
-        <span>Actualiser...</span>
-    </button>
+    <submit id="btnRefresh" label="Actualiser..." />
 </form>
-<if test="[running]">
+<if test="$running">
     <form action="stop" method="GET" style="float: right">
-        <button type="submit" id="btnStop">
-            <span>Arrêter...</span>
-        </button>
+        <submit id="btnStop" label="Arrêter..." />
     </form>
     <form action="restart" method="GET" style="float: right">
-        <button type="submit" id="btnRestart">
-            <span>Redémarrer...</span>
-        </button>
+        <submit id="btnRestart" label="Redémarrer..." />
     </form>
 </if>
 <else>
     <form action="start" method="GET" style="float: right">
-        <button type="submit" id="btnStart">
-            <span>Démarrer...</span>
-        </button>
+        <submit id="btnStart" label="Démarrer..." />
     </form>
 </else>
 
-<p>Statut du gestionnaire de tâches : <strong>[status]</strong></p>
-<p>Date/heure courante : [now]</p>
+<p>Statut du gestionnaire de tâches : <strong>$status</strong></p>
+<p>Date/heure courante : $now</p>
 
-<if test="[running]">
+<if test="$running">
     <h2>Liste des tâches en attente</h2>
-    <if test="[hastasks]">
+    <if test="$hastasks">
         <table class="taskmanager">
             <tr>
                 <th>ID</th>        
@@ -42,19 +34,19 @@
                 <th>prochaine exécution</th>        
                 <th>dernière exécution</th>        
             </tr>
-            <loop on="array($tasks)" order="asc" id="task">
-                <tr class="[task.class]">
-                    <td>[task.id]</td>
-                    <td>[task.root]</td>        
-                    <td>[task.title]</td>
-                    <td>[task.task]</td>        
-                    <td>[task.time]</td>        
-                    <td>[task.repeat]</td>        
-                    <td>[task.nexttime]</td>        
+            <loop on="$tasks" as="$task" id="task">
+                <tr class="{$task['class']}">
+                    <td>{$task['id']}</td>
+                    <td>{$task['root']}</td>        
+                    <td>{$task['title']}</td>
+                    <td>{$task['task']}</td>        
+                    <td>{$task['time']}</td>        
+                    <td>{$task['repeat']}</td>        
+                    <td>{$task['nexttime']}</td>        
                     <td>
-                        <a  href="taskstatus?id=[task.id]" 
+                        <a  href="taskstatus?id={$task['id']}" 
                             title="Voir le résultat de la dernière exécution">
-                            [task.lasttime]
+                            {$task['lasttime']}
                         </a>
                     </td>        
                 </tr>
