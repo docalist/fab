@@ -1,0 +1,80 @@
+Fichier de test pour l'analyseur d'expressions du compilateur de templates.
+
+Fonctions interdites et tokens spéciaux (die, exit...) non autorisés.
+
+@version : $Id$
+
+TODO : pour le moment toutes les exceptions générées sont de type Exception.
+Ajuster le nom le jour où TemplateCompiler aura des exceptions plus fines.
+
+================================================================================
+--file-- 
+call_user_func('my_func', $param1, $param2)
+--expect Exception--
+fonction inconnue : call_user_func
+================================================================================
+--file-- 
+die()
+--expect Exception--
+interdit : die
+================================================================================
+--file-- 
+false || die()
+--expect Exception--
+interdit : die
+================================================================================
+--file-- 
+exit()
+--expect Exception--
+interdit : exit
+================================================================================
+--file-- 
+$x && unset($x)
+--expect Exception--
+interdit : unset
+================================================================================
+--file-- 
+__halt_compiler()
+--expect Exception--
+interdit : __halt_compiler
+================================================================================
+--file-- 
+set_time_limit(0)
+--expect Exception--
+fonction inconnue : set_time_limit
+================================================================================
+--file-- 
+ignore_user_abort(true)
+--expect Exception--
+fonction inconnue : ignore_user_abort
+================================================================================
+--file-- 
+sys_getloadavg()
+--expect Exception--
+fonction inconnue : sys_getloadavg
+================================================================================
+--file-- 
+get_browser()
+--expect Exception--
+fonction inconnue : get_browser
+================================================================================
+--file-- 
+show_source("page.php")
+--expect Exception--
+fonction inconnue : show_source
+================================================================================
+--file-- 
+time_sleep_until(mktime(0, 0, 0, 03, 12, 2007))
+--expect Exception--
+fonction inconnue : time_sleep_until
+================================================================================
+--file-- 
+eval('return 12;');
+--expect Exception--
+interdit : eval
+================================================================================
+--file-- 
+eval('return' . '$' . '$nomVar')
+--expect Exception--
+interdit : eval
+================================================================================

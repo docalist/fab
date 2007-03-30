@@ -7,6 +7,8 @@
  * de cas d'utilisations possible : bonnes syntaxes, mauvaises qui génèrent des exceptions, etc.
  */
 
+require_once(dirname(__FILE__).'/../TemplateCompiler.php');
+require_once(dirname(__FILE__).'/../TemplateCode.php');
 
 class TemplateTest extends AutoTestCase
 {
@@ -52,7 +54,50 @@ class TemplateTest extends AutoTestCase
     {
     }
     
+    public function testfileTemplatesMatch()
+    {
+        $this->runTestFile(dirname(__FILE__).'/MatchTemplates.testfile',array($this,'templatesMatchCallback'));
+    }
+
+    public function templatesMatchCallback($template)
+    {
+        $xml=new domDocument();
+        
+        TemplateCompiler::addCodePosition($template);
+        $xml->loadXML($template);
+        TemplateCompiler::compileMatches($xml);
     
+        TemplateCompiler::removeCodePosition($xml);
+        TemplateCompiler::removeCodePosition($template);
+        $result=$xml->saveXml();
+        if (substr($result,0,5)==='<?xml')
+            $result=substr($result, strpos($result, '?>')+3);
+
+        $result=rtrim($result, "\n\r");
+        $result=preg_replace('~<template[^>]*/>~', '', $result);
+        $result=preg_replace('~<template[^>]*>(.*?)</template>~s', '\1', $result);
+        return $result;    	
+    }
+    
+    public function testfileExpressionParser()
+    {
+        //$this->runTestFile(dirname(__FILE__).'/test.testfile',array($this,'expressionParserCallback')); return;
+
+        $this->runTestFile(dirname(__FILE__).'/Expressions.base.testfile',array($this,'expressionParserCallback'));
+        $this->runTestFile(dirname(__FILE__).'/Expressions.arrays.testfile',array($this,'expressionParserCallback'));
+        $this->runTestFile(dirname(__FILE__).'/Expressions.colliers.testfile',array($this,'expressionParserCallback'));
+        $this->runTestFile(dirname(__FILE__).'/Expressions.functions.testfile',array($this,'expressionParserCallback'));
+        $this->runTestFile(dirname(__FILE__).'/Expressions.forbidden.operators.testfile',array($this,'expressionParserCallback'));
+        $this->runTestFile(dirname(__FILE__).'/Expressions.forbidden.functions.testfile',array($this,'expressionParserCallback'));
+        $this->runTestFile(dirname(__FILE__).'/Expressions.testfile',array($this,'expressionParserCallback'));
+    }
+
+    public function expressionParserCallback($expression)
+    {
+        
+        TemplateCode::parseExpression($expression);
+        return $expression;
+    }
     
     /*
      * A partir du nom du fichier de test, récupère ces données et prépare l'environnement de tests avant
@@ -68,8 +113,8 @@ class TemplateTest extends AutoTestCase
         if ($testFile == 'template.htm' || $testFile == 'template.html')
             throw new Exception('Aucun fichier de test ne peut s\'appeler "template.htm"'); 
             
-        if (($tests = file_get_contents(dirname(__FILE__) . '\\data\\' . $testFile)) === false)
-            throw new Exception('Fichier non trouvé : ' . dirname(__FILE__) . '\\data\\' . $testFile);
+        if (($tests = file_get_contents($path=dirname(__FILE__) . '/data/' . $testFile)) === false)
+            throw new Exception('Fichier non trouvé : ' . $path);
         
         
         //TODO: fonction qui teste si fichier de test est bien formatté
@@ -196,7 +241,7 @@ class TemplateTest extends AutoTestCase
     /*
      * Test des zones de données simples qui doivent générer une exception
      */
-    function testDataZone_Exceptions()
+    function nutestDataZone_Exceptions()
     {
         $this->performTest_Exceptions('dataZone_Exceptions.htm');
     }
@@ -205,7 +250,7 @@ class TemplateTest extends AutoTestCase
     /*
      * Test des blocs et des tags optionnels :
      */
-    function testOptional()
+    function nutestOptional()
     {
         $this->performTest('optional.htm');
     }
@@ -214,7 +259,7 @@ class TemplateTest extends AutoTestCase
     /*
      * Test des blocs et des tags optionnels devant générer une exception
      */
-     function testOptional_Exceptions()
+     function nutestOptional_Exceptions()
      {
          $this->performTest_Exceptions('optional_Exceptions.htm');
      }
@@ -223,7 +268,7 @@ class TemplateTest extends AutoTestCase
      /*
       * Test des conditionnelles
       */
-      function testConditions()
+      function nutestConditions()
       {
           $this->performTest('conditions.htm');
       }
@@ -232,7 +277,7 @@ class TemplateTest extends AutoTestCase
       /*
        * Test des conditionnelles devant générer des exceptions
        */
-       function testConditions_Exceptions()
+       function nutestConditions_Exceptions()
        {
            $this->performTest_Exceptions('conditions_Exceptions.htm');
        }
@@ -241,7 +286,7 @@ class TemplateTest extends AutoTestCase
        /*
         * Test des boucles
         */
-       function testLoops()
+       function nutestLoops()
        {
            $this->performTest('loops.htm');
        }
@@ -250,7 +295,7 @@ class TemplateTest extends AutoTestCase
        /*
         * Test des boucles devant générer des exceptions
         */
-        function testLoops_Exceptions()
+        function nutestLoops_Exceptions()
         {
             $this->performTest_Exceptions('loops_Exceptions.htm');
         }
@@ -259,7 +304,7 @@ class TemplateTest extends AutoTestCase
         /*
          * Test des "templates internes"
          */
-         function testInternalTpl()
+         function nutestInternalTpl()
          {
              $this->performTest('InternalTpl.htm');
          }
@@ -268,7 +313,7 @@ class TemplateTest extends AutoTestCase
          /*
           * Test des templates internes qui doivent générer des exceptions
           */
-          function testInternalTpl_Exceptions()
+          function nutestInternalTpl_Exceptions()
           {
               $this->performTest_Exceptions('InternalTpl_Exceptions.htm');
           }

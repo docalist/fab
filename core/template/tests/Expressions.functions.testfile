@@ -1,0 +1,66 @@
+Fichier de test pour l'analyseur d'expressions du compilateur de templates.
+
+Appels de fonctions, évaluation lors de la compilation des fonctions autorisées
+
+@version : $Id$
+================================================================================
+--file-- 
+trim ("     aaaaa   ")
+--expect--
+'aaaaa'
+================================================================================
+--file-- 
+str_repeat('X',10)
+--expect--
+'XXXXXXXXXX'
+================================================================================
+--file-- 
+trim("aa"."bb".substr("cc",1).str_replace("dd","d","ee"))
+--expect--
+'aabbcee'
+================================================================================
+--file-- 
+explode(' ', 'une chaîne avec des espaces')
+--expect--
+array('une','chaîne','avec','des','espaces')
+================================================================================
+--file-- 
+explode(' ', '')
+--expect--
+array('')
+================================================================================
+--file-- 
+trim(trim("aa"."bb"))
+--expect--
+'aabb'
+================================================================================
+--file-- 
+trim($x)
+--expect--
+trim($x)
+================================================================================
+--file-- 
+empty($x)
+--expect--
+empty($x)
+================================================================================
+--file-- 
+implode(',', array(1=>'un',2=>'deux',3=>'trois'))
+--expect--
+implode(',', array(1=>'un',2=>'deux',3=>'trois'))
+================================================================================
+--file-- 
+self::staticMethod()
+--expect--
+self::staticMethod()
+================================================================================
+--file-- 
+$this->canBeCalled(5)
+--expect--
+$this->canBeCalled(5)
+================================================================================
+--file-- 
+self::staticMethod() or $this->canBeCalled(5)
+--expect--
+self::staticMethod() or $this->canBeCalled(5)
+================================================================================
