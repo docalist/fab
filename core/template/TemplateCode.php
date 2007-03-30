@@ -74,7 +74,7 @@ class TemplateCode
         
         // Ajoute la marque de fin (T_END)
         $tokens[]=array(self::T_END,null);
-        
+
         // Retourne le tableau de tokens obtenu
         return $tokens;
     }
@@ -322,6 +322,12 @@ class TemplateCode
                                 $tokens[$index][1]=') OR $tmp=(';
                                 $colon=true;
                             }
+                            break;
+                            
+                        case '`':
+                            throw new Exception("L'opérateur d'exécution est interdit dans une expression");
+                        case '@':
+                            throw new Exception("L'opérateur de suppression des messages d'erreur est interdit dans une expression");
                     }
                     break;  
                     
