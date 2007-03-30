@@ -585,7 +585,6 @@ class TemplateCode
             $runtimeFunctions=array_flip(array
             (
                 'array', 'range',
-                'implode','explode',
             ));
         }
 
@@ -595,7 +594,7 @@ class TemplateCode
 //        if (isset($pseudoFunctions[$handler]))
 
         // les méthodes statiques (::) ou d'objet (->) sont toutes autorisées
-        if (isset($tokens[$index-1]) && ($tokens[$index-1][0]===T_DOUBLE_COLON || $tokens[$index-1][0]!==T_OBJECT_OPERATOR))
+        if (isset($tokens[$index-1]) && ($tokens[$index-1][0]===T_DOUBLE_COLON || $tokens[$index-1][0]===T_OBJECT_OPERATOR))
         {
                 $functype=2;
                 $canEval=false;
