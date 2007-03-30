@@ -89,6 +89,7 @@ class TemplateTest extends AutoTestCase
         $this->runTestFile(dirname(__FILE__).'/Expressions.functions.testfile',array($this,'expressionParserCallback'));
         $this->runTestFile(dirname(__FILE__).'/Expressions.forbidden.operators.testfile',array($this,'expressionParserCallback'));
         $this->runTestFile(dirname(__FILE__).'/Expressions.forbidden.functions.testfile',array($this,'expressionParserCallback'));
+        $this->runTestFile(dirname(__FILE__).'/Expressions.exclamation.testfile',array($this,'expressionParserCallback'));
         $this->runTestFile(dirname(__FILE__).'/Expressions.testfile',array($this,'expressionParserCallback'));
     }
 
@@ -232,7 +233,7 @@ class TemplateTest extends AutoTestCase
     /*
      * Test des zones de données simples qui ne génèrent pas d'exception
      */
-    function testDataZone()
+    function nutestDataZone()
     {
         $this->performTest('dataZone.htm');
     }

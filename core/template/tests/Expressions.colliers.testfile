@@ -76,7 +76,8 @@ l'interprétation est correcte
 ($tmp=(('') OR $tmp=(0) OR $tmp=('titre du document')?true:false))?$tmp:null
 Erreur ! le parenthésage n'est pas bon
 --skip--
-on ne peut pas utiliser de colliers dans la condition d'un opérateur ternaire
+pour le moment, on ne peut pas utiliser de colliers dans la condition d'un 
+opérateur ternaire
 ================================================================================
 --file-- 
 true?('':0:'titre du document'):'aa'
@@ -86,7 +87,8 @@ true?('':0:'titre du document'):'aa'
 ($tmp=(true?('':0) OR $tmp=('titre du document')) OR $tmp=('aa'))?$tmp:null
 Erreur ! ce n'est pas du php correct
 --skip--
-on ne peut pas utiliser de colliers dans une alternative d'opérateur ternaire
+pour le moment, on ne peut pas utiliser de colliers dans une alternative 
+d'opérateur ternaire
 ================================================================================
 --file-- 
 false?'aa':('':0:'titre du document')
@@ -96,14 +98,8 @@ false?'aa':('':0:'titre du document')
 ($tmp=(false?'aa':('') OR $tmp=(0) OR $tmp=('rien')))?$tmp:null
 Erreur ! le parenthèsage n'a pas été respecté
 --skip--
-on ne peut pas utiliser de colliers dans une alternative d'opérateur ternaire
-================================================================================
---comment--
-false?'aa':('':0:'rien')
---file-- 
-false?'aa':('':$x:'rien')
---expect--
-'zrien'
+pour le moment, on ne peut pas utiliser de colliers dans une alternative 
+d'opérateur ternaire
 ================================================================================
 --file-- 
 trim(0:false:2)

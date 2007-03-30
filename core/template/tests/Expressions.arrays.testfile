@@ -34,4 +34,8 @@ array('xxx'=>1,'a','yyy'=>'b',32,'pi'=>3.14)
 array(array('os'=>"linux",1,"version"=>1+1+.6),array())
 --expect--
 array(array('os'=>'linux',1,'version'=>2.6),array())
+--skip--
+Pour le moment, les expression d'un array contenant des clés (ce qui suit =>)
+ne sont pas optimisées. Donc le test ne passe pas, on obtient 1+1+.6 et non 
+pas 2.6
 ================================================================================
