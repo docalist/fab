@@ -457,7 +457,25 @@ class AutoTestFile extends AutoTestCase
     public function getName()
     {
         $test=$this->test;
-        return isset($test['test']) ? $test['test'] : $test['file'];
+        $file=$test['file'];
+        
+        if (isset($test['test'])) // le test a un titre
+        {
+            $h=$test['test'];
+            if (strpos($file, "\n")===false) // le source n'a qu'une ligne, on l'ajoute au titre
+                $h .= ' : ' . $file;
+            
+        }
+        else
+        {
+        	$h=preg_replace('~\s+~',' ', $file);
+            if (strlen($h)>75)
+            {
+                $h=wordwrap($file, 75, "\n", true);
+                $h=substr($file, 0, strpos($file, "\n")) . ' ...';
+            }
+        }
+        return $h;
     }
     
 }
