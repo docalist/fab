@@ -873,5 +873,210 @@ final class Utils
     
     }
     
+    /**
+     * Retourne le numéro du dernier jour d'un mois (où, ce qui est la même 
+     * chose, le nombre de jours d'un mois donné).
+     * 
+     * La fonction tiens compte des années bissextiles pour le mois de février.
+     * 
+     * @param int $month le numéro du mois
+     * @param int $year l'année.
+     */
+    public static function lastDay($month, $year=null)
+    {
+        static $last=array(0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31);
+        
+        if ($month !== 2) return $last[$month];
+        if (is_null($year))
+        {
+        	$year=getdate();
+            $year=$year['year'];
+        }
+        return 28 + ($year % 4 === 0 ? 1 : 0); // good until 2100
+    }
+
+    /**
+     * Génère les termes utilisables dans une équation de recherche booléenne 
+     * permettant de rechercher les enregistrements ayant une date située entre la 
+     * date de début et de fin données.
+     * 
+     * Les jours sont représentés par un terme de la forme 'yyyymmdd', les mois 
+     * entiers par un terme avec troncature de la forme 'yyyymm*' et les années entières 
+     * par un terme avec troncature de la forme 'yyyy*'.
+     * 
+     * L'algorithme utilisé essaie de limiter autant que possible le nombre de termes
+     * générés. Il gère correctement le mois de février, y compris en cas d'année
+     * bissextile.
+     * 
+     * Exemple : dateRange('20070101','20080302') va retourner un tableau contenant
+     * les termes '2007*', '200801*', '200802*', '20080301' et '20080302'.
+     * 
+     * Les dates doivent être indiquées au format GNU :
+     * {@link http://www.gnu.org/software/tar/manual/html_node/tar_109.html}
+     * 
+     * Remarques :
+     * 
+     * - les bornes de l'intervalles sont inclues dans l'intervalle.
+     * 
+     * - si vous utilisez des unités GNU relatives, telles que tomorrow ou +1day,
+     * il faut que la première date indiquée ($fromDate) fixe le temps de référence.
+     * Si la première date est elle-même une unité relative, alors elle sera calculée
+     * par rapport à la date actuelle.
+     * Autrement dit, dateRange('today','+1week') fonctionnera mais pas
+     * dateRange('+1week','today'). Dans le deuxième cas, +1week sera calculé à partir
+     * de maintenant, puis 'today' sera calculé par rapport à cette date, ce qui fait 
+     * que vous obtiendrez un intervalle d'un seul jour (le jour dans une semaine).
+     * 
+     * - l'algorithme ne pousse pas jusqu'au bout les optimisations permettant de limiter
+     * le nombre de termes générés. Par exemple, si on a les 11 premiers mois de l'année,
+     * il génère tous les mois un par un et non pas '20070*', '200710'et '200711' (idem 
+     * pour les jours et les années.
+     * 
+     * @param $fromDate la date de départ de l'intervalle.
+     * 
+     * @param $toDate la date de fin de l'intervalle.
+     * 
+     * @return array un tableau contenant tous les tokens de recherche correspondant
+     * à l'intervalle indiqué. Pour créer une équation de recherche à partir du tableau 
+     * obtenu, vous pouvez utiliser quelque chose comme :
+     * 
+     * <code>
+     *      $result=Utils::dateRange('20070101','20080302');
+     *      $equation='creation='.implode(' OR creation=', $result);
+     * </code>
+     */
+    public static function dateRange($fromDate, $toDate)
+    {
+        $result=array();
+        
+        // Convertit les dates au format GNU en timestamps
+        
+        if (false === $fromDate=strtotime($fromDate))
+            throw new Exception('Date de début invalide : '.$fromDate);
+            
+        if (false === $toDate=strtotime($toDate, $fromDate))
+            throw new Exception('Date de fin invalide : '.$toDate);
+
+        // Inverse les dates si la date de début est après la date de fin
+        if ($fromDate>$toDate)
+          list($fromDate,$toDate)=array($toDate,$fromDate);
+    
+        // Extrait l'année, le mois et le jour de chaque date
+        $t=getdate($fromDate);
+        $y1=$t['year'];
+        $m1=$t['mon'];
+        $d1=$t['mday'];
+    
+        $t=getdate($toDate);
+        $y2=$t['year'];
+        $m2=$t['mon'];
+        $d2=$t['mday'];
+
+        /*  
+            Algorithme :
+            - y1=y2
+                - m1=m2
+                    * jours de y1/m1/d1 à y1/m1/d2 ou y1/m1* si d1=1 et d2=lastday(m1,y1)
+                - m1<m2
+                    - année complète (d1=1 et m1=1 et m2=12 et d2=12): 
+                        * y1*
+                    - sinon
+                        * pour m1 : jours de y1/m1/d1 à y1/m1/lastDay(m1) ou y1/m1* si d1=1
+                        * mois de y1/m1+1 à y1/m2-1
+                        * pour m2 : jours de y1/m2/01 à y1/m2/d2 ou y1/m2* si d2=lastDay(m2,y1)
+            - y1<y2
+                - y1 année complète (d1=1 et m1=1)
+                    * y1*
+                - sinon
+                    * pour m1 : jours de y1/m1/d1 à y1/m1/lastDay(m1) ou y1/m1* si d1=1
+                    * pour y1 : mois de y1/m1+1 à y1/12
+                - années de y1+1 à y2-1
+                - y2 année complète (m2=12 et d2=31)
+                    * y2*
+                -sinon
+                    * pour y2 : mois de y2/01 à y2/m2-1
+                    * pour m2 : jours de y2/m2/01 à y2/m2/d2 ou y2/m2* si d2=lastDay(m2)
+        */    
+        if ($y1==$y2)
+        {
+        	if ($m1==$m2)
+            {
+                // jours de y1/m1/d1 à y1/m1/d2 ou y1/m1* si d1=1 et d2=lastday(m1,y1)
+                if ($d1==1 && $d2==Utils::lastDay($m1,$y1))
+                    $result[]=sprintf('%d%02d*', $y1, $m1);
+                else                                            
+                    for ( ; $d1 <= $d2 ; $d1++)
+                        $result[]=sprintf('%d%02d%02d', $y1, $m1, $d1);
+            }
+            else // m1<m2
+            {
+                // année complète
+                if ($d1==1 && $m1==1 && $m2==12 && $d2=31)
+            	   $result[]=sprintf('%d*', $y1);
+                else
+                {
+                    
+                    // pour m1 : jours de y1/m1/d1 à y1/m1/lastDay(m1) ou y1/m1* si d1=1
+                    if ($d1==1)            	
+                        $result[]=sprintf('%d%02d*', $y1, $m1);
+                    else
+                        for ($last=Utils::lastDay($m1, $y1) ; $d1 <= $last ; $d1++)
+                            $result[]=sprintf('%d%02d%02d', $y1, $m1, $d1);
+    
+                    // mois de y1/m1+1 à y1/m2-1
+                    while (++$m1 < $m2)
+                        $result[]=sprintf('%d%02d*', $y1, $m1);
+    
+                    // pour m2 : jours de y1/m2/01 à y1/m2/d2 ou y1/m2* si d2=lastDay(m2,y1)
+                    if ($d2==Utils::lastDay($m2,$y1))
+                        $result[]=sprintf('%d%02d*', $y1, $m2);
+                    else
+                        for ($d1=1 ; $d1 <= $d2 ; $d1++)
+                            $result[]=sprintf('%d%02d%02d', $y1, $m2, $d1);
+                }
+            }
+        }
+        else // y1<y2
+        {
+            // y1 année complète
+            if ($d1==1 && $m1==1)
+               $result[]=sprintf('%d*', $y1);
+            else
+            {
+                // pour m1 : jours de y1/m1/d1 à y1/m1/lastDay(m1) ou y1/m1* si d1=1
+                if ($d1==1)             
+                    $result[]=sprintf('%d%02d*', $y1, $m1);
+                else
+                    for ($last = Utils::lastDay($m1, $y1) ; $d1 <= $last ; $d1++)
+                        $result[]=sprintf('%d%02d%02d', $y1, $m1, $d1);
+    
+                // pour y1 : mois de y1/m1+1 à y1/12
+                while (++$m1 <= 12)
+                    $result[]=sprintf('%d%02d*', $y1, $m1);
+            }
+                            
+            // années de y1+1 à y2-1
+            while (++$y1 < $y2)
+                $result[]=sprintf('%d*', $y1);
+                
+            // y2 année complète
+            if ($m2==12 && $d2==31)
+               $result[]=sprintf('%d*', $y2);
+            else
+            {
+                // pour y2 : mois de y2/01 à y2/m2-1
+                for ($m1=1; $m1<$m2; $m1++)
+                    $result[]=sprintf('%d%02d*', $y1, $m1);
+    
+                // pour m2 : jours de y2/m2/01 à y2/m2/d2 ou y2/m2* si d2=lastDay(m2)
+                if ($d2==Utils::lastDay($m2,$y2))             
+                    $result[]=sprintf('%d%02d*', $y2, $m2);
+                else
+                    for ($d1=1 ; $d1 <= $d2 ; $d1++)
+                        $result[]=sprintf('%d%02d%02d', $y1, $m1, $d1);
+            }        	
+        }
+        return $result;
+    }    
 }
 ?>

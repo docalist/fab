@@ -349,5 +349,30 @@ class UtilsTest extends AutoTestCase
             );
         }
     }
+    
+    function testLastDay()
+    {
+        for ($year=2000; $year<2005; $year++)
+        {
+            foreach (array(1,3,5,7,8,10,12) as $month)
+               $this->assertEquals(31, Utils::lastDay($month,$year), "Nombre de jours incorrecte pour le mois numéro $month : ");
+            foreach (array(4,6,9,11) as $month)
+               $this->assertEquals(30, Utils::lastDay($month,$year), "Nombre de jours incorrecte pour le mois numéro $month : ");
+        }
+        foreach (array(2000=>29,2001=>28,2002=>28,2003=>28,2004=>29,2005=>28) as $year=>$nb)
+           $this->assertEquals($nb, Utils::lastDay(2,$year), "Nombre de jours incorrecte pour le mois numéro $month : ");
+           
+    }
+    public function testfileDateRange()
+    {
+        $this->runTestFile(dirname(__FILE__).'/dateRange.testfile',array($this,'dateRangeCallback'));
+    }
+
+    public function dateRangeCallback($src)
+    {
+        list($from,$to)=explode(',', trim($src));
+        return implode("\n",Utils::dateRange($from,$to));
+    }
+    
 }
 ?>
