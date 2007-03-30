@@ -139,7 +139,7 @@ final class Cache
      * Charge des données depuis le cache
      * 
      * @param string $path le path du fichier à lire
-     * @return string les données lues ou une chaine vide si le fichier n'existe
+     * @return string les données lues ou FALSE si le fichier n'existe
      * pas ou ne peut pas être lu.
      */
     public static function get($path)
