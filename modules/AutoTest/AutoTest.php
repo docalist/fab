@@ -129,7 +129,7 @@ class SimpleTestListener implements PHPUnit_Framework_TestListener
         static $first=true;
         
         if (strpos($suite->getName(), 'AutoTest')===false) echo '<li>';
-        echo '<h1>',$suite->getName(),'</h1>';
+        echo '<h1>',htmlentities($suite->getName()),'</h1>';
         echo '<ul>';
         $this->odd=false;
         $first=false;
@@ -151,17 +151,13 @@ class SimpleTestListener implements PHPUnit_Framework_TestListener
     public function endTest(PHPUnit_Framework_Test $test, $time)
     {
         if ($this->success)
-            echo '<li class="', ($this->odd?'odd ':''), 'pass">', $test->getName(), '</li>';
+            echo '<li class="', ($this->odd?'odd ':''), 'pass">', htmlentities($test->getName()), '</li>';
     }
  
     public function addError(PHPUnit_Framework_Test $test, Exception $e, $time)
     {
-        echo '<li class="', ($this->odd?'odd ':''), 'error">', $test->getName(), ' : ', htmlentities($e->getMessage()),'</li>';
+        echo '<li class="', ($this->odd?'odd ':''), 'error">', htmlentities($test->getName()), ' : ', htmlentities($e->getMessage()),'</li>';
         $this->success=false;
-//        printf("Error while running test '%s'.\n", $test->getName());
-//        echo '<strong style="color: red">', $e->getMessage(), '</strong>';
-        //throw $e;
-        //$this->failed++;
     }
  
     public function addFailure(PHPUnit_Framework_Test $test, PHPUnit_Framework_AssertionFailedError $e, $time)
@@ -171,14 +167,14 @@ class SimpleTestListener implements PHPUnit_Framework_TestListener
         
         if ($e instanceof AssertionNoDiffFailed)
         {
-            echo '<li class="', ($this->odd?'odd ':''), 'fail">', $test->getName(), ' : ', htmlentities($e->getMessage()),
+            echo '<li class="', ($this->odd?'odd ':''), 'fail">', htmlentities($test->getName()), ' : ', htmlentities($e->getMessage()),
             '<div class="diff"><div id="div1">',htmlentities($e->expected),'</div><div id="div2">',htmlentities($e->result),'</div></div>',
             '<script>diff_divs("div1","div2")</script>',
              '</li>';
         }
         else
         {
-            echo '<li class="', ($this->odd?'odd ':''), 'fail">', $test->getName(), ' : ', htmlentities($e->getMessage()),'</li>';
+            echo '<li class="', ($this->odd?'odd ':''), 'fail">', htmlentities($test->getName()), ' : ', htmlentities($e->getMessage()),'</li>';
         }
         $this->success=false;
     }
@@ -186,13 +182,13 @@ class SimpleTestListener implements PHPUnit_Framework_TestListener
     public function addIncompleteTest(PHPUnit_Framework_Test $test, Exception $e, $time)
     {
         $reason=($e->getMessage() ? $e->getMessage() : 'test incomplet');
-        echo '<li class="', ($this->odd?'odd ':''), 'incomplete">', $test->getName(), ' : ',$reason, '</li>';
+        echo '<li class="', ($this->odd?'odd ':''), 'incomplete">', htmlentities($test->getName()), ' : ',htmlentities($reason), '</li>';
         $this->success=false;
     }
  
     public function addSkippedTest(PHPUnit_Framework_Test $test, Exception $e, $time)
     {
-        echo '<li class="', ($this->odd?'odd ':''), 'skip">', $test->getName(), ' : ',$e->getMessage(), '</li>';
+        echo '<li class="', ($this->odd?'odd ':''), 'skip">', htmlentities($test->getName()), ' : ',htmlentities($e->getMessage()), '</li>';
         $this->success=false;
     }
  
@@ -314,8 +310,7 @@ class AutoTestCase extends PHPUnit_Framework_TestCase
 
         $testSuite=new PHPUnit_Framework_TestSuite('Fichier de test ' . basename($path));
         
-        // Exécute tous les tests
-//        echo '<li>Exécution du fichier testfile ', $path, '<ul>';
+        // Initialise tous les tests
         foreach ($tests as $test)
         {
             // Sépare les différentes sections du test
@@ -354,7 +349,7 @@ class AutoTestCase extends PHPUnit_Framework_TestCase
                 // Stocke le contenu de la section en cours
                 else
                 {
-                    $test[$name]=$section;
+                    $test[$name]=trim($section);
                 }
             }
             
