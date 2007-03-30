@@ -79,7 +79,7 @@ final class Cache
         {
         	$root=& $cache[0];
             if (strncasecmp($root, $path, strlen($root))==0)
-                return $cache[1] . substr($path, strlen($root)) . ".php";
+                return $cache[1] . substr($path, strlen($root))/* . ".php"*/;
         }
         throw new Exception("Le fichier '$path' ne peut pas figurer dans le cache");
     }
@@ -144,7 +144,7 @@ final class Cache
      */
     public static function get($path)
     {
-        return file_get_contents(self::getPath($path));
+        return @file_get_contents(self::getPath($path));
     }
 
     /**
@@ -160,6 +160,7 @@ final class Cache
     {
         $index=0; // évite 'var not initialized' sous eclipse 
         $path=self::getPath($path, $index);
+         
         @ unlink($path);
         $minLen = strlen(self::$caches[$index][1]);
         for (;;)
@@ -167,6 +168,7 @@ final class Cache
             $path = dirname($path);
             if (strlen($path) < $minLen)
                 break;
+
             if (!@ rmdir($path))
                 break;
         }
