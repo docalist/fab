@@ -11,9 +11,9 @@ array()
 array()
 ================================================================================
 --file-- 
-array(array(array(array(array(array(array(array())))))))
+array(array(array(array(array(array(array(array("c"))))))))
 --expect--
-array(array(array(array(array(array(array(array())))))))
+array(array(array(array(array(array(array(array('c'))))))))
 ================================================================================
 --file-- 
 array(1,'a',"b",32,3.14)

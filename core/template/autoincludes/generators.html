@@ -46,7 +46,7 @@ lequel il se base au lieu de dupliquer le code comme on le fait actuellement. Or
 <!-- (pas d'attribut 'rows') -->
 
 <template match="//textbox" name="" label="" value="" class="">
-    <label if="'$label'" class="text $class" for="{autoId()}">$label</label>
+    <label if="'$label'" class="text {rtrim(' '.$class)}" for="{autoId()}">$label</label>
     <input
         type="text" 
         name="$name" 
