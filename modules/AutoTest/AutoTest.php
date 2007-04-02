@@ -49,6 +49,23 @@ class AutoTest extends Module
         $tests=new PHPUnit_Framework_TestSuite('AutoTest des composants sélectionnés');
         $result = new PHPUnit_Framework_TestResult;
         $result->addListener(new SimpleTestListener);
+
+        $reportDir='';
+        echo 'here';
+        if (extension_loaded('xdebug'))
+        {
+            $reportDir='c:/temp/code/';
+            echo 'XDebug disponible. reportDir=', $reportDir;
+            if (class_exists('Image_GraphViz', false))
+            {
+                
+                $result->addListener(new PHPUnit_Util_Report_GraphViz($reportDir));
+                echo '<p>Un rapport de couverture de code sera généré dans le répertoire ', $reportDir, '</p>';
+            }
+            $result->collectCodeCoverageInformation(true);
+        }
+        else
+            echo 'XDebug non disponible';
         
         foreach((array) $files as $path)
         {
@@ -64,6 +81,8 @@ class AutoTest extends Module
              
         // Run the tests.
         $tests->run($result);
+
+        $result->flushListeners();
         
         $successCount=$result->count()-$result->errorCount()-$result->failureCount()-$result->notImplementedCount()-$result->skippedCount();
         
@@ -90,6 +109,13 @@ class AutoTest extends Module
         echo '<li class="skip odd">skip : ', $result->skippedCount(), ' ('.$s.'%)</li>';
         echo '<li class="pass">pass : ', $successCount, ' ('.$p.'%)</li>';
         echo '</ul>';
+
+        if ($reportDir &&
+            extension_loaded('xdebug')) {
+            echo "\nGenerating report, this may take a moment.";
+            PHPUnit_Util_Report::render($result, $reportDir);
+            $this->printer->write("\n");
+        }
     	
     }
 }
