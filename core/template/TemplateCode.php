@@ -125,7 +125,7 @@ class TemplateCode
             }
             echo ' : [', $token[1], ']', "<br />";
         }
-        var_export($tokens);
+//        var_export($tokens);
         echo '</pre>';
     }
 
@@ -268,7 +268,7 @@ class TemplateCode
                             break;
                             
                         case '}':
-                            if ($curly) $tokens[$index]=null;
+                            //if ($curly) $tokens[$index]=null;
                             --$curly;
                             break;
                             
@@ -276,28 +276,38 @@ class TemplateCode
                         case '!': 
                             if ($index>0) 
                             {
-                                switch($tokens[$index-1][0])
+//                                echo '<h1>Signe ! entre</h1>';
+//                                self::dumpTokens(array($tokens[$index-1]));
+//                                self::dumpTokens(array($tokens[$index+1]));
+//                                echo '<hr />';
+//
+                                // Si ce qui suit est un T_STRING
+                                if ($tokens[$index+1][0] == T_STRING)
                                 {
-                                    // Le token qui précède le '!' est un opérateur, ne pas remplacer
-                                    case T_BOOLEAN_AND:
-                                    case T_BOOLEAN_OR:
-                                    case T_LOGICAL_AND:
-                                    case T_LOGICAL_OR:
-                                    case T_LOGICAL_XOR:
-                                    case T_VARIABLE:
-                                        break;
-                                    case self::T_CHAR:
-                                        switch($tokens[$index-1][1])
-                                        {
-                                            case '!':
-                                            case '(':
-                                            case '[':
-                                                break 2;
-                                        }
-
-                                    // OK, on peut remplacer
-                                    default:
-                                        $tokens[$index][1]='->';
+                                    // et que ce qui précède est autre chose que :
+                                    switch($tokens[$index-1][0])
+                                    {
+                                        case T_BOOLEAN_AND:
+                                        case T_BOOLEAN_OR:
+                                        case T_LOGICAL_AND:
+                                        case T_LOGICAL_OR:
+                                        case T_LOGICAL_XOR:
+                                        //case T_VARIABLE:
+                                            break;
+                                        case self::T_CHAR:
+                                            switch($tokens[$index-1][1])
+                                            {
+                                                case '!':
+                                                case '(':
+                                                case '[':
+                                                    break 2;
+                                            }
+    
+                                        // OK, on peut remplacer
+                                        default:
+                                            $tokens[$index][0]=T_OBJECT_OPERATOR;
+                                            $tokens[$index][1]='->';
+                                    }
                                 }   
                             }
                             break;
@@ -362,7 +372,7 @@ class TemplateCode
                     break;
                     
                 case T_CURLY_OPEN: // une { dans une chaine . exemple : "nom: {$h}"
-                    $tokens[$index][1]=null;
+                    //$tokens[$index][1]=null;
                     $curly++;
                     break;
                     
@@ -599,8 +609,24 @@ class TemplateCode
         $canEval=true;
 //        if (isset($pseudoFunctions[$handler]))
 
+//if ($tokens[$index][1]==='TextTable')
+//{
+//	self::dumpTokens(array_slice($tokens, $index-2));
+//} 
+
         // les méthodes statiques (::) ou d'objet (->) sont toutes autorisées
         if (isset($tokens[$index-1]) && ($tokens[$index-1][0]===T_DOUBLE_COLON || $tokens[$index-1][0]===T_OBJECT_OPERATOR))
+        {
+                $functype=2;
+                $canEval=false;
+        	
+        }
+        // les new XXX() ressemble à des fonctions, sont autorisés
+        elseif ( 
+                    (isset($tokens[$index-1]) && $tokens[$index-1][0]===T_NEW) 
+                ||  
+                    (isset($tokens[$index-2]) && $tokens[$index-1][0]===T_WHITESPACE && $tokens[$index-2][0]===T_NEW)
+                )
         {
                 $functype=2;
                 $canEval=false;
