@@ -158,9 +158,9 @@ class SimpleTestListener implements PHPUnit_Framework_TestListener
     public function addError(PHPUnit_Framework_Test $test, Exception $e, $time)
     {
         echo '<li class="', ($this->odd?'odd ':''), 'error">Error. ', htmlentities($test->getName()), ' : ', htmlentities($e->getMessage());
-        echo '<pre>';
-        debug_print_backtrace();
-        echo '</pre>';
+//        echo '<pre>';
+//        debug_print_backtrace();
+//        echo '</pre>';
         echo '</li>';
         $this->success=false;
         
