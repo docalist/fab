@@ -5,6 +5,8 @@ Expressions de bases : entiers, booléens, etc.
 @version : $Id$
 
 ================================================================================
+--test--
+hhhh
 --file-- 
 true
 --expect--
