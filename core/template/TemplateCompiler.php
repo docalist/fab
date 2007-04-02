@@ -258,7 +258,7 @@ class TemplateCompiler
         $result=str_replace(self::PHP_END_TAG."\n", self::PHP_END_TAG."\n\r", $result);
         
         $h=self::PHP_START_TAG ."\n\n";
-        $name='tpl_'.md5($result);
+        $name=uniqid('tpl_');
         $h.="$name();\n\nfunction $name()\n{\n\n";                
         
         $h.=self::$env->getBindings();
