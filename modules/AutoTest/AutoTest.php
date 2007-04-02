@@ -74,6 +74,14 @@ class AutoTest extends Module
         $s=round(100 * $result->skippedCount() / $result->count());
 
         echo '<h1>Bilan des tests</h1>';
+        
+        echo '<div style="width:50%; height: 2em;border: 1px inset #000; background-color: green;">';
+        echo '<div style="width:',$e,'%; background-color: red;height: 2em;float: left"></div>';
+        echo '<div style="width:',$f,'%; background-color: darkred;height: 2em;float: left"></div>';
+        echo '<div style="width:',$n,'%; background-color: grey;height: 2em;float: left"></div>';
+        echo '<div style="width:',$s,'%; background-color: blue;height: 2em;float: left"></div>';
+        echo '</div>';
+
         echo '<ul>';
         echo '<li class="odd">Total : ', $result->count(), '</li>';
         echo '<li class="error">errors : ', $result->errorCount(), ' ('.$e.'%)</li>';
@@ -82,13 +90,6 @@ class AutoTest extends Module
         echo '<li class="skip odd">skip : ', $result->skippedCount(), ' ('.$s.'%)</li>';
         echo '<li class="pass">pass : ', $successCount, ' ('.$p.'%)</li>';
         echo '</ul>';
-        
-        echo '<div style="width:100%; border: 1px inset #000; background-color: green;float: left;">';
-        echo '<div style="width:',$e,'%; background-color: red;height: 2em;float: left"></div>';
-        echo '<div style="width:',$f,'%; background-color: darkred;height: 2em;float: left"></div>';
-        echo '<div style="width:',$n,'%; background-color: grey;height: 2em;float: left"></div>';
-        echo '<div style="width:',$s,'%; background-color: blue;height: 2em;float: left"></div>';
-        echo '</div>';
     	
     }
 }
@@ -151,13 +152,18 @@ class SimpleTestListener implements PHPUnit_Framework_TestListener
     public function endTest(PHPUnit_Framework_Test $test, $time)
     {
         if ($this->success)
-            echo '<li class="', ($this->odd?'odd ':''), 'pass">', htmlentities($test->getName()), '</li>';
+            echo '<li class="', ($this->odd?'odd ':''), 'pass">Ok. ', htmlentities($test->getName()), '</li>';
     }
  
     public function addError(PHPUnit_Framework_Test $test, Exception $e, $time)
     {
-        echo '<li class="', ($this->odd?'odd ':''), 'error">', htmlentities($test->getName()), ' : ', htmlentities($e->getMessage()),'</li>';
+        echo '<li class="', ($this->odd?'odd ':''), 'error">Error. ', htmlentities($test->getName()), ' : ', htmlentities($e->getMessage());
+        echo '<pre>';
+        debug_print_backtrace();
+        echo '</pre>';
+        echo '</li>';
         $this->success=false;
+        
     }
  
     public function addFailure(PHPUnit_Framework_Test $test, PHPUnit_Framework_AssertionFailedError $e, $time)
@@ -167,14 +173,14 @@ class SimpleTestListener implements PHPUnit_Framework_TestListener
         
         if ($e instanceof AssertionNoDiffFailed)
         {
-            echo '<li class="', ($this->odd?'odd ':''), 'fail">', htmlentities($test->getName()), ' : ', htmlentities($e->getMessage()),
+            echo '<li class="', ($this->odd?'odd ':''), 'fail">Fail. ', htmlentities($test->getName()), ' : ', htmlentities($e->getMessage()),
             '<div class="diff"><div id="div1">',htmlentities($e->expected),'</div><div id="div2">',htmlentities($e->result),'</div></div>',
             '<script>diff_divs("div1","div2")</script>',
              '</li>';
         }
         else
         {
-            echo '<li class="', ($this->odd?'odd ':''), 'fail">', htmlentities($test->getName()), ' : ', htmlentities($e->getMessage()),'</li>';
+            echo '<li class="', ($this->odd?'odd ':''), 'fail">Fail. ', htmlentities($test->getName()), ' : ', htmlentities($e->getMessage()),'</li>';
         }
         $this->success=false;
     }
@@ -182,13 +188,13 @@ class SimpleTestListener implements PHPUnit_Framework_TestListener
     public function addIncompleteTest(PHPUnit_Framework_Test $test, Exception $e, $time)
     {
         $reason=($e->getMessage() ? $e->getMessage() : 'test incomplet');
-        echo '<li class="', ($this->odd?'odd ':''), 'incomplete">', htmlentities($test->getName()), ' : ',htmlentities($reason), '</li>';
+        echo '<li class="', ($this->odd?'odd ':''), 'incomplete">Incomplet. ', htmlentities($test->getName()), ' : ',htmlentities($reason), '</li>';
         $this->success=false;
     }
  
     public function addSkippedTest(PHPUnit_Framework_Test $test, Exception $e, $time)
     {
-        echo '<li class="', ($this->odd?'odd ':''), 'skip">', htmlentities($test->getName()), ' : ',htmlentities($e->getMessage()), '</li>';
+        echo '<li class="', ($this->odd?'odd ':''), 'skip">Skip. ', htmlentities($test->getName()), ' : ',htmlentities($e->getMessage()), '</li>';
         $this->success=false;
     }
  
