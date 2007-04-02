@@ -51,21 +51,12 @@ class AutoTest extends Module
         $result->addListener(new SimpleTestListener);
 
         $reportDir='';
-        echo 'here';
-        if (extension_loaded('xdebug'))
+        
+        if (extension_loaded('xdebug') && Utils::get($_POST['codecoverage'], false)==='1')
         {
             $reportDir='c:/temp/code/';
-            echo 'XDebug disponible. reportDir=', $reportDir;
-            if (class_exists('Image_GraphViz', false))
-            {
-                
-                $result->addListener(new PHPUnit_Util_Report_GraphViz($reportDir));
-                echo '<p>Un rapport de couverture de code sera généré dans le répertoire ', $reportDir, '</p>';
-            }
             $result->collectCodeCoverageInformation(true);
         }
-        else
-            echo 'XDebug non disponible';
         
         foreach((array) $files as $path)
         {
@@ -110,13 +101,14 @@ class AutoTest extends Module
         echo '<li class="pass">pass : ', $successCount, ' ('.$p.'%)</li>';
         echo '</ul>';
 
-        if ($reportDir &&
-            extension_loaded('xdebug')) {
+        fludh();
+        ob_end_flush();
+        if ($reportDir)
+        {
             echo "\nGenerating report, this may take a moment.";
             PHPUnit_Util_Report::render($result, $reportDir);
             $this->printer->write("\n");
         }
-    	
     }
 }
 
