@@ -1,0 +1,556 @@
+Fichier de test pour l'instanciation des templates match du compilateur
+de templates.
+
+@version : $Id$
+
+
+un bloc opt ne s'affiche que si au moins l'une des expressions ou des bocs opt qu'il contient retourne qq chose
+
+si le bloc opt ne contient aucune expression, ou si ces expressions sont constantes 
+
+----
+ un bloc opt ne s'affiche pas si toutes les sources de données variables qu'il contient sont vides
+ 
+ 
+
+<opt>coucou : {autoid()}</opt>
+<opt>coucou : {trim ('    youenn ') }</opt>
+
+ou
+- au moins un sous opt est affichable
+
+- ils ne contient aucune variable ou expression
+
+
+
+================================================================================
+--test--
+	une seule variable, vide
+--file--
+	<opt>Auteur: $varNull</opt>
+--expect--
+	<?php Template::optBegin()?>
+		Auteur: <?php echo Template::filled($_varNull) ?>
+	<?php Template::optEnd() ?>
+================================================================================
+--test--
+	une seule variable, renseignée
+--file--
+	<opt>Auteur: $varAut</opt>
+--expect--
+	<?php Template::optBegin()?>
+		Auteur: <?php echo Template::filled($_varAut) ?>
+	<?php Template::optEnd() ?>
+================================================================================
+================================================================================
+--test--
+	une seule expression, vide
+--file--
+	<opt>Auteur: {$varNull}</opt>
+--expect--
+	<?php Template::optBegin()?>
+		Auteur: <?php echo Template::filled($_varNull) ?>
+	<?php Template::optEnd() ?>
+================================================================================
+--test--
+	une seule expression, renseignée
+--file--
+	<opt>Auteur: {$varAut}</opt>
+--expect--
+	<?php Template::optBegin()?>
+		Auteur: <?php echo Template::filled($_varAut) ?>
+	<?php Template::optEnd() ?>
+================================================================================
+================================================================================
+--test--
+	une seule expression, sans variables
+--file--
+	<opt>Auteur: {trim('  Youenn Leborgne  ')}</opt>
+--expect--
+	Auteur: Youenn Leborgne
+--comment--
+	lors de la compil, on voit que c'est constant, on ne génère pas de code
+	pour le opt et le /opt
+================================================================================
+--test--
+	plusieurs expressions, sans variables
+--file--
+	<opt>Auteur: {trim('  Youenn Leborgne  ')}, {trim(' Daniel Ménard ')}</opt>
+--expect--
+	Auteur: Youenn Leborgne, Daniel Ménard
+--comment--
+	idem
+================================================================================
+================================================================================
+--test--
+	deux variables, une vide, une renseignée
+--file--
+	<opt>Auteur: $varNull $varAut</opt>
+--expect--
+	<?php Template::optBegin()?>
+		Auteur:
+		<?php echo Template::filled($_varNull)?>
+		<?php echo Template::filled($_varAut)?>
+	<?php Template::optEnd() ?>
+================================================================================
+--test--
+	cinq variables, une seule renseignée
+--file--
+	<opt>Auteur: $varNull $varZero $varFalse $varEmptyString $varAut</opt>
+--expect--
+	<?php Template::optBegin()?>
+		Auteur: 
+		<?php echo Template::filled($_varNull)?>
+		<?php echo Template::filled($_varZero)?>
+		<?php echo Template::filled($_varFalse)?>
+		<?php echo Template::filled($_varEmptyString)?>
+		<?php echo Template::filled($_varAut)?>
+	<?php Template::optEnd() ?>
+================================================================================
+--test--
+	quatre variables, aucune renseignée
+--file--
+	<opt>Auteur: $varNull $varZero $varFalse $varEmptyString</opt>
+--expect--
+	<?php Template::optBegin()?>
+		Auteur: 
+		<?php echo Template::filled($_varNull)?>
+		<?php echo Template::filled($_varZero)?>
+		<?php echo Template::filled($_varFalse)?>
+		<?php echo Template::filled($_varEmptyString)?>
+	<?php Template::optEnd() ?>
+================================================================================
+================================================================================
+--test--
+	expression non vide construite à partir d'une variable vide
+--file--
+	<opt>{'Auteur: '.$varNull}</opt>
+--expect--
+	<?php Template::optBegin()?>
+		<?php echo Template::filled('Auteur: '.$_varNull) ?>
+	<?php Template::optEnd() ?>
+--comment--
+	varNull n'est pas renseignée, mais l'expression est variable
+================================================================================
+--test--
+	expression non vide construite à partir d'une variable non vide
+--file--
+	<opt>{'Auteur: '.$varAut}</opt>
+--expect--
+	<?php Template::optBegin()?>
+		<?php echo Template::filled('Auteur: '.$_varAut) ?>
+	<?php Template::optEnd() ?>
+================================================================================
+================================================================================
+--test--
+	collier d'expressions, résultat vide
+--file--
+	<opt>Auteur: {$varNull:$varZero:$varFalse:$varEmptyString}</opt>
+--expect--
+	<?php Template::optBegin()?>
+		Auteur:
+		<?php echo Template::filled
+			(
+				(
+					   $tmp=($_varNull) 
+					OR $tmp=($_varZero) 
+					OR $tmp=($_varFalse) 
+					OR $tmp=($_varEmptyString)
+				)
+				?	$tmp
+				:	null
+			) 
+		?>
+	<?php Template::optEnd() ?>
+================================================================================
+--test--
+	collier d'expressions, résultat non vide
+--file--
+	<opt>Auteur: {$varNull:$varZero:$varFalse:$varEmptyString:$varAut}</opt>
+--expect--
+	<?php Template::optBegin()?>
+		Auteur:
+		<?php echo Template::filled
+			(
+				(
+					   $tmp=($_varNull) 
+					OR $tmp=($_varZero) 
+					OR $tmp=($_varFalse) 
+					OR $tmp=($_varEmptyString)
+					OR $tmp=($_varAut)
+				)
+				?	$tmp
+				:	null
+			) 
+		?>
+	<?php Template::optEnd() ?>
+================================================================================
+================================================================================
+--test--
+	une seule variable dans un attribut, vide
+--file--
+	<opt><p class="$varNull">hello</p></opt>
+--expect--
+	<?php Template::optBegin()?>
+		<p class="<?php echo Template::filled($_varNull) ?>">
+			hello
+		</p>
+	<?php Template::optEnd() ?>
+================================================================================
+--test--
+	une seule variable dans un attribut, non vide
+--file--
+	<opt><p class="$varAut">hello</p></opt>
+--expect--
+	<?php Template::optBegin()?>
+		<p class="<?php echo Template::filled($_varAut) ?>">
+			hello
+		</p>
+	<?php Template::optEnd() ?>
+================================================================================
+--test--
+	plusieurs variable dans un attribut, toutes vides
+--file--
+	<opt><p class="$varZero $varNull $varFalse $varEmptyString">hello</p></opt>
+--expect--
+	<?php Template::optBegin()?>
+		<p class="
+			<?php echo Template::filled($_varZero)?>
+			<?php echo Template::filled($_varNull)?>
+			<?php echo Template::filled($_varFalse)?>
+			<?php echo Template::filled($_varEmptyString)?>
+		">
+			hello
+		</p>
+	<?php Template::optEnd() ?>
+================================================================================
+--test--
+	plusieurs variable dans un attribut, une seule non vide
+--file--
+	<opt><p class="$varZero $varNull $varFalse $varAut">hello</p></opt>
+--expect--
+	<?php Template::optBegin()?>
+		<p class="
+			<?php echo Template::filled($_varZero)?>
+			<?php echo Template::filled($_varNull)?>
+			<?php echo Template::filled($_varFalse)?>
+			<?php echo Template::filled($_varAut)?>
+		">
+			hello
+		</p>
+	<?php Template::optEnd() ?>
+================================================================================
+================================================================================
+--test--
+	plusieurs variable dans plusieurs attributs, toutes vides
+--file--
+	<opt><p class="$varZero" id="$varNull" onclick="$varFalse">hello</p></opt>
+--expect--
+	<?php Template::optBegin()?>
+		<p 
+			class="<?php echo Template::filled($_varZero)?>"
+			id="<?php echo Template::filled($_varNull)?>"
+			onclick="<?php echo Template::filled($_varFalse)?>"
+		>
+			hello
+		</p>
+	<?php Template::optEnd() ?>
+--comment--
+	on a tout
+	un attribut dont la valeur ne contient qu'une expression (ie on a pas de texte 
+	avant ou après) devient lui-même un bloc opt /opt
+================================================================================
+--test--
+	plusieurs variable dans plusieurs attributs, une seule non vide
+--file--
+	<opt><p class="$varZero" id="$varNull" onclick="$varAut">hello</p></opt>
+--expect--
+	<?php Template::optBegin()?>
+		<p 
+			class="<?php echo Template::filled($_varZero)?>"
+			id="<?php echo Template::filled($_varNull)?>"
+			onclick="<?php echo Template::filled($_varAut)?>"
+		>
+			hello
+		</p>
+	<?php Template::optEnd() ?>
+================================================================================
+================================================================================
+--test--
+	colliers d'expressions dans un attribut, vide
+--file--
+	<opt><p class="{$varZero:$varNull:$varFalse:$varEmptyString}">hello</p></opt>
+--expect--
+	<?php Template::optBegin()?>
+		<p class="
+			<?php echo Template::filled
+				(
+					(
+						   $tmp=($_varZero) 
+						OR $tmp=($_varNull) 
+						OR $tmp=($_varFalse) 
+						OR $tmp=($_varEmptyString)
+					)
+					?	$tmp
+					:	null
+				) 
+			?>
+		">
+			hello
+		</p>
+	<?php Template::optEnd() ?>
+================================================================================
+--test--
+	colliers d'expressions dans un attribut, non vide
+--file--
+	<opt><p class="{$varZero:$varNull:$varFalse:$varAut}">hello</p></opt>
+--expect--
+	<?php Template::optBegin()?>
+		<p class="
+			<?php echo Template::filled
+				(
+					(
+						   $tmp=($_varZero) 
+						OR $tmp=($_varNull) 
+						OR $tmp=($_varFalse) 
+						OR $tmp=($_varAut)
+					)
+					?	$tmp
+					:	null
+				) 
+			?>
+		">
+			hello
+		</p>
+	<?php Template::optEnd() ?>
+================================================================================
+================================================================================
+--test--
+	opt avec des sous-opt tous vides (1 niveau)
+--file--
+	<opt>
+		begin
+		<opt>false: $varFalse</opt>
+		<opt>null: $varNull</opt>
+		<opt>zero: $varZero</opt>
+		<opt>empty string: $varEmptyString</opt>
+		end
+	</opt>
+--expect--
+	<?php Template::optBegin()?>
+		begin
+
+		<?php Template::optBegin()?>
+			false: <?php echo Template::filled($_varFalse) ?>
+		<?php Template::optEnd() ?>
+
+		<?php Template::optBegin()?>
+			null: <?php echo Template::filled($_varNull) ?>
+		<?php Template::optEnd() ?>
+
+		<?php Template::optBegin()?>
+			zero: <?php echo Template::filled($_varZero) ?>
+		<?php Template::optEnd() ?>
+
+		<?php Template::optBegin()?>
+			empty string: <?php echo Template::filled($_varEmptyString) ?>
+		<?php Template::optEnd() ?>
+
+		end
+	<?php Template::optEnd() ?>
+================================================================================
+--test--
+	opt avec des sous-opt dont un seul est renseigné (1 niveau)
+--file--
+	<opt>
+		begin
+		<opt>false: $varFalse</opt>
+		<opt>null: $varNull</opt>
+		<opt>zero: $varZero</opt>
+		<opt>empty string: $varEmptyString</opt>
+		<opt>aut: $varAut</opt>
+		end
+	</opt>
+--expect--
+	<?php Template::optBegin()?>
+		begin
+
+		<?php Template::optBegin()?>
+			false: <?php echo Template::filled($_varFalse) ?>
+		<?php Template::optEnd() ?>
+
+		<?php Template::optBegin()?>
+			null: <?php echo Template::filled($_varNull) ?>
+		<?php Template::optEnd() ?>
+
+		<?php Template::optBegin()?>
+			zero: <?php echo Template::filled($_varZero) ?>
+		<?php Template::optEnd() ?>
+
+		<?php Template::optBegin()?>
+			empty string: <?php echo Template::filled($_varEmptyString) ?>
+		<?php Template::optEnd() ?>
+
+		<?php Template::optBegin()?>
+			aut: <?php echo Template::filled($_varAut) ?>
+		<?php Template::optEnd() ?>
+
+		end
+	<?php Template::optEnd() ?>
+--comment--
+	begin aut: $varAut end
+================================================================================
+--test--
+	opt avec des sous-opt tous vides (2 niveaux)
+--file--
+	<opt>
+		begin 1
+		<opt>
+			begin 1.1
+			<opt>false: $varFalse</opt>
+			<opt>null: $varNull</opt>
+			end 1.1
+		</opt>
+		<opt>
+			begin 1.2
+			<opt>zero: $varZero</opt>
+			<opt>empty string: $varEmptyString</opt>
+			end 1.2
+		</opt>
+		end 1
+	</opt>
+--expect--
+	<?php Template::optBegin()?>
+		begin 1
+		<?php Template::optBegin()?>
+			begin 1.1
+
+			<?php Template::optBegin()?>
+				false: <?php echo Template::filled($_varFalse) ?>
+			<?php Template::optEnd() ?>
+
+			<?php Template::optBegin()?>
+				null: <?php echo Template::filled($_varNull) ?>
+			<?php Template::optEnd() ?>
+			
+			end 1.1
+		<?php Template::optEnd() ?>
+		<?php Template::optBegin()?>
+			begin 1.2
+			
+			<?php Template::optBegin()?>
+				zero: <?php echo Template::filled($_varZero) ?>
+			<?php Template::optEnd() ?>
+	
+			<?php Template::optBegin()?>
+				empty string: <?php echo Template::filled($_varEmptyString) ?>
+			<?php Template::optEnd() ?>
+	
+			end 1.2
+		<?php Template::optEnd() ?>
+		end 1
+	<?php Template::optEnd() ?>
+================================================================================
+--test--
+	opt avec des sous-opt dont un seul est renseigné (2 niveaux)
+--file--
+	<opt>
+		begin 1
+		<opt>
+			begin 1.1
+			<opt>false: $varFalse</opt>
+			<opt>null: $varNull</opt>
+			end 1.1
+		</opt>
+		<opt>
+			begin 1.2
+			<opt>zero: $varZero</opt>
+			<opt>empty string: $varEmptyString</opt>
+			<opt>aut: $varAut</opt>
+			end 1.2
+		</opt>
+		end 1
+	</opt>
+--expect--
+	<?php Template::optBegin()?>
+		begin 1
+		<?php Template::optBegin()?>
+			begin 1.1
+
+			<?php Template::optBegin()?>
+				false: <?php echo Template::filled($_varFalse) ?>
+			<?php Template::optEnd() ?>
+
+			<?php Template::optBegin()?>
+				null: <?php echo Template::filled($_varNull) ?>
+			<?php Template::optEnd() ?>
+			
+			end 1.1
+		<?php Template::optEnd() ?>
+		<?php Template::optBegin()?>
+			begin 1.2
+			
+			<?php Template::optBegin()?>
+				zero: <?php echo Template::filled($_varZero) ?>
+			<?php Template::optEnd() ?>
+	
+			<?php Template::optBegin()?>
+				empty string: <?php echo Template::filled($_varEmptyString) ?>
+			<?php Template::optEnd() ?>
+	
+			<?php Template::optBegin()?>
+				aut: <?php echo Template::filled($_varAut) ?>
+			<?php Template::optEnd() ?>
+
+			end 1.2
+		<?php Template::optEnd() ?>
+		end 1
+	<?php Template::optEnd() ?>
+--comment--
+begin 1 begin 1.2 aut: $varAut end 1.2 end 1
+
+================================================================================
+================================================================================
+
+--test--
+	les variables qui ne sont pas dans un bloc opt sont retournées directement
+--file--
+	<if test="$varAut">
+		Auteur: $varAut
+	</if>
+--expect--
+	<?php if ($_varAut):?>
+		Auteur: <?php echo $_varAut?>
+	<?php endif;?>
+================================================================================
+--test--
+	les variables qui sont dans le texte d'un bloc opt génèrent un appel à filled()
+--file--
+	<opt>
+		Auteur: $varAut
+	</opt>
+--expect--
+	<?php Template::optBegin()?>
+		Auteur: <?php echo Template::filled($_varAut)?>
+	<?php Template::optEnd()?>
+================================================================================
+--test--
+	une expression dans le texte d'un bloc opt génèrent un appel à filled()
+--file--
+	<opt>
+		Auteur: {trim(' Menard ') }
+	</opt>
+--expect--
+	Auteur: Menard
+================================================================================
+--test--
+	les variables qui sont dans un attribut d'un fils d'un bloc opt génèrent un appel à filled()
+--file--
+	<opt>
+		<p class="$varAut">Auteur</p>
+	</opt>
+--expect--
+	<?php Template::optBegin()?>
+		<p class="<?php echo Template::filled($_varAut)?>">Auteur</p>
+	<?php Template::optEnd()?>
+================================================================================
