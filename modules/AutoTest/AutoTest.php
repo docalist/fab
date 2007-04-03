@@ -91,7 +91,7 @@ class AutoTest extends Module
         
         $successCount=$result->count()-$result->errorCount()-$result->failureCount()-$result->notImplementedCount()-$result->skippedCount();
 
-        echo '<h1>Bilan des tests</h1>';
+        echo '<h1 style="clear: both;">Bilan des tests</h1>';
         if ($result->count()==0)
         {
             echo '<p>Aucun test n\'a été exécuté</p>';	
@@ -347,7 +347,14 @@ class AutoTestCase extends PHPUnit_Framework_TestCase
             throw new Exception('Le callback indiqué ne peut pas être appellé');
             
         // Charge le fichier de tests
-        $tests=file_get_contents($path);
+        //$tests=file_get_contents($path);
+        $tests=file($path);
+        foreach($tests as $line=>& $data)
+        {
+            if (preg_match('~\s*={4,}\s*~s', $data))
+                $data .= "\n--line--\n".($line+2)."\n";
+        }
+        $tests=implode("\n",$tests);
         $tests=preg_split('~\s*={4,}\s*~s', $tests);
         
         // Ignore tout ce qui précède la première ligne de séparation des tests
@@ -387,7 +394,7 @@ class AutoTestCase extends PHPUnit_Framework_TestCase
                     if(isset($test[$name]))
                         throw new Exception("Erreur dans le fichier de test '$path', section '$name' répétée pour l'un des test");
                         
-                    if (! in_array($name,array('test','file','expect','comment','skip')))
+                    if (! in_array($name,array('test','file','expect','comment','skip', 'line')))
                         throw new Exception("Erreur dans le fichier de test '$path', section '$name' inconnue");
                 } 
                 
@@ -400,6 +407,7 @@ class AutoTestCase extends PHPUnit_Framework_TestCase
             
             // Ignore les tests vides ne contenant aucune section (par exemple à la fin du fichier)
             if (count($test)===0) continue;
+            if (count($test)==1 && isset($test['line'])) continue;
             
             // Vérifie que les sections obligatoires sont présentes
             if (!isset($test['skip']))
@@ -498,10 +506,11 @@ class AutoTestFile extends AutoTestCase
     {
         $test=$this->test;
         $file=$test['file'];
+        $line=$test['line'];
         
         if (isset($test['test'])) // le test a un titre
         {
-            $h=$test['test'];
+            $h='Ligne '.$line.', '.$test['test'];
             if (strpos($file, "\n")===false) // le source n'a qu'une ligne, on l'ajoute au titre
                 $h .= ' : ' . $file;
             
@@ -514,6 +523,7 @@ class AutoTestFile extends AutoTestCase
                 $h=wordwrap($file, 75, "\n", true);
                 $h=substr($file, 0, strpos($file, "\n")) . ' ...';
             }
+            $h='Ligne '.$line.', '.$h;
         }
         return $h;
     }
