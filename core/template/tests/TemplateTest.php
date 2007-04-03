@@ -23,7 +23,7 @@ class TemplateTest extends AutoTestCase
     {
     }
     
-    public function nutestfileTemplatesMatch()
+    public function testfileTemplatesMatch()
     {
         $this->runTestFile(dirname(__FILE__).'/MatchTemplates.testfile',array($this,'templatesMatchCallback'));
     }
@@ -48,7 +48,7 @@ class TemplateTest extends AutoTestCase
         return $result;    	
     }
     
-    public function nutestfileExpressionParser()
+    public function testfileExpressionParser()
     {
         //$this->runTestFile(dirname(__FILE__).'/test.testfile',array($this,'expressionParserCallback')); return;
 
@@ -74,11 +74,10 @@ class TemplateTest extends AutoTestCase
      */
     public function testfileTemplateCompiler()
     {
+        config::set('cache.enabled', false);
         $this->runTestFile(dirname(__FILE__).'/Template.iftag.testfile', array($this, 'templateCompilerCallback'));
-        
-        
-        
-           
+        $this->runTestFile(dirname(__FILE__).'/Template.opt.testfile', array($this, 'templateCompilerCallback'));
+        $this->runTestFile(dirname(__FILE__).'/Template.switch.testfile', array($this, 'templateCompilerCallback'));
     }
     
     public function templateCompilerCallback($template)
@@ -93,7 +92,9 @@ class TemplateTest extends AutoTestCase
             'varTitorigM'=>'Titre original de niveau "monographique"',
             'varNull'=>null,
             'varZero'=>0,
-            'varEmptyString'=>''
+            'varEmptyString'=>'',
+            'varA'=>'A',
+            'varTrois'=>3
                         
         );
 

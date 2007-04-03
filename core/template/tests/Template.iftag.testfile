@@ -19,6 +19,15 @@ Un bloc if dont la condition est une variable valant false et qui n'a pas de els
 	Dans le if
 </if>
 --expect--
+
+================================================================================
+--test--
+Un bloc if dont la condition contient une variable inexistante génère une exception.
+--file--
+<if test="$varInexistante">
+	Dans le if
+</if>
+--expect Exception--
 ================================================================================
 --test--
 Un bloc if ayant une condition simple évaluée à false et qui n'a pas de else disparaît.
@@ -35,6 +44,8 @@ Un bloc if ayant une condition contenant '&&' évaluée à false et qui n'a pas de 
 	Dans le if
 </if>
 --expect--
+--skip--
+DM : j'ai ajouté un skip temporaire, me gène pour ce que je fais...
 ================================================================================
 --test--
 Un bloc if ayant une condition contenant 'and' évaluée à false et qui n'a pas de else disparaît.
@@ -51,6 +62,18 @@ Un bloc if ayant une condition contenant un '||' évaluée à false et qui n'a pas 
 	Dans le if
 </if>
 --expect--
+================================================================================
+--test--
+Un bloc if dont la condition est évaluée à false et qui a un bloc else passe seulement dans le else
+--file--
+<if test="2*3 == 5">
+	Dans le if
+</if>
+<else>
+	Dans le else
+</else>
+--expect--
+Dans le else
 ================================================================================
 --test--
 Un bloc if sans tag fermant génère une exception
@@ -109,6 +132,40 @@ Un bloc if/elseif/else dont les conditions (if et elseif) sont évaluées à false 
 Dans le else
 ================================================================================
 --test--
+Un bloc if sans test génère une exception
+--file--
+<if>
+	Dans le if
+</if>
+<else>
+	Dans le else
+</else>
+--expect Exception--
+================================================================================
+--test--
+Un bloc de type if/else contenant 2 else génère une exception
+--file--
+<if test="false">
+</if>
+<else>
+</else>
+<else>
+</else>
+--expect Exception--
+================================================================================
+--test--
+Un bloc else contenant un test génère une exception
+--file--
+<if test="false">
+	Dans le if
+</if>
+<else test="true">
+	Dans le else
+</else>
+--expect Exception--
+--skip--
+Il faudrait peut-être interdire les attributs non attendus
+================================================================================--test--
 Une exception est générée quand un bloc else est situé entre un bloc if et un bloc elseif
 --file--
 <if test="$varAut">
