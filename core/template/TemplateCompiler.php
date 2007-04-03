@@ -749,8 +749,8 @@ private static $line=0, $column=0;
             'else'=>'elseError',
             'elseif'=>'elseError',
             'switch'=>'compileSwitch',
-            'case'=>'elseError',
-            'default'=>'elseError',
+            'case'=>'caseError',
+            'default'=>'caseError',
             'opt'=>'compileOpt',
             'slot'=>'compileSlot'
         );
@@ -760,17 +760,7 @@ private static $line=0, $column=0;
         switch ($node->nodeType)
         {
             case XML_TEXT_NODE:     // du texte
-                $h=$node->nodeValue;
-                self::parseCode($h,'handleVariable',
-                        array
-                        (
-                            'setcurrentposition'=>array(__CLASS__,'setCurrentPosition'),
-                            'autoid'=>array(__CLASS__,'autoid'),
-                            'lastid'=>array(__CLASS__,'lastid'),
-                        )
-                ); // ou textContent ? ou wholeText ? ou data ?
-                echo $h;
-//                $node->nodeValue=$h;
+                echo self::parseCode($node->nodeValue); // ou textContent ? ou wholeText ? ou data ?
                 return;
 
             case XML_COMMENT_NODE:  // un commentaire
@@ -861,19 +851,9 @@ private static $line=0, $column=0;
                             foreach ($node->attributes as $key=>$attribute)
                             {
                                 ++self::$opt;
-                                $value=$attribute->value;
-    //public static function parseCode(& $source, $varCallback=null, $pseudoFunctions=null, $doEval=false)
-                                self::parseCode($value,
-                                    'handleVariable',
-                                    array
-                                    (
-                                        'setcurrentposition'=>array(__CLASS__,'setCurrentPosition'),
-                                        'autoid'=>array(__CLASS__,'autoid'),
-                                        'lastid'=>array(__CLASS__,'lastid')
-                                    )
-                                );
+                                $value=self::parseCode($attribute->value);
                                 --self::$opt;
-                                $value=$value;
+
                                 $quot=(strpos($value,'"')===false) ? '"' : "'";
                                 
                                 // Si l'attribut ne contient que des variables (pas de texte), il devient optionnel
@@ -1000,17 +980,99 @@ private static $line=0, $column=0;
     private static function compileOpt(DOMNode $node)
     {
         // Opt accepte un attribut optionnel min qui indique le nombre minimum de variables
-        $min=$node->getAttribute('min') or '';
+        $t=self::getAttributes($node, null,array('min'=>''));
         
         // Génère le code
         echo self::PHP_START_TAG, 'Template::optBegin()', self::PHP_END_TAG;
         ++self::$opt;
         self::compileChildren($node);
         --self::$opt;
-        echo self::PHP_START_TAG, "Template::optEnd($min)", self::PHP_END_TAG; 
+        echo self::PHP_START_TAG, 'Template::optEnd('.$t['min'].')', self::PHP_END_TAG; 
     }
 
-   
+    /**
+     * Récupère et vérifie les attributs obligatoires et optionnels d'un tag.
+     * 
+     * La fonction prend en paramètres le noeud à examiner et deux tableaux :
+     * - un tableau dont les valeurs sont les attributs obligatoires
+     * - un tableau dont les clés sont les attributs optionnels et dont les
+     * valeurs sont les valeurs par défaut de ces attributs.
+     * 
+     * La fonction examine tous les attributs du noeud passé en paramètre.
+     * Elle génère une exception si :
+     * - un attribut obligatoire est absent
+     * - le noeud contient d'autres attributs que ceux autorisés.
+     * 
+     * Elle retourne un tableau listant tous les attributs avec comme valeur
+     * la valeur présente dans l'attribut si celui-ci figure dans le noeud ou
+     * la valeur par défaut s'il s'agit d'un attribut optionnel absent du noeud.
+     */
+    private static function getAttributes(DOMNode $node, array $required=null, array $optional=null)
+    {
+    	$result=array();
+        $bad=array();
+        
+        if (is_null($required))
+            $required=array();
+        else
+            $required=array_flip($required);
+
+        if (is_null($optional))
+            $optional=array();
+        
+        // Examine les attributs présents dans le noeud
+        if ($node->hasAttributes())
+        {
+            foreach ($node->attributes as $name=>$attribute)
+            {
+                // C'est un attribut obligatoire, il est présent
+                if (isset($required[$name]))
+                {
+                    $result[$name]=$attribute->value;
+                    unset($required[$name]);
+                }
+                    
+                // C'est un attribut optionnel, il est présent
+                elseif (isset($optional[$name]))
+                {
+                    $result[$name]=$attribute->value;
+                    unset($optional[$name]);
+                }
+                
+                // C'est un mauvais attribut
+                else
+                {
+                	$bad[]=$name;
+                }
+            }
+        }
+
+        // Génère une exception s'il manque des attributs obligatoires ou si on a des attributs en trop 
+        if (count($required) or count($bad))
+        {
+            $h=$h2='';
+            if (count($required))
+                $h=sprintf
+                (
+                    count($required)==1 ? 'l\'attribut %s est obligatoire' : 'les attributs %s sont obligatoires',
+                    implode(', ', array_keys($required))    
+                );
+            if (count($bad))            
+                $h2=sprintf
+                (
+                    count($bad)==1 ? 'l\'attribut %s est interdit' : 'les attributs %s sont interdits',
+                    implode(', ', $bad)    
+                );
+            if ($h2) $h.= ($h ? ' et ' : '').$h2;
+            $h.= ' dans un tag '.$node->tagName;
+
+            throw new Exception($h);
+        }
+        
+        // Complète le tableau résultat avec les attributs optionnels non présents
+        return $result+$optional;
+    }   
+    
     /**
      * Compile des blocs if/elseif/else consécutifs
      * 
@@ -1040,6 +1102,7 @@ private static $line=0, $column=0;
             switch($tag=$next->tagName)
             {
                 case 'else':
+                    self::getAttributes($next); // aucun attribut n'est autorisé
                     echo self::PHP_START_TAG, $tag, ':', self::PHP_END_TAG;
                     $elseAllowed=false;
                     break;
@@ -1047,10 +1110,9 @@ private static $line=0, $column=0;
                 case 'elseif':
                     
                 case 'if':
-                    // Récupère la condition
-                    if (($test=$next->getAttribute('test')) === '')
-                        throw new Exception("Tag $tag incorrect : attribut test manquant");
-                    TemplateCode::parseExpression($test,
+                    $t=self::getAttributes($next, array('test'));
+                    
+                    TemplateCode::parseExpression($t['test'],
                                     'handleVariable',
                                     array
                                     (
@@ -1061,7 +1123,7 @@ private static $line=0, $column=0;
                     );
                     
                     // Génère le tag et sa condition
-                    echo self::PHP_START_TAG, $tag, ' (', $test, '):', self::PHP_END_TAG;
+                    echo self::PHP_START_TAG, $tag, ' (', $t['test'], '):', self::PHP_END_TAG;
                     break;
             }
                         
@@ -1107,9 +1169,12 @@ private static $line=0, $column=0;
     private static function compileSwitch(DOMNode $node)
     {
         // Récupère la condition du switch
-        if (($test=$node->getAttribute('test')) === '')
-            $test='true';
-        TemplateCode::parseExpression($test,
+//        if (($test=$node->getAttribute('test')) === '')
+//            $test='true';
+//
+        $t=self::getAttributes($node, null, array('test'=>true));
+            
+        TemplateCode::parseExpression($t['test'],
                                     'handleVariable',
                                     array
                                     (
@@ -1120,7 +1185,7 @@ private static $line=0, $column=0;
         );
                 
         // Génère le tag et sa condition
-        echo self::PHP_START_TAG, 'switch (', $test, '):', "\n";
+        echo self::PHP_START_TAG, 'switch (', $t['test'], '):', "\n";
                         
         // Génère les fils (les blocs case et default)
         self::compileSwitchCases($node);
@@ -1152,12 +1217,13 @@ private static $line=0, $column=0;
                         case 'case':
                             if (isset($seen['']))
                                 throw new Exception('Switch : bloc case rencontré après un bloc default');
-                            if (($test=$node->getAttribute('test')) === '')
-                                throw new Exception("Tag case incorrect : attribut test manquant");
-                            if (isset($seen[$test]))
+                            $t=self::getAttributes($node, array('test'));
+//                            if (($test=$node->getAttribute('test')) === '')
+//                                throw new Exception("Tag case incorrect : attribut test manquant");
+                            if (isset($seen[$t['test']]))
                                 throw new Exception('Switch : plusieurs blocs case avec la même condition');
-                            $seen[$test]=true;
-                            TemplateCode::parseExpression($test,
+                            $seen[$t['test']]=true;
+                            TemplateCode::parseExpression($t['test'],
                                     'handleVariable',
                                     array
                                     (
@@ -1166,10 +1232,11 @@ private static $line=0, $column=0;
                                         'lastid'=>array(__CLASS__,'lastid')
                                     )
                             );
-                            echo ($first?'':self::PHP_START_TAG.'break;'), 'case ', $test, ':', self::PHP_END_TAG;
+                            echo ($first?'':self::PHP_START_TAG.'break;'), 'case ', $t['test'], ':', self::PHP_END_TAG;
                             self::compileChildren($node);
                             break;
                         case 'default':
+                            $t=self::getAttributes($node); // aucun attribut autorisé
                             if (isset($seen['']))
                                 throw new Exception('Switch : blocs default multiples');
                             $seen['']=true;
@@ -1200,6 +1267,11 @@ private static $line=0, $column=0;
     private static function elseError(DOMNode $node)
     {
         throw new Exception('Tag '.$node->tagName.' isolé. Ce tag doit suivre immédiatement un tag if ou elseif, seuls des blancs sont autorisés entre les deux.');
+    }
+
+    private static function caseError(DOMNode $node)
+    {
+        throw new Exception('Tag '.$node->tagName.' isolé. Ce tag ne peut apparaître que dans un bloc switch, seuls des blancs sont autorisés entre les deux.');
     }
     
     private static function nodeGetIndent($node)
@@ -1369,9 +1441,12 @@ echo "Source desindente :\n",  $xml->saveXml($xml), "\n-------------------------
 //echo "APRES : \n\n", show($node->ownerDocument->saveXml($node->parentNode)), "\n\n"; 
 
         // Récupère l'objet sur lequel il faut itérer
-        if (($on=$node->getAttribute('on')) === '')
-            throw new Exception("Tag loop incorrect : attribut 'on' manquant");
-        TemplateCode::parseExpression($on,
+//        if (($on=$node->getAttribute('on')) === '')
+//            throw new Exception("Tag loop incorrect : attribut 'on' manquant");
+            
+        $t=self::getAttributes($node, array('on'), array('as'=>'$key,$value', 'max'=>''));
+            
+        TemplateCode::parseExpression($t['on'],
                                     'handleVariable',
                                     array
                                     (
@@ -1382,29 +1457,41 @@ echo "Source desindente :\n",  $xml->saveXml($xml), "\n-------------------------
         );
             
         // Récupère et traite l'attribut as
-        $key='key';
-        $value='value';
-        if (($as=$node->getAttribute('as')) !== '')
+        $var='\$([a-zA-Z][a-zA-Z0-9_]*)'; // synchro avec le $var de parseCode 
+        $re="~^\s*$var\s*(?:,\s*$var\s*)?\$~"; // as="value", as="key,value", as=" $key, $value "
+        if (preg_match($re, $t['as'], $matches) == 0)
+            throw new Exception("Tag loop : syntaxe incorrecte pour l'attribut 'as'");
+        if (isset($matches[2]))
         {
-            $var='\$([a-zA-Z][a-zA-Z0-9_]*)'; // synchro avec le $var de parseCode 
-            $re="~^\s*$var\s*(?:,\s*$var\s*)?\$~"; // as="value", as="key,value", as=" $key, $value "
-            if (preg_match($re, $as, $matches) == 0)
-                throw new Exception("Tag loop : syntaxe incorrecte pour l'attribut 'as'");
-            if (isset($matches[2]))
-            {
-                $key=$matches[1];
-                $value=$matches[2];
-            }
-            else
-            {
-                $value=$matches[1];
-            }            
+            $key=$matches[1];
+            $value=$matches[2];
         }
+        else
+        {
+            $key='key';
+            $value=$matches[1];
+        }            
         
         $keyReal=self::$env->getTemp($key);
         $valueReal=self::$env->getTemp($value);
 
-        echo self::PHP_START_TAG, "foreach($on as $keyReal=>$valueReal):", self::PHP_END_TAG;
+        $max='';
+        if ($t['max']!='')
+        {
+            TemplateCode::parseExpression($t['max'],
+                                        'handleVariable',
+                                        array
+                                        (
+                                            'setcurrentposition'=>array(__CLASS__,'setCurrentPosition'),
+                                            'autoid'=>array(__CLASS__,'autoid'),
+                                            'lastid'=>array(__CLASS__,'lastid')
+                                        )
+            );
+            if ($t['max']!=='0')
+                $max=self::$env->getTemp('nb');
+        }
+        
+        echo self::PHP_START_TAG, ($max?"$max=0;\n":''), "foreach($t[on] as $keyReal=>$valueReal):", self::PHP_END_TAG;
         if ($node->hasChildNodes())
         {
             self::$env->push(array($key=>$keyReal, $value=>$valueReal));
@@ -1413,7 +1500,7 @@ echo "Source desindente :\n",  $xml->saveXml($xml), "\n-------------------------
             --self::$loop;
             self::$env->pop();
         }
-        echo self::PHP_START_TAG, 'endforeach;', self::PHP_END_TAG;
+        echo self::PHP_START_TAG, ($max?"if (++$max>=$t[max]) break;\n":''),'endforeach;', self::PHP_END_TAG;
         
         self::$env->freeTemp($keyReal);
         self::$env->freeTemp($valueReal);
@@ -1445,23 +1532,8 @@ echo "Source desindente :\n",  $xml->saveXml($xml), "\n-------------------------
     
     /* ======================== EXPRESSION PARSER ============================= */
 
-    public static function parseCode(& $source, $varCallback=null, $pseudoFunctions=null)
+    public static function parseCode($source)
     {
-        // Expression régulière pour un nom de variable php valide
-        // Source : http://fr2.php.net/variables (dans l'intro 'essentiel')
-        // Modif du 14/11/06 : interdiction d'avoir une variable qui commence
-        // par un underscore (réservé aux variables internes du template, le fait
-        // de l'interdire assure que les variables internes n'écrasent pas les
-        // sources de données)
-        // Modif du 20/03/07 : les accents sont désormais interdits
-        $var='(?<!\\\\)\$([a-zA-Z][a-zA-Z0-9_]*)';   // trouve $ident, ignore \$ident
-        
-        // Expression régulière pour une expression valide dans un template
-        $exp='(?<!\\\\)\{[^}]*(?<!\\\\)\}';         // trouve { xxx } mais pas \{ xxx }, { xxx \}, \{ xxx \}
-        
-        // Expression régulière combinant les deux
-        $re="~$var|$exp~";
-        
         // Boucle tant qu'on trouve des choses dans le source passé en paramètre
         $start=0;
         $result='';
@@ -1469,7 +1541,7 @@ echo "Source desindente :\n",  $xml->saveXml($xml), "\n-------------------------
         for($i=1;;$i++)
         {
             // Recherche la prochaine expression
-            if (preg_match($re, $source, $match, PREG_OFFSET_CAPTURE, $start)==0) break;
+            if (preg_match(self::$reCode, $source, $match, PREG_OFFSET_CAPTURE, $start)==0) break;
             $expression=$match[0][0];
             $len=strlen($expression);
             $offset=$match[0][1];
@@ -1483,14 +1555,32 @@ echo "Source desindente :\n",  $xml->saveXml($xml), "\n-------------------------
             if (trim($expression) != '')
             {
                 // Compile l'expression
-                $canEval=TemplateCode::parseExpression($expression, $varCallback, $pseudoFunctions);
+                $canEval=TemplateCode::parseExpression
+                (
+                    $expression, 
+                    'handleVariable', 
+                    array
+                    (
+                        'setcurrentposition'=>array(__CLASS__,'setCurrentPosition'),
+                        'autoid'=>array(__CLASS__,'autoid'),
+                        'lastid'=>array(__CLASS__,'lastid'),
+                    )
+                );
                 
                 if ($canEval)
                     $result.=TemplateCode::evalExpression($expression);
                 else
                 {
                     if ($expression !== 'NULL') // le résultat retourné par var_export(null)
-                        $result.=self::PHP_START_TAG . 'echo ' . $expression . self::PHP_END_TAG;
+                    {
+                        // Si on est dans un bloc <opt>...</opt>, génère un appel à filled(x)
+                        if (self::$opt)
+                            $result.=self::PHP_START_TAG . 'echo Template::filled(' . $expression . ')'.self::PHP_END_TAG;
+                            
+                        // sinon, retourne la variable telle quelle
+                        else
+                            $result.=self::PHP_START_TAG . 'echo ' . $expression . self::PHP_END_TAG;
+                    }
                 }
             }
                         
@@ -1502,7 +1592,7 @@ echo "Source desindente :\n",  $xml->saveXml($xml), "\n-------------------------
         if ('' != $text=substr($source, $start))
             $result.=self::unescape($text);
 
-        $source= $result;
+        return $result;
     }
     // return true si c'est du code, false sinon
     public static function handleVariable(& $var)
@@ -1516,7 +1606,7 @@ echo "Source desindente :\n",  $xml->saveXml($xml), "\n-------------------------
             throw new Exception("Impossible de compiler le template : la source de données <code>$name</code> n'est pas définie."
             . 'ligne '.self::$line . ', colonne '.self::$column
             );
-
+            
         return true;
     }
     
