@@ -78,6 +78,7 @@ class TemplateTest extends AutoTestCase
         $this->runTestFile(dirname(__FILE__).'/Template.iftag.testfile', array($this, 'templateCompilerCallback'));
         $this->runTestFile(dirname(__FILE__).'/Template.opt.testfile', array($this, 'templateCompilerCallback'));
         $this->runTestFile(dirname(__FILE__).'/Template.switch.testfile', array($this, 'templateCompilerCallback'));
+        $this->runTestFile(dirname(__FILE__).'/Template.loop.testfile', array($this, 'templateCompilerCallback'));
     }
     
     public function templateCompilerCallback($template)
@@ -94,7 +95,10 @@ class TemplateTest extends AutoTestCase
             'varZero'=>0,
             'varEmptyString'=>'',
             'varA'=>'A',
-            'varTrois'=>3
+            'varTrois'=>3,
+            'arrayCinq'=>array(0, 1, 2, 3, 4, 5),
+            'assocArray'=>array('key1'=>'valeur 1', 'key2'=>'valeur 2'),
+            'emptyArray'=>array()
                         
         );
 

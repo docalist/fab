@@ -1,0 +1,147 @@
+Fichier de test pour les loop du compilateur de templates
+
+@version : $Id$
+
+================================================================================
+--test--
+Une boucle loop sur un tableau d'entiers permet de les afficher facilement à l'écran
+--file--
+<loop on="$arrayCinq" as="$current">
+	$current 
+</loop>
+--expect--
+0 1 2 3 4 5
+================================================================================
+--test--
+Une boucle sur un tableau peut en afficher les clés et les valeurs
+--file--
+<loop on="$assocArray" as="$key, $val">
+	$key => $val<br />
+</loop>
+--expect--
+key1 => valeur 1<br />key2 => valeur 2<br />
+================================================================================
+--test--
+Un tag loop peut contenir un tag if
+--file--
+<loop on="$arrayCinq" as="$val">
+	<if test="$val % 2 != 0">
+		$val est impair<br />
+	</if>
+	<else>
+		$val est pair<br />
+	</else>
+</loop>
+--expect--
+0 est pair<br />1 est impair<br />2 est pair<br />3 est impair<br />4 est pair<br />5 est impair<br />
+================================================================================
+--test--
+Un tag loop peut contenir un tag switch
+--file--
+<loop on="$arrayCinq" as="$val">
+	<switch test="$val % 2">
+		<case test="1">$val est impair<br /></case>
+		<case test="0">$val est pair<br /></case>
+	</switch>
+</loop>
+--expect--
+0 est pair<br />1 est impair<br />2 est pair<br />3 est impair<br />4 est pair<br />5 est impair<br />
+================================================================================
+--test--
+Un loop peut contenir un opt
+--file--
+<loop on="$arrayCinq" as="$current">
+	<opt>$current</opt>
+</loop>
+--expect--
+1 2 3 4 5
+================================================================================
+--test--
+Un loop sur un objet non itérable génère une exception
+--file--
+<loop on="$varAut">
+	Contenu
+</loop>
+--expect Exception--
+invalid argument foreach
+================================================================================
+--test--
+Un loop sur un tableau vide n'affiche rien
+--file--
+<loop on="$emptyArray">
+	Contenu
+</loop>
+--expect--
+
+================================================================================
+--test--
+Un loop ayant un attribut as contenant plus de deux valeurs génère une exception
+--file--
+<loop on="arrayCinq" as="$a, $b, $c">
+	$a, $b, $c
+</loop>
+--expect Exception--
+as syntaxe incorrecte
+================================================================================
+--test--
+Un loop sans attribut génère une exception
+--file--
+<loop>
+	Contenu
+</loop>
+--expect Exception--
+
+================================================================================
+--test--
+Un loop dont l'attribut as est mal formé génère une exception
+--file--
+<loop on="$arrayCinq" a="$i">
+	$i
+</loop>
+--expect Exception--
+attribut interdit
+================================================================================
+--test--
+Boucles imbriquées
+--file--
+<loop on="$arrayCinq" as="$i">
+	<loop on="$assocArray" as="$j">
+		$i$j
+	</loop>
+</loop>
+--expect--
+000102030405
+101112131415
+202122232425
+303132333435
+404142434445
+505152535455
+--skip--
+================================================================================
+--test--
+Un loop sans tag fermant génère une exception
+--file--
+<loop on="$arrayCinq" as="$i">
+	$i
+--expect Exception--
+ce n'est pas un fichier xml valide
+================================================================================
+--test--
+L'attribut max permet de limiter le nombre de passage dans une boucle loop
+--file--
+<loop on="$arrayCinq" as="$i" max="3">
+	$i
+</loop>
+--expect--
+012
+================================================================================
+--test--
+Si l'attribut max est supérieur au nombre n d'élément de l'objet sur lequel on boucle,
+on passe n fois dans la boucle
+--file--
+<loop on="$arrayCinq" as="$i" max="10">
+	$i
+</loop>
+--expect--
+012345
+================================================================================

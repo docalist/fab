@@ -22,12 +22,52 @@ Un bloc if dont la condition est une variable valant false et qui n'a pas de els
 
 ================================================================================
 --test--
+Un bloc if ayant 2 attributs test génère une exception
+--file--
+<if test="true" test="false">
+	Test validé
+</if>
+--expect Exception--
+ce n'est pas un fichier xml valide
+================================================================================
+--test--
+Un bloc else ayant 1 attribut génère une exception
+--file--
+<if test="false">
+	Dans le if
+</if>
+<else attr="true">
+	Dans le else
+</else>
+--expect Exception--
+attribut interdit
+================================================================================
+--test--
+Un bloc if ayant 2 attributs génère une exception
+--file--
+<if test="true" attribut="false">
+	Test validé
+</if>
+--expect Exception--
+attribut interdit
+================================================================================
+--test--
+Un bloc if n'ayant pas d'attribut test génère une exception
+--file--
+<if testun="true" testdeux="false">
+	Test validé
+</if>
+--expect Exception--
+attribut obligatoire
+================================================================================
+--test--
 Un bloc if dont la condition contient une variable inexistante génère une exception.
 --file--
 <if test="$varInexistante">
 	Dans le if
 </if>
 --expect Exception--
+source de données pas définie
 ================================================================================
 --test--
 Un bloc if ayant une condition simple évaluée à false et qui n'a pas de else disparaît.
@@ -115,6 +155,7 @@ Un bloc if ayant une branche default (au lieu de else) génère une exception
 	Dans le default
 </default>
 --expect Exception--
+default isolé
 ================================================================================
 --test--
 Un bloc if/elseif/else dont les conditions (if et elseif) sont évaluées à false ne passe que dans le else
@@ -141,6 +182,7 @@ Un bloc if sans test génère une exception
 	Dans le else
 </else>
 --expect Exception--
+attribut obligatoire
 ================================================================================
 --test--
 Un bloc de type if/else contenant 2 else génère une exception
@@ -152,6 +194,7 @@ Un bloc de type if/else contenant 2 else génère une exception
 <else>
 </else>
 --expect Exception--
+doit suivre immédiatement un tag if ou elseif
 ================================================================================
 --test--
 Un bloc else contenant un test génère une exception
@@ -163,9 +206,9 @@ Un bloc else contenant un test génère une exception
 	Dans le else
 </else>
 --expect Exception--
---skip--
-Il faudrait peut-être interdire les attributs non attendus
-================================================================================--test--
+attribut test interdit
+================================================================================
+--test--
 Une exception est générée quand un bloc else est situé entre un bloc if et un bloc elseif
 --file--
 <if test="$varAut">
@@ -175,15 +218,17 @@ Une exception est générée quand un bloc else est situé entre un bloc if et un bl
 <elseif test="true">
 </elseif>
 --expect Exception--
+doit suivre immédiatement un tag if ou elseif
 ================================================================================
 --test--
 Un bloc elseif sans bloc if correspondant génère une exception
 --file--
 <elseif test="$varAut">
-<elseif>
+</elseif>
 <else>
 </else>
 --expect Exception--
+doit suivre immédiatement un tag if ou elseif
 ================================================================================
 --test--
 Un bloc if/else dont le tag fermant if est mal placé génère une exception
@@ -195,4 +240,5 @@ Un bloc if/else dont le tag fermant if est mal placé génère une exception
 	Dans le else
 </else>
 --expect Exception--
+ce n'est pas un fichier xml valide
 ================================================================================

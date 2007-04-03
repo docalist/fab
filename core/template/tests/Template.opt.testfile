@@ -1,0 +1,141 @@
+Fichier de test pour les blocs optionnels (de type '<opt></opt>') du compilateur de templates
+
+@version : $Id$
+
+================================================================================
+--test--
+Un bloc optionnel constant non vide s'affiche
+--file-- 
+<opt>Constant non vide</opt>
+--expect--
+Constant non vide
+================================================================================
+--test--
+Un bloc optionnel ayant un attribut génère une exception
+--file--
+<opt test="$varA">Contenu</opt>
+--expect Exception--
+attribut interdit
+================================================================================
+--test--
+Un bloc optionnel contenant une seule source de données 'variable' (variable, appel à une fonction, etc.) non vide affiche du contenu
+--file-- 
+<opt>$varAut</opt>
+--expect--
+Spécialiste en santé publique
+================================================================================
+--test--
+Un bloc optionnel contenant entre autres une source de données 'variable' non vide affiche du contenu
+--file-- 
+<opt>Auteur : $varAut</opt>
+--expect--
+Auteur : Spécialiste en santé publique
+================================================================================
+--test--
+Un bloc optionnel ayant un contenu variable 'vide' disparaît
+--file--
+<opt>Un peu de texte, $varNull</opt>
+--expect--
+
+================================================================================
+--test--
+Un bloc optionnel contenant entre autres des sources de données 'variables' non vides apparaît
+--file--
+<opt>Article : $varTitorigA, $varAut</opt>
+--expect--
+Article : Titre original de niveau 'analytique', Spécialiste en santé publique
+================================================================================
+--test--
+Un bloc optionnel contenant entre autres des sources de données 'variables' qui ne sont pas toutes vides apparaît
+--file--
+<opt>Article : $varTitorigA, $varNull</opt>
+--expect--
+Article : Titre original de niveau 'analytique', 
+================================================================================
+--test--
+Un bloc optionnel imbriqué se comporte comme une source de données variables vis-à-vis du bloc optionnel englobant (cas 1)
+--file--
+<opt>
+	Contenu de niveau 0
+	<opt>Contenu de niveau 1 : $varTitorigA, $varNull</opt>
+</opt>
+--expect--
+Contenu de niveau 0
+Contenu de niveau 1 : Titre original de niveau 'analytique', 
+--comment--
+On part des blocs opt imbriqués pour déterminer suivant les règles précédentes s'il apparaît ou non.
+Ensuite, pour déterminer si le bloc opt de niveau -1 s'affiche, on considère que les blocs qu'il contient
+sont des sources de données variables.
+Ici, $varTitorigA n'est pas null donc le opt correspondant s'affiche et de fait (on considère ce opt comme
+une source de données variable), le opt englobant s'affiche
+================================================================================
+--test--
+Un bloc optionnel imbriqué se comporte comme une source de données variables vis-à-vis du bloc optionnel englobant (cas 2)
+--file--
+<opt>
+	Contenu de niveau 0
+	<opt>Contenu de niveau 1 : $varFalse, $varNull</opt>
+</opt>
+--expect--
+
+--comment--
+On part des blocs opt imbriqués pour déterminer suivant les règles précédentes s'il apparaît ou non.
+Ensuite, pour déterminer si le bloc opt de niveau -1 s'affiche, on considère que les blocs qu'il contient
+sont des sources de données variables.
+Ici, toutes les données variables sont nulles donc le opt de niveau 1 ne s'affiche pas. En le considérant comme 
+une source de données variables pour le opt englobant qui n'en a pas d'autres, ce dernier ne s'affiche pas.
+================================================================================
+--test--
+Un bloc optionnel imbriqué se comporte comme une source de données variables vis-à-vis du bloc optionnel englobant (cas 3)
+--file--
+<opt>
+	Premier opt : <opt>opt imbriqué</opt>
+</opt>
+--expect--
+Premier opt : opt imbriqué
+================================================================================
+--test--
+Un bloc optionnel imbriqué se comporte comme une source de données variables vis-à-vis du bloc optionnel englobant (cas 4)
+--file--
+<opt>
+	Article : $varFalse
+	<opt> $varAut</opt>
+</opt>
+--expect--
+Article :  Spécialiste en santé publique
+================================================================================
+--test--
+Un bloc optionnel 'vide' disparaît
+--file-- 
+<opt></opt>
+--expect--
+
+================================================================================
+--test--
+Un bloc optionnel ayant un contenu 'null' disparaît
+--file-- 
+<opt>$varNull</opt>
+--expect--
+
+================================================================================
+--test--
+Un bloc optionnel ayant un contenu 'false' disparaît
+--file-- 
+<opt>$varFalse</opt>
+--expect--
+
+================================================================================
+--test--
+Un bloc optionnel dont les tags sont inversés génère une exception
+--file--
+</opt>Contenu<opt>
+--expect Exception--
+ce n'est pas un fichier xml valide
+================================================================================
+--test--
+Un bloc optionnel dont les tags sont mal formés génère une exception
+--file--
+<opt>Contenu<opt>
+--expect Exception--
+ce n'est pas un fichier xml valide
+================================================================================
