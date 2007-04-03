@@ -284,7 +284,7 @@ return;
             debug && Debug::notice("'%s' doit être compilé", $template);
             
             // Charge le contenu du template
-            if ( ! $source=file_get_contents($template) )
+            if ( false === $source=file_get_contents($template) )
                 throw new Exception("Le template '$template' est introuvable.");
             
             // Compile le code
@@ -303,6 +303,7 @@ return;
                 debug && Debug::log("Mise en cache de '%s'", $template);
                 Cache::set($template, $source);
                 debug && Debug::log("Exécution à partir du cache");
+
                 require(Cache::getPath($template));
             }
             else
