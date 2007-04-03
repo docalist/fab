@@ -54,10 +54,23 @@ class AutoTest extends Module
         
         if (extension_loaded('xdebug') && Utils::get($_POST['codecoverage'], false)==='1')
         {
-            $reportDir='c:/temp/code/';
+            $reportDir=Runtime::$webRoot.'codeCoverage/';
+            if (!is_dir($reportDir))
+            {
+                echo "<p>Création du répertoire $reportDir pour le rapport de couverture de code...</p>";
+            	if (!@mkdir($reportDir))
+                {
+                	throw new Exception("Impossible de créer le répertoire $reportDir pour le rapport de couverture de code");
+                }
+            }
+            $reportUrl=Runtime::$realHome.'codeCoverage/index.html';
             $result->collectCodeCoverageInformation(true);
         }
         
+        set_time_limit(0);
+        while(@ob_end_flush());
+        PHPUnit_Util_Filter::addFileToFilter(__FILE__);
+
         foreach((array) $files as $path)
         {
             $class=substr(basename($path), 0, -4); // /dir/CacheTest.php -> CacheTest
@@ -65,6 +78,7 @@ class AutoTest extends Module
             debug && Debug::log('Exécution de %s', $path);
 
             require_once($path);
+            PHPUnit_Util_Filter::addFileToFilter($path);
 
             //$test=new $class();
             $tests->addTest(new AutoTestSuite($class));
@@ -76,38 +90,43 @@ class AutoTest extends Module
         $result->flushListeners();
         
         $successCount=$result->count()-$result->errorCount()-$result->failureCount()-$result->notImplementedCount()-$result->skippedCount();
-        
-        $p=round(100 * $successCount / $result->count());
-        $e=round(100 * $result->errorCount() / $result->count());
-        $f=round(100 * $result->failureCount() / $result->count());
-        $n=round(100 * $result->notImplementedCount() / $result->count());
-        $s=round(100 * $result->skippedCount() / $result->count());
 
         echo '<h1>Bilan des tests</h1>';
-        
-        echo '<div style="width:50%; height: 2em;border: 1px inset #000; background-color: green;">';
-        echo '<div style="width:',$e,'%; background-color: red;height: 2em;float: left"></div>';
-        echo '<div style="width:',$f,'%; background-color: darkred;height: 2em;float: left"></div>';
-        echo '<div style="width:',$n,'%; background-color: grey;height: 2em;float: left"></div>';
-        echo '<div style="width:',$s,'%; background-color: blue;height: 2em;float: left"></div>';
-        echo '</div>';
-
-        echo '<ul>';
-        echo '<li class="odd">Total : ', $result->count(), '</li>';
-        echo '<li class="error">errors : ', $result->errorCount(), ' ('.$e.'%)</li>';
-        echo '<li class="fail odd">fail : ', $result->failureCount(), ' ('.$f.'%)</li>';
-        echo '<li class="incomplete">not implemented : ', $result->notImplementedCount(), ' ('.$n.'%)</li>';
-        echo '<li class="skip odd">skip : ', $result->skippedCount(), ' ('.$s.'%)</li>';
-        echo '<li class="pass">pass : ', $successCount, ' ('.$p.'%)</li>';
-        echo '</ul>';
-
-        fludh();
-        ob_end_flush();
+        if ($result->count()==0)
+        {
+            echo '<p>Aucun test n\'a été exécuté</p>';	
+        }
+        else
+        {
+            $p=round(100 * $successCount / $result->count());
+            $e=round(100 * $result->errorCount() / $result->count());
+            $f=round(100 * $result->failureCount() / $result->count());
+            $n=round(100 * $result->notImplementedCount() / $result->count());
+            $s=round(100 * $result->skippedCount() / $result->count());
+    
+            
+            echo '<div style="width:50%; height: 2em;border: 1px inset #000; background-color: green;">';
+            echo '<div style="width:',$e,'%; background-color: red;height: 2em;float: left"></div>';
+            echo '<div style="width:',$f,'%; background-color: darkred;height: 2em;float: left"></div>';
+            echo '<div style="width:',$n,'%; background-color: grey;height: 2em;float: left"></div>';
+            echo '<div style="width:',$s,'%; background-color: blue;height: 2em;float: left"></div>';
+            echo '</div>';
+    
+            echo '<ul>';
+            echo '<li class="odd">Total : ', $result->count(), '</li>';
+            echo '<li class="error">errors : ', $result->errorCount(), ' ('.$e.'%)</li>';
+            echo '<li class="fail odd">fail : ', $result->failureCount(), ' ('.$f.'%)</li>';
+            echo '<li class="incomplete">not implemented : ', $result->notImplementedCount(), ' ('.$n.'%)</li>';
+            echo '<li class="skip odd">skip : ', $result->skippedCount(), ' ('.$s.'%)</li>';
+            echo '<li class="pass">pass : ', $successCount, ' ('.$p.'%)</li>';
+            echo '</ul>';
+        }
         if ($reportDir)
         {
-            echo "\nGenerating report, this may take a moment.";
+            echo "<hr /><h1>Generation du rapport de couverture de code</h1>";
             PHPUnit_Util_Report::render($result, $reportDir);
-            $this->printer->write("\n");
+            echo '<p>Le rapport a été généré dans le répertoire ', $reportDir, 'du serveur<br />';
+            echo '<a href="'.$reportUrl.'">Cliquez sur ce lien pour le consulter</a></p>';
         }
     }
 }
@@ -171,6 +190,8 @@ class SimpleTestListener implements PHPUnit_Framework_TestListener
     {
         if ($this->success)
             echo '<li class="', ($this->odd?'odd ':''), 'pass">Ok. ', htmlentities($test->getName()), '</li>';
+//        ob_end_flush();
+        flush();
     }
  
     public function addError(PHPUnit_Framework_Test $test, Exception $e, $time)
