@@ -597,10 +597,11 @@ class TemplateCode
                 'trim', 'rtrim', 'ltrim',
                 'substr','str_replace','str_repeat',
                 'implode','explode',
+                'urlencode'
             ));
             $runtimeFunctions=array_flip(array
             (
-                'array', 'range',
+                'array', 'range','extension_loaded'
             ));
         }
 
