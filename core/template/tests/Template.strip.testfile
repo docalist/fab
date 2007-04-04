@@ -1,0 +1,140 @@
+Fichier de test unitaires des attributs 'if' du le compilateur de templates
+
+@version : $Id$
+
+================================================================================
+--test--
+Un noeud sans texte dont l'attribut strip vaut false s'affiche
+--file--
+<input strip="false" type="text" name="mytext" />
+--expect--
+<input type="text" name="my text" />
+================================================================================
+--test--
+Un noeud sans texte dont l'attribut strip vaut true disparaît
+--file--
+<input strip="true" type="text" name="mytext" />
+--expect--
+
+================================================================================
+--test--
+Un noeud sans texte dont l'attribut strip évalué à false n'est pas le premier déclaré apparaît
+--file--
+<input type="text" strip="$varFalse" name="mytext" />
+--expect--
+<input type="text" name="my text" />
+================================================================================
+--test--
+Un noeud sans texte dont l'attribut strip évalué à true n'est pas le premier déclaré disparaît
+--file--
+<input type="text" name="mytext" strip="$varA" />
+--expect--
+
+================================================================================
+--test--
+Un noeud contenant du texte et dont l'attribut strip est évalué à false apparaît entièrement
+--file--
+<a strip="$varFalse" href="www.bdsp.tm.fr">Un lien</a>
+--expect--
+<a href="www.bdsp.tm.fr">Un lien</a>
+================================================================================
+--test--
+Un noeud contenant du texte et dont l'attribut strip est évalué à true n'affiche que le texte (les tags disparaissent)
+--file--
+<a strip="$varA" href="www.bdsp.tm.fr">Un lien</a>
+--expect--
+Un lien
+================================================================================
+--test--
+Un noeud dont l'attribut strip est vide : apparaît/disparaît (vide == null)/génère exception??????????????????????
+--file--
+<input strip="" type="text" />
+
+--skip--
+Qu'est-ce qu'on fait dans ce cas ?
+================================================================================
+--test--
+Un noeud dont l'attribut strip contient un appel de fonction génère une exception
+--file--
+<input strip="{echo 'hi'}" type="text"/>
+--expect Exception--
+interdit dans une expression
+================================================================================
+--test--
+Un noeud dont l'attribut strip vaut false et dont l'attribut test vaut false disparaît (strip avant test)
+--file--
+<a href="www.bdsp.tm.fr" strip="false" test="false">
+	Titre
+</a>
+--expect--
+
+================================================================================
+--test--
+Un noeud dont l'attribut strip vaut false et dont l'attribut test vaut false disparaît (test avant strip)
+--file--
+<a href="www.bdsp.tm.fr" test="false" strip="false">
+	Titre
+</a>
+--expect--
+
+================================================================================
+--test--
+Un noeud dont l'attribut strip vaut false et dont l'attribut test vaut true apparaît (strip avant test)
+--file--
+<a href="www.bdsp.tm.fr" strip="false" test="true">
+	Titre
+</a>
+--expect--
+<a href="www.bdsp.tm.fr">
+	Titre
+</a>
+================================================================================
+--test--
+Un noeud dont l'attribut strip vaut false et dont l'attribut test vaut true apparaît (test avant strip)
+--file--
+<a href="www.bdsp.tm.fr" test="false" strip="true">
+	Titre
+</a>
+--expect--
+<a href="www.bdsp.tm.fr">
+	Titre
+</a>
+================================================================================
+--test--
+Un noeud dont l'attribut strip vaut true et dont l'attribut test vaut false disparaît (strip avant test)
+--file--
+<a href="www.bdsp.tm.fr" strip="true" test="false">
+	Titre
+</a>
+--expect--
+
+================================================================================
+--test--
+Un noeud dont l'attribut strip vaut true et dont l'attribut test vaut false disparaît (test avant strip)
+--file--
+<a href="www.bdsp.tm.fr" test="false" strip="true">
+	Titre
+</a>
+--expect--
+
+================================================================================
+--test--
+Un noeud dont l'attribut strip vaut true et dont l'attribut test vaut true ne fait apparaître que le 
+contenu du noeud : le tag disparaît mais le texte qu'il contient apparaît (strip avant test)
+--file--
+<a href="www.bdsp.tm.fr" strip="true" test="true">
+	Titre
+</a>
+--expect--
+Titre
+================================================================================
+--test--
+Un noeud dont l'attribut strip vaut true et dont l'attribut test vaut true ne fait apparaître que le 
+contenu du noeud : le tag disparaît mais le texte qu'il contient apparaît (test avant strip)
+--file--
+<a href="www.bdsp.tm.fr" test="true" strip="true">
+	Titre
+</a>
+--expect--
+Titre
+================================================================================
