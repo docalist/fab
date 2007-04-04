@@ -168,7 +168,7 @@ class TemplateCompiler
         $re='~^(?:\<[?!][^>]*>\s*)*~';
 
         // Ajoute une racine <root>...</root> au template
-        $source=preg_replace($re, '$0<root collapse="true">', $source, 1);
+        $source=preg_replace($re, '$0<root strip="true">', $source, 1);
         $source.='</root>';
         
         // Ajoute les fichiers auto-include dans le source
@@ -179,7 +179,7 @@ class TemplateCompiler
         foreach((array)$files as $file)
         	$h.=file_get_contents(Runtime::$fabRoot.'core/template/autoincludes/'.$file);
 
-        if ($h) $source=str_replace('</root>', '<div ignore="true">'.$h.'</div></root>', $source);
+        if ($h) $source=str_replace('</root>', '<div test="false">'.$h.'</div></root>', $source);
 //        if (Template::getLevel()==0) file_put_contents(dirname(__FILE__).'/dm.xml', $source);
 
         // Crée un document XML
@@ -501,8 +501,8 @@ private static $matchTemplate=null;
                 // Instancie le noeud
                 self::instantiateMatch($result);
                 
-                // Ajoute un attribut collapse pour que seul le corps du template apparaisse dans le source généré
-                $result->setAttribute('collapse','true');
+                // Ajoute un attribut strip pour que seul le corps du template apparaisse dans le source généré
+                $result->setAttribute('strip','true');
                 
                 // Remplace le noeud instancié par le noeud obtenu
                 $node->parentNode->replaceChild($result, $node); // remplace match par node
@@ -754,7 +754,6 @@ private static $line=0, $column=0;
             'opt'=>'compileOpt',
             'slot'=>'compileSlot'
         );
-        static $empty=null;
         
         self::$currentNode=$node;
         switch ($node->nodeType)
@@ -774,7 +773,8 @@ private static $line=0, $column=0;
                 // Serait plus efficace : $node->ownerDocument->save('php://output');
                 return;
                 
-            case XML_ELEMENT_NODE:  // un tag
+            case XML_ELEMENT_NODE:  // un élément
+            
                 // Récupère le nom du tag
                 $name=$node->tagName;
                 
@@ -782,150 +782,139 @@ private static $line=0, $column=0;
                 if (isset($tags[$name]))
                     return call_user_func(array('TemplateCompiler', $tags[$name]), $node);
 
-                // Récupère les attributs qu'on gère
-                $collapse=($node->getAttribute('collapse')=='true');
-                $ignore=$node->getAttribute('ignore')=='true';
-
-//                if (($test=$node->getAttribute('dm')) !== '')
-//                {
-//                    file_put_contents(__FILE__.'.txt', $node->ownerDocument->saveXml($node));
-//                }
-                // Génère le noeud
-                if (! $ignore)
+                // Gère l'attribut "test" : supprime tout le noeud si l'expression retourne false
+                if ('' !== $test=$node->getAttribute('test'))
                 {
-                    if (($test=$node->getAttribute('test')) !== '')
+                    $canEval=TemplateCode::parseExpression
+                            (  
+                                $test,
+                                'handleVariable',
+                                array
+                                (
+                                    'setcurrentposition'=>array(__CLASS__,'setCurrentPosition'),
+                                    'autoid'=>array(__CLASS__,'autoid'),
+                                    'lastid'=>array(__CLASS__,'lastid')
+                                )
+                            );
+
+                    // Si le test est évaluable, on teste maintenant
+                    if ($canEval)
                     {
-                        TemplateCode::parseExpression($test,
-                                    'handleVariable',
-                                    array
-                                    (
-                                        'setcurrentposition'=>array(__CLASS__,'setCurrentPosition'),
-                                        'autoid'=>array(__CLASS__,'autoid'),
-                                        'lastid'=>array(__CLASS__,'lastid')
-                                    )
-                        );
+                        // Si le test s'évalue à 'false', terminé (on ignore le noeud)
+                        if (false == TemplateCode::evalExpression($test)) return;
                         
-                        echo self::PHP_START_TAG, 'if (', $test, '):',self::PHP_END_TAG;
-                        $node->removeAttribute('test');
-                    }
-                    if (($if=$node->getAttribute('if')) !== '')
-                    {
-                        $canEval=TemplateCode::parseExpression($if,
-                                    'handleVariable',
-                                    array
-                                    (
-                                        'setcurrentposition'=>array(__CLASS__,'setCurrentPosition'),
-                                        'autoid'=>array(__CLASS__,'autoid'),
-                                        'lastid'=>array(__CLASS__,'lastid')
-                                    )
-                        );
-
-                        // Si l'expression est évaluable, pas besoin de code pour le if : on évalue tout de suite
-                        if ($canEval)
-                        {
-                        	if (! TemplateCode::evalExpression($if)) return; // le if est à false, on ignore le noeud
-                            $if=''; // le if est à true, on génère tout le noeud sans condition
-                        }
-                        // non évaluable, entour les tags de début et de fin de noeud par un if
-                        else
-                        {
-                            $ifVar=self::$env->getTemp('if');
-                            echo self::PHP_START_TAG, 'if ('.$ifVar.'=(', $if, ')):', self::PHP_END_TAG;
-                        }
-                        $node->removeAttribute('if');
-                    }
-    
-                    // Génère le tag ouvrant
-                    if (!$collapse)
-                    {        
-                        echo '<', $name;    // si le tag a un préfixe, il figure déjà dans name (e.g. <test:h1>)
-                        if ($node->namespaceURI !== $node->parentNode->namespaceURI)
-                            echo ' xmlns="', $node->namespaceURI, '"'; 
-                    
-                        // Accès aux attributs xmlns : cf http://bugs.php.net/bug.php?id=38949
-                        // apparemment, fixé dans php > 5.1.6, à vérifier
-                    
-                        if ($node->hasAttributes())
-                        {
-                            $flags=0;
-                            foreach ($node->attributes as $key=>$attribute)
-                            {
-                                ++self::$opt;
-                                $value=self::parseCode($attribute->value);
-                                --self::$opt;
-
-                                $quot=(strpos($value,'"')===false) ? '"' : "'";
-                                
-                                // Si l'attribut ne contient que des variables (pas de texte), il devient optionnel
-                                if ($flags===2)
-                                {
-                                    echo self::PHP_START_TAG, 'Template::optBegin()', self::PHP_END_TAG;
-                                    echo ' ', $attribute->nodeName, '=', $quot, $value, $quot;
-                                    echo self::PHP_START_TAG, 'Template::optEnd()', self::PHP_END_TAG; 
-                                }
-                                else
-                                    echo ' ', $attribute->nodeName, '=', $quot, $value, $quot;
-                            }
-                        }
-                    }
-      
-                    // Détermine s'il faut générer le tag complet (<div>...</div>) ou un tag vide (<br />)
-                    $emptyTag=false;
-                    if (! $node->hasChildNodes())
-                    {
-                        // Liste des éléments dont le "content model" est déclaré comme "EMPTY" dans les DTD
-                        if (is_null($empty))
-                        {
-                            //XHTML 1.0 strict et XHTML 1.1
-                            $empty['base']=true;
-                            $empty['meta']=true;
-                            $empty['link']=true;
-                            $empty['hr']=true;
-                            $empty['br']=true;
-                            $empty['param']=true;
-                            $empty['img']=true;
-                            $empty['area']=true;
-                            $empty['input']=true;
-                            $empty['col']=true;
-                            
-                            //XHTML 1.0 TRANSITIONAL : idem plus
-                            $empty['basefont']=true;
-                            $empty['isindex']=true;
-                            
-                            //XHTML 1.0 FRAMESET : idem plus
-                            $empty['frame']=true;
-                        }
-                        if (isset($empty[$node->tagName])) $emptyTag=true;
+                        // Sinon, on génère tout le noeud sans condition
+                        $test='';
                     }
                     
-                    // Tag vide
-                    if ($emptyTag)
-                    {
-                        if (! $collapse) echo ' />';
-                        if ($if !== '')                     
-                            echo self::PHP_START_TAG, 'endif;',self::PHP_END_TAG;
-                    }
-                    
-                    // Génère tous les fils et la fin du tag
+                    // Si le test n'est pas évaluable, on encadre le noeud par un bloc php "if($test)"
                     else
                     {
-                        if (! $collapse) echo '>';
-                        if ($if !== '')                     
-                            echo self::PHP_START_TAG, 'endif;',self::PHP_END_TAG;
-                        self::compileChildren($node);
-                        if ($if !== '')
-                        {
-                            echo self::PHP_START_TAG, 'if ('.$ifVar.'):',self::PHP_END_TAG;
-                            self::$env->freeTemp($ifVar);
-                        }
-                        if (! $collapse) echo '</', $node->tagName, '>';
-                        if ($if !== '')                     
-                            echo self::PHP_START_TAG, 'endif;',self::PHP_END_TAG;
+                        echo self::PHP_START_TAG, "if($test):", self::PHP_END_TAG;
                     }
                     
-                    if ($test !== '')                     
+                    // Supprime l'attribut "test" du noeud en cours
+                    $node->removeAttribute('test');
+                }
+
+                // Gère l'attribut "strip" : ne garde que le contenu du noeud si l'expression retourne true
+                if ('' !== $strip=$node->getAttribute('strip'))
+                {
+                    $canEval=TemplateCode::parseExpression
+                            (
+                                $strip,
+                                'handleVariable',
+                                array
+                                (
+                                    'setcurrentposition'=>array(__CLASS__,'setCurrentPosition'),
+                                    'autoid'=>array(__CLASS__,'autoid'),
+                                    'lastid'=>array(__CLASS__,'lastid')
+                                )
+                            );
+
+                    // Si le strip est évaluable, on teste maintenant
+                    if ($canEval)
+                    {
+                        // Si strip s'évalue à 'false', on génère toujours les tags ouvrant et fermants
+                    	if (false == TemplateCode::evalExpression($strip))
+                            $strip='';
+                            
+                        // Strip s'évalue à 'true', on ne génère que le contenu du noeud
+                        else
+                            return self::compileChildren($node);
+                    }
+                    
+                    // Si le strip n'est pas évaluable, ajoute un test php "if($strip)" autour du tag ouvrant et du tag fermant
+                    else
+                    {
+                        $stripVar=self::$env->getTemp('strip');
+                        echo self::PHP_START_TAG, "if($stripVar=$strip):", self::PHP_END_TAG;
+                    }
+
+                    // Supprime l'attribut "strip" du noeud en cours
+                    $node->removeAttribute('strip');
+                }
+    
+
+                // Génère le début du tag ouvrant
+                echo '<', $name;    // si le tag a un préfixe, il figure déjà dans name (e.g. <test:h1>)
+                if ($node->namespaceURI !== $node->parentNode->namespaceURI)
+                    echo ' xmlns="', $node->namespaceURI, '"'; 
+                    
+                // Accès aux attributs xmlns : cf http://bugs.php.net/bug.php?id=38949
+                // apparemment, fixé dans php > 5.1.6, à vérifier
+                    
+                // Génère tous les attributs
+                if ($node->hasAttributes())
+                {
+                    $flags=0;
+                    foreach ($node->attributes as $key=>$attribute)
+                    {
+                        ++self::$opt;
+                        $value=self::parseCode($attribute->value);
+                        --self::$opt;
+
+                        $quot=(strpos($value,'"')===false) ? '"' : "'";
+                        
+                        // Si l'attribut ne contient que des variables (pas de texte), il devient optionnel
+                        if ($flags===2)
+                        {
+                            echo self::PHP_START_TAG, 'Template::optBegin()', self::PHP_END_TAG;
+                            echo ' ', $attribute->nodeName, '=', $quot, $value, $quot;
+                            echo self::PHP_START_TAG, 'Template::optEnd()', self::PHP_END_TAG; 
+                        }
+                        else
+                            echo ' ', $attribute->nodeName, '=', $quot, $value, $quot;
+                    }
+                }
+
+                // Tag vide
+                if (self::isEmptyTag($node))
+                {
+                    echo ' />';
+                    if ($strip !== '')                     
                         echo self::PHP_START_TAG, 'endif;',self::PHP_END_TAG;
                 }
+                    
+                // Génère tous les fils et la fin du tag
+                else
+                {
+                    echo '>';
+                    if ($strip !== '')                     
+                        echo self::PHP_START_TAG, 'endif;',self::PHP_END_TAG;
+                    self::compileChildren($node);
+                    if ($strip !== '')                     
+                    {
+                        echo self::PHP_START_TAG, "if ($stripVar):",self::PHP_END_TAG;
+                        self::$env->freeTemp($stripVar);
+                    }
+                    echo '</', $node->tagName, '>';
+                    if ($strip !== '')                     
+                        echo self::PHP_START_TAG, 'endif;',self::PHP_END_TAG;
+                }
+                    
+                if ($test !== '')                     
+                    echo self::PHP_START_TAG, 'endif;',self::PHP_END_TAG;
                 
                 return;
                 
@@ -951,6 +940,37 @@ private static $line=0, $column=0;
         }
     }
 
+    private static function isEmptyTag(DOMNode $node)
+    {
+        static $empty=null;
+
+        if ($node->hasChildNodes()) return false;
+        
+        // Liste des éléments dont le "content model" est déclaré comme "EMPTY" dans les DTD
+        if (is_null($empty))
+        {
+            //XHTML 1.0 strict et XHTML 1.1
+            $empty['base']=true;
+            $empty['meta']=true;
+            $empty['link']=true;
+            $empty['hr']=true;
+            $empty['br']=true;
+            $empty['param']=true;
+            $empty['img']=true;
+            $empty['area']=true;
+            $empty['input']=true;
+            $empty['col']=true;
+            
+            //XHTML 1.0 TRANSITIONAL : idem plus
+            $empty['basefont']=true;
+            $empty['isindex']=true;
+            
+            //XHTML 1.0 FRAMESET : idem plus
+            $empty['frame']=true;
+        }
+
+        return (isset($empty[$node->tagName]));
+    }
 
     /**
      * Compile récursivement les fils d'un noeud et tous leurs descendants   

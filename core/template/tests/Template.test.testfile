@@ -64,13 +64,13 @@ interdit dans une expression
 Un noeud dont l'attribut test est mal formé génère une exception
 --file--
 <input test= type="text" />
---expect --
-
+--expect Exception--
+ce n'est pas un fichier xml valide
 ================================================================================
 --test--
 Un noeud dont l'attribut test est mal formé génère une exception
 --file--
 <input test"true" type="text" />
---expect --
-
+--expect Exception--
+ce n'est pas un fichier xml valide
 ================================================================================

@@ -79,6 +79,9 @@ class TemplateTest extends AutoTestCase
         $this->runTestFile(dirname(__FILE__).'/Template.opt.testfile', array($this, 'templateCompilerCallback'));
         $this->runTestFile(dirname(__FILE__).'/Template.switch.testfile', array($this, 'templateCompilerCallback'));
         $this->runTestFile(dirname(__FILE__).'/Template.loop.testfile', array($this, 'templateCompilerCallback'));
+        $this->runTestFile(dirname(__FILE__).'/Template.strip.testfile', array($this, 'templateCompilerCallback'));
+        $this->runTestFile(dirname(__FILE__).'/Template.test.testfile', array($this, 'templateCompilerCallback'));
+        $this->runTestFile(dirname(__FILE__).'/Template.misc.testfile', array($this, 'templateCompilerCallback'));
     }
     
     public function templateCompilerCallback($template)
@@ -98,8 +101,7 @@ class TemplateTest extends AutoTestCase
             'varTrois'=>3,
             'arrayCinq'=>array(0, 1, 2, 3, 4, 5),
             'assocArray'=>array('key1'=>'valeur 1', 'key2'=>'valeur 2'),
-            'emptyArray'=>array()
-                        
+            'emptyArray'=>array()                       
         );
 
         $tmp=dirname(__FILE__) . '/tempfile.txt';
@@ -108,11 +110,20 @@ class TemplateTest extends AutoTestCase
         Template::run
         (
             $tmp,
-            $data
+            $data,
+            //new PseudoArray('pays.txt'),
+            array($this, 'callbackTest')    // on teste avec un callback
         );
         $result=ob_get_clean();
         unlink($tmp);
+        
         return $result;
+    }
+    
+    // callback utilisé à des fins de test unitaire
+    public function callbackTest($var)
+    {
+        return (int)$var;   
     }
     
     /*
