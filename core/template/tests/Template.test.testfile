@@ -1,0 +1,76 @@
+Fichier de test unitaires de l'attribut 'test' du compilateur de templates
+
+@version : $Id$
+
+================================================================================
+--test--
+Un noeud sans texte dont l'attribut test vaut false ne s'affiche pas
+--file--
+<input strip="false" type="text" name="mytext" />
+--expect--
+
+================================================================================
+--test--
+Un noeud sans texte dont l'attribut test vaut true s'affiche
+--file--
+<input test="true" type="text" name="my text" />
+--expect--
+<input type="text" name="my text" />
+================================================================================
+--test--
+Un noeud sans texte dont l'attribut test évalué à true n'est pas le premier déclaré apparaît
+--file--
+<input type="text" test="$varA" name="mytext" />
+--expect--
+<input type="text" name="my text" />
+================================================================================
+--test--
+Un noeud sans texte dont l'attribut test évalué à false n'est pas le premier déclaré disparaît
+--file--
+<input type="text" name="mytext" test="$varFalse" />
+--expect--
+
+================================================================================
+--test--
+Un noeud contenant du texte et dont l'attribut test est évalué à true apparaît entièrement
+--file--
+<a test="$varA" href="www.bdsp.tm.fr">Un lien</a>
+--expect--
+<a href="www.bdsp.tm.fr">Un lien</a>
+================================================================================
+--test--
+Un noeud contenant du texte et dont l'attribut test est évalué à false disparaît
+--file--
+<a test="$varFalse" href="www.bdsp.tm.fr">Un lien</a>
+--expect--
+Un lien
+================================================================================
+--test--
+Un noeud dont l'attribut test est vide : apparaît/disparaît (vide == null)/génère exception??????????????????????
+--file--
+<input test="" type="text" />
+
+--skip--
+Qu'est-ce qu'on fait dans ce cas ?
+================================================================================
+--test--
+Un noeud dont l'attribut test contient un appel de fonction génère une exception
+--file--
+<input test="{echo 'hi test'}" type="text"/>
+--expect Exception--
+interdit dans une expression
+================================================================================
+--test--
+Un noeud dont l'attribut test est mal formé génère une exception
+--file--
+<input test= type="text" />
+--expect --
+
+================================================================================
+--test--
+Un noeud dont l'attribut test est mal formé génère une exception
+--file--
+<input test"true" type="text" />
+--expect --
+
+================================================================================
