@@ -4,8 +4,8 @@ require_once(Runtime::$fabRoot.'core/helpers/Range/Range.php');
 
 define('DEBUG', true);  // mettre à true si on est en phase de débuggage
 
-if(DEBUG)
-    set_time_limit(2);      // par sécurité
+//if(DEBUG)
+//    set_time_limit(2);      // par sécurité
 
 
 class RangeTest extends AutoTestCase
