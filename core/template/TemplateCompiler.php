@@ -79,6 +79,7 @@ class TemplateCompiler
     private static $lastId='';
     private static $usedId=array();
 
+    private static $nbVar=0;// nombre de variables rencontrées dans un bloc opt /opt (cf compileOpt)
 
     /**
      * @staticvar string Expression régulière utilisée pour trouver les variables et les expressions présentes dans le source du template
@@ -147,6 +148,10 @@ class TemplateCompiler
      */
     public static function compile($source, $env=null)
     {
+        // Fait un reset sur les ID utilisés
+        self::$usedId=array(); // HACK: ne fonctionnera pas avec des fonctions include
+        // il ne faudrait faire le reset que si c'est un template de premier niveau (pas un include)
+
         //self::addCodePosition($source);
         
         // Supprime les commentaires de templates : /* xxx */
@@ -221,6 +226,7 @@ class TemplateCompiler
        self::compileMatches($xml);        
 //echo 'Après instanciation des templates match :<pre>';
 //echo htmlentities($xml->saveXml());
+////echo $xml->saveXml();
 //echo '</pre>';
 
 //        if (Template::getLevel()==2) 
@@ -463,9 +469,9 @@ private static $matchTemplate=null;
         if ($templates->length ==0) return;
 
         // On enlève tous les templates du document xml
-        // - pour qu'ils n'apparaissent pas dans la sortie générée
-        // - pour que le code d'un template ne soit pas modifié par un autre template        
-        foreach($templates as $template)
+        // - pour qu'ils n'apparaissent pas dans la sortie générée (non valable comme raison : on a test="false")
+        // - pour que le code d'un template ne soit pas modifié par un autre template (à étudier : toujours valide
+        foreach($templates as $template) // todo: à garder ?
             $template->parentNode->removeChild($template);
 
         // Exécute chaque template dans l'ordre
@@ -512,6 +518,8 @@ private static $matchTemplate=null;
     
     public static function handleMatchVar(& $var)
     {
+//        echo "<li>Appel de handleMatchVar pour [$var]<br />\n";
+        
         // Enlève le signe $ de début
         $attr=substr($var,1);
         
@@ -520,16 +528,21 @@ private static $matchTemplate=null;
         {
             // Si l'appellant a spécifié une valeur, on la prends
             if (self::$matchNode->hasAttribute($attr))
+            {
                 $var=self::$matchNode->getAttribute($attr);
-                
+//                echo "var est un attribut spécifié par l'appellant, nouvelle valeur=[$var], return 'évaluable'</li>\n";
+            }    
             // Sinon on prends la valeur par défaut du template
             else
+            {
                 $var=self::$matchTemplate->getAttribute($attr);
-            
+//                echo "var est un paramètre du template match, on prends la valeur par défaut, nouvelle valeur=[$var], return 'évaluable'</li>\n";
+            }
                 
             return false;
         }
-
+//        echo "pas un attribut du template, var retournée inchangée : [$var], return 'non évaluable'</li>\n";
+        
         // IDEA : si on voulait, on pourrait rendre accessibles tous les attributs de l'appellant
         // sous forme de variables , que ceux-ci soient ou non des attributs du template. 
         // Peut-être que cela simplifierait l'écriture des templates match et éviterait d'avoir 
@@ -579,10 +592,28 @@ private static $line=0, $column=0;
             foreach ($node->attributes as $attribute)
                 self::instantiateMatch($attribute);
 
+        /*
+        
+         problèmes d'encodage...
+         en gros, on fait un preg_match sur le contenu du noeud en demandant à récupérer les offset et ensuite, on fera un
+         replaceData à l'offset obtenu et sur la longueur du match
+         Le problème, c'est que DOM travaille en utf-8. Donc $node->data est une chaine en utf-8. preg_match ne gère
+         pas ça bien : les offset retournés seront des offset d'octets et non pas des offset de caractères.
+         replaceData, elle, travaille en utf-8. Donc elle attend des offset de caractères et non pas des offset d'octets.
+         Si on ne fait rien, on aura un "décalage", égal au nombre de caractères codés sur plus de un octet précédant la
+         chaine à remplacer.
+         La solution trouvée consiste à passer à preg_match une chaine ansi et non pas une chaine utf8.
+         Du coup, les offset retournés sont toujours des offset octets, mais sont strictement identiques aux ofssets caractères
+         qui auraient été retournés si preg_match gérait correctement l'utf-8.
+         Du coup, le replaceData fonctionne correctement...
+         
+          DM+YL, 06/04/07
+           
+         */
         // Exécute le code présent dans les données du noeud
         if ($node instanceof DOMCharacterData) // #text, #comment... pour les PI :  || $node instanceof DOMProcessingInstruction
         {
-            if (preg_match_all(self::$reCode, $node->data, $matches, PREG_PATTERN_ORDER|PREG_OFFSET_CAPTURE)>0)
+            if (preg_match_all(self::$reCode, utf8_decode($node->data), $matches, PREG_PATTERN_ORDER|PREG_OFFSET_CAPTURE)>0)
             { 
                 // Evalue toutes les expressions dans l'ordre où elles apparaissent
                 foreach($matches[0] as & $match)
@@ -618,7 +649,7 @@ private static $line=0, $column=0;
                     $match[2]=$code;
                     $match[3]=self::$selectNodes; // les noeuds éventuels retournés par select et qu'il faut insérer
                 }
-                
+
                 // Remplace l'expression par sa valeur et insère les noeuds sélectionnés par select()
                 
                 // On travaille en ordre inverse pour deux raisons :
@@ -627,7 +658,10 @@ private static $line=0, $column=0;
                 foreach(array_reverse($matches[0]) as $match)
                 {
                 	// Remplace l'expression par sa valeur
+//                    echo 'Node before <pre>',$node->nodeValue,'</pre>';
+//                    echo 'replaceData, offset=', $match[1], ', len=', strlen($match[0]), ', replacewith=', $match[2], "\n";
                     $node->replaceData($match[1], strlen($match[0]), $match[2]);
+//                    echo 'Node after <pre>',$node->nodeValue,'</pre>';
                     
                     // Si select a été appellée et a retourné des noeuds, on les insère devant l'expression
                     if (! is_null($match[3]))
@@ -769,6 +803,7 @@ private static $line=0, $column=0;
                 return;
                 
             case XML_PI_NODE:       // une directive (exemple : <?xxx ... ? >)
+                throw new Exception('Les directives "'.$node->target.'" sont interdites dans un template');
                 echo $node->ownerDocument->saveXML($node);
                 // Serait plus efficace : $node->ownerDocument->save('php://output');
                 return;
@@ -783,8 +818,10 @@ private static $line=0, $column=0;
                     return call_user_func(array('TemplateCompiler', $tags[$name]), $node);
 
                 // Gère l'attribut "test" : supprime tout le noeud si l'expression retourne false
-                if ('' !== $test=$node->getAttribute('test'))
+                $test='';
+                if ($node->hasAttribute('test'))
                 {
+                    $test=$node->getAttribute('test');
                     $canEval=TemplateCode::parseExpression
                             (  
                                 $test,
@@ -818,8 +855,10 @@ private static $line=0, $column=0;
                 }
 
                 // Gère l'attribut "strip" : ne garde que le contenu du noeud si l'expression retourne true
-                if ('' !== $strip=$node->getAttribute('strip'))
+                $strip='';
+                if ($node->hasAttribute('strip'))
                 {
+                    $strip=$node->getAttribute('strip');
                     $canEval=TemplateCode::parseExpression
                             (
                                 $strip,
@@ -847,8 +886,8 @@ private static $line=0, $column=0;
                     // Si le strip n'est pas évaluable, ajoute un test php "if($strip)" autour du tag ouvrant et du tag fermant
                     else
                     {
-                        $stripVar=self::$env->getTemp('strip');
-                        echo self::PHP_START_TAG, "if($stripVar=$strip):", self::PHP_END_TAG;
+                        $keepTag=self::$env->getTemp('keeptag');
+                        echo self::PHP_START_TAG, "if($keepTag=!($strip)):", self::PHP_END_TAG;
                     }
 
                     // Supprime l'attribut "strip" du noeud en cours
@@ -905,8 +944,8 @@ private static $line=0, $column=0;
                     self::compileChildren($node);
                     if ($strip !== '')                     
                     {
-                        echo self::PHP_START_TAG, "if ($stripVar):",self::PHP_END_TAG;
-                        self::$env->freeTemp($stripVar);
+                        echo self::PHP_START_TAG, "if ($keepTag):",self::PHP_END_TAG;
+                        self::$env->freeTemp($keepTag);
                     }
                     echo '</', $node->tagName, '>';
                     if ($strip !== '')                     
@@ -940,6 +979,13 @@ private static $line=0, $column=0;
         }
     }
 
+    /**
+     * Teste si le noeud passé en paramètre est vide et peut être écrit sous forme courte (ie sans tag de fin).
+     * 
+     * @param DOMNode $node le noeud à examiner
+     * @return boolean true si le noeud passé en paramètre ne contient aucun fils et s'il est déclaré comme
+     * ayant un content-model égal à "empty" dans les DTD de xhtml.  
+     */
     private static function isEmptyTag(DOMNode $node)
     {
         static $empty=null;
@@ -1002,12 +1048,34 @@ private static $line=0, $column=0;
         // Opt accepte un attribut optionnel min qui indique le nombre minimum de variables
         $t=self::getAttributes($node, null,array('min'=>''));
         
-        // Génère le code
-        echo self::PHP_START_TAG, 'Template::optBegin()', self::PHP_END_TAG;
+        // Reset du nombre de var contenu dans le bloc opt
+        $save=self::$nbVar;
+        self::$nbVar=0;
+
+        // compile le contenu
         ++self::$opt;
+        ob_start();
         self::compileChildren($node);
+        $content=ob_get_clean();
         --self::$opt;
-        echo self::PHP_START_TAG, 'Template::optEnd('.$t['min'].')', self::PHP_END_TAG; 
+
+        // Génère le code
+        if (self::$nbVar===0)
+        {
+            echo $content; // aucune variable dans le bloc, ce n'est pas un bloc optionnel
+            // Restaure le nombre de var (au xa où on il est des blocs opt ascendants)
+            self::$nbVar=$save;
+        }
+        else
+        {
+            echo self::PHP_START_TAG, 'Template::optBegin()', self::PHP_END_TAG,
+                 $content,
+                 self::PHP_START_TAG, 'Template::optEnd('.$t['min'].')', self::PHP_END_TAG;
+ 
+            // Restaure le nombre de var (au xa où on il est des blocs opt ascendants)
+            self::$nbVar=$save+1;
+        }
+
     }
 
     /**
@@ -1189,11 +1257,7 @@ private static $line=0, $column=0;
     private static function compileSwitch(DOMNode $node)
     {
         // Récupère la condition du switch
-//        if (($test=$node->getAttribute('test')) === '')
-//            $test='true';
-//
         $t=self::getAttributes($node, null, array('test'=>true));
-            
         TemplateCode::parseExpression($t['test'],
                                     'handleVariable',
                                     array
@@ -1217,7 +1281,7 @@ private static $line=0, $column=0;
     private static function compileSwitchCases($node)
     {
         $first=true;
-        $seen=array(); // Les conditions déjà rencontrées dans le switch
+        $seen=array(); // Les conditions déjà rencontrées dans les différents case du switch
         
         // Génère tous les fils du switch
         foreach ($node->childNodes as $node)
@@ -1238,8 +1302,6 @@ private static $line=0, $column=0;
                             if (isset($seen['']))
                                 throw new Exception('Switch : bloc case rencontré après un bloc default');
                             $t=self::getAttributes($node, array('test'));
-//                            if (($test=$node->getAttribute('test')) === '')
-//                                throw new Exception("Tag case incorrect : attribut test manquant");
                             if (isset($seen[$t['test']]))
                                 throw new Exception('Switch : plusieurs blocs case avec la même condition');
                             $seen[$t['test']]=true;
@@ -1465,6 +1527,10 @@ echo "Source desindente :\n",  $xml->saveXml($xml), "\n-------------------------
 //            throw new Exception("Tag loop incorrect : attribut 'on' manquant");
             
         $t=self::getAttributes($node, array('on'), array('as'=>'$key,$value', 'max'=>''));
+
+        // Enlève les accolades qui entourent l'expression
+        // HACK : ne devrait pas être là, intégrer dans un wrapper autour de parseExpression
+        if ($t['on'][0]==='{') $t['on']=substr($t['on'], 1, -1);
             
         TemplateCode::parseExpression($t['on'],
                                     'handleVariable',
@@ -1511,7 +1577,13 @@ echo "Source desindente :\n",  $xml->saveXml($xml), "\n-------------------------
                 $max=self::$env->getTemp('nb');
         }
         
-        echo self::PHP_START_TAG, ($max?"$max=0;\n":''), "foreach($t[on] as $keyReal=>$valueReal):", self::PHP_END_TAG;
+        $on=self::$env->getTemp('on');
+        
+        echo self::PHP_START_TAG,
+            "$on=$t[on];", 
+            "if (! is_array($on) && ! $on instanceOf Traversable) throw new Exception('loop sur objet non iterable');",
+            ($max?"$max=0;\n":''), 
+            "foreach($on as $keyReal=>$valueReal):", self::PHP_END_TAG;
         if ($node->hasChildNodes())
         {
             self::$env->push(array($key=>$keyReal, $value=>$valueReal));
@@ -1627,6 +1699,7 @@ echo "Source desindente :\n",  $xml->saveXml($xml), "\n-------------------------
             . 'ligne '.self::$line . ', colonne '.self::$column
             );
             
+        ++self::$nbVar;
         return true;
     }
     

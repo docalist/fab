@@ -13,13 +13,10 @@ lequel il se base au lieu de dupliquer le code comme on le fait actuellement. Or
         name="$name"
         title="$label"
         class="textarea $class"
-        rows="{'$rows':3}"
+        rows="{$rows:3}"
         cols="$cols"
         id="{lastId()}">{select('string(@value)')}{select('.//node()')}{select('@*')}</textarea>
 </template>
-
-
-
 
 
 
@@ -46,7 +43,7 @@ lequel il se base au lieu de dupliquer le code comme on le fait actuellement. Or
 <!-- (pas d'attribut 'rows') -->
 
 <template match="//textbox" name="" label="" value="" class="">
-    <label if="'$label'" class="text {rtrim(' '.$class)}" for="{autoId()}">$label</label>
+    <label test="'$label'" class="text {rtrim(' '.$class)}" for="{autoId()}">$label</label>
     <input
         type="text" 
         name="$name" 

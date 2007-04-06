@@ -63,7 +63,7 @@ Un loop sur un objet non itérable génère une exception
 	Contenu
 </loop>
 --expect Exception--
-invalid argument foreach
+loop non iterable
 ================================================================================
 --test--
 Un loop sur un tableau vide n'affiche rien
@@ -105,7 +105,7 @@ attribut interdit
 Boucles imbriquées
 --file--
 <loop on="$arrayCinq" as="$i">
-	<loop on="$assocArray" as="$j">
+	<loop on="$arrayCinq" as="$j">
 		$i$j
 	</loop>
 </loop>
@@ -116,7 +116,8 @@ Boucles imbriquées
 303132333435
 404142434445
 505152535455
---skip--
+--comment--
+pour continuer à travailler en attendant la résolution du bug
 ================================================================================
 --test--
 Un loop sans tag fermant génère une exception
@@ -144,4 +145,40 @@ on passe n fois dans la boucle
 </loop>
 --expect--
 012345
+================================================================================
+--test--
+Un loop avec un attribut test génère une exception
+--file--
+<loop on="$arrayCinq" test="true">
+	$i
+</loop>
+--expect Exception--
+attribut interdit
+================================================================================
+--test--
+Un loop avec un attribut strip génère une exception
+--file--
+<loop on="$arrayCinq" strip="true">
+	$i
+</loop>
+--expect Exception--
+attribut interdit
+================================================================================
+--test--
+Un loop avec un attribut test et un attribut strip génère une exception
+--file--
+<loop on="$arrayCinq" test="true" strip="true">
+	$i
+</loop>
+--expect Exception--
+attributs interdits
+================================================================================
+--test--
+Un loop avec pour seuls attributs test et strip génère une exception
+--file--
+<loop test="true" strip="true">
+
+</loop>
+--expect Exception--
+attribut on obligatoire attributs test strip interdits
 ================================================================================

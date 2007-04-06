@@ -242,3 +242,54 @@ Un bloc if/else dont le tag fermant if est mal placé génère une exception
 --expect Exception--
 ce n'est pas un fichier xml valide
 ================================================================================
+--test--
+Un bloc if ayant un tag strip génère une exception
+--file--
+<if test="true" strip="true">
+	Dans le if
+</if>
+--expect Exception--
+attribut interdit
+================================================================================
+--test--
+Un bloc elseif ayant un tag strip génère une exception
+--file--
+<if test="false">
+	Dans le if
+</if>
+<elseif test="true" strip="true">
+	Dans le elseif
+</elseif>
+--expect Exception--
+attribut interdit
+================================================================================
+--test--
+Un bloc else ayant un tag strip génère une exception
+--file--
+<if test="false">
+	Dans le if
+</if>
+<elseif test="false">
+	Dans le elseif
+</elseif>
+<else strip="true">
+	Dans le else
+</else>
+--expect Exception--
+attribut interdit
+================================================================================
+--test--
+Un bloc else ayant un tag test et un tag strip génère une exception
+--file--
+<if test="false">
+	Dans le if
+</if>
+<elseif test="false">
+	Dans le elseif
+</elseif>
+<else test="true" strip="true">
+	Dans le else
+</else>
+--expect Exception--
+attributs interdits
+================================================================================

@@ -120,6 +120,7 @@ class TemplateEnvironment
         // Parcours toutes les sources de données
         foreach ($this->env as $i=>$data)
         {
+            $j=$i-$this->localCount;
             // Clé d'un tableau de données
             if (is_array($data) && array_key_exists($var, $data)) 
             {
@@ -129,17 +130,26 @@ class TemplateEnvironment
                 if ($i<$this->localCount) return $data[$var];
 
                 // Sinon, c'est une variable utilisateur, crée une liaison
-                return $this->addBinding($var, '& Template::$data['.$i.'][\''.$var.'\']');
+                return $this->addBinding($var, 'Template::$data['.$j.'][\''.$var.'\']');
             }
 
             // Objet
             if (is_object($data))
             {
                 // Propriété d'un objet
-                if (isset($data->$var)) // property_exists ne permet pas d'utiliser les propriétés magiques (__get)
+                
+                /*
+                    property_exists teste s'il s'agit d'une propriété réelle de l'objet, mais ne fonctionne pas si c'est une propriété magique
+                    isset teste bien les deux, mais retourera false pour une propriété réelle existante mais dont la valeur est "null"
+                    du coup il faudrait faire les deux...
+                    mais isset, pour les méthodes magiques, ne fonctionnera que si l'utilisateur a écrit une méthode __get dans son objet
+                    au final, on fait simplement un appel à __get (si la méthode existe), et on teste si on récupère "null" ou pas
+                 */
+ 
+                if (property_exists($data,$var) || (is_callable(array($data,'__get'))&& !(is_null(call_user_func(array($data,'__get'),$var)))))
                 {
                     debug && Debug::log('C\'est une propriété de l\'objet %s', get_class($data));
-                    return $this->addBinding($var, '& Template::$data['.$i.']->'.$var);
+                    return $this->addBinding($var, 'Template::$data['.$j.']->'.$var);
                 }
                 
                 // Clé d'un objet ArrayAccess
@@ -150,7 +160,7 @@ class TemplateEnvironment
                         debug && Debug::log('Tentative d\'accès à %s[\'%s\']', get_class($data), $var);
                         $value=$data[$var]; // essaie d'accéder, pas d'erreur ?
 
-                        $code=$this->addBinding(get_class($data), '& Template::$data['.$i.']');
+                        $code=$this->addBinding(get_class($data), 'Template::$data['.$j.']');
                         return $code.'[\''.$var.'\']';
                         // pas de référence : see http://bugs.php.net/bug.php?id=34783
                         // It is impossible to have ArrayAccess deal with references
@@ -179,14 +189,14 @@ class TemplateEnvironment
                     // Simple fonction 
                     if (is_string($data))
                     {
-                        $code=$this->addBinding($data, '& Template::$data['.$i.']');
+                        $code=$this->addBinding($data, 'Template::$data['.$j.']');
                         return $code.'(\''.$var.'\')';
                     }
 
                     // Méthode statique ou dynamique d'un objet
                     else // is_array
                     {
-                        $code=$this->addBinding($data[1], '& Template::$data['.$i.']');
+                        $code=$this->addBinding($data[1], 'Template::$data['.$j.']');
                         return 'call_user_func(' . $code.', \''.$var.'\')';
                     } 
                 }

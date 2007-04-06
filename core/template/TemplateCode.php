@@ -245,7 +245,7 @@ class TemplateCode
         // Sinon, on tokenise l'expression
         else
         {
-            if ($expression[0]==='{')
+            if (strlen($expression) && $expression[0]==='{')
             {
                 $expression=substr($expression, 1, -1);
                 $addCurly=true; 
@@ -597,11 +597,14 @@ class TemplateCode
                 'trim', 'rtrim', 'ltrim',
                 'substr','str_replace','str_repeat',
                 'implode','explode',
-                'urlencode'
+                'urlencode',
+                'var_export', 'print_r',
+                'file_get_contents',
+                'count'
             ));
             $runtimeFunctions=array_flip(array
             (
-                'array', 'range','extension_loaded'
+                'array', 'range','extension_loaded',
             ));
         }
 

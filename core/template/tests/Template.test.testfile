@@ -6,7 +6,7 @@ Fichier de test unitaires de l'attribut 'test' du compilateur de templates
 --test--
 Un noeud sans texte dont l'attribut test vaut false ne s'affiche pas
 --file--
-<input strip="false" type="text" name="mytext" />
+<input test="false" type="text" name="mytext" />
 --expect--
 
 ================================================================================
@@ -43,15 +43,14 @@ Un noeud contenant du texte et dont l'attribut test est évalué à false disparaît
 --file--
 <a test="$varFalse" href="www.bdsp.tm.fr">Un lien</a>
 --expect--
-Un lien
+
 ================================================================================
 --test--
-Un noeud dont l'attribut test est vide : apparaît/disparaît (vide == null)/génère exception??????????????????????
+Un noeud dont l'attribut test est vide : disparaît
 --file--
 <input test="" type="text" />
+--expect--
 
---skip--
-Qu'est-ce qu'on fait dans ce cas ?
 ================================================================================
 --test--
 Un noeud dont l'attribut test contient un appel de fonction génère une exception

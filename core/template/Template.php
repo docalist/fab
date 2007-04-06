@@ -296,7 +296,6 @@ return;
 //echo '</pre>';
 //          if (php_version < 6) ou  if (! PHP_IS_UTF8)
             $source=utf8_decode($source);
-                
             // Stocke le template dans le cache et l'exécute
             if (config::get('cache.enabled'))
             {

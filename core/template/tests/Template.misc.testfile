@@ -1,0 +1,127 @@
+Fichier de divers tests unitaires du compilateur de templates
+
+Tests portant sur : les commentaires, autoId() et lastId(), les blocs CDATA
+
+@version : $Id$
+
+================================================================================
+--test--
+Par défaut, un commentaire au format /* mon commentaire */ disparaît du code source de la page générée
+--file--
+/* un commentaire
+multiligne */
+Bonjour
+--expect--
+Bonjour
+================================================================================
+--test--
+Par défaut, un commentaire au format <!-- mon commentaire html */ apparaît dans le code source de la page générée
+--file--
+<!-- un commentaire html -->
+Bonjour
+--expect--
+<!-- un commentaire html -->
+Bonjour
+================================================================================
+--test--
+Par défaut, un commentaire au format /* mon commentaire */ utilisé dans un if disparaît du code source de la page générée
+--file--
+<if test="$varA">
+	/* un commentaire
+	multiligne */
+	Nous sommes dans le if
+</if>
+--expect--
+Nous sommes dans le if
+================================================================================
+--test--
+Par défaut, un commentaire au format <!-- mon commentaire html */ utilisé dans un if apparaît dans le code source de la page générée
+--file--
+<if test="$varA">
+	<!-- un commentaire html -->
+	Nous sommes dans le if
+</if>
+--expect--
+<!-- un commentaire html -->
+Nous sommes dans le if
+================================================================================
+--test--
+La pseudo fonction autoId() génère un identifiant unique. lastId() : renvoie le
+dernier identifiant généré par autoId()
+--file--
+<label for="{autoId()}">Libellé du textbox</label>
+<input
+    type="text" 
+    name="mytext" 
+    title="test unitaire d'autoId()"
+    id="{lastId()}">
+</input>
+<label for="{autoId()}">Libellé du textbox</label>
+<input
+    type="text" 
+    name="mytext2" 
+    title="test unitaire d'autoId()"
+    id="{lastId()}">
+</input>
+--expect--
+<label for="label">Libellé du textbox</label>
+<input
+    type="text" 
+    name="mytext" 
+    title="test unitaire d'autoId()"
+    id="label">
+</input>
+<label for="label2">Libellé du textbox</label>
+<input
+    type="text" 
+    name="mytext2" 
+    title="test unitaire d'autoId()"
+    id="label2">
+</input>
+================================================================================
+--test--
+Un bloc CDATA est rendu tel quel : un bloc if contenu dans un CDATA ne sera pas évalué
+--file--
+<![CDATA[
+<if test="$varA">
+	Dans le if
+</if>
+]]>
+--expect--
+<![CDATA[
+<if test="$varA">
+	Dans le if
+</if>
+]]>
+--skip--
+Bug du compilateur de templates quand il n'y a rien avant le bloc CDATA 
+================================================================================
+--test--
+Un bloc CDATA est rendu tel quel : en revanche, les portions du document qui ne sont pas 
+dans un CDATA sont bien parsées.
+--file--
+<if test="true">
+	Pas dans le CDATA
+</if>
+<![CDATA[
+<if test="$varA">
+	Dans le if
+</if>
+]]>
+--expect--
+Pas dans le CDATA
+<![CDATA[
+<if test="$varA">
+	Dans le if
+</if>
+]]>
+================================================================================
+--test--
+Les processing instructions PHP sont interdites dans un template et génèrent une exception
+--file--
+début du template
+<?php echo "This is a PHP instruction"; ?>
+fin du template
+--expect Exception--
+
+================================================================================

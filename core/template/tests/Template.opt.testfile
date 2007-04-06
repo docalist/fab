@@ -34,7 +34,7 @@ Auteur : Spécialiste en santé publique
 --test--
 Un bloc optionnel ayant un contenu variable 'vide' disparaît
 --file--
-<opt>Un peu de texte, $varNull</opt>
+<opt>Un peu de texte, $varFalse</opt>
 --expect--
 
 ================================================================================
@@ -48,7 +48,7 @@ Article : Titre original de niveau 'analytique', Spécialiste en santé publique
 --test--
 Un bloc optionnel contenant entre autres des sources de données 'variables' qui ne sont pas toutes vides apparaît
 --file--
-<opt>Article : $varTitorigA, $varNull</opt>
+<opt>Article : $varTitorigA, $varFalse</opt>
 --expect--
 Article : Titre original de niveau 'analytique', 
 ================================================================================
@@ -57,7 +57,7 @@ Un bloc optionnel imbriqué se comporte comme une source de données variables vis
 --file--
 <opt>
 	Contenu de niveau 0
-	<opt>Contenu de niveau 1 : $varTitorigA, $varNull</opt>
+	<opt>Contenu de niveau 1 : $varTitorigA, $varFalse</opt>
 </opt>
 --expect--
 Contenu de niveau 0
@@ -74,7 +74,7 @@ Un bloc optionnel imbriqué se comporte comme une source de données variables vis
 --file--
 <opt>
 	Contenu de niveau 0
-	<opt>Contenu de niveau 1 : $varFalse, $varNull</opt>
+	<opt>Contenu de niveau 1 : $varFalse, $varFalse</opt>
 </opt>
 --expect--
 
@@ -112,9 +112,9 @@ Un bloc optionnel 'vide' disparaît
 
 ================================================================================
 --test--
-Un bloc optionnel ayant un contenu 'null' disparaît
+Un bloc optionnel ayant un contenu 'vide' disparaît
 --file-- 
-<opt>$varNull</opt>
+<opt>$varEmptyString</opt>
 --expect--
 
 ================================================================================
@@ -138,4 +138,25 @@ Un bloc optionnel dont les tags sont mal formés génère une exception
 <opt>Contenu<opt>
 --expect Exception--
 ce n'est pas un fichier xml valide
+================================================================================
+--test--
+Un bloc opt avec un attribut test génère une exception
+--file--
+<opt test="true">Un peu de texte et une variable : $varA</opt>
+--expect Exception--
+attribut interdit
+================================================================================
+--test--
+Un bloc opt avec un attribut strip génère une exception
+--file--
+<opt strip="true">Un peu de texte et une variable : $varA</opt>
+--expect Exception--
+attribut interdit
+================================================================================
+--test--
+Un bloc opt avec un attribut strip et un attribut test génère une exception
+--file--
+<opt strip="true" test="true">Un peu de texte et une variable : $varA</opt>
+--expect Exception--
+attributs interdits
 ================================================================================

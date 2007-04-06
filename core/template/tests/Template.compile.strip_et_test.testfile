@@ -73,9 +73,9 @@ Fichier de test pour les attributs "test" et "strip" du compilateur de templates
 		content
 	</p>
 --expect--
-	<?php if($_strip=$_varFalse):?><p><?php endif;?>
+	<?php if($_keeptag=!($_varFalse)):?><p><?php endif;?>
 		content
-	<?php if ($_strip):?></p><?php endif;?>
+	<?php if ($_keeptag):?></p><?php endif;?>
 ================================================================================
 --test--
 	test=true && strip=true
@@ -121,9 +121,9 @@ Fichier de test pour les attributs "test" et "strip" du compilateur de templates
 	</p>
 --expect--
 	<?php if($_varFalse):?>
-		<?php if($_strip=$_varFalse):?><p><?php endif;?>
+		<?php if($_keeptag==!($_varFalse)):?><p><?php endif;?>
 			content
-		<?php if ($_strip):?></p><?php endif;?>
+		<?php if ($_keeptag):?></p><?php endif;?>
 	<?php endif;?>
 ================================================================================
 --test--
@@ -162,13 +162,13 @@ Fichier de test pour les attributs "test" et "strip" du compilateur de templates
 		</p>
 	</div>
 --expect--
-	<?php if($_strip=$_varFalse):?><div><?php endif;?>
-		<?php if($_strip2=$_varFalse):?><p><?php endif;?>
-			<?php if($_strip3=$_varFalse):?><span><?php endif;?>
+	<?php if($_keeptag=!($_varFalse)):?><div><?php endif;?>
+		<?php if($_keeptag2=!($_varFalse)):?><p><?php endif;?>
+			<?php if($_keeptag3=!($_varFalse)):?><span><?php endif;?>
 				content
-			<?php if ($_strip3):?></span><?php endif;?>
-		<?php if ($_strip2):?></p><?php endif;?>
-	<?php if ($_strip):?></div><?php endif;?>
+			<?php if ($_keeptag3):?></span><?php endif;?>
+		<?php if ($_keeptag2):?></p><?php endif;?>
+	<?php if ($_keeptag):?></div><?php endif;?>
 ================================================================================
 --test--
 	tests et strips imbriqués avec des variables
@@ -182,17 +182,17 @@ Fichier de test pour les attributs "test" et "strip" du compilateur de templates
 	</div>
 --expect--
 	<?php if($_varFalse):?>
-		<?php if($_strip=$_varFalse):?><div><?php endif;?>
+		<?php if($_keeptag=!($_varFalse)):?><div><?php endif;?>
 			<?php if($_varFalse):?>
-				<?php if($_strip2=$_varFalse):?><p><?php endif;?>
+				<?php if($_keeptag2=!($_varFalse)):?><p><?php endif;?>
 					<?php if($_varFalse):?>
-						<?php if($_strip3=$_varFalse):?><span><?php endif;?>
+						<?php if($_keeptag3=!($_varFalse)):?><span><?php endif;?>
 							content
-						<?php if ($_strip3):?></span><?php endif;?>
+						<?php if ($_keeptag3):?></span><?php endif;?>
 					<?php endif;?>
-				<?php if ($_strip2):?></p><?php endif;?>
+				<?php if ($_keeptag2):?></p><?php endif;?>
 			<?php endif;?>
-		<?php if ($_strip):?></div><?php endif;?>
+		<?php if ($_keeptag):?></div><?php endif;?>
 	<?php endif;?>
 ================================================================================
 --test--
@@ -235,7 +235,41 @@ Fichier de test pour les attributs "test" et "strip" du compilateur de templates
 --file--
 	<input strip="$varFalse" name="firstname" />
 --expect--
-	<?php if($_strip=$_varFalse):?>
+	<?php if($_keeptag=!($_varFalse)):?>
 		<input name="firstname" />
 	<?php endif;?>
+================================================================================
+--test--
+Un noeud sans texte dont l'attribut strip évalué à false n'est pas le premier déclaré apparaît
+--file--
+<input type="text" strip="$varFalse" name="mytext">fhdskj</input>
+--expect--
+	<?php if($_keeptag=!($_varFalse)):?>
+		<input type="text" name="mytext">
+	<?php endif;?>
+		fhdskj
+	<?php if ($_keeptag):?>
+		</input>
+	<?php endif;?>
+
+================================================================================
+--test--
+Boucles imbriquées
+--file--
+<loop on="$arrayCinq" as="$i">
+	<loop on="$assocArray" as="$j">
+		<loop on="$emptyArray" as="$j">
+			$i$j
+		</loop>
+	</loop>
+</loop>
+--expect--
+000102030405
+101112131415
+202122232425
+303132333435
+404142434445
+505152535455
+--comment--
+pour continuer à travailler en attendant la résolution du bug
 ================================================================================

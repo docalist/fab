@@ -46,12 +46,11 @@ Un noeud contenant du texte et dont l'attribut strip est évalué à true n'affiche
 Un lien
 ================================================================================
 --test--
-Un noeud dont l'attribut strip est vide : apparaît/disparaît (vide == null)/génère exception??????????????????????
+Un noeud dont l'attribut strip est vide apparaît
 --file--
 <input strip="" type="text" />
-
---skip--
-Qu'est-ce qu'on fait dans ce cas ?
+--expect--
+<input type="text" />
 ================================================================================
 --test--
 Un noeud dont l'attribut strip contient un appel de fonction génère une exception
@@ -92,7 +91,7 @@ Un noeud dont l'attribut strip vaut false et dont l'attribut test vaut true appa
 --test--
 Un noeud dont l'attribut strip vaut false et dont l'attribut test vaut true apparaît (test avant strip)
 --file--
-<a href="www.bdsp.tm.fr" test="false" strip="true">
+<a href="www.bdsp.tm.fr" test="true" strip="false">
 	Titre
 </a>
 --expect--
