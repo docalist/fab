@@ -512,7 +512,11 @@ $fab_init_time=microtime(true);
             '</html>',
             $url, $url, $url, $url
         );
+
+        exit(0);
+        
         Runtime::shutdown();
+        
     }
 
             
