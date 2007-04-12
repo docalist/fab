@@ -1,0 +1,24 @@
+<!-- RADIOLIST -->
+
+<!-- TODO: devrait inclure checkbox.html et se construire à partir du générateur de checkbox -->
+
+
+<template match="//radiolist" name="" label="" value="" src="" class="">
+    <label if="'$label'" class="radiolist $class">$label</label>
+    <div class="radiolist $class">
+        <fill values="$name">
+            <loop on="$src" as="$line, $record">{select('@*')}
+                <span class="radio class">
+                    <input
+                        type="radio"
+                        name="$name"
+                        value="{$record['code']}"
+                        class="radio $class"
+                        id="$name$line" />
+                    <label class="radio $class" for="$name$line" >{$record['label']}</label>
+                </span>
+            </loop>
+            {select('.//node()')}
+        </fill>
+    </div>
+</template>

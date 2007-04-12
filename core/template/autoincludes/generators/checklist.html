@@ -1,0 +1,25 @@
+<!-- CHECKLIST : liste de <input type="checkbox"... /> dans un <div></div> -->
+
+<!--  TODO: devrait se baser sur le générateur de checkbox dans checkbox.html -->
+
+
+
+<template match="//checklist" name="" label="" src="" class="">
+    <label if="'$label'" class="checklist $class">$label</label>
+    <div class="checklist $class">
+        <fill values="$name">
+            <loop on="$src" as="$line, $record">
+                <span class="check $class">{select('@*')}
+                    <input
+                        type="checkbox"
+                        name="$name"
+                        value="{$record['code']}"
+                        class="check $class"
+                        id="$name$line" />
+                    <label class="check $class" for="$name$line" >{$record['label']}</label>
+                </span>
+            </loop>
+            {select('.//node()')}
+        </fill>
+    </div>
+</template>

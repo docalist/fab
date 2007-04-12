@@ -1,0 +1,10 @@
+<!-- HIDDEN : champ <input type="hidden" ... /> -->
+
+<template match="//hidden" name="" value="">
+    <input
+        type="hidden"
+        name="$name"
+        value="{select('string(@value)')}{select('.//text()')}">
+    {select('@*')}
+    </input>
+</template>

@@ -1,0 +1,10 @@
+<!-- FIELDSET : <fieldset><legend></legend></fieldset> -->
+
+
+
+<template match="//fieldset" label="" class="">
+    <fieldset class="fieldset $class">
+        <legend test="'$label'">$label</legend>
+        {select('./node()')}{select('@*')}
+    </fieldset>
+</template>

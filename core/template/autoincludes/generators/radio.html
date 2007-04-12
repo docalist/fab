@@ -1,0 +1,17 @@
+<!-- RADIO -->
+
+
+<template match="//radio" name="" label="" value="" class="">
+        <input
+            type="radio"
+            name="$name"
+            value="$value"
+            class="radio $class"
+            id="{autoId()}">
+            {select('@*')}
+        </input>
+
+    <label if="'$label'" class="radio $class" for="{lastId()}">$label</label>
+    <!-- Le contenu du tag -->
+    {select('node()')}
+</template>

@@ -1,0 +1,15 @@
+<!-- TEXTBOX correspondant aux zones de texte simple : <input type="text" ... /> -->
+<!-- (pas d'attribut 'rows') -->
+
+<template match="//textbox" name="" label="" value="" class="">
+    <label test="'$label'" class="text {rtrim(' '.$class)}" for="{autoId()}">$label</label>
+    <input
+        type="text" 
+        name="$name" 
+        title="$label"
+        value="{select('string(@value)')}{select('.//text()')}"
+        class="text $class" 
+        id="{lastId()}">
+        {select('@*')}
+    </input>
+</template>

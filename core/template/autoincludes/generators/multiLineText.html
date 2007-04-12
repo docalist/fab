@@ -1,0 +1,15 @@
+<!-- TEXTBOX multiligne = : <textarea ... ></textarea> -->
+<!-- @rows != "" -->
+<!-- {select('string(@value)')}{select('.//node()')} récupère la valeur de l'attribut @value et de l'élement (tag) -->
+<!-- {select('@*') ajoute les éventuels attributs supplémentaires indiqués par l'appelant à la liste d'attributs du textarea -->
+
+<template match="//textbox[@rows]" name="" label="" value="" class="" rows="" cols="20">
+    <label if="'$label'" class="textarea $class" for="{autoId()}">$label</label>
+    <textarea
+        name="$name"
+        title="$label"
+        class="textarea $class"
+        rows="{$rows:3}"
+        cols="$cols"
+        id="{lastId()}">{select('string(@value)')}{select('.//node()')}{select('@*')}</textarea>
+</template>

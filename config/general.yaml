@@ -62,7 +62,20 @@ templates:
   # liste des fichiers à inclure dans le source lors de la compilation d'un template
   autoinclude:
      - autoroute.html
-     - generators.html
+     - generators/button.html
+     - generators/checkbox.html
+     - generators/checklist.html
+     - generators/fieldset.html
+     - generators/hidden.html
+     - generators/multiLineText.html
+     - generators/password.html
+     - generators/radio.html
+     - generators/radiolist.html
+     - generators/reset.html
+     - generators/select.html
+     - generators/singleLineText.html
+     - generators/submit.html
+     - generators/upload.html
 
   # indique s'il faut tenir compte des DTD. Lorsque l'option est à true,
   # le DTD indiqué dans le template sera chargé lors de la compilation est pris

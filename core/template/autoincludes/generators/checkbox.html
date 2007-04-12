@@ -1,0 +1,18 @@
+<!-- CHECKBOX : <input type="checkbox"... /> -->
+<!-- TODO : décommenter le <fill></fill> quand bug résolu -->
+
+<template match="//checkbox" name="" label="" value="" class="">
+<!--    <fill values="$$name" code='checked="checked"' separator="$sep">-->
+        <input
+            type="checkbox"
+            name="$name"
+            value="$value"
+            class="check $class"
+            id="{autoId()}">
+            {select('@*')}
+            </input>
+<!--        </fill>-->
+        <label if="'$label'" class="check $class" for="{lastId()}">$label</label>
+        <!-- Le contenu du tag -->
+        {select('node()')}
+</template>

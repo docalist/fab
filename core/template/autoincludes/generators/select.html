@@ -1,0 +1,24 @@
+<!-- SELECT : <select...><option value=... >...</option></select> -->
+<!-- les différentes valeurs ou options du select sont chargées à partir du fichier spécifié comme @src -->
+<!-- l'utilisateur peut ajouter ses propres options comme par ex, une sélection = (vide) ou = (tous), ... -->
+
+<template match="//select" name="" label="" src="" class="" size="" sep="" >
+    <label if="'$label'" class="select $class" for="{autoId()}">$label</label>
+    <input type="hidden" name="$name" value="" />
+<!--    <fill values="$$name" code='selected="selected"' separator="$sep">-->
+        <select
+            name="$name"
+            size="$size"
+            class="select $class"
+            id="{lastId()}">
+            {select('@*')}
+            {select('.//node()')}
+            <loop on="$src" as="$line, $record">
+                <option value="{$record['code']}"
+                        id="{lastId()}-{$record['line']}">
+                        {$record['label']}
+                </option>
+            </loop>
+        </select>
+<!--    </fill>-->
+</template>
