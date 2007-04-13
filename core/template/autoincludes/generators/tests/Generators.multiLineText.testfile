@@ -1,0 +1,83 @@
+Fichier de test pour le générateur textbox ligne simple définit dans multiLineText.html
+
+Utilisation normale du générateur
+
+@version : $Id$
+
+================================================================================
+--test--
+Un contrôle textbox ayant un attribut rows non vide permet de générer un <textarea></textarea> HTML
+--file-- 
+<textbox rows="3" />
+--expect--
+<textarea class="textarea " rows="3" cols="20"></textarea>
+================================================================================
+--test--
+Un contrôle textbox dont l'attribut rows est vide génère un textarea de 3 lignes (valeur par défaut)
+--file-- 
+<textbox rows="" />
+--expect--
+<textarea class="textarea " rows="3" cols="20"></textarea>
+================================================================================
+--test--
+On peut créer un textbox multiligne avec un attribut 'name'
+--file-- 
+<textarea name="myTextbox" rows="3" />
+--expect--
+<textarea name="myTextbox" class="textarea " rows="3" cols="20"></textarea>
+================================================================================
+--test--
+On peut créer une zone de textbox multiligne contenant déjà du texte grâce à l'attribut 'value'
+--file--
+<textarea name="myTextbox" rows="3" value="Contenu initial" />
+--expect--
+<textarea name="myTextbpx" class="textarea " rows="3" cols="20">Contenu initial</textarea>
+================================================================================
+--test--
+Inverser l'ordre des attributs d'un textbox multiligne n'a pas d'effet sur le code HTML généré au final
+--file--
+<textarea name="myTextbox" value="Contenu initial" rows="3" />
+--expect--
+<textarea name="myTextbox" class="textarea " rows="3" cols="20">Contenu initial</textarea>
+================================================================================
+--test--
+L'attribut label du textbox multiligne permet d'en donner une description en créant un élément <label />
+et en ajoutant un attribut title au textbox
+--file--
+<textbox name="myTextbox" rows="3" label="Test unitaire du textbox multiligne" />
+--expect--
+<label class="textarea " for="label">Test unitaire du textbox multiligne</label>
+<textarea name="myTextbox" title="Test unitaire du textbox multiligne" class="textarea " rows="3" cols="20" id="label" />
+================================================================================
+--test--
+Si une classe est indiquée pour un textbox, le nom de classe résultant sera la concaténation
+de "text " et du nom qu'on a donné
+--file--
+<textbox rows="3" name="myTextbox" class="box"/>
+--expect--
+<textarea name="myTextbox" class="textarea box" rows="3" cols="20"></textarea>
+================================================================================
+--test--
+En plus des attributs "standards" que sont name, value, label et class, tout attribut supplémentaire indiqué
+lors de "l'appel" sera bien indiqué dans le code HTML résultant
+--file--
+<textbox rows="3" name="myTextbox" onclick="alert('Clic détecté !');" />
+--expect--
+<textarea name="myTextbox" class="textarea " rows="3" cols="20" onclick="alert('Clic détecté !');" ></textarea>
+================================================================================
+--test--
+La valeur d'un textbox multiligne peut être déclaré dans le corps du tag (au lieu de spécifier un attribut spécifique)
+--file--
+<textbox rows="3" name="myTextbox">Valeur</textbox>
+--expect--
+<textarea name="myTextbox" class="textarea " rows="3" cols="20">Valeur</textarea>
+================================================================================
+--test--
+Textbox multiligne contenant des éléments HTML
+--file--
+<textbox name="myTextbox"class="textarea" rows="3" cols="20"><p>Contenu du tag</p></textbox>
+--expect--
+<textarea name="myTextbox" class="textarea " rows="3" cols="20"><p>Contenu du tag</p></textarea>
+--skip--
+Qu'est-ce que c'est censé faire exactement ? Conserver le tag <p /> dans l'attribut value, générer une exception, ... ?
+================================================================================

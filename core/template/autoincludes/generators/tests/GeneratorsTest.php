@@ -37,7 +37,9 @@ class GeneratorsTest extends AutoTestCase
     // Fonction de test des template match et son callback
     public function testfileTemplatesMatch()
     {
-        $this->runTestFile(dirname(__FILE__).'/Generators.singleLineText.testfile',array($this,'generatorCallback'));
+        // TODO: décommenter ces lignes
+//        $this->runTestFile(dirname(__FILE__).'/Generators.singleLineText.testfile', array($this,'generatorCallback'));
+        $this->runTestFile(dirname(__FILE__).'/Generators.multiLineText.testfile', array($this,'generatorCallback'));
     }
 
     public function generatorCallback($template)
