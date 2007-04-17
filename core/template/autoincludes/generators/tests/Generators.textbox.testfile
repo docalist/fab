@@ -1,0 +1,152 @@
+Fichier de test pour les générateurs de type textbox définis dans singleLineText.html,
+multiLineText.html et password.html
+
+Utilisation normale du générateur : ne prévoit pas les cas de mauvaise utilisation
+
+@version : $Id$
+
+================================================================================
+--test--
+Un contrôle textbox simple (sans attribut) permet de générer un <input type="text" /> HTML
+--file-- 
+<textbox />
+--expect--
+<input type="text" class="text" />
+================================================================================
+--test--
+On peut créer un textbox avec un attribut 'name'
+--file-- 
+<textbox name="myTextbox" />
+--expect--
+<input type="text" name="myTextbox" class="text" />
+================================================================================
+--test--
+On peut créer une zone de texte contenant déjà du texte grâce à l'attribut 'value'
+--file--
+<textbox name="myTextbox" value="Contenu initial" />
+--expect--
+<input type="text" name="myTextbox" value="Contenu initial" class="text" />
+================================================================================
+--test--
+Inverser l'ordre des attributs d'un textbox n'a pas d'effet sur le code HTML généré au final
+--file--
+<textbox value="Contenu initial" name="myTextbox" />
+--expect--
+<input type="text" name="myTextbox" value="Contenu initial" class="text" />
+================================================================================
+--test--
+L'attribut label du textbox permet d'en donner une description en créant un élément <label />
+et en ajoutant un attribut title au textbox
+--file--
+<textbox name="myTextbox" label="Test unitaire des textbox" />
+--expect--
+<label class="text" for="myTextbox">Test unitaire des textbox</label>
+<input type="text" name="myTextbox" title="Test unitaire des textbox" class="text" id="myTextbox" />
+================================================================================
+--test--
+Si une classe est indiquée pour un textbox, le nom de classe résultant sera la concaténation
+de "text" et du nom qu'on a donné
+--file--
+<textbox name="myTextbox" label="Test unitaire des textbox" class="box" />
+--expect--
+<label class="text box" for="myTextbox">Test unitaire des textbox</label>
+<input type="text" name="myTextbox" title="Test unitaire des textbox" class="text box" id="myTextbox" />
+================================================================================
+--test--
+En plus des attributs "standards" que sont name, value, label et class, tout attribut supplémentaire indiqué
+lors de "l'appel" sera bien indiqué dans le code HTML résultant
+--file--
+<textbox name="myTextbox" onclick="alert('Clic détecté !');" />
+--expect--
+<input type="text" name="myTextbox" class="text" onclick="alert('Clic détecté !');" />
+================================================================================
+--test--
+La valeur d'un textbox peut être déclaré dans le corps du tag (au lieu de spécifier un attribut spécifique)
+--file--
+<textbox name="myTextbox">Contenu du tag</textbox>
+--expect--
+<input type="text" name="myTextbox" value="Contenu du tag" class="text" />
+================================================================================
+--test--
+Problème : les tags sont supprimés
+--file--
+<textbox name="myTextbox"><p>Contenu du tag</p></textbox>
+--expect--
+<input type="text" name="myTextbox" value="&lt;p&gt;Contenu du tag&lt;/p&gt;" class="text" />
+--comment--
+Qu'est-ce que c'est censé faire exactement ? Conserver le tag <p /> dans l'attribut value, générer une exception, ... ?
+================================================================================
+--test--
+Un contrôle textbox ayant un attribut rows non vide permet de générer un <textarea></textarea> HTML
+--file-- 
+<textbox rows="3" />
+--expect--
+<textarea class="textarea" rows="3" cols="20"></textarea>
+================================================================================
+--test--
+Un contrôle textbox dont l'attribut rows est vide génère un textarea de 3 lignes (valeur par défaut)
+--file-- 
+<textbox rows="" />
+--expect--
+<textarea class="textarea" rows="3" cols="20"></textarea>
+================================================================================
+--test--
+On peut créer un textbox multiligne avec un attribut 'name'
+--file--
+<textbox name="myTextarea" rows="3" />
+--expect--
+<textarea name="myTextarea" class="textarea" rows="3" cols="20"></textarea>
+================================================================================
+--test--
+On peut créer une zone de textbox multiligne contenant déjà du texte grâce à l'attribut 'value'
+--file--
+<textbox name="myTextarea" rows="3" value="Contenu initial" />
+--expect--
+<textarea name="myTextarea" class="textarea" rows="3" cols="20">Contenu initial</textarea>
+================================================================================
+--test--
+Inverser l'ordre des attributs d'un textbox multiligne n'a pas d'effet sur le code HTML généré au final
+--file--
+<textbox name="myTextarea" value="Contenu initial" rows="3" />
+--expect--
+<textarea name="myTextarea" class="textarea" rows="3" cols="20">Contenu initial</textarea>
+================================================================================
+--test--
+L'attribut label du textbox multiligne permet d'en donner une description en créant un élément <label />
+et en ajoutant un attribut title au textbox
+--file--
+<textbox name="myTextbox" rows="3" label="Test unitaire du textbox multiligne" />
+--expect--
+<label class="textarea" for="myTextbox">Test unitaire du textbox multiligne</label>
+<textarea name="myTextbox" title="Test unitaire du textbox multiligne" class="textarea" rows="3" cols="20" id="myTextbox"></textarea>
+================================================================================
+--test--
+Si une classe est indiquée pour un textbox, le nom de classe résultant sera la concaténation
+de "text" et du nom qu'on a donné
+--file--
+<textbox rows="3" name="myTextarea" class="box" />
+--expect--
+<textarea name="myTextarea" class="textarea box" rows="3" cols="20"></textarea>
+================================================================================
+--test--
+En plus des attributs "standards" que sont name, value, label et class, tout attribut supplémentaire indiqué
+lors de "l'appel" sera bien indiqué dans le code HTML résultant
+--file--
+<textbox rows="3" name="myTextarea" onclick="alert('Clic détecté !');" />
+--expect--
+<textarea name="myTextarea" class="textarea" rows="3" cols="20" onclick="alert('Clic détecté !');" ></textarea>
+================================================================================
+--test--
+La valeur d'un textbox multiligne peut être déclaré dans le corps du tag (au lieu de spécifier un attribut spécifique)
+--file--
+<textbox rows="3" name="myTextarea">Valeur</textbox>
+--expect--
+<textarea name="myTextarea" class="textarea" rows="3" cols="20">Valeur</textarea>
+================================================================================
+--test--
+Textbox multiligne contenant des éléments HTML
+--file--
+<textbox name="myTextarea" rows="3" cols="20"><p>Contenu du tag</p></textbox>
+--expect--
+<textarea name="myTextarea" class="textarea" rows="3" cols="20"><p>Contenu du tag</p></textarea>
+================================================================================

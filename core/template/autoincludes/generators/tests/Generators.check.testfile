@@ -1,0 +1,80 @@
+Fichier de test pour les générateurs checkbox et checklist
+
+Utilisation normale du générateur : ne prévoit pas les cas de mauvaise utilisation
+
+@version : $Id$
+
+================================================================================
+--test--
+Un contrôle checkbox sans label permet de générer un <input type="check" /> HTML
+--file-- 
+<checkbox />
+--expect--
+<input type="checkbox" class="check" />
+================================================================================
+--test--
+L'attribut name permet d'identifier un checkbox
+--file--
+<checkbox name="myCheckbox" />
+--expect--
+<input type="checkbox" name="myCheckbox" class="check" />
+================================================================================
+--test--
+Un checkbox est généralement associé à un label
+--file--
+<checkbox name="myCheckbox" label="Test unitaire des checkbox : " />
+--expect--
+<input type="checkbox" name="myCheckbox" class="check" id="myCheckbox" />
+<label class="check" for="myCheckbox">Test unitaire des checkbox : </label>
+================================================================================
+--test--
+L'attribut value précise la valeur récupérée par le script auquel l'éventuel
+formulaire sera soumit
+--file--
+<checkbox name="myCheckbox" value="val" />
+--expect--
+<input type="checkbox" name="myCheckbox" value="val" class="check" />
+================================================================================
+--test--
+L'attribut class d'un checkbox permet d'indiquer une classe qui sera concaténée
+à la classe par défaut d'un checkbox
+--file--
+<checkbox name="myCheckbox" class="myClass" />
+--expect--
+<input type="checkbox" name="myCheckbox" class="check myClass" />
+================================================================================
+--test--
+L'ordre des attributs du checkbox n'a pas de conséquence sur la sortie générée
+--file--
+<checkbox class="classe" name="myName" />
+--expect--
+<input type="check" name="myName" class="classe" />
+================================================================================
+--test--
+Le générateur checklist permet de générer une liste de checkbox à partir d'un itérable
+(ici, un TextTable construit à partir d'un fichier ayant un format particulier)
+--file--
+<checklist src="new TextTable($this->path.'tables/date.txt')" />
+--expect--
+<div class="checklist>
+	<span class="checklist>
+		<input type="check" value="2007" class="check" id="checkbox" /><label class="check" for="checkbox">2007</checkbox>
+		<input type="check" value="2006" class="check" id="checkbox-1" /><label class="check" for="checkbox-2">2006</checkbox>
+		<input type="check" value="2005" class="check" id="checkbox-2" /><label class="check" for="checkbox-2">2005</checkbox>
+	</span>
+</div>
+================================================================================
+--test--
+
+--file--
+
+--expect--
+
+================================================================================
+--test--
+
+--file--
+
+--expect--
+
+================================================================================
