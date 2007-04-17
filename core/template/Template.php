@@ -67,22 +67,6 @@ class Template
      */
     public static $data=null;
     
-
-    /**
-     * @var string Flag utilisé par certains callback pour savoir s'il faut ou
-     * non insérer les tags de début et de fin de php. Cf par exemple {@link
-     * handleFieldsCallback()}.
-     * @access private
-     */
-    private static $inPhp=false;
-    
-    /**
-     * @var array Tableau utilisé par {@link hashPhpBlocks} pour protéger les
-     * blocs php générés par les balises.
-     * @access private
-     */
-    private static $phpBlocks=array();
-    
     /**
      * @var string Path complet du template en cours d'exécution.
      * Utilisé pour résoudre les chemins relatifs (tables, sous-templates...)
