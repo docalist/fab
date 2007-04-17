@@ -7,7 +7,5 @@
         type="reset"
         name="$name"
         value="{select('string(@label)')}{select('.//text()')}"
-        class="reset $class">
-        {select('@*')}
-    </input>
+        class="button reset{rtrim(' '.$class)}">{select('@*')}</input>
 </template>

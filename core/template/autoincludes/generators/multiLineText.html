@@ -4,12 +4,12 @@
 <!-- {select('@*') ajoute les éventuels attributs supplémentaires indiqués par l'appelant à la liste d'attributs du textarea -->
 
 <template match="//textbox[@rows]" name="" label="" value="" class="" rows="" cols="20">
-    <label if="'$label'" class="textarea $class" for="{autoId()}">$label</label>
+    <label test="$label" class="textarea{rtrim(' '.$class)}" for="{autoId($name:'textarea')}">$label</label>
     <textarea
         name="$name"
         title="$label"
-        class="textarea $class"
+        class="textarea{rtrim(' '.$class)}"
         rows="{$rows:3}"
         cols="$cols"
-        id="{lastId()}">{select('string(@value)')}{select('.//node()')}{select('@*')}</textarea>
+        id="{$label ? lastId() : ''}">{select('string(@value)')}{select('./node()')}{select('@*')}</textarea>
 </template>

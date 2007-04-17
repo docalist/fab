@@ -4,7 +4,5 @@
     <input
         type="hidden"
         name="$name"
-        value="{select('string(@value)')}{select('.//text()')}">
-    {select('@*')}
-    </input>
+        value="{select('string(@value)')}{select('.//text()')}">{select('@*')}</input>
 </template>

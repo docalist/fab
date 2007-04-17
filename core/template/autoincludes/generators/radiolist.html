@@ -4,18 +4,18 @@
 
 
 <template match="//radiolist" name="" label="" value="" src="" class="">
-    <label if="'$label'" class="radiolist $class">$label</label>
-    <div class="radiolist $class">
+    <label test="$label" class="radiolist{rtrim(' '.$class)}">$label</label>
+    <div class="radiolist{rtrim(' '.$class)}">
         <fill values="$name">
             <loop on="$src" as="$line, $record">{select('@*')}
-                <span class="radio class">
+                <span class="radio{rtrim(' '.$class)}">
                     <input
                         type="radio"
                         name="$name"
                         value="{$record['code']}"
-                        class="radio $class"
+                        class="radio{rtrim(' '.$class)}"
                         id="$name$line" />
-                    <label class="radio $class" for="$name$line" >{$record['label']}</label>
+                    <label class="radio{rtrim(' '.$class)}" for="$name$line" >{$record['label']}</label>
                 </span>
             </loop>
             {select('.//node()')}

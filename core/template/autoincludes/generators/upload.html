@@ -4,6 +4,6 @@
 
 
 <template match="//upload" name="" label="" value="" class="">
-    <label if="'$label'" class="select $class" for="{autoId()}">$label</label>
-    <input name="$name" type="file" title="$label" value="$value" class="file $class" id="{autoId()}" />
+    <label test="$label" class="select $class" for="{autoId($name:'upload')}">$label</label>
+    <input name="$name" type="file" title="$label" value="$value" class="upload{rtrim(' '.$class)}" id="{$label ? lastId() : ''}" />
 </template>

@@ -7,12 +7,7 @@
             type="checkbox"
             name="$name"
             value="$value"
-            class="check $class"
-            id="{autoId()}">
-            {select('@*')}
-            </input>
+            class="check{rtrim(' '.$class)}"
+            id="{$label? autoId($name:'checkbox') : ''}">{select('@*')}</input>
 <!--        </fill>-->
-        <label if="'$label'" class="check $class" for="{lastId()}">$label</label>
-        <!-- Le contenu du tag -->
-        {select('node()')}
-</template>
+        <label test="$label" class="check $class" for="{lastId()}">$label</label>{select('node()')}</template>

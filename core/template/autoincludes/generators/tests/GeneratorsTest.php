@@ -38,8 +38,9 @@ class GeneratorsTest extends AutoTestCase
     public function testfileTemplatesMatch()
     {
         // TODO: décommenter ces lignes
-//        $this->runTestFile(dirname(__FILE__).'/Generators.singleLineText.testfile', array($this,'generatorCallback'));
-        $this->runTestFile(dirname(__FILE__).'/Generators.multiLineText.testfile', array($this,'generatorCallback'));
+        $this->runTestFile(dirname(__FILE__).'/Generators.textbox.testfile', array($this,'generatorCallback'));
+        $this->runTestFile(dirname(__FILE__).'/Generators.buttons.testfile', array($this,'generatorCallback'));
+        $this->runTestFile(dirname(__FILE__).'/Generators.check.testfile', array($this,'generatorCallback'));
     }
 
     public function generatorCallback($template)

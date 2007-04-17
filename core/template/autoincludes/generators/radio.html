@@ -6,12 +6,7 @@
             type="radio"
             name="$name"
             value="$value"
-            class="radio $class"
-            id="{autoId()}">
-            {select('@*')}
-        </input>
+            class="radio{rtrim(' '.$class)}"
+            id="{$label ? autoId($name:'radio') : ''}">{select('@*')}</input>
 
-    <label if="'$label'" class="radio $class" for="{lastId()}">$label</label>
-    <!-- Le contenu du tag -->
-    {select('node()')}
-</template>
+    <label test="$label" class="radio{rtrim(' '.$class)}" for="{lastId()}">$label</label>{select('node()')}</template>

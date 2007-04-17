@@ -8,7 +8,5 @@
         type="submit"
         name="$name"
         value="{select('string(@label)')}{select('.//text()')}"
-        class="submit $class">
-        {select('@*')}
-    </input>
+        class="button submit{rtrim(' '.$class)}">{select('@*')}</input>
 </template>

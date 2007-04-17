@@ -5,21 +5,21 @@
 
 
 <template match="//checklist" name="" label="" src="" class="">
-    <label if="'$label'" class="checklist $class">$label</label>
-    <div class="checklist $class">
-        <fill values="$name">
+    <label test="$label" class="checklist{rtrim(' '.$class)}">$label</label>
+    <div class="checklist{rtrim(' '.$class)}">
+<!--        <fill values="$name">-->
             <loop on="$src" as="$line, $record">
-                <span class="check $class">{select('@*')}
+                <span class="check{rtrim(' '.$class)}">{select('@*')}
                     <input
                         type="checkbox"
                         name="$name"
                         value="{$record['code']}"
-                        class="check $class"
+                        class="check{rtrim(' '.$class)}"
                         id="$name$line" />
-                    <label class="check $class" for="$name$line" >{$record['label']}</label>
+                    <label class="check{rtrim(' '.$class)}" for="$name$line" >{$record['label']}</label>
                 </span>
             </loop>
             {select('.//node()')}
-        </fill>
+<!--        </fill>-->
     </div>
 </template>
