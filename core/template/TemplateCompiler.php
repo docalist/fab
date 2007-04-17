@@ -1,22 +1,5 @@
 <?php
 
-/*
-TODO: le if et le collapse sont redondants. Virer le if, gérer correctement le collapse
-A faire :
-- améliorer le système de bindings pour les cas où il s'agit d'un callback, 
-d'une propriété d'objet, etc.
-- ne pas générer Template::Filled($x) si on n'est pas dans un bloc opt
-- ne pas génèrer ($x=$key) ? Template::Filled($x) : '' si on n'a qu'une
-seule variable
-- une variable, pas de opt : echo $titre
-- une variable, dans un opt : echo Filled($x);  (filled retourne ce qu'on lui passe)
-- deux vars, pas de opt : echo (($x=var1) or ($x=var2) ? $x : void)
-- sortie de boucle : les variables datasource ont été écrasées (bindings)
-- tester le tag ignore, autoriser autre chose que 'true'
-- à étudier : générer des variables v1, v2... plutôt que le vrai nom (pas d'écrasement)
-- autoriser des variables de variables (l'équivalent de [prix[i]] = ?)
-*/
-
 /**
  * @package     fab
  * @subpackage  template
@@ -111,24 +94,28 @@ class TemplateCompiler
 
     private static $env;    // TemplateEnvironment 
     
-    public static function autoId()
+    public static function autoId($name=null)
     {
-        $node=self::$currentNode;
-        for(;;)
+        if (is_null($name) || $name==='')
         {
-            if (is_null($node) ) break; //or !($node instanceof DOMElement)
-            if ($node instanceof DOMElement)    // un DOMText, par exemple, n'a pas d'attributs
-                if ($h=$node->getAttribute('id') or $h=$node->getAttribute('name')) break;
-        	$node=$node->parentNode;
+            $node=self::$currentNode;
+            for(;;)
+            {
+                if (is_null($node) ) break; //or !($node instanceof DOMElement)
+                if ($node instanceof DOMElement)    // un DOMText, par exemple, n'a pas d'attributs
+                    if ($name=$node->getAttribute('id') or $name=$node->getAttribute('name')) break;
+            	$node=$node->parentNode;
+            }
+            if (!$name)
+                $name=self::$currentNode->tagName;
         }
-        if (!$h)
-            $h=self::$currentNode->tagName;
-        if (isset(self::$usedId[$h]))
-            $h=$h.(++self::$usedId[$h]);
-        else
-            self::$usedId[$h]=1;
         
-        return self::$lastId=$h;
+        if (isset(self::$usedId[$name]))
+            $name=$name.(++self::$usedId[$name]);
+        else
+            self::$usedId[$name]=1;
+        
+        return self::$lastId=$name;
     }
     
     public static function lastId()
@@ -173,7 +160,7 @@ class TemplateCompiler
         $re='~^(?:\<[?!][^>]*>\s*)*~';
 
         // Ajoute une racine <root>...</root> au template
-        $source=preg_replace($re, '$0<root strip="true">', $source, 1);
+        $source=preg_replace($re, '$0<root strip="{true}">', $source, 1);
         $source.='</root>';
         
         // Ajoute les fichiers auto-include dans le source
@@ -184,7 +171,7 @@ class TemplateCompiler
         foreach((array)$files as $file)
         	$h.=file_get_contents(Runtime::$fabRoot.'core/template/autoincludes/'.$file);
 
-        if ($h) $source=str_replace('</root>', '<div test="false">'.$h.'</div></root>', $source);
+        if ($h) $source=str_replace('</root>', '<div test="{false}">'.$h.'</div></root>', $source);
 //        if (Template::getLevel()==0) file_put_contents(dirname(__FILE__).'/dm.xml', $source);
 
         // Crée un document XML
@@ -518,8 +505,6 @@ private static $matchTemplate=null;
     
     public static function handleMatchVar(& $var)
     {
-//        echo "<li>Appel de handleMatchVar pour [$var]<br />\n";
-        
         // Enlève le signe $ de début
         $attr=substr($var,1);
         
@@ -528,20 +513,14 @@ private static $matchTemplate=null;
         {
             // Si l'appellant a spécifié une valeur, on la prends
             if (self::$matchNode->hasAttribute($attr))
-            {
                 $var=self::$matchNode->getAttribute($attr);
-//                echo "var est un attribut spécifié par l'appellant, nouvelle valeur=[$var], return 'évaluable'</li>\n";
-            }    
+                
             // Sinon on prends la valeur par défaut du template
             else
-            {
                 $var=self::$matchTemplate->getAttribute($attr);
-//                echo "var est un paramètre du template match, on prends la valeur par défaut, nouvelle valeur=[$var], return 'évaluable'</li>\n";
-            }
                 
             return false;
         }
-//        echo "pas un attribut du template, var retournée inchangée : [$var], return 'non évaluable'</li>\n";
         
         // IDEA : si on voulait, on pourrait rendre accessibles tous les attributs de l'appellant
         // sous forme de variables , que ceux-ci soient ou non des attributs du template. 
@@ -707,6 +686,7 @@ private static $line=0, $column=0;
         if ($node->hasChildNodes())
             foreach ($node->childNodes as $child)
                 self::instantiateMatch($child);
+
     }
 
     /**
@@ -822,17 +802,7 @@ private static $line=0, $column=0;
                 if ($node->hasAttribute('test'))
                 {
                     $test=$node->getAttribute('test');
-                    $canEval=TemplateCode::parseExpression
-                            (  
-                                $test,
-                                'handleVariable',
-                                array
-                                (
-                                    'setcurrentposition'=>array(__CLASS__,'setCurrentPosition'),
-                                    'autoid'=>array(__CLASS__,'autoid'),
-                                    'lastid'=>array(__CLASS__,'lastid')
-                                )
-                            );
+                    $canEval=self::parseAttribute($test);
 
                     // Si le test est évaluable, on teste maintenant
                     if ($canEval)
@@ -859,17 +829,7 @@ private static $line=0, $column=0;
                 if ($node->hasAttribute('strip'))
                 {
                     $strip=$node->getAttribute('strip');
-                    $canEval=TemplateCode::parseExpression
-                            (
-                                $strip,
-                                'handleVariable',
-                                array
-                                (
-                                    'setcurrentposition'=>array(__CLASS__,'setCurrentPosition'),
-                                    'autoid'=>array(__CLASS__,'autoid'),
-                                    'lastid'=>array(__CLASS__,'lastid')
-                                )
-                            );
+                    $canEval=self::parseAttribute($strip);
 
                     // Si le strip est évaluable, on teste maintenant
                     if ($canEval)
@@ -909,10 +869,13 @@ private static $line=0, $column=0;
                     $flags=0;
                     foreach ($node->attributes as $key=>$attribute)
                     {
+                        if ($attribute->value==='') continue;
+
                         ++self::$opt;
                         $value=self::parseCode($attribute->value);
                         --self::$opt;
 
+                        if ($value==='') continue;
                         $quot=(strpos($value,'"')===false) ? '"' : "'";
                         
                         // Si l'attribut ne contient que des variables (pas de texte), il devient optionnel
@@ -1623,6 +1586,74 @@ echo "Source desindente :\n",  $xml->saveXml($xml), "\n-------------------------
     }
     
     /* ======================== EXPRESSION PARSER ============================= */
+
+    /**
+     * @return boolean canEval
+     */
+    public static function parseAttribute(& $source)
+    {
+        // Boucle tant qu'on trouve des choses dans le source passé en paramètre
+        $start=0;
+        $result='';
+        $canEval=true;
+        
+        for($i=1;;$i++)
+        {
+            // Recherche la prochaine expression
+            if (preg_match(self::$reCode, $source, $match, PREG_OFFSET_CAPTURE, $start)==0) break;
+            $expression=$match[0][0];
+            $len=strlen($expression);
+            $offset=$match[0][1];
+            
+            // Envoie le texte qui précède l'expression trouvée
+            if ('' != $text=substr($source, $start, $offset-$start))
+                $result.='.' . var_export(self::unescape($text),true);
+//                $result.=self::unescape($text);
+                        
+            // Enlève les accolades qui entourent l'expression
+            if ($expression[0]==='{') $expression=substr($expression, 1, -1);
+            if (trim($expression) != '')
+            {
+                // Compile l'expression
+                if
+                (
+                        TemplateCode::parseExpression
+                        (
+                            $expression, 
+                            'handleVariable', 
+                            array
+                            (
+                                'setcurrentposition'=>array(__CLASS__,'setCurrentPosition'),
+                                'autoid'=>array(__CLASS__,'autoid'),
+                                'lastid'=>array(__CLASS__,'lastid'),
+                            )
+                        )
+                )
+                    $result.='.' . TemplateCode::evalExpression($expression);
+                else
+                {
+                    if ($expression !== 'NULL') // le résultat retourné par var_export(null)
+                    {
+                        $result.='.' . $expression ;
+                        $canEval=false;
+                    }
+                }
+            }
+                        
+            // Passe au suivant
+            $start=$offset + $len;
+        }
+
+        // Envoie le texte qui suit le dernier match 
+        if ('' != $text=substr($source, $start))
+            $result.='.' . var_export(self::unescape($text),true);
+        
+        if ($result==='')
+            $source='""';
+        else
+            $source=substr($result,1);
+        return $canEval;
+    }
 
     public static function parseCode($source)
     {
