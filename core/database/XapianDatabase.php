@@ -4,7 +4,7 @@
  * @package     fab
  * @subpackage  database
  * @author      Daniel Ménard <Daniel.Menard@bdsp.tm.fr>
- * @version     SVN: $Id: Database.php 198 2006-11-15 17:03:39Z dmenard $
+ * @version     SVN: $Id$
  */
 
 require_once Runtime::$fabRoot . 'lib/xapian/xapian.php';
