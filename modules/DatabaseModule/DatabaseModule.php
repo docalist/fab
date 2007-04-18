@@ -77,14 +77,21 @@ class DatabaseModule extends Module
 
         if (is_null($database))
             throw new Exception('La base de données à utiliser n\'a pas été indiquée dans le fichier de configuration du module');
-                
+        
         debug && Debug::log("Ouverture de la base '%s' en mode '%s'", $database, $readOnly ? 'lecture seule' : 'lecture/écriture');
         $this->selection=Database::open($database, $readOnly);
-        
+                
         if ($equation)
         {
+//            echo 'Avant search<br />';
             // TODO: ne pas passer directement $_REQUEST
             $result=$this->selection->search($equation, $_REQUEST);
+//            echo 'Après search<br />';
+//            echo is_null($this->selection) ? 'NULL' : 'NOT NULL';
+//            die();
+//            echo '<br />$this->selection=', var_dump($this->selection);
+//            die();
+//            echo "count = ", $this->selection->count();
             debug && Debug::log("Requête : %s, %s réponse(s).", $equation, $this->selection->count());
             return $result;
         }
@@ -100,14 +107,14 @@ class DatabaseModule extends Module
      * 
      */
     public function actionSearchForm()
-    {
+    {        
         // Détermine le template à utiliser
         if (! $template=$this->getTemplate())
             throw new Exception('Le template à utiliser n\'a pas été indiqué');
         
         // Détermine le callback à utiliser
         $callback=$this->getCallback();
-               
+                
         // Exécute le template
         Template::run
         (
@@ -214,8 +221,10 @@ class DatabaseModule extends Module
         // Exécute le template
         Template::run
         (
-            $template,  
-            array($this, $callback)
+            $template,
+            array($this, $callback),
+            $this->selection->record,
+            array('selection',$this->selection)  
         );                
     }   
     
@@ -394,7 +403,9 @@ class DatabaseModule extends Module
         Template::run
         (
             $template,  
-            array($this, $callback)
+            array($this, $callback),
+            $this->selection->record,
+            array('selection',$this->selection)  
         );  
     }
     
@@ -465,7 +476,8 @@ class DatabaseModule extends Module
         (
             $template,  
             array($this, $callback),
-            $this->selection->record
+            $this->selection->record,
+            array('selection',$this->selection)  
         );             
     }
     
@@ -485,6 +497,13 @@ class DatabaseModule extends Module
 //        ftrace(str_repeat('-', 80));
 //        ftrace('Entrée dans actionSave');
 
+        // Détermine le callback à utiliser
+        $callback=$this->getCallback();
+        
+        // Par défaut, le callback du save est à 'none'. Le module descendant DOIT définit un callback pour pouvoir modifier la base 
+        if ($callback === 'none')
+            throw new Exception("Cette base n'est pas modifiable (aucun callback définit pour le save"); 
+                
         // Si REF n'a pas été transmis ou contient autre chose qu'un entier >= 0, erreur
         if (is_null($ref=Utils::get($_REQUEST['REF'])) || (! ctype_digit($ref)))
             throw new Exception('Appel incorrect de save : REF non transmis ou invalide');
@@ -515,9 +534,6 @@ class DatabaseModule extends Module
             debug && Debug::log('Numéro de la notice créée : %s', $ref);
         }            
         
-        // Détermine le callback à utiliser
-        $callback=$this->getCallback();
-        
         // Mise à jour de chacun des champs
         foreach($this->selection->record as $fieldName => $fieldValue)
         {         
@@ -528,7 +544,7 @@ class DatabaseModule extends Module
             // Appel le callback qui peut :
             // - indiquer à l'application d'interdire la modification du champ
             // - ou modifier sa valeur avant l'enregistrement (validation données utilisateur)
-            if ($callback === 'none' || $this->$callback($fieldName, $fieldValue) !== false)
+            if ($this->$callback($fieldName, $fieldValue) === true)
             {
                 // Si la valeur est un tableau, convertit en articles séparés par le séparateur
                 if (is_array($fieldValue))
@@ -594,11 +610,24 @@ class DatabaseModule extends Module
             (
                 $template,
                 array('equationAnswers'=>'NA', 'ShowModifyBtn'=>false),
-                $this->selection->record
+                $this->selection->record,
+                array('selection',$this->selection)  
             );
             
 //            ftrace('Template exécuté');
         }
+    }
+    
+    /**
+     * callback pour l'action save autorisant la modification de tous les champs.
+     * Par défaut, le callback de actionSave est à 'none'. Cette fonction est une facilité offerte
+     * à l'utilisateur pour lui éviter d'avoir à écrire un callback à chaque fois : 
+     * il suffit de créer un pseudo module et dans la clé save.callback de la config de ce
+     * module de metre la valeur 'allowSave' 
+     */
+    public function allowSave($name, &$value)
+    {
+        return true;
     }
     
     /**
@@ -637,7 +666,9 @@ class DatabaseModule extends Module
         Template::run
         (
             $template,  
-            array($this, $callback)
+            array($this, $callback),
+            $this->selection->record,
+            array('selection',$this->selection)  
         );
     }
     
@@ -714,7 +745,7 @@ class DatabaseModule extends Module
      *  
      */
      public function actionReplace()
-     {
+     {       
         $this->equation=$this->makeEquation('_start,_max,_sort,search,replaceStr,fields,wholeWord,caseInsensitive,regExp');
 
         $search=Utils::get($_REQUEST['search'], '');
@@ -736,6 +767,14 @@ class DatabaseModule extends Module
         // Lance la requête qui détermine les enregistrements sur lesquels on va opérer le chercher/remplacer 
         if (! $this->openSelection($this->equation))
             return $this->showError("Aucune réponse. Equation : $this->equation");
+            
+        // Eventuelle callback de validation des données passée au format array(object, nom méthode) 
+//        if (($callback = $this->getCallback()) !== 'none')
+//            $callback = array($this, $callback);
+//        else
+//            $callback = null;
+
+        
             
         $count = 0;         // nombre de remplacements effectués par enregistrement
         $totalCount = 0;    // nombre total de remplacements effectués sur le sous-ensemble de notices
@@ -759,7 +798,7 @@ class DatabaseModule extends Module
         {
             if ($regExp || $wholeWord)
             {
-                // expr reg ou alors chaîne avec 'Mot entier' non sélectionné
+                // expr reg ou alors chaîne avec 'Mot entier' sélectionné
                 // dans ces deux-cas, on appellera pregReplace pour simplier
 
                 // échappe le '~' éventuellement entré par l'utilisateur car on l'utilise comme délimiteur
@@ -792,9 +831,10 @@ class DatabaseModule extends Module
             else
             {
                 foreach($this->selection as $record)
-                {          
+                {
                     $this->selection->editRecord(); // on passe en mode édition de l'enregistrement
-                    $this->selection->strReplace($fields, $search, $replace, $caseInsensitive, $count);    // cf. Database.php
+//                    $this->selection->strReplace($fields, $search, $replace, $caseInsensitive, $count, $callback);     // cf. Database.php
+                    $this->selection->strReplace($fields, $search, $replace, $caseInsensitive, $count);
                     $this->selection->saveRecord();
                     $totalCount += $count;
                 }
