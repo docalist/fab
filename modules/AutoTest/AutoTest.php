@@ -212,10 +212,16 @@ class SimpleTestListener implements PHPUnit_Framework_TestListener
         
         if ($e instanceof AssertionNoDiffFailed)
         {
-            echo '<li class="', ($this->odd?'odd ':''), 'fail">Fail. ', htmlentities($test->getName()), ' : ', htmlentities($e->getMessage()),
-            '<div class="diff"><div id="div1">',htmlentities($e->expected),'</div><div id="div2">',htmlentities($e->result),'</div></div>',
-            '<script>diff_divs("div1","div2")</script>',
-             '</li>';
+            echo 
+                '<li class="', ($this->odd?'odd ':''), 'fail">',
+                    'Fail. ', htmlentities($test->getName()), ' : ', htmlentities($e->getMessage()),
+                    '<div class="diff">',
+                        '<div id="div1">',htmlentities($e->expected),'</div>',
+                        '<div id="div2">',htmlentities($e->result),'</div>',
+                    '</div>',
+                    '<script>diff_divs("div1","div2")</script>',
+                 '</li>';
+             echo 'Source du test : <pre>', htmlentities($test->test['file']), '</pre>';
         }
         else
         {
@@ -360,7 +366,8 @@ class AutoTestCase extends PHPUnit_Framework_TestCase
         // Ignore tout ce qui précède la première ligne de séparation des tests
         unset($tests[0]);
 
-        $testSuite=new PHPUnit_Framework_TestSuite('Fichier de test ' . basename($path));
+        if (is_string($callback)) $h=$callback; else $h=$callback[1];
+        $testSuite=new PHPUnit_Framework_TestSuite($h.' - fichier de test ' . basename($path));
         
         // Initialise tous les tests
         foreach ($tests as $test)
@@ -440,7 +447,7 @@ class AssertionNoDiffFailed extends PHPUnit_Framework_AssertionFailedError
 class AutoTestFile extends AutoTestCase
 {
     private $callback=null;
-    private $test=null;
+    public $test=null;
     
     public function __construct(Array $test, $callback)
     {
