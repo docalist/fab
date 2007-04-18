@@ -1,0 +1,80 @@
+Fichier de test pour les générateurs hidden, fieldset et upload
+
+Utilisation normale du générateur : ne prévoit pas les cas de mauvaise utilisation
+
+@version : $Id$
+
+================================================================================
+--test--
+Un champ hidden génère un input type="hidden"
+--file--
+<hidden />
+--expect--
+<input type="hidden" />
+================================================================================
+--test--
+Un hidden devient utile s'il a un attribut name...
+--file--
+<hidden name="myHidden" />
+--expect--
+<input type="hidden" name="myHidden" />
+================================================================================
+--test--
+... et une valeur (attribut value)
+--file--
+<hidden name="myHidden" value="5" />
+--expect--
+<input type="hidden" name="myHidden" value="5" />
+================================================================================
+--test--
+Un fieldset peut ne pas avoir de label
+--file--
+<fieldset />
+--expect--
+<fieldset></fieldset>
+================================================================================
+--test--
+Un label permet de rendre un fieldset plus explicite
+--file--
+<fieldset label="Test unitaire du fieldset" />
+--expect--
+<fieldset>
+	<legend class="fieldset">Test unitaire du fieldset</legend>
+</fieldset>
+================================================================================
+--test--
+Un fieldset devient utile quand il regroupe plusieurs éléments HTML
+--file--
+<fieldset label="Test unitaire du fieldset">
+	<textbox label="Zone de texte : " />
+	<submit label="Valider" />
+</fieldset>
+--expect--
+<fieldset>
+	<legend class="fieldset">Test unitaire du fieldset</legend>
+	<label class="text" for="textbox">Zone de texte :</label><input type="text" title="Zone de texte :" class="text" id="textbox"/>
+	<input type="submit" value="Valider" class="button submit" /> 
+</fieldset>
+================================================================================
+--test--
+Le générateur upload créé une zone de sélection de fichier à uploader
+--file--
+<upload />
+--expect--
+<input type="file" class="upload" />
+================================================================================
+--test--
+L'attribut name sert à identifier un contrôle de type upload
+--file--
+<upload name="myUpload" />
+--expect--
+<input name="myUpload" type="file" class="upload" />
+================================================================================
+--test--
+L'attribut label affiche un libellé avant le contrôle upload
+--file--
+<upload name="myUpload" label="Test unitaire du générateur upload" />
+--expect--
+<label class="upload" for="myUpload">Test unitaire du générateur upload</label>
+<input name="myUpload" type="file" title="Test unitaire du générateur upload" class="upload" id="myUpload" />
+================================================================================

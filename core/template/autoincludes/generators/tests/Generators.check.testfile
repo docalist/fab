@@ -142,6 +142,6 @@ Si la source de données est vide, rien ne s'affiche
 --expect--
 
 --skip--
-Rajouter un if englobant pour n'afficher un checklist que si src correspond à une zone de
-données non vide (TextTable ayant des données, tableau non vide, etc.)
+Rajouter un if englobant pour n'afficher un checklist que si src est non vide (!= '') et 
+correspond à une zone de données non vide (TextTable ayant des données, tableau non vide, etc.)
 ================================================================================
