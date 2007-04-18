@@ -41,6 +41,7 @@ class GeneratorsTest extends AutoTestCase
         $this->runTestFile(dirname(__FILE__).'/Generators.textbox.testfile', array($this,'generatorCallback'));
         $this->runTestFile(dirname(__FILE__).'/Generators.buttons.testfile', array($this,'generatorCallback'));
         $this->runTestFile(dirname(__FILE__).'/Generators.check.testfile', array($this,'generatorCallback'));
+        $this->runTestFile(dirname(__FILE__).'/Generators.radio.testfile', array($this,'generatorCallback'));
     }
 
     public function generatorCallback($template)

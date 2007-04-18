@@ -1,0 +1,107 @@
+Fichier de test pour les générateurs radio et radiolist
+
+Utilisation normale du générateur : ne prévoit pas les cas de mauvaise utilisation
+
+@version : $Id$
+
+================================================================================
+--test--
+Un contrôle radio sans label permet de générer un <input type="radio" /> HTML
+--file-- 
+<radio />
+--expect--
+<input type="radio" class="radio" />
+================================================================================
+--test--
+L'attribut name permet d'identifier un radio
+--file--
+<radio name="myButton" />
+--expect--
+<input type="radio" name="myButton" class="radio" />
+================================================================================
+--test--
+En général, on utilisera un label avec les boutons radio
+--file--
+<radio name="myButton" label="Test unitaire du générateur radio" />
+--expect--
+<input type="radio" name="myButton" class="radio" id="myButton" />
+<label class="radio" for="myButton">Test unitaire du générateur radio</label>
+================================================================================
+--test--
+L'attribut value précise la valeur qui sera transmise l'éventuelle soumission du
+formulaire
+--file--
+<radio name="myButton" value="selected" />
+--expect--
+<input type="radio" name="myButton" value="selected" class="radio" />
+================================================================================
+--test--
+Même si le générateur définit par défaut un attribut class à tout radio créé, on 
+peut préciser cette valeur
+--file--
+<radio name="myButton" class="button" />
+--expect--
+<input type="radio" name="myButton" class="radio button"  />
+================================================================================
+--test--
+Le générateur radiolist permet de générer une liste de checkbox à partir d'un itérable
+(ici, un TextTable construit à partir d'un fichier ayant un format particulier)
+--file--
+<radiolist src="new TextTable($this->path.'tables/date.txt')" />
+--expect--
+
+--skip--
+Impossible d'utiliser $this->path ici : ce n'est pas un module
+================================================================================
+--test--
+Le générateur radiolist permet de générer une liste de radio à partir d'un itérable
+--file--
+<radiolist src="array(array('code'=>'2007', 'label'=>'2007'), array('code'=>'2006', 'label'=>'2006'), array('code'=>'2005', 'label'=>'2005'))" />
+--expect--
+<div class="radiolist>
+	<span class="radio">
+		<input type="radio" value="2007" class="radio" id="0" />
+		<label class="radio" for="0">2007</label>
+	</span>
+	<span class="radio">
+		<input type="radio" value="2006" class="radio" id="1" />
+		<label class="radio" for="1">2006</label>
+	</span>
+	<span class="radio">
+		<input type="radio" value="2005" class="radio" id="2" />
+		<label class="radio" for="2">2005</label>
+	</span>
+</div>
+================================================================================
+--test--
+Il est possible d'ajouter un nom et un label général aux radiolist
+--file--
+<radiolist name="myList" label="Choisissez parmi les années suivantes :" src="array(array('code'=>2007, 'label'=>2007), array('code'=>2006, 'label'=>2006), array('code'=>2005, 'label'=>2005))" />
+--expect--
+<label class="radiolist">Choisissez parmi les années suivantes :</label>
+<div class="radiolist>
+	<span class="radio">
+		<input type="radio" name="myList" value="2007" class="radio" id="myList0" />
+		<label class="radio" for="myList0">2007</label>
+	</span>
+	<span class="radio">
+		<input type="radio" name="myList" value="2006" class="radio" id="myList1" />
+		<label class="radio" for="myList1">2006</label>
+	</span>
+	<span class="radio">
+		<input type="radio" name="myList" value="2005" class="radio" id="myList2" />
+		<label class="radio" for="myList2">2005</label>
+	</span>
+</div>
+================================================================================
+
+--test--
+Si la source de données est vide, rien ne s'affiche
+--file--
+
+--expect--
+
+--skip--
+Rajouter un if englobant pour n'afficher un radiolist que si src correspond à une zone de
+données non vide (TextTable ayant des données, tableau non vide, etc.)
+================================================================================

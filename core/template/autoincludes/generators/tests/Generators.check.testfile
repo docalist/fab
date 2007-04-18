@@ -57,24 +57,91 @@ Le générateur checklist permet de générer une liste de checkbox à partir d'un it
 <checklist src="new TextTable($this->path.'tables/date.txt')" />
 --expect--
 <div class="checklist>
-	<span class="checklist>
-		<input type="check" value="2007" class="check" id="checkbox" /><label class="check" for="checkbox">2007</checkbox>
-		<input type="check" value="2006" class="check" id="checkbox-1" /><label class="check" for="checkbox-2">2006</checkbox>
-		<input type="check" value="2005" class="check" id="checkbox-2" /><label class="check" for="checkbox-2">2005</checkbox>
+	<span class="check">
+		<input type="check" value="2007" class="check" id="0" />
+		<label class="check" for="0">2007</checkbox>
+	</span>
+	<span class="check">
+		<input type="check" value="2006" class="check" id="1" />
+		<label class="check" for="1">2006</checkbox>
+	</span>
+	<span class="check">
+		<input type="check" value="2005" class="check" id="2" />
+		<label class="check" for="2">2005</checkbox>
+	</span>
+</div>
+--skip--
+Impossible d'utiliser $this->path ici : ce n'est pas un module
+================================================================================
+--test--
+Le générateur checklist permet de générer une liste de checkbox à partir d'un itérable
+--file--
+<checklist src="array(array('code'=>'2007', 'label'=>'2007'), array('code'=>'2006', 'label'=>'2006'), array('code'=>'2005', 'label'=>'2005'))" />
+--expect--
+<div class="checklist>
+	<span class="check">
+		<input type="checkbox" value="2007" class="check" id="0" />
+		<label class="check" for="0">2007</label>
+	</span>
+	<span class="check">
+		<input type="checkbox" value="2006" class="check" id="1" />
+		<label class="check" for="1">2006</label>
+	</span>
+	<span class="check">
+		<input type="checkbox" value="2005" class="check" id="2" />
+		<label class="check" for="2">2005</label>
 	</span>
 </div>
 ================================================================================
 --test--
-
+On peut générer la même sortie en passant des valeurs numériques pour les clés 'code' et 'label'
+des tableaux de l'attribut src
 --file--
-
+<checklist src="array(array('code'=>2007, 'label'=>2007), array('code'=>2006, 'label'=>2006), array('code'=>2005, 'label'=>2005))" />
 --expect--
-
+<div class="checklist>
+	<span class="check">
+		<input type="checkbox" value="2007" class="check" id="0" />
+		<label class="check" for="0">2007</label>
+	</span>
+	<span class="check">
+		<input type="checkbox" value="2006" class="check" id="1" />
+		<label class="check" for="1">2006</label>
+	</span>
+	<span class="check">
+		<input type="checkbox" value="2005" class="check" id="2" />
+		<label class="check" for="2">2005</label>
+	</span>
+</div>
 ================================================================================
 --test--
-
+Il est possible d'ajouter un nom et un label général aux checklist
+--file--
+<checklist name="myList" label="Choisissez parmi les années suivantes :" src="array(array('code'=>2007, 'label'=>2007), array('code'=>2006, 'label'=>2006), array('code'=>2005, 'label'=>2005))" />
+--expect--
+<label class="checklist">Choisissez parmi les années suivantes :</label>
+<div class="checklist>
+	<span class="check">
+		<input type="checkbox" name="myList" value="2007" class="check" id="myList0" />
+		<label class="check" for="myList0">2007</label>
+	</span>
+	<span class="check">
+		<input type="checkbox" name="myList" value="2006" class="check" id="myList1" />
+		<label class="check" for="myList1">2006</label>
+	</span>
+	<span class="check">
+		<input type="checkbox" name="myList" value="2005" class="check" id="myList2" />
+		<label class="check" for="myList2">2005</label>
+	</span>
+</div>
+================================================================================
+--test--
+Si la source de données est vide, rien ne s'affiche
 --file--
 
 --expect--
 
+--skip--
+Rajouter un if englobant pour n'afficher un checklist que si src correspond à une zone de
+données non vide (TextTable ayant des données, tableau non vide, etc.)
 ================================================================================
