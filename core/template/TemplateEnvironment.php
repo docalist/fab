@@ -243,7 +243,7 @@ class TemplateEnvironment
     /**
      * Alloue une nouvelle variable temporaire
      * 
-     * La variable temporaire reste allouée temps que {link freeTemp()} n'est pas 
+     * La variable temporaire reste allouée temps que {@link freeTemp()} n'est pas 
      * appellée pour cette variable. Si d'autres appels à getTemp sont faits avec 
      * le même nom, les variables retournées seront numérotées (tmp, tmp2, etc.) 
      * 
@@ -274,7 +274,7 @@ class TemplateEnvironment
     }
     
     /**
-     * Libère une variable temporaire allouée par {link getTemp()}
+     * Libère une variable temporaire allouée par {@link getTemp()}
      * 
      * @param string $name le nom de la variable temporaire à libérer
      */
