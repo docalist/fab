@@ -103,7 +103,8 @@ class TemplateTest extends AutoTestCase
     {
         config::set('cache.enabled', false);
 //        foreach(array('ObjectMagicProperties') as $h)
-        foreach(array('Array','FunctionCallback','MethodCallback','ObjectProperties','ObjectMagicProperties','ArrayAccessObject') as $h)
+//        foreach(array('Array','FunctionCallback','MethodCallback','ObjectProperties','ObjectMagicProperties','ArrayAccessObject') as $h)
+        foreach(array('Array') as $h)
 //        foreach(array('Array','FunctionCallback','MethodCallback','ObjectProperties','ObjectMagicProperties',) as $h)
         {
 //            $this->runTestFile(dirname(__FILE__).'/temp.testfile', array($this, "templateCompilerCallbackWith$h"));
@@ -112,6 +113,7 @@ class TemplateTest extends AutoTestCase
             $this->runTestFile(dirname(__FILE__).'/Template.opt.testfile', array($this, "templateCompilerCallbackWith$h"));
             $this->runTestFile(dirname(__FILE__).'/Template.switch.testfile', array($this, "templateCompilerCallbackWith$h"));
             $this->runTestFile(dirname(__FILE__).'/Template.loop.testfile', array($this, "templateCompilerCallbackWith$h"));
+            $this->runTestFile(dirname(__FILE__).'/Template.fill.testfile', array($this, "templateCompilerCallbackWith$h"));
             $this->runTestFile(dirname(__FILE__).'/Template.strip.testfile', array($this, "templateCompilerCallbackWith$h"));
             $this->runTestFile(dirname(__FILE__).'/Template.test.testfile', array($this, "templateCompilerCallbackWith$h"));
             $this->runTestFile(dirname(__FILE__).'/Template.misc.testfile', array($this, "templateCompilerCallbackWith$h"));

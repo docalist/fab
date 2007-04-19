@@ -1,0 +1,323 @@
+================================================================================
+--test--
+Si on n'ait pas dans un bloc fill, les tags <input> et les <option> ne sont pas 
+modifiés
+--file--
+    <input type="radio" name="xxx" value="a" />
+    <input type="radio" name="xxx" value="b" />
+    <div class="radiolist">
+        <input type="radio" name="xxx" value="a" />
+        <input type="radio" name="xxx" value="b" />
+    </div>
+	<select name="xxx">
+		<option value="a">aaa</option>
+		<option>b</option>
+   </select>
+--expect--
+    <input type="radio" name="xxx" value="a" />
+    <input type="radio" name="xxx" value="b" />
+    <div class="radiolist">
+        <input type="radio" name="xxx" value="a" />
+        <input type="radio" name="xxx" value="b" />
+    </div>
+	<select name="xxx">
+		<option value="a">aaa</option>
+		<option>b</option>
+   	</select>
+================================================================================
+--test--
+Dans un bloc fill, les tags <input> et <option> dont la valeur correspond aux 
+valeurs indiquées dans le fill sont sélectionnées
+--file--
+<fill values="a,c">
+    <input type="radio" name="xxx" value="a" />
+    <input type="radio" name="xxx" value="b" />
+    <input type="radio" name="xxx" value="c" />
+    <div class="radiolist">
+        <input type="radio" name="xxx" value="a" />
+        <input type="radio" name="xxx" value="b" />
+	    <input type="radio" name="xxx" value="c" />
+    </div>
+	<select name="xxx">
+		<option value="a">aaa</option>
+		<option value="b">bbb</option>
+		<option>c</option>
+	</select>
+</fill>
+--expect--
+    <input type="radio" name="xxx" value="a" checked="checked" />
+    <input type="radio" name="xxx" value="b" />
+    <input type="radio" name="xxx" value="c" checked="checked" />
+    <div class="radiolist">
+        <input type="radio" name="xxx" value="a" checked="checked" />
+        <input type="radio" name="xxx" value="b" />
+	    <input type="radio" name="xxx" value="c" checked="checked" />
+    </div>
+	<select name="xxx">
+		<option value="a" selected="selected">aaa</option>
+		<option value="b">bbb</option>
+		<option selected="selected">c</option>
+	</select>
+================================================================================
+--test--
+si un tag <option> n'a pas l'attribut value, c'est son contenu qui est pris en
+compte
+--file--
+<fill values="a,c">
+	<select name="xxx">
+		<option>a</option>
+		<option>b</option>
+		<option>c</option>
+	</select>
+</fill>
+--expect--
+	<select name="xxx">
+		<option selected="selected">a</option>
+		<option>b</option>
+		<option selected="selected">c</option>
+	</select>
+================================================================================
+--test--
+les input qui n'ont pas d'attribut value ou qui ont un attribut value vide sont
+ignorés
+--file--
+<fill values="a,c">
+    <input type="radio" name="xxx" />
+    <input type="radio" name="xxx" value="" />
+    <input type="checkbox" name="xxx" />
+    <input type="checkbox" name="xxx" value="" />
+</fill>
+--expect--
+    <input type="radio" name="xxx" />
+    <input type="radio" name="xxx" />
+    <input type="checkbox" name="xxx" />
+    <input type="checkbox" name="xxx" />
+================================================================================
+--test--
+Séparateurs reconnus : ,;/·|¨
+--file--
+<fill values="a,b;c/d·e¨f|g">
+	<select>
+		<option>a</option>
+		<option>b</option>
+		<option>c</option>
+		<option>d</option>
+		<option>e</option>
+		<option>f</option>
+		<option>g</option>
+    </select>
+</fill>
+--expect--
+	<select>
+		<option selected="selected">a</option>
+		<option selected="selected">b</option>
+		<option selected="selected">c</option>
+		<option selected="selected">d</option>
+		<option selected="selected">e</option>
+		<option selected="selected">f</option>
+		<option selected="selected">g</option>
+    </select>
+================================================================================
+--test--
+Les blancs de début et de fin d'articles sont ignorés dans values
+--file--
+<fill values="
+					  a    ,
+								b
+									;
+										c
+											 /  
+											 	d
+											 	   	·  
+											 	   		e 	
+											 	   			¨	f
+											 	   					|
+											 	   						g
+	
+	">
+	<select>
+		<option>a</option>
+		<option>b</option>
+		<option>c</option>
+		<option>d</option>
+		<option>e</option>
+		<option>f</option>
+		<option>g</option>
+    </select>
+</fill>
+--expect--
+	<select>
+		<option selected="selected">a</option>
+		<option selected="selected">b</option>
+		<option selected="selected">c</option>
+		<option selected="selected">d</option>
+		<option selected="selected">e</option>
+		<option selected="selected">f</option>
+		<option selected="selected">g</option>
+    </select>
+================================================================================
+--test--
+Les blancs de début et de fin d'articles sont ignorés dans la valeur des contrôles
+--file--
+<fill values="
+					  a    ,
+								b
+									;
+										c
+											 /  
+											 	d
+											 	   	·  
+											 	   		e 	
+											 	   			¨	f
+											 	   					|
+											 	   						g
+	
+	">
+	<select>
+		<option> a </option>
+		<option>		b		</option>
+		<option>
+			c
+		</option>
+		<option value="  d  ">dd</option>
+		<option value="			e			">ee</option>
+		<option value="
+			f
+			">ff</option>
+		<option value="			g			">ee</option>
+    </select>
+</fill>
+--expect--
+	<select>
+		<option selected="selected"> a </option>
+		<option selected="selected">		b		</option>
+		<option selected="selected">
+			c
+		</option>
+		<option value="  d  " selected="selected">dd</option>
+		<option value="			e			" selected="selected">ee</option>
+		<option value="
+			f
+			" selected="selected">ff</option>
+		<option value="			g			" selected="selected">ee</option>
+    </select>
+================================================================================
+--test--
+Si la valeur indiquée dans le contrôle correspond à une partie d'un article 
+indiqué dans values, ça ne le sélectionne pas pour autant
+--file--
+<fill values="santé de l'homme, santé de l'enfant">
+	<input type="radio" name="xxx" value="santé" />
+	<input type="radio" name="xxx" value="santé de" />
+	<input type="radio" name="xxx" value="santé de l'homm" />
+	<input type="radio" name="xxx" value="homme" />
+	<input type="radio" name="xxx" value="anté de l'homme" />
+	<input type="radio" name="xxx" value="homme, santé" />
+	<input type="radio" name="xxx" value="santé de l'homme" />
+	<input type="radio" name="xxx" value="santé de l'enfant" />
+</fill>
+--expect--
+	<input type="radio" name="xxx" value="santé" />
+	<input type="radio" name="xxx" value="santé de" />
+	<input type="radio" name="xxx" value="santé de l'homm" />
+	<input type="radio" name="xxx" value="homme" />
+	<input type="radio" name="xxx" value="anté de l'homme" />
+	<input type="radio" name="xxx" value="homme, santé" />
+	<input type="radio" name="xxx" value="santé de l'homme" checked="checked" />
+	<input type="radio" name="xxx" value="santé de l'enfant" checked="checked" />
+================================================================================
+--test--
+Les valeurs spécifiées dans <fill> et la valeur des contrôles sont sensibles à 
+la casse des caractères.
+--file--
+<fill values="A,B">
+    <input type="radio" name="xxx" value="a" />
+    <input type="radio" name="xxx" value="b" />
+</fill>
+<fill values="a,b">
+    <input type="radio" name="xxx" value="A" />
+    <input type="radio" name="xxx" value="B" />
+</fill>
+--expect--
+    <input type="radio" name="xxx" value="a" />
+    <input type="radio" name="xxx" value="b" />
+    <input type="radio" name="xxx" value="A" />
+    <input type="radio" name="xxx" value="B" />
+================================================================================
+--test--
+Les tags <fill> peuvent être imbriqués
+--file--
+<fill values="a·b">
+    <input type="radio" name="xxx" value="a" />
+    <input type="radio" name="xxx" value="c" />
+	<fill values="c,d">
+        <input type="radio" name="xxx" value="c" />
+        <input type="radio" name="xxx" value="b" />
+	</fill>
+    <input type="radio" name="xxx" value="a" />
+    <input type="radio" name="xxx" value="c" />
+</fill>
+--expect--
+    <input type="radio" name="xxx" value="a" checked="checked"/>
+    <input type="radio" name="xxx" value="c" />
+        <input type="radio" name="xxx" value="c" checked="checked" />
+        <input type="radio" name="xxx" value="b" />
+    <input type="radio" name="xxx" value="a" checked="checked" />
+    <input type="radio" name="xxx" value="c" />
+--comment--
+dans le 2nd bloc, b n'est pas coché, dans le dernier a l'est et c ne l'est pas
+(donc le fill précédent est correctement restauré quand on sort d'un fill imbriqué)
+================================================================================
+--test--
+Les valeurs peuvent contenir des apostrophes et des guillemets (1/2)
+--file--
+<fill values='a"a , b&quot;b ; c&apos;c'>
+    <input type="radio" value='a"a' />
+    <input type="radio" value="a&quot;a" />
+    <input type="radio" value='b"b' />
+    <input type="radio" value="b&quot;b" />
+    <input type="radio" value="c'c" />
+    <input type="radio" value="c&apos;c" />
+</fill>
+--expect--
+    <input type="radio" value='a"a' checked="checked" />
+    <input type="radio" value='a"a' checked="checked" />
+    <input type="radio" value='b"b' checked="checked" />
+    <input type="radio" value='b"b' checked="checked" />
+    <input type="radio" value="c'c" checked="checked" />
+    <input type="radio" value="c'c" checked="checked" />
+================================================================================
+--test--
+Les valeurs peuvent contenir des apostrophes et des guillemets (2/2)
+--file--
+<fill values="a'a , b&quot;b ; c&apos;c">
+    <input type="radio" value="a'a" />
+    <input type="radio" value="a&apos;a" />
+    <input type="radio" value='b"b' />
+    <input type="radio" value="b&quot;b" />
+    <input type="radio" value="c'c" />
+    <input type="radio" value="c&apos;c" />
+</fill>
+--expect--
+    <input type="radio" value="a'a" checked="checked" />
+    <input type="radio" value="a'a" checked="checked" />
+    <input type="radio" value='b"b' checked="checked" />
+    <input type="radio" value='b"b' checked="checked" />
+    <input type="radio" value="c'c" checked="checked" />
+    <input type="radio" value="c'c" checked="checked" />
+================================================================================
+--test--
+Les valeurs d'un <fill> peuvent contenir des variables ou des expressions
+--file--
+<fill values="$varTitorigA, {$varAut},b, {rtrim(ltrim('   c  '))},d">
+    <input type="radio" value="$varTitorigA" />
+    <input type="radio" value="$varAut" />
+    <input type="radio" value="b" />
+    <input type="radio" value="c" />
+</fill>
+--expect--
+    <input type="radio" value="Titre original de niveau 'analytique'" checked="checked" />
+    <input type="radio" value="Spécialiste en santé publique" checked="checked" />
+    <input type="radio" value="b" checked="checked" />
+    <input type="radio" value="c" checked="checked" />
+================================================================================
