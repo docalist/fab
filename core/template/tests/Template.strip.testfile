@@ -4,16 +4,28 @@ Fichier de test unitaires de l'attribut 'strip' du le compilateur de templates
 
 ================================================================================
 --test--
-Un noeud sans texte dont l'attribut strip vaut false s'affiche
+Strip contient maintenant un texte quelconque avec éventuellement des variables 
+et des expressions. Si on écrit directement strip="false", ça fait l'inverse
+de ce qu'on veut, il faut écrire strip="{false}"
 --file--
 <input strip="false" type="text" name="mytext" />
+--expect--
+--comment--
+strip semble être à false (donc on devrait obtenir tout le input) mais en fait
+la chaine "false" est une chaine non vide donc qui s'évalue à true, donc le tag
+disparaît.
+================================================================================
+--test--
+Un noeud sans texte dont l'attribut strip vaut false s'affiche
+--file--
+<input strip="{false}" type="text" name="mytext" />
 --expect--
 <input type="text" name="my text" />
 ================================================================================
 --test--
 Un noeud sans texte dont l'attribut strip vaut true disparaît
 --file--
-<input strip="true" type="text" name="mytext" />
+<input strip="{true}" type="text" name="mytext" />
 --expect--
 
 ================================================================================
@@ -62,7 +74,7 @@ interdit dans une expression
 --test--
 Un noeud dont l'attribut strip vaut false et dont l'attribut test vaut false disparaît (strip avant test)
 --file--
-<a href="www.bdsp.tm.fr" strip="false" test="false">
+<a href="www.bdsp.tm.fr" strip="{false}" test="{false}">
 	Titre
 </a>
 --expect--
@@ -71,7 +83,7 @@ Un noeud dont l'attribut strip vaut false et dont l'attribut test vaut false dis
 --test--
 Un noeud dont l'attribut strip vaut false et dont l'attribut test vaut false disparaît (test avant strip)
 --file--
-<a href="www.bdsp.tm.fr" test="false" strip="false">
+<a href="www.bdsp.tm.fr" test="{false}" strip="{false}">
 	Titre
 </a>
 --expect--
@@ -80,7 +92,7 @@ Un noeud dont l'attribut strip vaut false et dont l'attribut test vaut false dis
 --test--
 Un noeud dont l'attribut strip vaut false et dont l'attribut test vaut true apparaît (strip avant test)
 --file--
-<a href="www.bdsp.tm.fr" strip="false" test="true">
+<a href="www.bdsp.tm.fr" strip="{false}" test="{true}">
 	Titre
 </a>
 --expect--
@@ -91,7 +103,7 @@ Un noeud dont l'attribut strip vaut false et dont l'attribut test vaut true appa
 --test--
 Un noeud dont l'attribut strip vaut false et dont l'attribut test vaut true apparaît (test avant strip)
 --file--
-<a href="www.bdsp.tm.fr" test="true" strip="false">
+<a href="www.bdsp.tm.fr" test="{true}" strip="{false}">
 	Titre
 </a>
 --expect--
@@ -102,7 +114,7 @@ Un noeud dont l'attribut strip vaut false et dont l'attribut test vaut true appa
 --test--
 Un noeud dont l'attribut strip vaut true et dont l'attribut test vaut false disparaît (strip avant test)
 --file--
-<a href="www.bdsp.tm.fr" strip="true" test="false">
+<a href="www.bdsp.tm.fr" strip="{true}" test="{false}">
 	Titre
 </a>
 --expect--
@@ -111,7 +123,7 @@ Un noeud dont l'attribut strip vaut true et dont l'attribut test vaut false disp
 --test--
 Un noeud dont l'attribut strip vaut true et dont l'attribut test vaut false disparaît (test avant strip)
 --file--
-<a href="www.bdsp.tm.fr" test="false" strip="true">
+<a href="www.bdsp.tm.fr" test="{false}" strip="{true}">
 	Titre
 </a>
 --expect--
@@ -121,7 +133,7 @@ Un noeud dont l'attribut strip vaut true et dont l'attribut test vaut false disp
 Un noeud dont l'attribut strip vaut true et dont l'attribut test vaut true ne fait apparaître que le 
 contenu du noeud : le tag disparaît mais le texte qu'il contient apparaît (strip avant test)
 --file--
-<a href="www.bdsp.tm.fr" strip="true" test="true">
+<a href="www.bdsp.tm.fr" strip="{true}" test="{true}">
 	Titre
 </a>
 --expect--
@@ -131,7 +143,7 @@ Titre
 Un noeud dont l'attribut strip vaut true et dont l'attribut test vaut true ne fait apparaître que le 
 contenu du noeud : le tag disparaît mais le texte qu'il contient apparaît (test avant strip)
 --file--
-<a href="www.bdsp.tm.fr" test="true" strip="true">
+<a href="www.bdsp.tm.fr" test="{true}" strip="{true}">
 	Titre
 </a>
 --expect--

@@ -4,16 +4,29 @@ Fichier de test unitaires de l'attribut 'test' du compilateur de templates
 
 ================================================================================
 --test--
-Un noeud sans texte dont l'attribut test vaut false ne s'affiche pas
+Test contient maintenant un texte quelconque avec éventuellement des variables 
+et des expressions. Si on écrit directement test="false", ça fait l'inverse
+de ce qu'on veut, il faut écrire test="{false}"
 --file--
 <input test="false" type="text" name="mytext" />
+--expect--
+<input type="text" name="mytext" />
+--comment--
+test semble être à false (donc le tag devrait disparaître) mais en fait
+la chaine "false" est une chaine non vide donc qui s'évalue à true, donc le tag
+est conservé.
+================================================================================
+--test--
+Un noeud sans texte dont l'attribut test vaut false ne s'affiche pas
+--file--
+<input test="{false}" type="text" name="mytext" />
 --expect--
 
 ================================================================================
 --test--
 Un noeud sans texte dont l'attribut test vaut true s'affiche
 --file--
-<input test="true" type="text" name="my text" />
+<input test="{true}" type="text" name="my text" />
 --expect--
 <input type="text" name="my text" />
 ================================================================================
