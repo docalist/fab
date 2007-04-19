@@ -2,7 +2,7 @@
 <!-- les différentes valeurs ou options du select sont chargées à partir du fichier spécifié comme @src -->
 <!-- l'utilisateur peut ajouter ses propres options comme par ex, une sélection = (vide) ou = (tous), ... -->
 
-<template match="//select" name="" label="" src="" class="" size="" sep="" >
+<template match="//select[@src]" name="" label="" src="" class="" size="" sep="" >
     <label test="$label" class="{$size?rtrim('multiline '.$class) : $class}" for="{autoId($name:'select')}">$label</label>
     <input type="hidden" name="$name" value="" />
 <!--    <fill values="$$name" code='selected="selected"' separator="$sep">-->
