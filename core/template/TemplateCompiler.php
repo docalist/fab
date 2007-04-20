@@ -139,8 +139,11 @@ class TemplateCompiler
         self::$usedId=array(); // HACK: ne fonctionnera pas avec des fonctions include
         // il ne faudrait faire le reset que si c'est un template de premier niveau (pas un include)
 
-        //self::addCodePosition($source);
-        
+        self::addCodePosition($source);
+//        echo '<pre>';
+//echo (htmlspecialchars($source));        
+//echo '</pre>';
+//echo $source;        
         // Supprime les commentaires de templates : /* xxx */
         $source=preg_replace('~/\*.*?\*/~ms', null, $source);
         
@@ -786,7 +789,7 @@ private static $line=0, $column=0;
                 return;
                 
             case XML_PI_NODE:       // une directive (exemple : <?xxx ... ? >)
-                throw new Exception('Les directives "'.$node->target.'" sont interdites dans un template');
+                throw new Exception('Les directives "'.$node->target.'" sont interdites dans un template ' . $node->data);
                 echo $node->ownerDocument->saveXML($node);
                 // Serait plus efficace : $node->ownerDocument->save('php://output');
                 return;
@@ -1173,16 +1176,18 @@ private static $line=0, $column=0;
                     
                 case 'if':
                     $t=self::getAttributes($next, array('test'));
-                    
-                    TemplateCode::parseExpression($t['test'],
-                                    'handleVariable',
-                                    array
-                                    (
-                                        'setcurrentposition'=>array(__CLASS__,'setCurrentPosition'),
-                                        'autoid'=>array(__CLASS__,'autoid'),
-                                        'lastid'=>array(__CLASS__,'lastid')
-                                    )
-                    );
+
+                    $canEval=self::parseAttribute($t['test']);
+
+//                    TemplateCode::parseExpression($t['test'],
+//                                    'handleVariable',
+//                                    array
+//                                    (
+//                                        'setcurrentposition'=>array(__CLASS__,'setCurrentPosition'),
+//                                        'autoid'=>array(__CLASS__,'autoid'),
+//                                        'lastid'=>array(__CLASS__,'lastid')
+//                                    )
+//                    );
                     
                     // Génère le tag et sa condition
                     echo self::PHP_START_TAG, $tag, ' (', $t['test'], '):', self::PHP_END_TAG;
@@ -1232,15 +1237,16 @@ private static $line=0, $column=0;
     {
         // Récupère la condition du switch
         $t=self::getAttributes($node, null, array('test'=>true));
-        TemplateCode::parseExpression($t['test'],
-                                    'handleVariable',
-                                    array
-                                    (
-                                        'setcurrentposition'=>array(__CLASS__,'setCurrentPosition'),
-                                        'autoid'=>array(__CLASS__,'autoid'),
-                                        'lastid'=>array(__CLASS__,'lastid')
-                                    )
-        );
+//        TemplateCode::parseExpression($t['test'],
+//                                    'handleVariable',
+//                                    array
+//                                    (
+//                                        'setcurrentposition'=>array(__CLASS__,'setCurrentPosition'),
+//                                        'autoid'=>array(__CLASS__,'autoid'),
+//                                        'lastid'=>array(__CLASS__,'lastid')
+//                                    )
+//        );
+        $canEval=self::parseAttribute($t['test']);
                 
         // Génère le tag et sa condition
         echo self::PHP_START_TAG, 'switch (', $t['test'], '):', "\n";
@@ -1279,15 +1285,16 @@ private static $line=0, $column=0;
                             if (isset($seen[$t['test']]))
                                 throw new Exception('Switch : plusieurs blocs case avec la même condition');
                             $seen[$t['test']]=true;
-                            TemplateCode::parseExpression($t['test'],
-                                    'handleVariable',
-                                    array
-                                    (
-                                        'setcurrentposition'=>array(__CLASS__,'setCurrentPosition'),
-                                        'autoid'=>array(__CLASS__,'autoid'),
-                                        'lastid'=>array(__CLASS__,'lastid')
-                                    )
-                            );
+                            $canEval=self::parseAttribute($t['test']);
+//                            TemplateCode::parseExpression($t['test'],
+//                                    'handleVariable',
+//                                    array
+//                                    (
+//                                        'setcurrentposition'=>array(__CLASS__,'setCurrentPosition'),
+//                                        'autoid'=>array(__CLASS__,'autoid'),
+//                                        'lastid'=>array(__CLASS__,'lastid')
+//                                    )
+//                            );
                             echo ($first?'':self::PHP_START_TAG.'break;'), 'case ', $t['test'], ':', self::PHP_END_TAG;
                             self::compileChildren($node);
                             break;
@@ -1640,7 +1647,10 @@ echo "Source desindente :\n",  $xml->saveXml($xml), "\n-------------------------
                             )
                         )
                 )
-                    $result.='.' . var_export(TemplateCode::evalExpression($expression),true);
+                {
+                    $expression=TemplateCode::evalExpression($expression);
+                    if (! is_null($expression) ) $result.=var_export($expression,true);
+                }
                 else
                 {
                     if ($expression !== 'NULL') // le résultat retourné par var_export(null)
