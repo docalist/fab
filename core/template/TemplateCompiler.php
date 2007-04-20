@@ -135,11 +135,37 @@ class TemplateCompiler
      */
     public static function compile($source, $env=null)
     {
+        self::$env=new TemplateEnvironment($env);
+
+//$t=array
+//(
+//'a',
+//'{true}',
+//'$varA',
+//
+//'a $varAut b {trim("c")} {trim("c2")} d {trim($varA)}$varA e {trim("e2")} {trim("e3")}nll{null}f',
+//);
+//
+//foreach($t as $hsav)
+//{
+//    echo 'Source : <code>', $hsav, '</code><br />';
+//    
+//    $h=$hsav;
+//    $r=self::parse($h,true);
+//    echo 'asExpression returns ', var_export($r,true), ' : <code>', htmlentities($h), '</code><br />';
+//    
+//    $h=$hsav;
+//    self::parse($h,false);
+//    echo 'asCode returns ', var_export($r,true), ' : <code>', htmlentities($h), '<code><br />';
+//    echo '<hr />';
+//}
+//die();
+        
         // Fait un reset sur les ID utilisés
         self::$usedId=array(); // HACK: ne fonctionnera pas avec des fonctions include
         // il ne faudrait faire le reset que si c'est un template de premier niveau (pas un include)
 
-        self::addCodePosition($source);
+        //self::addCodePosition($source);
 //        echo '<pre>';
 //echo (htmlspecialchars($source));        
 //echo '</pre>';
@@ -237,7 +263,6 @@ class TemplateCompiler
         // Lance la compilation
         self::$stack[]=array(self::$loop, self::$opt, self::$env);
         self::$loop=self::$opt=0;
-        self::$env=new TemplateEnvironment($env);
         ob_start();
         if ($xmlDeclaration) echo $xmlDeclaration, "\n";
         self::compileChildren($xml); //->documentElement
@@ -779,7 +804,9 @@ private static $line=0, $column=0;
         switch ($node->nodeType)
         {
             case XML_TEXT_NODE:     // du texte
-                echo self::parseCode($node->nodeValue); // ou textContent ? ou wholeText ? ou data ?
+                $h=$node->nodeValue;
+                self::parse($h);
+                echo $h;
                 return;
 
             case XML_COMMENT_NODE:  // un commentaire
@@ -835,7 +862,7 @@ private static $line=0, $column=0;
         if ($node->hasAttribute('test'))
         {
             $test=$node->getAttribute('test');
-            $canEval=self::parseAttribute($test);
+            $canEval=self::parse($test,true);
 
             // Si le test est évaluable, on teste maintenant
             if ($canEval)
@@ -862,7 +889,7 @@ private static $line=0, $column=0;
         if ($node->hasAttribute('strip'))
         {
             $strip=$node->getAttribute('strip');
-            $canEval=self::parseAttribute($strip);
+            $canEval=self::parse($strip,true);
 
             // Si le strip est évaluable, on teste maintenant
             if ($canEval)
@@ -905,7 +932,8 @@ private static $line=0, $column=0;
                 if ($attribute->value==='') continue;
 
                 ++self::$opt;
-                $value=self::parseCode($attribute->value);
+                $value=$attribute->value;
+                self::parse($value);
                 --self::$opt;
 
                 if ($value==='') continue;
@@ -1176,18 +1204,7 @@ private static $line=0, $column=0;
                     
                 case 'if':
                     $t=self::getAttributes($next, array('test'));
-
-                    $canEval=self::parseAttribute($t['test']);
-
-//                    TemplateCode::parseExpression($t['test'],
-//                                    'handleVariable',
-//                                    array
-//                                    (
-//                                        'setcurrentposition'=>array(__CLASS__,'setCurrentPosition'),
-//                                        'autoid'=>array(__CLASS__,'autoid'),
-//                                        'lastid'=>array(__CLASS__,'lastid')
-//                                    )
-//                    );
+                    $canEval=self::parse($t['test'],true);
                     
                     // Génère le tag et sa condition
                     echo self::PHP_START_TAG, $tag, ' (', $t['test'], '):', self::PHP_END_TAG;
@@ -1237,16 +1254,7 @@ private static $line=0, $column=0;
     {
         // Récupère la condition du switch
         $t=self::getAttributes($node, null, array('test'=>true));
-//        TemplateCode::parseExpression($t['test'],
-//                                    'handleVariable',
-//                                    array
-//                                    (
-//                                        'setcurrentposition'=>array(__CLASS__,'setCurrentPosition'),
-//                                        'autoid'=>array(__CLASS__,'autoid'),
-//                                        'lastid'=>array(__CLASS__,'lastid')
-//                                    )
-//        );
-        $canEval=self::parseAttribute($t['test']);
+        $canEval=self::parse($t['test'],true);
                 
         // Génère le tag et sa condition
         echo self::PHP_START_TAG, 'switch (', $t['test'], '):', "\n";
@@ -1285,16 +1293,7 @@ private static $line=0, $column=0;
                             if (isset($seen[$t['test']]))
                                 throw new Exception('Switch : plusieurs blocs case avec la même condition');
                             $seen[$t['test']]=true;
-                            $canEval=self::parseAttribute($t['test']);
-//                            TemplateCode::parseExpression($t['test'],
-//                                    'handleVariable',
-//                                    array
-//                                    (
-//                                        'setcurrentposition'=>array(__CLASS__,'setCurrentPosition'),
-//                                        'autoid'=>array(__CLASS__,'autoid'),
-//                                        'lastid'=>array(__CLASS__,'lastid')
-//                                    )
-//                            );
+                            $canEval=self::parse($t['test'],true);
                             echo ($first?'':self::PHP_START_TAG.'break;'), 'case ', $t['test'], ':', self::PHP_END_TAG;
                             self::compileChildren($node);
                             break;
@@ -1604,17 +1603,55 @@ echo "Source desindente :\n",  $xml->saveXml($xml), "\n-------------------------
     }
     
     /* ======================== EXPRESSION PARSER ============================= */
-
+    
     /**
-     * @return boolean canEval
+     * Analyse une chaine de caractères contenant à la fois du texte et du code
+     * (variables ou expressions entre accolades).
+     * 
+     * Si asExpression vaut true, la chaine est retournée sous la forme d'une 
+     * expression php dans laquelle le texte statique est convertit en chaine
+     * et concaténé aux expressions figurant dans le code.
+     * 
+     * Si asExpression vaut false, la chaine est retournée sous la forme d'un
+     * code source dans lequel le texte statique est inchangé et les expressions
+     * figurant dans le code sont converties en blocs php contenant un appel à echo.
+     * 
+     * Exemple :
+     * Source analysé     : a $x b {trim('c')} d {trim($x)} e
+     * asExpression=false : a <?php echo $x?> b c d <?php echo trim($x)?> e   
+     * asExpression=true  : 'a '.$x.' b c d '.trim($x).' e'
+     * 
+     * Remarque : si le code contient une expression qui est évaluable (par
+     * exemple trim('c') dans l'exemple ci-dessus), l'expression est remplacée par
+     * le résultat de son évaluation et est ensuite traitée comme s'il s'agissait
+     * de texte statique.
+     * 
+     * @param string & $source la chaine de caractères à analyser
+     * 
+     * @param boolean $asExpression true si le source doit être retourné sous 
+     * la forme d'une expression php, false (valeur par défaut) si l'expression
+     * doit être retournée sous forme de code
+     * 
+     * @return boolean true si l'expression était évaluable, false sinon.
+     * 
+     * La valeur de retour est intéressante lorsque asExpression=true car elle permet à 
+     * l'appelant de savoir qu'il peut faire un eval() sur l'expression obtenue (la 
+     * valeur true retournée signifie que l'expression retournée est une constante :
+     * elle ne contient ni variables ni appels de fonctions).
+     * 
+     * Quand asExpression=false et que la fonction retourne true, cela signifie que le 
+     * code retourné ne contient aucun bloc php, il ne contient que du texte.
      */
-    public static function parseAttribute(& $source)
+    public static function parse( & $source, $asExpression=false)
     {
         // Boucle tant qu'on trouve des choses dans le source passé en paramètre
         $start=0;
         $result='';
         $canEval=true;
         
+        $pieces=array(); // chaque élément est un tableau. 0: flag, true=texte statique, false=code, 1: le bout d'expression
+        $static=false;  // true si le dernier élément ajouté à $pieces était du texte statique
+        $nb=-1;
         for($i=1;;$i++)
         {
             // Recherche la prochaine expression
@@ -1624,9 +1661,11 @@ echo "Source desindente :\n",  $xml->saveXml($xml), "\n-------------------------
             $offset=$match[0][1];
             
             // Envoie le texte qui précède l'expression trouvée
-            if ('' != $text=substr($source, $start, $offset-$start))
-                $result.='.' . var_export(self::unescape($text),true);
-//                $result.=self::unescape($text);
+            if ($offset>$start)
+                if ($static)
+                    $pieces[$nb][1].=self::unescape(substr($source, $start, $offset-$start));
+                else
+                    $pieces[++$nb]=array($static=true,self::unescape(substr($source, $start, $offset-$start)));
                         
             // Enlève les accolades qui entourent l'expression
             if ($expression[0]==='{') $expression=substr($expression, 1, -1);
@@ -1649,13 +1688,17 @@ echo "Source desindente :\n",  $xml->saveXml($xml), "\n-------------------------
                 )
                 {
                     $expression=TemplateCode::evalExpression($expression);
-                    if (! is_null($expression) ) $result.=var_export($expression,true);
+                    if (! is_null($expression) )
+                        if ($static)
+                            $pieces[$nb][1].=$expression;
+                        else
+                            $pieces[++$nb]=array($static=true,$expression);
                 }
                 else
                 {
                     if ($expression !== 'NULL') // le résultat retourné par var_export(null)
                     {
-                        $result.='.' . $expression ;
+                        $pieces[++$nb]=array($static=false,$expression);
                         $canEval=false;
                     }
                 }
@@ -1666,78 +1709,57 @@ echo "Source desindente :\n",  $xml->saveXml($xml), "\n-------------------------
         }
 
         // Envoie le texte qui suit le dernier match 
-        if ('' != $text=substr($source, $start))
-            $result.='.' . var_export(self::unescape($text),true);
-        
-        if ($result==='')
-            $source='""';
-        else
-            $source=substr($result,1);
-        return $canEval;
-    }
-
-    public static function parseCode($source)
-    {
-        // Boucle tant qu'on trouve des choses dans le source passé en paramètre
-        $start=0;
-        $result='';
-        
-        for($i=1;;$i++)
-        {
-            // Recherche la prochaine expression
-            if (preg_match(self::$reCode, $source, $match, PREG_OFFSET_CAPTURE, $start)==0) break;
-            $expression=$match[0][0];
-            $len=strlen($expression);
-            $offset=$match[0][1];
+        if ($start < strlen($source))
+            if ($static)
+                $pieces[$nb][1].=self::unescape(substr($source, $start));
+            else
+                $pieces[++$nb]=array($static=true,self::unescape(substr($source, $start)));
             
-            // Envoie le texte qui précède l'expression trouvée
-            if ('' != $text=substr($source, $start, $offset-$start))
-                $result.=self::unescape($text);
-                        
-            // Enlève les accolades qui entourent l'expression
-            if ($expression[0]==='{') $expression=substr($expression, 1, -1);
-            if (trim($expression) != '')
+        // Génère le résultat
+        $source='';
+        
+        // Sous forme d'expression
+        if ($asExpression)
+        {
+            foreach($pieces as $i=>$piece)
             {
-                // Compile l'expression
-                $canEval=TemplateCode::parseExpression
-                (
-                    $expression, 
-                    'handleVariable', 
-                    array
-                    (
-                        'setcurrentposition'=>array(__CLASS__,'setCurrentPosition'),
-                        'autoid'=>array(__CLASS__,'autoid'),
-                        'lastid'=>array(__CLASS__,'lastid'),
-                    )
-                );
-                
-                if ($canEval)
-                    $result.=TemplateCode::evalExpression($expression);
-                else
+                if($i) $source.='.';
+                if ($piece[0]) 
+                    $source.=var_export($piece[1],true); 
+                else 
+                    $source.=$piece[1];            	
+            }
+        }
+        
+        // Sous forme de code php
+        else
+        {
+            $piece=reset($pieces);
+            while($piece!==false)
+            {
+                if ($piece[0])
+                { 
+                    $source.=$piece[1];
+                    $piece=next($pieces); 
+                }
+                else 
                 {
-                    if ($expression !== 'NULL') // le résultat retourné par var_export(null)
-                    {
-                        // Si on est dans un bloc <opt>...</opt>, génère un appel à filled(x)
-                        if (self::$opt)
-                            $result.=self::PHP_START_TAG . 'echo Template::filled(' . $expression . ')'.self::PHP_END_TAG;
-                            
-                        // sinon, retourne la variable telle quelle
-                        else
-                            $result.=self::PHP_START_TAG . 'echo ' . $expression . self::PHP_END_TAG;
-                    }
+                    $source.=self::PHP_START_TAG.'echo ';
+                    $source.=(self::$opt ? 'Template::filled(' . $piece[1] . ')' : $piece[1]);
+                    while((false !== $piece=next($pieces)) && ($piece[0]===false))
+                        $source.=',' . (self::$opt ? 'Template::filled(' . $piece[1] . ')' : $piece[1]);
+                    $source.=self::PHP_END_TAG;
                 }
             }
-                        
-            // Passe au suivant
-            $start=$offset + $len;
         }
 
-        // Envoie le texte qui suit le dernier match 
-        if ('' != $text=substr($source, $start))
-            $result.=self::unescape($text);
-
-        return $result;
+        return $canEval;
     }
+    
+    /**
+     * @return boolean canEval
+     */
+
     // return true si c'est du code, false sinon
     public static function handleVariable(& $var)
     {
@@ -1763,7 +1785,7 @@ echo "Source desindente :\n",  $xml->saveXml($xml), "\n-------------------------
         $t=self::getAttributes($node, array('values'), null);
         $values=$t['values'];
 
-        $canEval=self::parseAttribute($values);
+        $canEval=self::parse($values,true);
 
         ++self::$fillLevel;
 
@@ -1803,7 +1825,7 @@ echo "Source desindente :\n",  $xml->saveXml($xml), "\n-------------------------
             default:
                 throw new exception(__METHOD__.' appellée pour un tag ' . $node.tagName);
         }
-        $canEval=self::parseAttribute($value);
+        $canEval=self::parse($value,true);
         self::compileElement($node, 'if (isset('.self::$fillVar[self::$fillLevel].'[trim('.$value.')])) echo \' '.$code.'\'');
     }
 
