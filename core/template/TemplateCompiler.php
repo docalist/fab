@@ -567,6 +567,7 @@ private static $matchTemplate=null;
             else
                 $var=self::$matchTemplate->getAttribute($attr);
             
+            // la fonction DOIT retourner de l'ascii, pas de l'utf-8 (cf commentaires dans instantiateMatch)
             $var=utf8_decode($var);
             return false;
         }
@@ -636,7 +637,55 @@ private static $line=0, $column=0;
          Du coup, le replaceData fonctionne correctement...
          
           DM+YL, 06/04/07
+          
+         Précisions (23/04/06, DM+YL+SF)
+         En fait le correctif n'est pas suffisant.
+         - on a le DOM qui est en UTF-8
+         - on décode, pour que le preg_match fonctionne
+         - chaque $x ou {} est évalué.
+         - Le résultat vient de php, donc c'est de l'ansi, donc il faut l'encoder, sinon on va insérer de l'ascii dans de l'utf
+            -> donc on encode systématiquement
+         - Problème : tous les résultats ne viennent pas de php :
+            - s'il s'agit d'un attribut, on retourne la valeur de cet attribut, donc c'est déjà de l'utf8. 
+            Comme on réencode systématiquement, on a un double encodage
+            - si l'expression est un select qui retourne du texte exemple : {select('string(@label)')}, idem
+            -> donc les fonctions handleMatchVar() et select() doivent décoder le résultat, sachant que celui-ci
+            sera ensuite ré encodé avant d'être inséré dans la chaine utf8
+         c'est complètement batard comme code... mais on n'a pas mieux pour le moment
+         
+         source est en utf8
+         (offset,code)=pregmatch(source, '$xx et {}')
+         ->offset sont en octets, pas en utf8
+         result=eval(code)
+         replace(source, code, result)
            
+         source est en utf8
+         (offset,code)=pregmatch(decode(source), '$xx et {}')
+         result=eval(code)
+         replace(source, code, result)
+         -> result est en ascii, on insère de l'ascii dans de l'utf
+
+         source est en utf8
+         (offset,code)=pregmatch(decode(source), '$xx et {}')
+         result=eval(code)
+         replace(source, code, encode(result))
+         -> si result pas en ascii (cas d'un select ou d'un matchVar), double encodage
+
+         source est en utf8
+         (offset,code)=pregmatch(decode(source), '$xx et {}')
+         result=eval(code) // avec hacks dans handleMatchVar et select : retourne decode(result)
+         replace(source, code, encode(result))
+
+--------
+        -> si on inverse la logique (tout convertir en ascii, faire le traitement puis reconvertir tout en utf)
+         convertir source en ascii
+         (offset,code)=pregmatch(source, '$xx et {}')
+         result=eval(code) // avec hacks dans handleMatchVar et select : retourne decode(result) (doivent retourne de l'ascii, pas de l'utf)
+         replace(source, code, result)
+         reconvertir source en utf8
+        -> pas mieux                                                                                                                
+                                                                                                                                    
+
          */
         // Exécute le code présent dans les données du noeud
         if ($node instanceof DOMCharacterData) // #text, #comment... pour les PI :  || $node instanceof DOMProcessingInstruction
@@ -765,7 +814,8 @@ private static $line=0, $column=0;
         self::$selectNodes=null;
 
         // Si le résultat est un scalaire (un entier, une chaine...), on le retourne tel quel
-        if (is_scalar($nodeSet)) return $nodeSet;
+        // la fonction DOIT retourner de l'ascii, pas de l'utf-8 (cf commentaires dans instantiateMatch)
+        if (is_scalar($nodeSet)) return utf8_decode($nodeSet);
 
         // Si le résultat est un ensemble vide, rien à faire
         if ($nodeSet->length==0) return;
