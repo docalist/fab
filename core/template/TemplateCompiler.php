@@ -7,7 +7,12 @@
  * @version     SVN: $Id$
  */
 
-
+//echo "en ISO-8859-1 : Résumé<br />";
+//echo "en UTF-8 : ", utf8_encode('Résumé'), "<br />";
+//echo "double UTF-8 : ", utf8_encode(utf8_encode('Résumé')), "<br />";
+//echo "décodé : ", utf8_decode('Résumé'), "<br />";
+//die();
+//
 require_once(dirname(__FILE__).'/TemplateCode.php');
 require_once(dirname(__FILE__).'/TemplateEnvironment.php');
 
@@ -561,7 +566,8 @@ private static $matchTemplate=null;
             // Sinon on prends la valeur par défaut du template
             else
                 $var=self::$matchTemplate->getAttribute($attr);
-                
+            
+            $var=utf8_decode($var);
             return false;
         }
         
@@ -649,7 +655,7 @@ private static $line=0, $column=0;
                     
                     // Récupère l'expression à exécuter
                     $code=$match[0];
-                    
+
                     // Evalue l'expression
                     self::$selectNodes=null; // si select() est utilisée, on aura en sortie les noeuds sélectionnés
                     $canEval=TemplateCode::parseExpression
