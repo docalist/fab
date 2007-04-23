@@ -164,8 +164,10 @@ class TemplateCompiler
         // Fait un reset sur les ID utilisés
         self::$usedId=array(); // HACK: ne fonctionnera pas avec des fonctions include
         // il ne faudrait faire le reset que si c'est un template de premier niveau (pas un include)
+//echo 'Source avant at<pre>*',htmlentities($source),'*</pre>';
 
-        //self::addCodePosition($source);
+//        self::addCodePosition($source);
+//echo 'Source après at<pre>',htmlentities($source),'</pre>';
 //        echo '<pre>';
 //echo (htmlspecialchars($source));        
 //echo '</pre>';
@@ -265,7 +267,15 @@ class TemplateCompiler
         self::$loop=self::$opt=0;
         ob_start();
         if ($xmlDeclaration) echo $xmlDeclaration, "\n";
-        self::compileChildren($xml); //->documentElement
+        try
+        {
+            self::compileChildren($xml); //->documentElement
+        }
+        catch(Exception $e)
+        {
+            ob_end_clean();
+            throw new Exception('Erreur dans le template : ' . $e->getMessage() . ', ligne '.self::$line . ', colonne '.self::$column);
+        }
         $result=ob_get_clean();
         
         // Fusionne les blocs php adjacents en un seul bloc php  
@@ -339,10 +349,15 @@ class TemplateCompiler
     {
         $lines=explode("\n",$template);
         foreach($lines as $line=> & $text)
+        {
             if (preg_match_all(TemplateCompiler::$reCode, $text, $matches, PREG_PATTERN_ORDER|PREG_OFFSET_CAPTURE)>0)
                 foreach(array_reverse($matches[0]) as $match)
                     $text=substr_replace($text, '{setCurrentPosition('.($line+1).','.($match[1]+1).')}',$match[1],0);   
 
+//            if (preg_match_all('~<([A-Za-z][A-Za-z0-9]*)[^>]*/{0,1}>~', $text, $matches, PREG_PATTERN_ORDER|PREG_OFFSET_CAPTURE)>0)
+//                foreach(array_reverse($matches[0]) as $match)
+//                    $text=substr_replace($text, '{setCurrentPosition('.($line+1).','.($match[1]+1).')}',$match[1],0);   
+        }
         $template=implode("\n", $lines);
     }
     
@@ -667,7 +682,7 @@ private static $line=0, $column=0;
                 	// Remplace l'expression par sa valeur
 //                    echo 'Node before <pre>',$node->nodeValue,'</pre>';
 //                    echo 'replaceData, offset=', $match[1], ', len=', strlen($match[0]), ', replacewith=', $match[2], "\n";
-                    $node->replaceData($match[1], strlen($match[0]), $match[2]);
+                    $node->replaceData($match[1], strlen($match[0]), utf8_encode($match[2]));
 //                    echo 'Node after <pre>',$node->nodeValue,'</pre>';
                     
                     // Si select a été appellée et a retourné des noeuds, on les insère devant l'expression
@@ -1769,9 +1784,7 @@ echo "Source desindente :\n",  $xml->saveXml($xml), "\n-------------------------
         // Teste si c'est une source de données
         $var=self::$env->get($name);
         if ($var === false)
-            throw new Exception("Impossible de compiler le template : la source de données <code>$name</code> n'est pas définie."
-            . 'ligne '.self::$line . ', colonne '.self::$column
-            );
+            throw new Exception("\$$name : variable non définie");
             
         ++self::$nbVar;
         return true;
