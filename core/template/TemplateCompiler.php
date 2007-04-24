@@ -631,6 +631,7 @@ private static $matchTemplate=null;
         }
     }
     
+    // return true si c'est du code, false si c'est une valeur
     public static function handleMatchVar(& $var)
     {
         // Enlève le signe $ de début
@@ -649,6 +650,7 @@ private static $matchTemplate=null;
             
             // la fonction DOIT retourner de l'ascii, pas de l'utf-8 (cf commentaires dans instantiateMatch)
             $var=utf8_decode($var);
+//            echo 'handleMatchVar : ', $attr, '=', $var, '<br />';
             return false;
         }
         
@@ -782,14 +784,15 @@ private static $line=0, $column=0;
                     //    $match[0] = l'expression trouvée
                     //    $match[1] = l'offset de l'expression dans data
                     // on va y ajouter
-                    //    $match[3] = le résultat de l'évaluation de l'expression
-                    //    $match[4] = les noeuds éventuels à insérer devant expression si elle contient un appel à select()
+                    //    $match[2] = le résultat de l'évaluation de l'expression
+                    //    $match[3] = les noeuds éventuels à insérer devant expression si elle contient un appel à select()
                     
                     // Récupère l'expression à exécuter
                     $code=$match[0];
 
                     // Evalue l'expression
                     self::$selectNodes=null; // si select() est utilisée, on aura en sortie les noeuds sélectionnés
+//                    echo 'Code avant parseExpression: ', $code, '<br />';
                     $canEval=TemplateCode::parseExpression
                     (
                         $code, 
@@ -802,8 +805,10 @@ private static $line=0, $column=0;
                             'lastid'=>null,
                         )
                     );
+//                    echo 'Code après parseExpression: ', $code, '<br />';
                     
                     if ($canEval) $code=TemplateCode::evalExpression($code);
+//                    echo 'Code après evalExpression: ', $code, '<br />';
                     
                     // Stocke le résultat
                     $match[2]=$code;
@@ -868,7 +873,6 @@ private static $line=0, $column=0;
         if ($node->hasChildNodes())
             foreach ($node->childNodes as $child)
                 self::instantiateMatch($child);
-
     }
 
     /**
@@ -1386,15 +1390,25 @@ private static $line=0, $column=0;
          */
         $elseAllowed=true;  // Un else ou un elseif sont-ils encore autorisés au stade où on est ?
         $next=$node;
+        $close=false;
+        $done=false;
+        $lastWasFalse=false;
+        $first=true;
         for(;;)
         {
             // Génère le tag
-            switch($tag=$next->tagName)
+            if (!$done) switch($tag=$next->tagName)
             {
                 case 'else':
                     self::getAttributes($next); // aucun attribut n'est autorisé
-                    echo self::PHP_START_TAG, $tag, ':', self::PHP_END_TAG;
+                    if (! $lastWasFalse)
+                    {
+                        echo self::PHP_START_TAG, $tag, ':', self::PHP_END_TAG;
+                        $close=true;
+                    }
                     $elseAllowed=false;
+                    self::compileChildren($next);
+                    
                     break;
 
                 case 'elseif':
@@ -1402,15 +1416,50 @@ private static $line=0, $column=0;
                 case 'if':
                     $t=self::getAttributes($next, array('test'));
                     $canEval=self::parse($t['test'],true);
+                    if ($t['test']=='') $t['test']='false';
+                    $lastWasFalse=false;
                     
-                    // Génère le tag et sa condition
-                    echo self::PHP_START_TAG, $tag, ' (', $t['test'], '):', self::PHP_END_TAG;
+                    // Si le test est évaluable, on teste maintenant
+                    if ($canEval)
+                    {
+                        // on a un if(true)  ou un elseif(true)
+                        if (true==TemplateCode::evalExpression($t['test']))
+                        {
+                            // ne pas générer de condition (si c'est un if, pas de condition, si c'est un elseif, devient un else)
+
+                            if ($close)
+                                echo self::PHP_START_TAG, 'else', ':', self::PHP_END_TAG;
+                                
+                            // Génère le bloc (les fils)
+                            self::compileChildren($next);
+                            $done=true;
+                        }
+                        // on a un if(false)  ou un elseif(false)
+                        else
+                        {
+                        	// ignorer le noeud
+                            // si prochain tag=elseif, générer un if
+                            $lastWasFalse=true;
+                        }
+                        
+                        // Sinon, on génère tout le noeud sans condition
+                        $test='';
+                    }
+
+                    // Sinon, génère le tag et sa condition
+                    else
+                    {
+                        if ($first) $tag='if';
+                        echo self::PHP_START_TAG, $tag, '(', $t['test'], '):', self::PHP_END_TAG;
+                        $first=false;
+                        $close=true;
+                        // Génère le bloc (les fils)
+                        self::compileChildren($next);
+                    }
+
                     break;
             }
                         
-            // Génère le bloc (les fils)
-            self::compileChildren($next);
-
             // Ignore tous les noeuds "vides" qui suivent
             for(;;)
             {
@@ -1431,7 +1480,7 @@ private static $line=0, $column=0;
         }
                 
         // Ferme le dernier tag ouvert
-        echo self::PHP_START_TAG, 'endif;', self::PHP_END_TAG;
+        if ($close) echo self::PHP_START_TAG, 'endif;', self::PHP_END_TAG;
         
         // Supprime tous les noeuds qu'on a traité
         if ($next)

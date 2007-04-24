@@ -165,7 +165,7 @@ class TemplateCode
         // L'évaluation n'a pas généré d'exception, mais si une sortie a été générée (un warning, par exemple), c'est une erreur
         if ($h !=='')
             throw new Exception('Erreur dans l\'expression PHP [ ' . $expression . ' ] : ' . $h);
-            
+//        echo 'eval(', $expression, ') = '; var_dump($result); echo '<br />';
         // Retourne le résultat
         return $result;     
     }
@@ -363,6 +363,7 @@ class TemplateCode
                                 $t=array(array(self::T_CHAR,$var));
                             else
                                 $t=array(array(T_CONSTANT_ENCAPSED_STRING, '\''.addslashes($var). '\'')); 
+//                                $t=array(array(self::T_CHAR,$var));
                         }
                 
                         array_splice($tokens, $index, 1, $t);
