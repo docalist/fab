@@ -1,5 +1,85 @@
 <?php
+/*
+$h='simple texte';
+TemplateCompiler::findCode($h, $matches);
+var_export($matches);
+echo "\n";
+preg_match_all(TemplateCompiler::$reCode, $h, $matches, PREG_OFFSET_CAPTURE);
+var_export($matches[0]);
+echo "\n";
 
+$h='a $x b $y c $z';
+TemplateCompiler::findCode($h, $matches);
+var_export($matches);
+echo "\n";
+preg_match_all(TemplateCompiler::$reCode, $h, $matches, PREG_OFFSET_CAPTURE);
+var_export($matches[0]);
+echo "\n";
+
+$h='$x b $y c $z';
+TemplateCompiler::findCode($h, $matches);
+var_export($matches);
+echo "\n";
+preg_match_all(TemplateCompiler::$reCode, $h, $matches, PREG_OFFSET_CAPTURE);
+var_export($matches[0]);
+echo "\n";
+
+$h='a \$x b \$x c';
+TemplateCompiler::findCode($h, $matches);
+var_export($matches);
+echo "\n";
+preg_match_all(TemplateCompiler::$reCode, $h, $matches, PREG_OFFSET_CAPTURE);
+var_export($matches[0]);
+echo "\n";
+
+$h='a $4 $_$é b';
+TemplateCompiler::findCode($h, $matches);
+var_export($matches);
+echo "\n";
+preg_match_all(TemplateCompiler::$reCode, $h, $matches, PREG_OFFSET_CAPTURE);
+var_export($matches[0]);
+echo "\n";
+
+$h='a {autoId()} b {autoId()} c {autoId()} d';
+TemplateCompiler::findCode($h, $matches);
+var_export($matches);
+echo "\n";
+preg_match_all(TemplateCompiler::$reCode, $h, $matches, PREG_OFFSET_CAPTURE);
+var_export($matches[0]);
+echo "\n";
+
+$h='a $x b {autoId()} c';
+TemplateCompiler::findCode($h, $matches);
+var_export($matches);
+echo "\n";
+preg_match_all(TemplateCompiler::$reCode, $h, $matches, PREG_OFFSET_CAPTURE);
+var_export($matches[0]);
+echo "\n";
+
+$h="a {'{essai}'} b";
+TemplateCompiler::findCode($h, $matches);
+var_export($matches);
+echo "\n";
+preg_match_all(TemplateCompiler::$reCode, $h, $matches, PREG_OFFSET_CAPTURE);
+var_export($matches[0]);
+
+$h='a $x b {autoId()';
+TemplateCompiler::findCode($h, $matches);
+var_export($matches);
+echo "\n";
+preg_match_all(TemplateCompiler::$reCode, $h, $matches, PREG_OFFSET_CAPTURE);
+var_export($matches[0]);
+echo "\n";
+
+
+$h="a {'{test}'} b {\"'{test}\"} c {'{te\'st}'} ";
+TemplateCompiler::findCode($h, $matches);
+var_export($matches);
+preg_match_all(TemplateCompiler::$reCode, $h, $matches, PREG_OFFSET_CAPTURE);
+var_export($matches);
+
+die();
+*/
 /**
  * @package     fab
  * @subpackage  template
@@ -687,13 +767,16 @@ private static $line=0, $column=0;
                                                                                                                                     
 
          */
+        $matches=null;
         // Exécute le code présent dans les données du noeud
         if ($node instanceof DOMCharacterData) // #text, #comment... pour les PI :  || $node instanceof DOMProcessingInstruction
         {
-            if (preg_match_all(self::$reCode, utf8_decode($node->data), $matches, PREG_PATTERN_ORDER|PREG_OFFSET_CAPTURE)>0)
+//            if (preg_match_all(self::$reCode, utf8_decode($node->data), $matches, PREG_PATTERN_ORDER|PREG_OFFSET_CAPTURE)>0)
+            if (self::findCode(utf8_decode($node->data), $matches))
             { 
                 // Evalue toutes les expressions dans l'ordre où elles apparaissent
-                foreach($matches[0] as & $match)
+//                foreach($matches[0] as & $match)
+                foreach($matches as & $match)
                 {
                 	// Initialement, $match contient : 
                     //    $match[0] = l'expression trouvée
@@ -732,7 +815,8 @@ private static $line=0, $column=0;
                 // On travaille en ordre inverse pour deux raisons :
                 // - l'offset de l'expression reste valide jusqu'à la fin
                 // - après un splitText, le noeud en cours ne change pas
-                foreach(array_reverse($matches[0]) as $match)
+//                foreach(array_reverse($matches[0]) as $match)
+                foreach(array_reverse($matches) as $match)
                 {
                 	// Remplace l'expression par sa valeur
 //                    echo 'Node before <pre>',$node->nodeValue,'</pre>';
@@ -1713,6 +1797,87 @@ echo "Source desindente :\n",  $xml->saveXml($xml), "\n-------------------------
      * Quand asExpression=false et que la fonction retourne true, cela signifie que le 
      * code retourné ne contient aucun bloc php, il ne contient que du texte.
      */
+    public static function findCode($source, & $matches, $start=0)
+    {
+//        echo '<hr />Source : <code style="background-color: yellow"><br>',$source,'<br>012345678901234567890123456789</code><br />';
+        
+        $matches=array();
+        $end=$start;
+        for($iii=0;$iii<10;$iii++)
+        {
+            // Recherche la position du prochain '$' ou '{' dans la chaine
+            $start+=$len=strcspn($source, '${', $end);
+
+            // Non trouvé, terminé
+            if ($start >= strlen($source)) break;
+            
+            // Si le caractère est précédé d'un antislah, on l'ignore
+            if ($start>0 && $source[$start-1]==='\\') 
+            {
+                $end=++$start;
+                continue;	
+            } 
+            
+            // Recherche la fin du nom de variable
+            if ($source[$start]==='$')
+            {
+                for($end=$start+1; $end<strlen($source); $end++)
+                	if (! ctype_alnum($source[$end])) break;
+                $code=substr($source, $start, $end-$start);
+                $matches[]=array($code, $start);
+            }
+
+            // Recherche la fin de l'expression
+            else
+            {
+                $curly=1;
+                $quot=false;
+                $apos=false;
+
+                for($end=$start+1; $end<strlen($source); $end++)
+                {
+                    switch ($source[$end])
+                    {
+                    	case '{':
+                            if ($quot or $apos) break;
+                            $curly++;
+                            break;
+                        case '}':
+                            if ($quot or $apos) break;
+                            if ($source[$end-1]==='\\') break;   
+                            $curly--;
+                            if ($curly===0) break 2;
+                            break;
+                        case '"':
+                            if ($apos) break; // un " dans une chaine encadrées de guillemets simples
+                            if ($quot && $source[$end-1]==='\\') break; // \" dans une chaine encadrée de guillemets doubles
+                            $quot=!$quot;
+                            break;
+                        case '\'':
+                            if ($quot) break; // un ' dans une chaine encadrées de guillemets doubles
+                            if ($apos && $source[$end-1]==='\\') break; // \' dans une chaine encadrée de guillemets simples
+                            $apos=!$apos;
+                            break;
+                    }
+                }
+                if ($curly) 
+                    echo 'Erreur : accolade fermante attendue dans l\'expression '.$source, ', curly=', $curly, '<br />';
+                    
+                $code=substr($source, $start, $end-$start+1);
+                $matches[]=array($code, $start);
+            }
+            
+            $start=$end; // += la longueur de l'expression
+        }
+        return count($matches);
+    }
+    
+    public static function parse2($source, $asExpression=true)
+    {
+    	self::parse($source, $asExpression);
+        return $source;
+    }
+    
     public static function parse( & $source, $asExpression=false)
     {
         // Boucle tant qu'on trouve des choses dans le source passé en paramètre
@@ -1723,11 +1888,14 @@ echo "Source desindente :\n",  $xml->saveXml($xml), "\n-------------------------
         $pieces=array(); // chaque élément est un tableau. 0: flag, true=texte statique, false=code, 1: le bout d'expression
         $static=false;  // true si le dernier élément ajouté à $pieces était du texte statique
         $nb=-1;
+        $match=null;
         for($i=1;;$i++)
         {
             // Recherche la prochaine expression
-            if (preg_match(self::$reCode, $source, $match, PREG_OFFSET_CAPTURE, $start)==0) break;
+//            if (preg_match(self::$reCode, $source, $match, PREG_OFFSET_CAPTURE, $start)==0) break;
+            if (self::findCode($source, $match, $start)==0) break;
             $expression=$match[0][0];
+//            echo 'Expression : <code style="background-color: yellow">',$expression,'</code><br />';
             $len=strlen($expression);
             $offset=$match[0][1];
             

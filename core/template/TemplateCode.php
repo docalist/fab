@@ -252,7 +252,7 @@ class TemplateCode
             }
             $tokens=self::tokenize($expression);
         }
-        
+        //self::dumpTokens($tokens);
         // Examine tous les tokens les uns après les autres
         for ($index=0; $index<count($tokens); $index++)
         {
@@ -403,7 +403,8 @@ class TemplateCode
 
                 // Réécriture des chaines à guillemets doubles en chaines simples si elle ne contiennent plus de variables
                 case T_CONSTANT_ENCAPSED_STRING:
-                    $tokens[$index][1]=var_export(substr($token[1], 1, -1),true);
+//                    $tokens[$index][1]=var_export(substr($token[1], 1, -1),true);
+                    $tokens[$index][1]=var_export(self::evalExpression($token[1]), true);
                     break;
                     
                 // Autres tokens autorisés, mais sur lesquels on ne fait rien
