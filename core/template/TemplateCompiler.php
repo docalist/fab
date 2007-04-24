@@ -952,6 +952,7 @@ private static $line=0, $column=0;
             'fill'=>'compileFill',
             'input'=>'compileFillControls',
             'option'=>'compileFillControls',
+            'tag'=>'compileTag',
             'slot'=>'compileSlot'
         );
         
@@ -1009,7 +1010,48 @@ private static $line=0, $column=0;
                 throw new Exception("Impossible de compiler le template : l'arbre obtenu contient un type de noeud non géré ($node->nodeType)");
         }
     }
+    
+    /**
+     * Compile un élément <tag name="">
+     * 
+     * Génère le tag dont le nom est passé en paramètre dans l'attribut name.
+     * Name doit être un nom d'élément valide (que des lettres)
+     * Si name est absent ou est vide, fait la même chose qu'un strip (seul le contenu du
+     * tag est généré)
+     * Si name est une expression, celle-ci doit pouvoir être évaluée à la compilation.
+     */
+    private static function compileTag(DOMElement $node)
+    {
+        if (! $node->hasAttribute('name'))
+            return self::compileChildren($node);
+        
+        $name=$node->getAttribute('name');
+        if ($name==='')
+        	return self::compileChildren($node);
 
+        if (! self::parse($name, true))
+            throw new Exception("L'attribut name d'un élément <tag> doit pouvoir être évalué à la compilation");
+        $name=TemplateCode::evalExpression($name);                
+        $node->removeAttribute('name');
+        try
+        {
+        $newNode=$node->ownerDocument->createElement($name);
+        }
+        catch (Exception $e)
+        {
+        	throw new Exception("Le nom $name indiqué dans l'attribut name de l'élément <tag> n'est pas valide");
+        }
+        if ($node->hasAttributes())
+            foreach ($node->attributes as $key=>$attribute)
+                $newNode->setAttribute($attribute->nodeName, $attribute->nodeValue);
+        
+        if ($node->hasChildNodes())
+            foreach ($node->childNodes as $child)
+                $newNode->appendChild($child->cloneNode(true));
+        
+        self::compileElement($newNode);
+    }
+    
     private static function compileElement(DOMElement $node, $attrPhpCode=null)
     {
         // Gère l'attribut "test" : supprime tout le noeud si l'expression retourne false
@@ -1072,8 +1114,8 @@ private static $line=0, $column=0;
 
         // Génère le début du tag ouvrant
         echo '<', $node->tagName;    // si le tag a un préfixe, il figure déjà dans name (e.g. <test:h1>)
-        if ($node->namespaceURI !== $node->parentNode->namespaceURI)
-            echo ' xmlns="', $node->namespaceURI, '"'; 
+//        if ($node->namespaceURI !== $node->parentNode->namespaceURI)
+//            echo ' xmlns="', $node->namespaceURI, '"'; 
             
         // Accès aux attributs xmlns : cf http://bugs.php.net/bug.php?id=38949
         // apparemment, fixé dans php > 5.1.6, à vérifier

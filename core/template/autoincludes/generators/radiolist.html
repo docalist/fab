@@ -3,12 +3,12 @@
 <!-- TODO: devrait inclure checkbox.html et se construire à partir du générateur de checkbox -->
 
 
-<template match="//radiolist" name="" label="" value="" src="" class="">
+<template match="//radiolist" name="" label="" value="" src="" class="" tag="span">
     <label test="$label" class="radiolist{rtrim(' '.$class)}">$label</label>
     <div class="radiolist{rtrim(' '.$class)}">
-        <fill values="$name">
+<!--        <fill values="$name">-->
             <loop on="$src" as="$line, $record">{select('@*')}
-                <span class="radio{rtrim(' '.$class)}">
+                <tag name="$tag" class="radio{rtrim(' '.$class)}">
                     <input
                         type="radio"
                         name="$name"
@@ -16,9 +16,9 @@
                         class="radio{rtrim(' '.$class)}"
                         id="$name$line" />
                     <label class="radio{rtrim(' '.$class)}" for="$name$line" >{$record['label']}</label>
-                </span>
+                </tag>
+            {select('node()')}
             </loop>
-            {select('.//node()')}
-        </fill>
+<!--        </fill>-->
     </div>
 </template>

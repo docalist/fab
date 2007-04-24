@@ -4,12 +4,12 @@
 
 
 
-<template match="//checklist" name="" label="" src="" class="">
+<template match="//checklist" name="" label="" src="" class="" tag="span">
     <label test="$label" class="checklist{rtrim(' '.$class)}">$label</label>
     <div class="checklist{rtrim(' '.$class)}">
 <!--        <fill values="$name">-->
             <loop on="$src" as="$line, $record">
-                <span class="check{rtrim(' '.$class)}">{select('@*')}
+                <tag name="$tag" class="check{rtrim(' '.$class)}">{select('@*')}
                     <input
                         type="checkbox"
                         name="$name"
@@ -17,9 +17,9 @@
                         class="check{rtrim(' '.$class)}"
                         id="$name$line" />
                     <label class="check{rtrim(' '.$class)}" for="$name$line" >{$record['label']}</label>
-                </span>
+                </tag>
+                {select('.//node()')}
             </loop>
-            {select('.//node()')}
 <!--        </fill>-->
     </div>
 </template>
