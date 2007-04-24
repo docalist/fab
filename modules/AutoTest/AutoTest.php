@@ -79,8 +79,6 @@ class AutoTest extends Module
 
             require_once($path);
             PHPUnit_Util_Filter::addFileToFilter($path);
-
-            //$test=new $class();
             $tests->addTest(new AutoTestSuite($class));
         }    
              
@@ -360,7 +358,7 @@ class AutoTestCase extends PHPUnit_Framework_TestCase
             if (preg_match('~\s*={4,}\s*~s', $data))
                 $data .= "\n--line--\n".($line+2)."\n";
         }
-        $tests=implode("\n",$tests);
+        $tests=implode('',$tests);
         $tests=preg_split('~\s*={4,}\s*~s', $tests);
         
         // Ignore tout ce qui précède la première ligne de séparation des tests
@@ -489,7 +487,7 @@ class AutoTestFile extends AutoTestCase
                     );
                     if (count($diff))
                         $this->fail("Le(s) mot(s) '".implode(', ', $diff)."' ne figure(nt) pas dans le message de l'exception obtenue : ".$e->getMessage());
-
+//echo 'exception obtenue : [', $e->getMessage(), ']', "\n";
                     // Tout est OK
                     return;
                 }
