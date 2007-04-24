@@ -6,7 +6,7 @@ Fichier de test pour les conditions de type 'if' du compilateur de templates
 --test--
 Un bloc if dont la condition vaut false et qui n'a pas de else disparaît.
 --file--
-<if test="false">
+<if test="{false}">
 	Dans le if
 </if>
 --expect--
@@ -24,7 +24,7 @@ Un bloc if dont la condition est une variable valant false et qui n'a pas de els
 --test--
 Un bloc if ayant 2 attributs test génère une exception
 --file--
-<if test="true" test="false">
+<if test="{true}" test="{false}">
 	Test validé
 </if>
 --expect Exception--
@@ -33,10 +33,10 @@ ce n'est pas un fichier xml valide
 --test--
 Un bloc else ayant 1 attribut génère une exception
 --file--
-<if test="false">
+<if test="{false}">
 	Dans le if
 </if>
-<else attr="true">
+<else attr="{true}">
 	Dans le else
 </else>
 --expect Exception--
@@ -45,7 +45,7 @@ attribut interdit
 --test--
 Un bloc if ayant 2 attributs génère une exception
 --file--
-<if test="true" attribut="false">
+<if test="{true}" attribut="{false}">
 	Test validé
 </if>
 --expect Exception--
@@ -54,7 +54,7 @@ attribut interdit
 --test--
 Un bloc if n'ayant pas d'attribut test génère une exception
 --file--
-<if testun="true" testdeux="false">
+<if testun="{true}" testdeux="{false}">
 	Test validé
 </if>
 --expect Exception--
@@ -67,12 +67,12 @@ Un bloc if dont la condition contient une variable inexistante génère une except
 	Dans le if
 </if>
 --expect Exception--
-source de données pas définie
+variable non définie
 ================================================================================
 --test--
 Un bloc if ayant une condition simple évaluée à false et qui n'a pas de else disparaît.
 --file--
-<if test="$varTitorigA === ''">
+<if test="{$varTitorigA === ''}">
 	Dans le if
 </if>
 --expect--
@@ -80,7 +80,7 @@ Un bloc if ayant une condition simple évaluée à false et qui n'a pas de else dis
 --test--
 Un bloc if ayant une condition contenant '&&' évaluée à false et qui n'a pas de else disparaît.
 --file--
-<if test="(16>>4 - 1) * 52 && $varTitorigA != ''">
+<if test="{(16>>4 - 1) * 52 && $varTitorigA != ''}">
 	Dans le if
 </if>
 --expect--
@@ -90,7 +90,7 @@ DM : j'ai ajouté un skip temporaire, me gène pour ce que je fais...
 --test--
 Un bloc if ayant une condition contenant 'and' évaluée à false et qui n'a pas de else disparaît.
 --file--
-<if test="false and ($varTitorigA != '')">
+<if test="{false and ($varTitorigA != '')}">
 	Dans le if
 </if>
 --expect--
@@ -98,7 +98,7 @@ Un bloc if ayant une condition contenant 'and' évaluée à false et qui n'a pas de
 --test--
 Un bloc if ayant une condition contenant un '||' évaluée à false et qui n'a pas de else disparaît.
 --file--
-<if test="false || 0">
+<if test="{false || 0}">
 	Dans le if
 </if>
 --expect--
@@ -106,7 +106,7 @@ Un bloc if ayant une condition contenant un '||' évaluée à false et qui n'a pas 
 --test--
 Un bloc if dont la condition est évaluée à false et qui a un bloc else passe seulement dans le else
 --file--
-<if test="2*3 == 5">
+<if test="{2*3 == 5}">
 	Dans le if
 </if>
 <else>
@@ -118,7 +118,7 @@ Dans le else
 --test--
 Un bloc if sans tag fermant génère une exception
 --file--
-<if test="true">
+<if test="{true}">
 
 
 --expect Exception--
@@ -136,7 +136,7 @@ ce n'est pas un fichier xml valide
 --test--
 Un bloc if/else dont la conditionnelle est évaluée à false ne passe que dans le else
 --file--
-<if test="false">
+<if test="{false}">
 	Dans le if
 </if>
 <else>
@@ -148,7 +148,7 @@ Un bloc if/else dont la conditionnelle est évaluée à false ne passe que dans le 
 --test--
 Un bloc if ayant une branche default (au lieu de else) génère une exception
 --file--
-<if test="false">
+<if test="{false}">
 	Dans le if
 </if>
 <default>
@@ -160,10 +160,10 @@ default isolé
 --test--
 Un bloc if/elseif/else dont les conditions (if et elseif) sont évaluées à false ne passe que dans le else
 --file--
-<if test="false">
+<if test="{false}">
 	Dans le if
 </if>
-<elseif test="$varFalse != 0">
+<elseif test="{$varFalse != 0}">
 	Dans le elseif
 </elseif>
 <else>
@@ -187,7 +187,7 @@ attribut obligatoire
 --test--
 Un bloc de type if/else contenant 2 else génère une exception
 --file--
-<if test="false">
+<if test="{false}">
 </if>
 <else>
 </else>
@@ -199,10 +199,10 @@ doit suivre immédiatement un tag if ou elseif
 --test--
 Un bloc else contenant un test génère une exception
 --file--
-<if test="false">
+<if test="{false}">
 	Dans le if
 </if>
-<else test="true">
+<else test="{true}">
 	Dans le else
 </else>
 --expect Exception--
@@ -215,7 +215,7 @@ Une exception est générée quand un bloc else est situé entre un bloc if et un bl
 </if>
 <else>
 </else>
-<elseif test="true">
+<elseif test="{true}">
 </elseif>
 --expect Exception--
 doit suivre immédiatement un tag if ou elseif
@@ -233,7 +233,7 @@ doit suivre immédiatement un tag if ou elseif
 --test--
 Un bloc if/else dont le tag fermant if est mal placé génère une exception
 --file--
-<if test="true">
+<if test="{true}">
 	Dans le if
 <else>
 </if>
@@ -245,7 +245,7 @@ ce n'est pas un fichier xml valide
 --test--
 Un bloc if ayant un tag strip génère une exception
 --file--
-<if test="true" strip="true">
+<if test="{true}" strip="{true}">
 	Dans le if
 </if>
 --expect Exception--
@@ -254,10 +254,10 @@ attribut interdit
 --test--
 Un bloc elseif ayant un tag strip génère une exception
 --file--
-<if test="false">
+<if test="{false}">
 	Dans le if
 </if>
-<elseif test="true" strip="true">
+<elseif test="{true}" strip="{true}">
 	Dans le elseif
 </elseif>
 --expect Exception--
@@ -266,13 +266,13 @@ attribut interdit
 --test--
 Un bloc else ayant un tag strip génère une exception
 --file--
-<if test="false">
+<if test="{false}">
 	Dans le if
 </if>
-<elseif test="false">
+<elseif test="{false}">
 	Dans le elseif
 </elseif>
-<else strip="true">
+<else strip="{true}">
 	Dans le else
 </else>
 --expect Exception--
@@ -281,13 +281,13 @@ attribut interdit
 --test--
 Un bloc else ayant un tag test et un tag strip génère une exception
 --file--
-<if test="false">
+<if test="{false}">
 	Dans le if
 </if>
-<elseif test="false">
+<elseif test="{false}">
 	Dans le elseif
 </elseif>
-<else test="true" strip="true">
+<else test="{true}" strip="{true}">
 	Dans le else
 </else>
 --expect Exception--

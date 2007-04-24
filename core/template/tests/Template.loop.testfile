@@ -25,7 +25,7 @@ key1 => valeur 1<br />key2 => valeur 2<br />
 Un tag loop peut contenir un tag if
 --file--
 <loop on="$arrayCinq" as="$val">
-	<if test="$val % 2 != 0">
+	<if test="{$val % 2 != 0}">
 		$val est impair<br />
 	</if>
 	<else>
@@ -39,7 +39,7 @@ Un tag loop peut contenir un tag if
 Un tag loop peut contenir un tag switch
 --file--
 <loop on="$arrayCinq" as="$val">
-	<switch test="$val % 2">
+	<switch test="{$val % 2}">
 		<case test="1">$val est impair<br /></case>
 		<case test="0">$val est pair<br /></case>
 	</switch>
@@ -149,7 +149,7 @@ on passe n fois dans la boucle
 --test--
 Un loop avec un attribut test génère une exception
 --file--
-<loop on="$arrayCinq" test="true">
+<loop on="$arrayCinq" test="{true}">
 	$i
 </loop>
 --expect Exception--
@@ -158,7 +158,7 @@ attribut interdit
 --test--
 Un loop avec un attribut strip génère une exception
 --file--
-<loop on="$arrayCinq" strip="true">
+<loop on="$arrayCinq" strip="{true}">
 	$i
 </loop>
 --expect Exception--
@@ -167,7 +167,7 @@ attribut interdit
 --test--
 Un loop avec un attribut test et un attribut strip génère une exception
 --file--
-<loop on="$arrayCinq" test="true" strip="true">
+<loop on="$arrayCinq" test="{true}" strip="{true}">
 	$i
 </loop>
 --expect Exception--
@@ -176,7 +176,7 @@ attributs interdits
 --test--
 Un loop avec pour seuls attributs test et strip génère une exception
 --file--
-<loop test="true" strip="true">
+<loop test="{true}" strip="{true}">
 
 </loop>
 --expect Exception--

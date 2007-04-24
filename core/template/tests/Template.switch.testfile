@@ -7,8 +7,8 @@ Fichier de test pour les switch/case/default du compilateur de templates
 Un switch 'classique' et bien formé fait apparaître seulement la branche dont la condition est évaluée à true
 --file-- 
 <switch test="$varA">
-	<case test="'A'">\$varA vaut A</case>
-	<case test="'B'">\$varA vaut B</case>
+	<case test="A">\$varA vaut A</case>
+	<case test="B">\$varA vaut B</case>
 	<default>\$varA ne vaut ni A, ni B</default>
 </switch>
 --expect--
@@ -18,8 +18,8 @@ $varA vaut A
 Un switch sans attribut test peut être utilisé en lieu et place d'un if/elseif/elseif
 --file--
 <switch>
-	<case test="$varA == 'A'">\$varA vaut A</case>
-	<case test="$varA == 'B'">\$varA vaut B</case>
+	<case test="{$varA == 'A'}">\$varA vaut A</case>
+	<case test="{$varA == 'B'}">\$varA vaut B</case>
 	<default>\$varA ne vaut ni A, ni B</default>
 </switch>
 --expect--
@@ -28,8 +28,8 @@ $varA vaut A
 --test--
 Un switch contenant plusieurs attributs génère une exception
 --file--
-<switch test="$varA" att="true">
-	<case test="'B'">\$varA vaut B</case>
+<switch test="$varA" att="{true}">
+	<case test="B">\$varA vaut B</case>
 	<default>\$varA ne vaut ni A, ni B</default>
 </switch>
 --expect Exception--
@@ -39,7 +39,7 @@ attribut interdit
 Un case contenant plusieurs attributs génère une exception
 --file--
 <switch test="$varA">
-	<case test="'B'" att="true">\$varA vaut B</case>
+	<case test="B" att="{true}">\$varA vaut B</case>
 	<default>\$varA ne vaut ni A, ni B</default>
 </switch>
 --expect Exception--
@@ -49,8 +49,8 @@ attribut interdit
 Un switch dont aucune condition n'est évaluée à true et qui n'a pas de default disparaît
 --file-- 
 <switch test="$varA">
-	<case test="'B'">Vaut B</case>
-	<case test="'C'">Vaut C</case>
+	<case test="B">Vaut B</case>
+	<case test="C">Vaut C</case>
 </switch>
 --expect--
 
@@ -59,8 +59,8 @@ Un switch dont aucune condition n'est évaluée à true et qui n'a pas de default d
 Un switch mal formé (XML non valide v. 1) génère une exception
 --file-- 
 <switch test="$varA">
-	<case test="'B'">Vaut B</case>
-	<case test="'C'">Vaut C
+	<case test="B">Vaut B</case>
+	<case test="C">Vaut C
 </switch>
 --expect Exception--
 ce n'est pas un fichier xml valide
@@ -69,8 +69,8 @@ ce n'est pas un fichier xml valide
 Un switch mal formé (XML non valide v. 2) génère une exception
 --file-- 
 <switch test="$varA">
-	<case test="'B'">Vaut B</case>
-	<case test="'C'">Vaut C
+	<case test="B">Vaut B</case>
+	<case test="C">Vaut C
 </switch></case>
 --expect Exception--
 ce n'est pas un fichier xml valide
@@ -78,8 +78,8 @@ ce n'est pas un fichier xml valide
 --test--
 Un switch mal formé (case sans switch) génère une exception
 --file--
-<case test="'B'">Vaut B</case>
-<case test="'C'">Vaut C</case>
+<case test="B">Vaut B</case>
+<case test="C">Vaut C</case>
 --expect Exception--
 ne peut apparaître que dans un bloc switch
 ================================================================================
@@ -93,7 +93,7 @@ tag default isolé
 --test--
 Un switch mal formé (switch dans un case) génère une exception
 --file--
-<case test="'A'">
+<case test="A">
 	<switch test="$varA">
 	</switch>
 </case>
@@ -123,7 +123,7 @@ default isolé
 Un switch mal formé (contenant un else) génère une exception
 --file-- 
 <switch test="$varA">
-	<case test="'B'">Vaut B</case>
+	<case test="B">Vaut B</case>
 	<else>Cas par défaut</else>
 </switch>
 --expect Exception--
@@ -133,12 +133,12 @@ un switch ne peut pas contenir else
 Un switch imbriqué suit la logique de fonctionnement du switch 'classique'
 --file-- 
 <switch test="$varA">
-	<case test="'B'">\$varA vaut B</case>
-	<case test="'C'">\$varA vaut C</case>
+	<case test="B">\$varA vaut B</case>
+	<case test="C">\$varA vaut C</case>
 	<default>
 		<switch test="$varAut">
-			<case test="'Docteur'">\Docteur</case>
-			<case test="'Spécialiste en santé publique'">Spécialiste</case>
+			<case test="Docteur">\Docteur</case>
+			<case test="Spécialiste en santé publique">Spécialiste</case>
 			<default>indéterminé</default>
 		</switch>
 	</default>
@@ -150,7 +150,7 @@ Spécialiste
 Un switch mal formé (attribut 'test' mal formé) génère une exception
 --file--
 <switch tet="$vAut">
-    <case test="'Valeur 1'">
+    <case test="Valeur 1">
         Dans le premire case
     </case>
 </switch>
@@ -176,14 +176,14 @@ Un switch opérant sur une variable inexistante génère une exception
 	<default>Autre</default>
 </switch>
 --expect Exception--
-source de données n'est pas définie
+variable non définie
 ================================================================================
 --test--
 Un switch ne fait apparaître le contenu que d'une seule branche au maximum
 --file--
 <switch test="$varTrois">
 	<case test="3">Trois</case>
-	<case test="$varTrois &lt; 5">Inférieur à 5</case>
+	<case test="{$varTrois &lt; 5}">Inférieur à 5</case>
 </switch>
 --expect--
 Trois
@@ -256,7 +256,7 @@ switch ne peut pas contenir div
 --test--
 Un switch ayant un attribut strip génère une exception
 --file--
-<switch test="$varA" strip="true">
+<switch test="$varA" strip="{true}">
 	<case test="A">Vaut A</case>
 	<case test="B">Egal à B</case>
 </switch>
@@ -266,7 +266,7 @@ attribut interdit
 --test--
 Un switch ayant un attribut test et un attribut strip génère une exception
 --file--
-<switch test="$varA" strip="true">
+<switch test="$varA" strip="{true}">
 	<case test="A">Vaut A</case>
 	<case test="B">Egal à B</case>
 </switch>
@@ -277,7 +277,7 @@ attribut interdit
 Un case ayant un attribut strip génère une exception
 --file--
 <switch test="$varA">
-	<case strip="true">Vaut A</case>
+	<case strip="{true}">Vaut A</case>
 	<case test="B">Egal à B</case>
 </switch>
 --expect Exception--
@@ -287,7 +287,7 @@ attribut interdit
 Un case ayant un attribut test et un attribut strip génère une exception
 --file--
 <switch test="$varA">
-	<case strip="true" test="A">Vaut A</case>
+	<case strip="{true}" test="A">Vaut A</case>
 	<case test="B">Egal à B</case>
 </switch>
 --expect Exception--
@@ -299,7 +299,7 @@ Un default ayant un attribut test génère une exception
 <switch test="$varA">
 	<case test="B">Egal à B</case>
 	<case test="C">Vaut C</case>
-	<default test="true">Dans le default</default>
+	<default test="{true}">Dans le default</default>
 </switch>
 --expect Exception--
 attribut interdit
@@ -310,7 +310,7 @@ Un default ayant un attribut strip génère une exception
 <switch test="$varA">
 	<case test="B">Egal à B</case>
 	<case test="C">Vaut C</case>
-	<default strip="true">Dans le default</default>
+	<default strip="{true}">Dans le default</default>
 </switch>
 --expect Exception--
 attribut interdit
@@ -321,7 +321,7 @@ Un default ayant un attribut test et un attribut strip génère une exception
 <switch test="$varA">
 	<case test="B">Egal à B</case>
 	<case test="C">Vaut C</case>
-	<default test="true" strip="true">Dans le default</default>
+	<default test="{true}" strip="{true}">Dans le default</default>
 </switch>
 --expect Exception--
 attributs interdits

@@ -142,21 +142,21 @@ ce n'est pas un fichier xml valide
 --test--
 Un bloc opt avec un attribut test génère une exception
 --file--
-<opt test="true">Un peu de texte et une variable : $varA</opt>
+<opt test="{true}">Un peu de texte et une variable : $varA</opt>
 --expect Exception--
 attribut interdit
 ================================================================================
 --test--
 Un bloc opt avec un attribut strip génère une exception
 --file--
-<opt strip="true">Un peu de texte et une variable : $varA</opt>
+<opt strip="{true}">Un peu de texte et une variable : $varA</opt>
 --expect Exception--
 attribut interdit
 ================================================================================
 --test--
 Un bloc opt avec un attribut strip et un attribut test génère une exception
 --file--
-<opt strip="true" test="true">Un peu de texte et une variable : $varA</opt>
+<opt strip="{true}" test="{true}">Un peu de texte et une variable : $varA</opt>
 --expect Exception--
 attributs interdits
 ================================================================================

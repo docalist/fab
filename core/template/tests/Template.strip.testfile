@@ -11,6 +11,7 @@ de ce qu'on veut, il faut écrire strip="{false}"
 <input strip="false" type="text" name="mytext" />
 --expect--
 --comment--
+NB : c'est volontairement que je n'ai pas mis d'accolades autour du false
 strip semble être à false (donc on devrait obtenir tout le input) mais en fait
 la chaine "false" est une chaine non vide donc qui s'évalue à true, donc le tag
 disparaît.

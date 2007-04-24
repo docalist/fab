@@ -12,6 +12,7 @@ de ce qu'on veut, il faut écrire test="{false}"
 --expect--
 <input type="text" name="mytext" />
 --comment--
+NB : c'est volontairement que je n'ai pas mis d'accolades autour du false
 test semble être à false (donc le tag devrait disparaître) mais en fait
 la chaine "false" est une chaine non vide donc qui s'évalue à true, donc le tag
 est conservé.

@@ -100,7 +100,7 @@ Bug du compilateur de templates quand il n'y a rien avant le bloc CDATA
 Un bloc CDATA est rendu tel quel : en revanche, les portions du document qui ne sont pas 
 dans un CDATA sont bien parsées.
 --file--
-<if test="true">
+<if test="{true}">
 	Pas dans le CDATA
 </if>
 <![CDATA[
