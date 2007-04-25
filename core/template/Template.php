@@ -240,7 +240,7 @@ return;
         $caller=dirname(Utils::callerScript()).DIRECTORY_SEPARATOR;
         
         // Recherche le template
-        if (! file_exists($template))
+        if (! file_exists($template)) // TODO: ne pas faire ça en mode normal
         {
             $sav=$template;
             $template=Utils::searchFile
@@ -260,10 +260,28 @@ return;
         // Stocke les sources de données passées en paramètre
         self::$data=func_get_args();
         array_shift(self::$data);
+        
+        $signature='';
+        foreach(self::$data as $data)
+        {
+            if (is_object($data))
+                $signature.='o';
+            elseif (is_string($data))
+                $signature.='f'; 
+            elseif (is_array($data))  
+            {
+                if (is_callable($data))
+                    $signature.='m'; 
+                else
+                    $signature.='a'; 
+            }
+        }
+        
         array_unshift(self::$data,array('this'=>Utils::callerObject(2)));
+        $cachePath=Utils::setExtension($template, $signature . Utils::getExtension($template));
         
         // Compile le template s'il y a besoin
-        if (self::needsCompilation($template))
+        if (self::needsCompilation($template, $cachePath))
         {
             debug && Debug::notice("'%s' doit être compilé", $template);
             
@@ -275,19 +293,18 @@ return;
             debug && Debug::log('Compilation du source');
             require_once dirname(__FILE__) . '/TemplateCompiler.php';
             $source=TemplateCompiler::compile($source, self::$data);
-//echo 'Version compilée :<pre>';
-//echo htmlentities($source);
-//echo '</pre>';
+
 //          if (php_version < 6) ou  if (! PHP_IS_UTF8)
             $source=utf8_decode($source);
+
             // Stocke le template dans le cache et l'exécute
             if (config::get('cache.enabled'))
             {
                 debug && Debug::log("Mise en cache de '%s'", $template);
-                Cache::set($template, $source);
+                Cache::set($cachePath, $source);
                 debug && Debug::log("Exécution à partir du cache");
 
-                require(Cache::getPath($template));
+                require(Cache::getPath($cachePath));
             }
             else
             {
@@ -300,7 +317,7 @@ return;
         else
         {
             debug && Debug::log("Exécution à partir du cache");
-            require(Cache::getPath($template));
+            require(Cache::getPath($cachePath));
         }
 
         // restaure l'état du gestionnaire
@@ -320,7 +337,7 @@ return;
      * 
      * @return boolean vrai si le template doit être recompilé, false sinon.
      */
-    private static function needsCompilation($template /* ... */)
+    private static function needsCompilation($path, $cachePath)
     {
         // Si templates.forceCompile est à true, on recompile systématiquement
         if (Config::get('templates.forcecompile')) return true;
@@ -330,18 +347,16 @@ return;
         
         
         // si le fichier n'est pas encore dans le cache, il faut le générer
-        $mtime=Cache::lastModified($template);
+        $mtime=Cache::lastModified($cachePath);
         if ( $mtime==0 ) return true;
         
         // Si templates.checktime est à false, terminé
         if (! Config::get('templates.checktime')) return false;
 
-        // Compare la date du fichier en cache avec celle de chaque dépendance
-        $argc=func_num_args();
-        for($i=0; $i<$argc; $i++)
-            if ($mtime<=filemtime(func_get_arg($i)) ) return true;
+        // Compare la date du fichier en cache avec celle du fichier original
+        if ($mtime<=filemtime($path) ) return true;
              
-        // Aucune des dépendances n'est plus récente que le fichier indiqué
+        // Le fichier est dans le cache et il est à jour
         return false;
     }
     
