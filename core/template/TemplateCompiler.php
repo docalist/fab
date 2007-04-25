@@ -1950,9 +1950,13 @@ echo "Source desindente :\n",  $xml->saveXml($xml), "\n-------------------------
             // Recherche la fin du nom de variable
             if ($source[$start]==='$')
             {
+                while ($start+1<strlen($source) && $source[$start+1]==='$') $start++;
+                
                 for($end=$start+1; $end<strlen($source); $end++)
-                	if (! ctype_alnum($source[$end])) break;
+                	if (! ctype_alnum($source[$end]) && $source[$end]!='_') break;
                 $code=substr($source, $start, $end-$start);
+                if (! preg_match('~\$[A-Za-z][A-Za-z0-9_]*~', $code))
+                    throw new Exception('Nom de variable incorrect : ' . $code . ' ('.$source.')');
                 $matches[]=array($code, $start);
             }
 
