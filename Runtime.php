@@ -85,16 +85,30 @@ class Runtime
     
     public static $queryString=''; // initialisé par repairgetpost
     
+    // Vérifie qu'on a l'environnement minimum nécessaire à l'exécution de l'application
+    // et que la configuration de php est "correcte"
+    public static function checkRequirements()
+    {
+    	// Options qu'on vérifie mais qu'on ne peut poas modifier (magic quotes, etc...)
+        if (ini_get('short_open_tag'))
+            throw new Exception("Impossible de lancer l'application : l'option 'short_open_tag' de votre fichier 'php.ini' est à 'on'");
+        
+        // Options qu'on peut changer dynamiquement
+        // ini_set('option à changer', 0));
+    }
+    
     /**
      * Initialise et lance l'application
      * @param string $path Path complet du script appellant (utiliser __FILE__)
      */
     public static function setup($env='')
     {
+        self::checkRequirements();
+
 //        xdebug_enable();
 //        xdebug_start_trace('c:/temp/profiles/trace', XDEBUG_TRACE_COMPUTERIZED);
 //        xdebug_start_trace('c:/temp/profiles/trace');
-        self::$env=$env;
+        self::$env=($env=='' ? 'normal' : $env);
 
         //Debug::log('Xdebug is enabled : %s', xdebug_is_enabled()?'true':'false');
          
@@ -356,8 +370,8 @@ $fab_init_time=microtime(true);
             
             // Détermine le path du cache de l'application et de fab
             $path.=DIRECTORY_SEPARATOR.'fabcache'.DIRECTORY_SEPARATOR.$appname;
-            $appPath=$path.DIRECTORY_SEPARATOR.'app';
-            $fabPath=$path.DIRECTORY_SEPARATOR.'fab';
+            $appPath=$path.DIRECTORY_SEPARATOR.self::$env.DIRECTORY_SEPARATOR.'app';
+            $fabPath=$path.DIRECTORY_SEPARATOR.self::$env.DIRECTORY_SEPARATOR.'fab';
             
             // Créée les caches
             if (Cache::addCache(self::$root, $appPath) && Cache::addCache(self::$fabRoot, $fabPath)) 
