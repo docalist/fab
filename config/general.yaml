@@ -61,7 +61,7 @@ templates:
   
   # liste des fichiers à inclure dans le source lors de la compilation d'un template
   autoinclude:
-     - autoroute.html
+#     - autoroute.html
      - generators/button.html
      - generators/checkbox.html
      - generators/checklist.html
@@ -101,7 +101,7 @@ taskmanager:
   # Exemple windows :
   #php: "c:\php-5.1.4-Win32\php.exe"
   # Exemple linux :
-  php: /usr/local/bin/php
+  php: /usr/bin/php5
   
   # options éventuelles à passer à l'exécutable php
   phpargs: "-C"

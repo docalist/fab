@@ -1014,6 +1014,19 @@ private static $line=0, $column=0;
                 throw new Exception("Impossible de compiler le template : l'arbre obtenu contient un type de noeud non géré ($node->nodeType)");
         }
     }
+
+    private static function route($value)
+    {
+        $canEval=self::parse($value,true);
+
+        // Si l'expression est évaluable, on fait le routage à la compilation (requiert de recompiler les templates si on change les routes)
+        if ($canEval)
+            return Routing::linkFor(TemplateCode::evalExpression($value));
+        
+        // Sinon, le routage sera déterminé à l'exécution
+        else
+            return self::PHP_START_TAG .'echo Routing::linkFor('.$value.')' . self::PHP_END_TAG;
+    }
     
     /**
      * Compile un élément <tag name="">
@@ -1058,6 +1071,20 @@ private static $line=0, $column=0;
     
     private static function compileElement(DOMElement $node, $attrPhpCode=null)
     {
+        // liste des attributs pour lesquels il faut appliquer le routage (Routing::linkFor)
+        // Pour chaque tag, on a un tableau contenant la liste des attributs à router
+        static $attrToRoute=array
+        (
+            'a'         => array('href'=>true),
+            'img'       => array('src'=>true),
+            'form'      => array('action'=>true),
+            'frame'     => array('src'=>true),
+            'iframe'    => array('src'=>true),
+            'link'      => array('href'=>true),
+            'script'    => array('src'=>true),
+            'link'      => array('href'=>true),
+        );
+        
         // Gère l'attribut "test" : supprime tout le noeud si l'expression retourne false
         $test='';
         if ($node->hasAttribute('test'))
@@ -1115,9 +1142,10 @@ private static $line=0, $column=0;
             $node->removeAttribute('strip');
         }
 
+        $name=$node->tagName;
 
         // Génère le début du tag ouvrant
-        echo '<', $node->tagName;    // si le tag a un préfixe, il figure déjà dans name (e.g. <test:h1>)
+        echo '<', $name;    // si le tag a un préfixe, il figure déjà dans name (e.g. <test:h1>)
 //        if ($node->namespaceURI !== $node->parentNode->namespaceURI)
 //            echo ' xmlns="', $node->namespaceURI, '"'; 
             
@@ -1130,25 +1158,35 @@ private static $line=0, $column=0;
             $flags=0;
             foreach ($node->attributes as $key=>$attribute)
             {
-                if ($attribute->value==='') continue;
-
-                ++self::$opt;
                 $value=$attribute->value;
-                self::parse($value);
-                --self::$opt;
-
-                if ($value==='') continue;
-                $quot=(strpos($value,'"')===false) ? '"' : "'";
+                if ($value ==='') continue;
+                $attr=$attribute->nodeName;
                 
-                // Si l'attribut ne contient que des variables (pas de texte), il devient optionnel
-                if ($flags===2)
+                // Teste si ce tag contient des attributs qu'il faut router
+                if (isset($attrToRoute[$name]) && isset($attrToRoute[$name][$attr]) && (substr($value, 0, 1) === '/'))
                 {
-                    echo self::PHP_START_TAG, 'Template::optBegin()', self::PHP_END_TAG;
-                    echo ' ', $attribute->nodeName, '=', $quot, $value, $quot;
-                    echo self::PHP_START_TAG, 'Template::optEnd()', self::PHP_END_TAG; 
+                    $value=self::route($value);
+                    echo ' ', $attr, '="', $value, '"';
                 }
                 else
-                    echo ' ', $attribute->nodeName, '=', $quot, $value, $quot;
+                {
+                    ++self::$opt;
+                    self::parse($value);
+                    --self::$opt;
+    
+                    if ($value==='') continue;
+                    $quot=(strpos($value,'"')===false) ? '"' : "'";
+                    
+                    // Si l'attribut ne contient que des variables (pas de texte), il devient optionnel
+                    if ($flags===2)
+                    {
+                        echo self::PHP_START_TAG, 'Template::optBegin()', self::PHP_END_TAG;
+                        echo ' ', $attr, '=', $quot, $value, $quot;
+                        echo self::PHP_START_TAG, 'Template::optEnd()', self::PHP_END_TAG; 
+                    }
+                    else
+                        echo ' ', $attribute->nodeName, '=', $quot, $value, $quot;
+                }
             }
         }
         if (!is_null($attrPhpCode))
@@ -1174,7 +1212,7 @@ private static $line=0, $column=0;
                 echo self::PHP_START_TAG, "if ($keepTag):",self::PHP_END_TAG;
                 self::$env->freeTemp($keepTag);
             }
-            echo '</', $node->tagName, '>';
+            echo '</', $name, '>';
             if ($strip !== '')                     
                 echo self::PHP_START_TAG, 'endif;',self::PHP_END_TAG;
         }
