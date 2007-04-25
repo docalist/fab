@@ -1171,7 +1171,7 @@ private static $line=0, $column=0;
                 else
                 {
                     ++self::$opt;
-                    self::parse($value);
+                    self::parse($value,false,$flags);
                     --self::$opt;
     
                     if ($value==='') continue;
@@ -2001,13 +2001,8 @@ echo "Source desindente :\n",  $xml->saveXml($xml), "\n-------------------------
         return count($matches);
     }
     
-    public static function parse2($source, $asExpression=true)
-    {
-    	self::parse($source, $asExpression);
-        return $source;
-    }
-    
-    public static function parse( & $source, $asExpression=false)
+    // retourne flags : 0=que du texte, 1=texte+code, 2=que du code
+    public static function parse( & $source, $asExpression=false, & $flags=null)
     {
         // Boucle tant qu'on trouve des choses dans le source passé en paramètre
         $start=0;
@@ -2018,6 +2013,10 @@ echo "Source desindente :\n",  $xml->saveXml($xml), "\n-------------------------
         $static=false;  // true si le dernier élément ajouté à $pieces était du texte statique
         $nb=-1;
         $match=null;
+
+        $hasCode=false;
+        $hasText=false;
+        
         for($i=1;;$i++)
         {
             // Recherche la prochaine expression
@@ -2030,11 +2029,14 @@ echo "Source desindente :\n",  $xml->saveXml($xml), "\n-------------------------
             
             // Envoie le texte qui précède l'expression trouvée
             if ($offset>$start)
+            {
+                $hasText=true;
                 if ($static)
                     $pieces[$nb][1].=self::unescape(substr($source, $start, $offset-$start));
                 else
                     $pieces[++$nb]=array($static=true,self::unescape(substr($source, $start, $offset-$start)));
-                        
+            }
+            
             // Enlève les accolades qui entourent l'expression
             if ($expression[0]==='{') $expression=substr($expression, 1, -1);
             if (trim($expression) != '')
@@ -2057,15 +2059,19 @@ echo "Source desindente :\n",  $xml->saveXml($xml), "\n-------------------------
                 {
                     $expression=TemplateCode::evalExpression($expression);
                     if (! is_null($expression) )
+                    {
+                        $hasText=true;
                         if ($static)
                             $pieces[$nb][1].=$expression;
                         else
                             $pieces[++$nb]=array($static=true,$expression);
+                    }
                 }
                 else
                 {
                     if ($expression !== 'NULL') // le résultat retourné par var_export(null)
                     {
+                        $hasCode=true;
                         $pieces[++$nb]=array($static=false,$expression);
                         $canEval=false;
                     }
@@ -2078,10 +2084,13 @@ echo "Source desindente :\n",  $xml->saveXml($xml), "\n-------------------------
 
         // Envoie le texte qui suit le dernier match 
         if ($start < strlen($source))
+        {
+            $hasText=true;
             if ($static)
                 $pieces[$nb][1].=self::unescape(substr($source, $start));
             else
                 $pieces[++$nb]=array($static=true,self::unescape(substr($source, $start)));
+        }
             
         // Génère le résultat
         $source='';
@@ -2120,6 +2129,10 @@ echo "Source desindente :\n",  $xml->saveXml($xml), "\n-------------------------
                 }
             }
         }
+        
+        // Positionne les flags en fonction de ce qu'on a trouvé
+        // flags : 0=que du texte, 1=texte+code, 2=que du code
+        $flags=($hasCode ? ($hasText ? 1 : 2): 0);
 
         return $canEval;
     }
