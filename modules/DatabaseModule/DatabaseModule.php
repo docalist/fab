@@ -85,7 +85,13 @@ class DatabaseModule extends Module
         {
 //            echo 'Avant search<br />';
             // TODO: ne pas passer directement $_REQUEST
-            $result=$this->selection->search($equation, $_REQUEST);
+            $options=array
+            (
+                '_sort'  => Utils::get($_REQUEST['_sort'], Config::get('sort','+')),
+                '_start' => Utils::get($_REQUEST['_start'], 1),
+                '_max'   => Utils::get($_REQUEST['_max'], Config::get('max',10)),
+            );
+            $result=$this->selection->search($equation, $options);
 //            echo 'Après search<br />';
 //            echo is_null($this->selection) ? 'NULL' : 'NOT NULL';
 //            die();

@@ -22,4 +22,9 @@ rawDBOutput:
 #save:
 #    template: saved.html
 	
-    
+# options pour l'action Search 
+# peuvent être changées dans le module descendant ou en spécifiant
+# _max et _sort dans les paramètres de l'url appellant l'action search
+search:
+    sort: "+"      # ordre de tri par défaut
+    max: 10        # nombre maximum de réponses par page par défaut
