@@ -1,0 +1,20 @@
+# Fichier de configuration du module CartModule
+
+# Intérêt de définir le nom du panier dans la config ?
+#name: selection
+
+add:
+  sessions:
+    use: true
+
+remove:
+  sessions:
+    use: true
+
+clear:
+  sessions:
+    use: true
+
+show:
+  sessions:
+    use: true
