@@ -288,7 +288,8 @@ class Runtime
         // TODO: écrire un class manager pour ne pas inclure systématiquement tout (voir du coté du gestionnaire de modules)
         require_once self::$fabRoot.'core/database/Database.php';
         require_once self::$fabRoot.'modules'.DIRECTORY_SEPARATOR.'DatabaseModule/DatabaseModule.php';
-
+		require_once self::$fabRoot.'modules'.DIRECTORY_SEPARATOR.'CartModule/CartModule.php';
+		
         require_once self::$fabRoot.'modules'.DIRECTORY_SEPARATOR.'TaskManager/TaskManager.php';
         require_once self::$fabRoot.'core/helpers/TextTable/TextTable.php';
 
