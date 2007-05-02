@@ -1862,28 +1862,92 @@ echo "Source desindente :\n",  $xml->saveXml($xml), "\n-------------------------
         self::$env->freeTemp($valueReal);
     }
 
+/*
+  
+On peut avoir :
+
+- Un slot vide :
+    <slot name="toto" />
+
+- Un slot avec un contenu initial fixé en dur :
+    <slot name="toto">
+        bla bla
+    </slot>
+
+- Un slot avec un contenu initial provenant d'un autre template :
+    <slot name="toto" file="menu.html" />
+
+- Un slot avec un contenu provenant d'un module action :
+    <slot name="toto" action="/base/search" max="10" sort="-" cart="{$this->getCart()}">
+        bla bla
+    </slot>
+    
+Un slot peut avoir les attributs standard "test" et "strip". Ils sont définis et gérés de façon
+"absolue", c'est à dire que même si le contenu du slot change, les conditions restent (en fait, elles
+sont évaluées avant même qu'on commence à essayer d'exécuter le slot)
+
+Code de compilation :
+- récupérer name, exception si absent ou vide
+- parser sous forme d'expression php
+- générer :
+    - si le noeud a des fils non vide :
+        - php if (runSlot($name)) /php
+        - contenu du noeud (compileChildrend())
+        - php endif /php
+    - sinon
+        - php runSlot($name) /php
+
+Fonctionnement de runSlot :
+Dans la config, on a les définitions des slots :
+    - slots:
+        - footer:
+            enabled: true
+            file: sidebar.tml
+        - sidebar:
+            enabled: true
+            action: /blog/recent
+            
+runSlot examine la config en cours pour savoir s'il faut examiner le noeud ou pas.
+si enabled=false : return false (ne pas exécuter le slot, ne pas afficher le contenu par défaut)
+si file="" et action="" return true (afficher le contenu par défaut du slot)
+si file : Template::Run(file, currentdatasources)
+sinonsi action : Routing::dispatch(action, currentdatasource) 
+runSlot retourne true s'il faut afficher le contenu par défaut du noeud
+return false (ne pas afficher le contenu par défaut)
+
+*/    
     private static function compileSlot($node)
     {
         // Récupère le nom du slot
         if (($name=$node->getAttribute('name')) === '')
             throw new Exception("Tag slot incorrect : attribut 'name' manquant");
+        self::parse($name, true);
+        
+        // Vérifie que le slot ne spécifie pas à la fois une action et un contenu par défaut
+        if ($node->hasAttribute('action') && $node->hasChildNodes())
+            throw new Exception('Un tag slot peut spécifier soit une action soit un contenu par défaut mais pas les deux');
 
-        // Récupère l'action par défaut (optionnel)
-        if (($default=$node->getAttribute('default')) !== '')
-            TemplateCode::parseExpression($default,
-                                    'handleVariable',
-                                    array
-                                    (
-                                        'setcurrentposition'=>array(__CLASS__,'setCurrentPosition'),
-                                        'autoid'=>array(__CLASS__,'autoid'),
-                                        'lastid'=>array(__CLASS__,'lastid')
-                                    )
-            );
+        // Récupère l'action par défaut
+        $action=$node->getAttribute('action');
+        if ($action==='') $action="''"; else self::parse($action, true);
 
-        echo self::PHP_START_TAG, "Template::runSlot('",addslashes($name), "'";
-        if ($default !== '') echo ",'",addslashes($default),"'";
-        echo ");", self::PHP_END_TAG;
+//        // Récupère l'attribut enabled
+//        $enabled=$node->getAttribute('enabled');
+//        if ($enabled==='') $enabled='true'; else self::parse($enabled, true);
 
+        // Génère le code 
+        if ($node->hasChildNodes())
+        {
+//            echo self::PHP_START_TAG, 'if(Template::runSlot(',$name, ',', $action, ',', $enabled, ')){', self::PHP_END_TAG;
+            echo self::PHP_START_TAG, 'if(Template::runSlot(',$name, ',', $action, ')){', self::PHP_END_TAG;
+            self::compileChildren($node);
+            echo self::PHP_START_TAG, '}', self::PHP_END_TAG;
+        }
+        else
+        {
+//            echo self::PHP_START_TAG, 'Template::runSlot(',$name, ',', $action, ',', $enabled, ')', self::PHP_END_TAG;
+            echo self::PHP_START_TAG, 'Template::runSlot(',$name, ',', $action, ')', self::PHP_END_TAG;
+        }
     }
     
     /* ======================== EXPRESSION PARSER ============================= */

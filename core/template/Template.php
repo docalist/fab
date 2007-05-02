@@ -430,17 +430,35 @@ return;
         self::$data             =$t['data'];
     }
 
-    public static function runSlot($slotName, $defaultAction='')
+/*
+runSlot examine la config en cours pour savoir s'il faut examiner le noeud ou pas.
+si enabled=false : return false (ne pas exécuter le slot, ne pas afficher le contenu par défaut)
+si file="" et action="" return true (afficher le contenu par défaut du slot)
+si file : Template::Run(file, currentdatasources)
+sinonsi action : Routing::dispatch(action, currentdatasource) 
+runSlot retourne true s'il faut afficher le contenu par défaut du noeud
+return false (ne pas afficher le contenu par défaut)
+*/
+    public static function runSlot($name, $defaultAction='')
     {
-        debug && Debug::log('Exécution du slot %s', $slotName);
-        if ('' === $action=Config::get('slot.'.$slotName, $defaultAction)) 
+        echo "Début d'exécution du slot $name, action par défaut : $defaultAction<br />"; 
+        $action=Config::get("slots.$name", $defaultAction);
+        echo "Action à exécuter : $action<br />";
+        if ($action==='') 
         {
-            debug && Debug::log('Exécution du slot %s : aucune action définie', $slotName);
-            return;	
+            echo "contenu par défaut\n";
+            debug && Debug::log('slot %s : affichage du contenu par défaut', $name);
+            return true;	
         }
-        
-        debug && Debug::log('Exécution du slot %s : %s', $slotName, $action);
+        if ($action==='none') 
+        {
+            echo 'désactivé<br />';
+            debug && Debug::log('slot %s désactivé', $name);
+        	return false;
+        }
+        debug && Debug::log('slot %s : %s', $name, $action);
         Routing::dispatch($action);
+        return false;
     }    
 }
 
