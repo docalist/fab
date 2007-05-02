@@ -1922,6 +1922,7 @@ return false (ne pas afficher le contenu par défaut)
         if (($name=$node->getAttribute('name')) === '')
             throw new Exception("Tag slot incorrect : attribut 'name' manquant");
         self::parse($name, true);
+        $node->removeAttribute('name');
         
         // Vérifie que le slot ne spécifie pas à la fois une action et un contenu par défaut
         if ($node->hasAttribute('action') && $node->hasChildNodes())
@@ -1930,23 +1931,33 @@ return false (ne pas afficher le contenu par défaut)
         // Récupère l'action par défaut
         $action=$node->getAttribute('action');
         if ($action==='') $action="''"; else self::parse($action, true);
+        $node->removeAttribute('action');
 
-//        // Récupère l'attribut enabled
-//        $enabled=$node->getAttribute('enabled');
-//        if ($enabled==='') $enabled='true'; else self::parse($enabled, true);
-
+        if ($node->hasAttributes())
+        {
+            $args='array(';
+            foreach($node->attributes as $attribute)
+            {
+                $value=$attribute->value;
+                self::parse($value,true);
+                $args.='\'' . $attribute->nodeName . '\'=>' . $value . ',';
+            }
+            $args=rtrim($args,',');
+            $args.=')';
+        }
+        else
+            $args='null';
+        
         // Génère le code 
         if ($node->hasChildNodes())
         {
-//            echo self::PHP_START_TAG, 'if(Template::runSlot(',$name, ',', $action, ',', $enabled, ')){', self::PHP_END_TAG;
-            echo self::PHP_START_TAG, 'if(Template::runSlot(',$name, ',', $action, ')){', self::PHP_END_TAG;
+            echo self::PHP_START_TAG, 'if(Template::runSlot(',$name, ',', $action, ',', $args, ')){', self::PHP_END_TAG;
             self::compileChildren($node);
             echo self::PHP_START_TAG, '}', self::PHP_END_TAG;
         }
         else
         {
-//            echo self::PHP_START_TAG, 'Template::runSlot(',$name, ',', $action, ',', $enabled, ')', self::PHP_END_TAG;
-            echo self::PHP_START_TAG, 'Template::runSlot(',$name, ',', $action, ')', self::PHP_END_TAG;
+            echo self::PHP_START_TAG, 'Template::runSlot(',$name, ',', $action, ',', $args, ')', self::PHP_END_TAG;
         }
     }
     

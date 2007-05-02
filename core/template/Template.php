@@ -446,24 +446,32 @@ sinonsi action : Routing::dispatch(action, currentdatasource)
 runSlot retourne true s'il faut afficher le contenu par défaut du noeud
 return false (ne pas afficher le contenu par défaut)
 */
-    public static function runSlot($name, $defaultAction='')
+    public static function runSlot($name, $defaultAction='', array $args=null)
     {
-        echo "Début d'exécution du slot $name, action par défaut : $defaultAction<br />"; 
+//        echo "Début d'exécution du slot $name, action par défaut : $defaultAction, args=", var_export($args,true),"<br />";
         $action=Config::get("slots.$name", $defaultAction);
-        echo "Action à exécuter : $action<br />";
+//        echo "Action à exécuter : $action<br />";
         if ($action==='') 
         {
-            echo "contenu par défaut\n";
+//            echo "contenu par défaut\n";
             debug && Debug::log('slot %s : affichage du contenu par défaut', $name);
             return true;	
         }
         if ($action==='none') 
         {
-            echo 'désactivé<br />';
+//            echo 'désactivé<br />';
             debug && Debug::log('slot %s désactivé', $name);
         	return false;
         }
         debug && Debug::log('slot %s : %s', $name, $action);
+
+        if (!is_null($args))
+        {
+            if (Utils::isGet()) $t=& $_GET; else $t=& $_POST;
+
+            foreach ($args as $argName=>$argValue)
+                $t[$argName]=$_REQUEST[$argName]=$argValue;
+        }         
         Routing::dispatch($action);
         return false;
     }    
