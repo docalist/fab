@@ -236,22 +236,29 @@ return;
         // Sauvegarde l'état
         self::saveState();
 
-        // Détermine le path du répertoire du script qui nous appelle
-        $caller=dirname(Utils::callerScript()).DIRECTORY_SEPARATOR;
-        
-        // Recherche le template
-        if (! file_exists($template)) // TODO: ne pas faire ça en mode normal
+        if (Utils::isRelativePath($template))
         {
             $sav=$template;
-            $template=Utils::searchFile
-            (
-                $template,                          // On recherche le template :
-                $caller,                            // 2. dans le répertoire du script appellant
-                $parentDir
-            );
-            if (! $template) 
-                throw new Exception("Impossible de trouver le template $sav");
+            $template=Utils::searchFile($template);
+            if ($template===false) 
+                throw new Exception("Impossible de trouver le template $sav. searchPath=".print_r(Utils::$searchPath, true));
         }
+//        // Détermine le path du répertoire du script qui nous appelle
+//        $caller=dirname(Utils::callerScript()).DIRECTORY_SEPARATOR;
+//        
+//        // Recherche le template
+//        if (! file_exists($template)) // TODO: ne pas faire ça en mode normal
+//        {
+//            $sav=$template;
+//            $template=Utils::searchFile
+//            (
+//                $template,                          // On recherche le template :
+//                $caller,                            // 2. dans le répertoire du script appellant
+//                $parentDir
+//            );
+//            if (! $template) 
+//                throw new Exception("Impossible de trouver le template $sav");
+//        }
 
         // Stocke le path du template
         debug && Debug::log("Path du template : '%s'", $template);

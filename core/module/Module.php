@@ -80,6 +80,8 @@ class Module
             // Applique la config du module (le tableau temporaire) à la config en cours
             //debug && Debug::log('Application de la configuration du module %s', $module);
             Config::addArray($tempConfig);
+            Utils::addSearchPath($dir);        
+            
         }
 
         if (! empty($action))
@@ -127,6 +129,9 @@ class Module
             self::loadConfigRecurse($parent);
         }
         $dir=dirname($class->getFileName()).DIRECTORY_SEPARATOR;
+        
+        Utils::addSearchPath($dir);        
+        
         $noConfig=true;
         if (file_exists($path=$dir.'config.yaml'))
         {
@@ -167,6 +172,7 @@ class Module
      */
     public static function run()
     {
+        Utils::clearSearchPath();
         self::loadModule
         (
             $_REQUEST['module'], 
@@ -195,8 +201,10 @@ class Module
     {
     }	
     
+    static $layoutSent=false;
     public final function execute()
     {
+        
         debug && Debug::log('Exécution de %s', get_class($this));
 
         // Pré-exécution   
@@ -231,6 +239,15 @@ class Module
         if (Config::get('sessions.use'))
             Runtime::startSession();
             
+        if (self::$layoutSent)
+        {
+            $method=$this->method;
+            debug && Debug::log('Appel de la méthode %s->%s()', get_class($this), $method);
+            $this->$method();
+            return;
+        }   
+        self::$layoutSent=true;
+             
         // Détermine le thème et le layout à utiliser
         $theme='themes' . DIRECTORY_SEPARATOR . Config::get('theme') . DIRECTORY_SEPARATOR;
         $defaultTheme='themes' . DIRECTORY_SEPARATOR . 'default' . DIRECTORY_SEPARATOR;

@@ -285,9 +285,24 @@ final class Utils
             if ($path=realpath(rtrim($dir,'/\/').DIRECTORY_SEPARATOR.$file)) 
                 return $path;
         }
+
+        foreach(self::$searchPath as $dir)
+            if ($path=realpath($dir.DIRECTORY_SEPARATOR.$file)) 
+                return $path;
         return false;
     }
 
+    static $searchPath=array();
+    public static function clearSearchPath()
+    {
+    	self::$searchPath=array();
+//        echo 'Reset searchPath <br />';
+    }
+    public static function addSearchPath($path)
+    {
+    	array_unshift(self::$searchPath,$path);
+//        echo "<pre>add searchPath $path array=", var_export(self::$searchPath,true), '</pre><br />';
+    }
     
     /**
      * Recherche un fichier dans une liste de répertoires, sans tenir compte de la
