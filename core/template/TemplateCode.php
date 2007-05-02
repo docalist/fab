@@ -606,7 +606,7 @@ class TemplateCode
             ));
             $runtimeFunctions=array_flip(array
             (
-                'array', 'range','extension_loaded',
+                'array', 'range','extension_loaded','array_keys',
             ));
         }
 
