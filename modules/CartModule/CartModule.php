@@ -38,7 +38,7 @@ class CartModule extends Module
 		$item=Utils::get($_REQUEST['item']);
 		
 		// Ajoute l'item au panier
-		(is_null($category)) ? $this->add($item, $key) : $this->add($item, $key, $category); // TODO: test inutile, add le fait
+		$this->add($item, $key, $category);
 		
 		echo'<pre>';
 		print_r($this->cart);
@@ -78,7 +78,7 @@ class CartModule extends Module
 		
 		// Supprime l'item du panier
 		// TODO : Si plus rien dans la catégorie, supprimer la catégorie ?
-		(is_null($category)) ? $this->remove($key) : $this->remove($key, $category); // TODO: test inutile, remove le fait
+		$this->remove($key, $category);
 		
 		// Détermine le callback à utiliser
 		$callback=Config::get('callback');
@@ -125,19 +125,14 @@ class CartModule extends Module
 	}
 	
 	/**
-	 * Crée ou charge le panier
+	 * Crée, ou charge s'il existe déjà, le panier indiqué dans la configuration
+     * Le panier sera automatiquement enregistré à la fin de la requête en cours.
 	 */
 	private function getCart()
 	{
 		// Récupère le nom du panier
-		// TODO : récupérer le nom du module = nom du panier
-		// TODO : Intérêt à mettre le nom du panier en config ?
-		$name='panier'; // plutôt 'cart'
-        //$name=Config::get('cart.name', 'cart');
-        
-//		if (! $name=Config::get('name'))
-//			throw new Exception('Le nom du panier n\'a pas été indiqué dans le fichier de configuration.');
-
+		$name=Config::get('name', 'cart');
+		
         // Crée le panier s'il n'existe pas déjà dans la session
         if (!isset($_SESSION[$name])) 
             $_SESSION[$name]=array();
