@@ -165,6 +165,7 @@ class CartModule extends Module
      * Si une catégorie est précisée en paramètre, supprime, de la catégorie 'category'
      * l'élément associé à la clé key passée en paramètre.
      * Sinon, supprime l'élément associé à la clé key passée en paramètre.
+     * Supprime la catégorie, si elle ne contient plus d'élément.
      * remarque : Aucune erreur n'est générée si l'item ne figure pas dans le
      * panier
 	 *
@@ -175,10 +176,18 @@ class CartModule extends Module
     public function remove($key, $category=null)
     {
         if (is_int($key) || ctype_digit($key)) $key=(int)$key;
+        
+        // Supprime l'élément du panier
         if (is_null($category))
         	unset($this->cart[$key]);
         else
+        {
         	unset($this->cart[$category][$key]);
+
+	        // Si plus d'élément dans la catégorie, supprime la catégorie
+			if (count($this->cart[$category]) == 0)
+				unset($this->cart[$category]);        	
+        }
     }
 
     /**
