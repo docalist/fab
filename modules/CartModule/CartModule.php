@@ -13,9 +13,14 @@
  */
 class CartModule extends Module
 {
-	
 	public $cart=array();
-	
+    
+	public function preExecute()
+    {
+		// Crée ou charge le panier
+		$this->getCart();
+	}
+     
 	/**
 	 * actionAdd : ajoute un item dans le panier, associé à la clé key
 	 * Si une catégorie est précisée, l'item sera ajouté à cette catégorie
@@ -33,7 +38,7 @@ class CartModule extends Module
 		$item=Utils::get($_REQUEST['item']);
 		
 		// Ajoute l'item au panier
-		(is_null($category)) ? $this->add($item, $key) : $this->add($item, $key, $category);
+		(is_null($category)) ? $this->add($item, $key) : $this->add($item, $key, $category); // TODO: test inutile, add le fait
 		
 		echo'<pre>';
 		print_r($this->cart);
@@ -73,7 +78,7 @@ class CartModule extends Module
 		
 		// Supprime l'item du panier
 		// TODO : Si plus rien dans la catégorie, supprimer la catégorie ?
-		(is_null($category)) ? $this->remove($key) : $this->remove($key, $category);
+		(is_null($category)) ? $this->remove($key) : $this->remove($key, $category); // TODO: test inutile, remove le fait
 		
 		// Détermine le callback à utiliser
 		$callback=Config::get('callback');
@@ -102,12 +107,6 @@ class CartModule extends Module
 	 */
 	public function actionShow()
 	{
-		$this->getCart();
-		print_r($this->cart);
-		die();
-		
-		// TODO : le nom du template est bien récupéré dans la config mais template introuvable (erreur de path) 
-		
 		// Détermine le template à utiliser
 		if (! $template=Config::get('template'))
 			throw new Exception('Le template à utiliser n\'a pas été indiqué');
@@ -133,8 +132,9 @@ class CartModule extends Module
 		// Récupère le nom du panier
 		// TODO : récupérer le nom du module = nom du panier
 		// TODO : Intérêt à mettre le nom du panier en config ?
-		$name='panier';
-
+		$name='panier'; // plutôt 'cart'
+        //$name=Config::get('cart.name', 'cart');
+        
 //		if (! $name=Config::get('name'))
 //			throw new Exception('Le nom du panier n\'a pas été indiqué dans le fichier de configuration.');
 
@@ -159,8 +159,6 @@ class CartModule extends Module
      */
     private function add($item, $key, $category=null)
     {
-		$this->getCart();    	
-
 		if (is_int($key) || ctype_digit($key)) $key=(int)$key;
 		
 		// Ajoute l'item dans le panier
@@ -181,8 +179,6 @@ class CartModule extends Module
      */
     public function remove($key, $category=null)
     {
-		$this->getCart();
-		
         if (is_int($key) || ctype_digit($key)) $key=(int)$key;
         if (is_null($category))
         	unset($this->cart[$key]);
@@ -195,9 +191,6 @@ class CartModule extends Module
      */
     private function clear()
     {
-		// Charge le panier
-    	$this->getCart();
-
     	// Vide le panier
     	$this->cart=null;    			
     }
