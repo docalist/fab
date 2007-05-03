@@ -8,7 +8,6 @@
  * - TODO: LES CAS DE "MAUVAISES" UTILISATION ENSUITE (Exceptions, etc.)
  */
 
-
 require_once(dirname(__FILE__).'/../../../TemplateCompiler.php');
 require_once(dirname(__FILE__).'/../../../TemplateCode.php');
 

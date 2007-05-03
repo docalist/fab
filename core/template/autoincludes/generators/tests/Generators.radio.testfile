@@ -58,7 +58,7 @@ Le générateur radiolist permet de générer une liste de radio à partir d'un itéra
 --file--
 <radiolist src="array(array('code'=>'2007', 'label'=>'2007'), array('code'=>'2006', 'label'=>'2006'), array('code'=>'2005', 'label'=>'2005'))" />
 --expect--
-<div class="radiolist>
+<div class="radiolist">
 	<span class="radio">
 		<input type="radio" value="2007" class="radio" id="0" />
 		<label class="radio" for="0">2007</label>
@@ -79,7 +79,7 @@ Il est possible d'ajouter un nom et un label général aux radiolist
 <radiolist name="myList" label="Choisissez parmi les années suivantes :" src="array(array('code'=>2007, 'label'=>2007), array('code'=>2006, 'label'=>2006), array('code'=>2005, 'label'=>2005))" />
 --expect--
 <label class="radiolist">Choisissez parmi les années suivantes :</label>
-<div class="radiolist>
+<div class="radiolist">
 	<span class="radio">
 		<input type="radio" name="myList" value="2007" class="radio" id="myList0" />
 		<label class="radio" for="myList0">2007</label>
@@ -104,4 +104,17 @@ Si la source de données est vide, rien ne s'affiche
 --skip--
 Rajouter un if englobant pour n'afficher un radiolist que si src est non vide (!= '') et 
 correspond à une zone de données non vide (TextTable ayant des données, tableau non vide, etc.)
+================================================================================
+--test--
+Un contrôle radio dans un fill
+--file-- 
+<fill values="3, 5">
+	<radio name="myRadio" label="Option n° 3" value="3" />
+	<radio name="myRadio2" label="Option n°4" value="4" />
+</fill>
+--expect--
+<input type="radio" name="myRadio" value="3" class="radio" id="myRadio" checked="checked" />
+<label class="radio" for="myRadio">Option n°3</label>
+<input type="radio" name="myRadio2" value="4" class="radio" id="myRadio2" />
+<label class="radio" for="myRadio2">Option n°4</label>
 ================================================================================

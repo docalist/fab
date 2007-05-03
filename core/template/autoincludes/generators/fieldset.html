@@ -4,7 +4,7 @@
 
 <template match="//fieldset" label="" class="">
     <fieldset>
-        <legend test="$label" class="$class">$label</legend>
+        <legend test="$label" class="{rtrim('fieldset '.$class)}">$label</legend>
         {select('./node()')}{select('@*')}
     </fieldset>
 </template>

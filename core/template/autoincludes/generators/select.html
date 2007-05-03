@@ -1,20 +1,18 @@
 <!-- SELECT : <select...><option value=... >...</option></select> -->
 <!-- les différentes valeurs ou options du select sont chargées à partir du fichier spécifié comme @src -->
 <!-- l'utilisateur peut ajouter ses propres options comme par ex, une sélection = (vide) ou = (tous), ... -->
+<!-- En ajoutant l'attribut multiple (multiple="true"), on génère une liste à sélection multiple -->
 
-<template match="//select[@src]" name="" label="" src="" class="" size="" sep="" >
-    <label test="$label" class="{$size?rtrim('multiline '.$class) : $class}" for="{autoId($name:'select')}">$label</label>
-    <input type="hidden" name="$name" value="" />
-<!--    <fill values="$$name" code='selected="selected"' separator="$sep">-->
+
+<template match="//select[@src]" name="" label="" src="" class="" size="" sep="" id="">
+    <label test="$label" class="select{$size ? rtrim(' multiline '.$class) : rtrim(' '.$class)}" for="{autoId($id:$name:'select')}">$label</label>
         <select
             name="$name"
             size="$size"
-            class="{$size?rtrim('multiline '.$class) : $class}"
-            id="{$label ? lastId() : ''}">{select('@*')}{select('.//node()')}
+            class="select{$size ? rtrim(' multiline '.$class) : rtrim(' '.$class)}"
+            id="{$label ? lastId() : ''}">{select('@*')}{select('./node()')}
             <loop on="$src" as="$line, $record">
-                <option value="{$record['code']}"
-                        id="{lastId()}-{$record['line']}">{$record['label']}</option>
+                <option value="{$record['code'] === $record['label'] ? '' : $record['code']}">{$record['label']}</option>
             </loop>
         </select>
-<!--    </fill>-->
 </template>

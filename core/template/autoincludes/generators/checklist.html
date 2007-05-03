@@ -7,7 +7,6 @@
 <template match="//checklist" name="" label="" src="" class="" tag="span">
     <label test="$label" class="checklist{rtrim(' '.$class)}">$label</label>
     <div class="checklist{rtrim(' '.$class)}">
-<!--        <fill values="$name">-->
             <loop on="$src" as="$line, $record">
                 <tag name="$tag" class="check{rtrim(' '.$class)}">{select('@*')}
                     <input
@@ -20,6 +19,5 @@
                 </tag>
                 {select('.//node()')}
             </loop>
-<!--        </fill>-->
     </div>
 </template>

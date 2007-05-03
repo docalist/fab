@@ -3,8 +3,8 @@
 <!-- {select('string(@value)')}{select('.//node()')} récupère la valeur de l'attribut @value et de l'élement (tag) -->
 <!-- {select('@*') ajoute les éventuels attributs supplémentaires indiqués par l'appelant à la liste d'attributs du textarea -->
 
-<template match="//textbox[@rows]" name="" label="" value="" class="" rows="" cols="20">
-    <label test="$label" class="textarea{rtrim(' '.$class)}" for="{autoId($name:'textarea')}">$label</label>
+<template match="//textbox[@rows]" name="" label="" value="" class="" rows="" cols="20" id="">
+    <label test="$label" class="textarea{rtrim(' '.$class)}" for="{autoId($id:$name:'textarea')}">$label</label>
     <textarea
         name="$name"
         title="$label"

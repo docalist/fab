@@ -1,12 +1,12 @@
 <!-- RADIO -->
 
 
-<template match="//radio" name="" label="" value="" class="">
+<template match="//radio" name="" label="" value="" class="" id="">
         <input
             type="radio"
             name="$name"
             value="$value"
             class="radio{rtrim(' '.$class)}"
-            id="{$label ? autoId($name:'radio') : ''}">{select('@*')}</input>
+            id="{$label ? autoId($id:$name:'radio') : ''}">{select('@*')}</input>
 
     <label test="$label" class="radio{rtrim(' '.$class)}" for="{lastId()}">$label</label>{select('node()')}</template>
