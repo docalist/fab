@@ -21,7 +21,7 @@ class TaskManager extends Module
 	// ================================================================
 	// LE GESTIONNAIRE DE TACHES PROPREMENT DIT
 	// ================================================================
-	private function out($message, $client = null)
+	private static function out($message, $client = null)
 	{
 		echo date('d/m/y H:i:s');
 		if ($client)
@@ -44,7 +44,8 @@ class TaskManager extends Module
 	 */
 	public function actionDaemon()
 	{
-		$this->out('Démarrage du gestionnaire de tâches');
+    static $nn=0;
+		self::out('Démarrage du gestionnaire de tâches');
 
 		// Détermine les options du gestionnaire de tâches
 		$port = Config :: get('taskmanager.port');
@@ -61,27 +62,41 @@ class TaskManager extends Module
 
         // Charge la liste de toutes les tâches à exécuter
         $tasks=self::loadTasks();
-        self::sortTasks($tasks, true);
-        
+
         // Calcule la date de prochaine exécution de chacune des tâches et trie
+        self::sortTasks($tasks, true);
         self::listTasks($tasks);
 
 		while (true)
         {
-            // Plus aucune tâche à exécuter ou toutes déjà dépassées (ne reste que des nexttime à null)
-            if ( ($task=reset($tasks))===false or (is_null($task['nexttime'])))
+            // Récupère la prochaine tâche à exécuter
+            if (count($tasks)==0) 
+                $task=false; 
+            else
+            { 
+                reset($tasks);
+                $task=& $tasks[key($tasks)];
+                self::out('Prochaine tâche à exécuter : '.$task['id']);
+            }
+            
+            // Calcule le temps à attendre avant la prochaine exécution (timeout)
+            if ( $task===false )
             {
-                // time out infini
-                $timeout = 24 * 60 * 60; // (en secondes) = 24h
+                $timeout = 24 * 60 * 60; // aucune tâche en attente : time out de 24h
             }
             else
             {
-// TODO: si on a time=0 avec une tâche répétée, on explose !
             	if ($task['time']==0) // exécuter dès que possible
                     $timeout=0.0;
                 else
-                  $timeout=$task['nexttime']-time();
-//                $timeout=$task['nexttime']-microtime(true);
+                {
+                    $timeout=$task['nexttime']-time();
+                    if ($timeout<0) // la tâche n'a pas été exécutée à l'heure prévue
+                    {
+                        self::out('Tâche '.$task['id'].' : date d\'exécution dépassée ('.$task['nextexecstring'].'), exécution maintenant');
+                        $timeout=0.0;
+                    }                    
+                }
             }
             
 			// actuellement (php 5.1.4) si on met un timeout de plus de 4294, on a un overflow
@@ -89,16 +104,10 @@ class TaskManager extends Module
 			if ($timeout > 4294.0)
             {
 				$timeout = 4294.0; // = 1 heure, 11 minutes et 34 secondes
-                $task=false;
-            }
-            elseif ($timeout<0) // timeout peut se retrouver négatif si on s'est fait dépasser
-            {
-                echo '********** TIMEOUT NEGATIF (', $timeout, '), AJUSTEMENT A ZERO', "\n";
-                $timeout=0.0;
             }
 
 			// Attend que quelqu'un se connecte ou que le timeout expire
-			$this->out('en attente de connexion, timeout='.$timeout);
+			self::out('en attente de connexion, timeout='.$timeout);
 			if ($conn = @ stream_socket_accept($socket, $timeout, $client))
 			{
 				// Extrait la requête
@@ -117,7 +126,8 @@ class TaskManager extends Module
 						$result = 'Démarré depuis le ' . $startTime;
 						break;
                     case 'add':
-                        $tasks[]=self::loadTask($param);    // Ajoute la tâche
+                        $tasks[]=$tt=self::loadTask($param);    // Ajoute la tâche
+                        self::out('ADD TASK : '.$param . ' : '. var_export($tt,true));
                         self::sortTasks($tasks);            // Retrie la liste pour déterminer la prochaine
                         self::listTasks($tasks);
                         break;
@@ -142,38 +152,43 @@ class TaskManager extends Module
 			// On est sorti en time out, exécute la tâche en attente s'il y en a une
 			else
 			{
-				// le reset fait plus haut n'a pas été modifié depuis. key(tasks) retourne la clé du 1er élément
-//              $tasks[key($tasks)]['lasttime']=microtime(true);
-                $tasks[key($tasks)]['lasttime']=time();
-                if ($task)
+                if ($task!==false)
                 {
-                    if ($task['time']==0) $task['time']=time();
+                    // Modifie la date de dernière exécution et le statut de la tâche
+                    $task['lasttime']=time();
+                    if ($task['time']==0) $task['time']=$task['lasttime']; // dès que possible = maintenant
                     $task['status']='running';
-                    self::storeTask($task); 
-                	$this->out('Exécution de la tâche '. $task['id'] . ' : ' . $task['task']. "\n");
-                    self::runBackgroundModule('/TaskManager/RunTask?id=' . $task['id'], $task['root']);
+                    self::storeTask($task);
+                     
+                    // Lance la tâche
+                	self::out('Exécution de la tâche '. $task['id'] . ' : ' . $task['task']. "\n");
+                    if (++$nn>100) die();
+                    //self::runBackgroundModule('/TaskManager/RunTask?id=' . $task['id'], $task['root']);
                     
+                    // S'il s'agit d'une tâche répétée, calcule la date de la prochaine exécution
                     if ($task['repeat'])
                     {
                         // Force sortTasks à calcule la date de prochaine exécution
-                        unset($tasks[key($tasks)]['nexttime']);
+                        unset($task['nexttime']);
                         self::sortTasks($tasks);
                         self::listTasks($tasks);
                     }
+
+                    // Sinon, supprime la tâche de la liste
                     else
                     {
                         array_shift($tasks);
                     }
                 }
                 else
-                    $this->out('aucune connexion pendant le temps indiqué, mais je tourne toujours !');
+                    self::out('aucune connexion pendant le temps indiqué, mais je tourne toujours !');
 			}
 		}
 
 		// Arrête le serveur
-		$this->out('Arrêt du gestionnaire de tâches');
+		self::out('Arrêt du gestionnaire de tâches');
 		fclose($socket);
-		$this->out('Le gestionnaire de tâches est arrêté');
+		self::out('Le gestionnaire de tâches est arrêté');
 		Runtime :: shutdown();
 	}
 
@@ -202,8 +217,11 @@ class TaskManager extends Module
         
         echo 'chargement des tâches à partir de ' . $dir . "\n";
         $tasks=array();
-        foreach(glob($dir . '*.task', GLOB_NOSORT) as $task)
-            $tasks[]=include($task);
+        foreach(glob($dir . '*.task', GLOB_NOSORT) as $path)
+        {
+            $tasks[]=$task=include($path);
+            if (!isset($task['id'])) die("Tâche $path : pas d'ID");
+        }
         return $tasks;
     }
     
@@ -222,10 +240,22 @@ class TaskManager extends Module
         // Détermine le répertoire où sont stockées les tâches (/data/tasks dans fabRoot)
         $dir=Runtime::$fabRoot.'data'.DIRECTORY_SEPARATOR.'tasks'.DIRECTORY_SEPARATOR;
         
-        // Si la tâche a déjà un id, ouvre directement le fichier
+        // Si la tâche n'a pas encore d'id, on lui en affecte un
         if ( ! isset($task['id']))
-            $task['id']=uniqid();
-
+        {
+            for ($i=1; ; $i++)
+            {
+                if ($i>=1000)
+                    die('storeTask : pb attribution numéro de tache');
+                    
+                if (! file_exists($dir.$i.'.task'))
+                {
+                    $task['id']=$i;
+                    break;
+                }
+            }
+        }
+        
         // Ouvre le fichier, en le créant si nécessaire
         $path=$dir . $task['id'].'.task';
         $file=fopen($path, 'w');
@@ -327,6 +357,7 @@ class TaskManager extends Module
      */
     private static function sortTasks(&$tasks, $recalc=false)
     {
+//self::out('SortTasks. Liste des tâches : '.var_export($tasks,true));
     	// Calcule la date de prochaine exécution de toutes les tâches
         $now=time();
         foreach($tasks as $key=>&$task)
@@ -334,7 +365,8 @@ class TaskManager extends Module
             if ($recalc or (! isset($task['nexttime'])))
             {
                 if (isset($task['repeat']))
-                    $task['nexttime']=self::nextTime($task['time'], $task['repeat']);
+                    self::computeNextTime($task);
+//                    $task['nexttime']=self::nextTime($task['time'], $task['repeat']);
                 elseif ($task['time']==0)
                     $task['nexttime']=0;
                 else
@@ -581,7 +613,7 @@ class TaskManager extends Module
      * @return int la date/heure de prochaine exécution de la tâche, ou null si
      * la tâche ne doit plus jamais être exécutée (ou en cas de problème).
      */
-    private static function nextTime($datetime, $repeat)
+    private static function computeNextTime(& $task)
     {
         // Pour chaque unité valide, $minmax donne le minimum et le maximum autorisés
         static $minmax=array
@@ -603,6 +635,13 @@ class TaskManager extends Module
             'mday'=>86400,
         );
         
+        // Récupère l'heure d'exécution initialement programmée
+        $time=$task['time'];
+        $repeat=$task['repeat'];
+        $now=time();
+
+         self::out("nextTime, now=$now, tâche=".var_export($task,true));
+                
         // Analyse $repeat pour extraire le nombre, l'unité et le filtre 
         $nb=$unit=$sep=$filterString=null;
         sscanf($repeat, '%d%[^/,]%[/,]%s', $nb, $unit, $sep, $filterString);
@@ -612,28 +651,52 @@ class TaskManager extends Module
         // Convertit l'unité indiquée en unité php telle que retournée par getdate()
         $unit=self::convertAbbreviation(trim($unit), 'units');
         
-        // Détermine l'heure d'exécution initialement programmée
-        $now=time();
-        if ($datetime==0) $datetime=$now;
-        $timestamp=$datetime;
-        
-        // Essaie de déterminer l'heure de prochaine exécution (début + n fois la période indiquée)
-        if ($timestamp<$now and $unit!='mon')// impossible pour les mois qui ont des durées variables
-            $timestamp += ($nb * $duration[$unit]) * (floor(($now-$timestamp)/($nb * $duration[$unit]))+1);
-    
-        // Incrémente timestamp avec la période demandée juqu'à ce qu'on trouve une date dans le futur
-        $t=getdate($timestamp);
-        $k=0;
-        while ($timestamp<$now or $timestamp<$datetime)
+        // Si la tâche est programmée "dès que possible" et n'a pas encore été exécutée, prochaine exécution=maintenant
+        if (($time==0 || $time<=$now) && !isset($task['lasttime']))
         {
-            $t[$unit]+=$nb;
-            $timestamp=mktime($t['hours'],$t['minutes'],$t['seconds'],$t['mon'],$t['mday'],$t['year']);
-            $k++;
-            if ($k > 100) die('INFINITE LOOP here');
-        } 
+        	$nextTime=$now;
+            self::out("time=0 ou dépassé et tâche pas encore exécutée : maintenant");
+        }
+        
+        // Si la tâche est programmé pour plus tard, prochaine exécution=date indiquée
+        elseif ($time>$now)
+        {
+        	$nextTime=$time;
+            self::out("time est à une date dans le futur, s'exécutera à la date indiquée");
+        }
 
+        // Time est à une date dépassée mais a déjà été dépassée : troouve une date postérieure à maintenant
+        else
+        {
+            self::out("time est à une date passée, recherche d'une date future");
+            $nextTime=$time;
+            
+            // Essaie de déterminer l'heure de prochaine exécution (début + n fois la période indiquée)
+            if ($unit!='mon')// non utilisable pour les mois car ils ont des durées variables
+            {
+                $nextTime += ($nb * $duration[$unit]) * (floor(($now-$nextTime)/($nb * $duration[$unit]))+1);
+                self::out("saut rapide de $nb $unit");
+            }
+            
+            // Incrémente timestamp avec la période demandée juqu'à ce qu'on trouve une date dans le futur
+            $t=getdate($nextTime);
+            $k=0;
+            while ($nextTime<=$now)
+            {
+                $t[$unit]+=$nb;
+                $nextTime=mktime($t['hours'],$t['minutes'],$t['seconds'],$t['mon'],$t['mday'],$t['year']);
+                $k++;
+                self::out("boucle");
+                if ($k > 100) die('INFINITE LOOP here');
+            } 
+        }
+                
         // Si on n'a aucun filtre, terminé
-        if (is_null($filterString)) return $timestamp;
+        if (is_null($filterString))
+        {
+            $task['nexttime']=$nextTime;
+            return $nextTime;
+        }
     
         // Si on a un filtre, crée un tableau contenant toutes les valeurs autorisées
         $filter=array();
@@ -681,24 +744,29 @@ class TaskManager extends Module
         for(;;)
         {
             // Teste si la date en cours passe le filtre
-            $t=getdate($timestamp);
+            $t=getdate($nextTime);
             switch($unit)
             {
                 case 'seconds':
                 case 'minutes':
                 case 'hours':
                 case 'mon':
-                    if (isset($filter[$t[$unit]])) return $timestamp;
+                    if (isset($filter[$t[$unit]])) return $nextTime;
                     break;
                 case 'mday':
-                    if (isset($filter[$t[$unit]]) or isset($filter[$t['wday']+1000])) return $timestamp;
+                    if (isset($filter[$t[$unit]]) or isset($filter[$t['wday']+1000])) return $nextTime;
                     break;
             }
     
             // Passe à la date suivante et recommence 
             $t[$unit]+=$nb;
-            $timestamp=mktime($t['hours'],$t['minutes'],$t['seconds'],$t['mon'],$t['mday'],$t['year']);
+            $nextTime=mktime($t['hours'],$t['minutes'],$t['seconds'],$t['mon'],$t['mday'],$t['year']);
         }
+        
+        // Stocke et retourne le résultat
+        $task['nexttime']=$nextTime;
+        return $nextTime;
+        
     }
     
     /**
@@ -732,7 +800,7 @@ class TaskManager extends Module
         if ($root) $cmd .= ' '.$root;
         
         debug && Debug :: log('Exec %s', $cmd);
-
+echo $cmd;
         // Sous windows, utilise wscript.shell pour lancer le process en tâche de fond
         if ( substr(PHP_OS,0,3) == 'WIN')
         { 
@@ -767,7 +835,7 @@ class TaskManager extends Module
             $data['status']=self::status();
             
             $tasks=unserialize(self::request('list'));
-            
+
             $i=0;
             foreach ($tasks as & $task)
             {
@@ -794,6 +862,7 @@ class TaskManager extends Module
                 $task['class']= (($i % 2 )== 0) ? 'even' : 'odd';
                 $i++; 
             }
+            
             $data['hastasks']=count($tasks)>0;
             $data['tasks']=$tasks;
         }
@@ -806,8 +875,9 @@ class TaskManager extends Module
             $data['tasks']=$tasks;
         	
         }
+        
         $data['now']=date('d/m/y H:i:s');
-        Template::run('list.html', $data);
+        Template::run('list.html', $data, array('tasks'=>$tasks));
     }
 
     /**
@@ -817,24 +887,34 @@ class TaskManager extends Module
     public function actionTaskStatus()
     {
         // Récupère l'ID de la tâche à exécuter
-        if ( ! $id=Utils::get($_REQUEST['id']))
+        if ( ! $id=Utils::get($_GET['id']))
             die("L'ID de la tâche à exécuter n'a pas été indiqué\n");
         
         $dir=Runtime::$fabRoot.'data'.DIRECTORY_SEPARATOR.'tasks'.DIRECTORY_SEPARATOR;
 
         if (file_exists($path=$dir.$id.'.progress'))
         {
+            echo "Chargement de $path<br />";
             $t=require($path);
             $t['percent']=$t['max']==0 ? 0 : $t['step']*100 / $t['max']; 
         }
         else
+        {
+            echo "$path n'existe pas<br />";
             $t=array('percent'=>'');
-                                
+        }                        
         if (file_exists($path=$dir.$id.'.output'))
+        {
+            echo "Chargement de $path<br />";
             $t['output']=file_get_contents($path);
+        }
         else
+        {
+            echo "$path n'existe pas<br />";
             $t['output']='';
-
+        }
+        $t['seek']=strlen($t['output']);
+        
         Template::run('taskStatus.html', $t);
     }
     public function actionTaskStatusUpdate()
@@ -842,10 +922,10 @@ class TaskManager extends Module
 //    header('Content-Type: application/xhtml+xml; charset=iso-8859-1');    
     header('Content-Type: text/html; charset=iso-8859-1'); // pas de caractères accentués sinon    
         // Récupère l'ID de la tâche à exécuter
-        if ( ! $id=Utils::get($_REQUEST['id']))
+        if ( ! $id=Utils::get($_GET['id']))
             die("L'ID de la tâche à exécuter n'a pas été indiqué\n");
         
-        $seek=Utils::get($_REQUEST['seek'], 0);
+        $seek=Utils::get($_GET['seek'], 0);
         
         $dir=Runtime::$fabRoot.'data'.DIRECTORY_SEPARATOR.'tasks'.DIRECTORY_SEPARATOR;
 
@@ -999,8 +1079,9 @@ class TaskManager extends Module
 		$errstr = '';
 
 		// Crée une connexion au serveur
-		$socket = @ stream_socket_client('tcp://127.0.0.1:' . $port, $errno, $errstr, $timeout);
-
+        $socket = @stream_socket_client('tcp://127.0.0.1:' . $port, $errno, $errstr, $timeout,STREAM_CLIENT_CONNECT);
+//        $socket = stream_socket_client('tcp://127.0.0.1:' . $port);
+//die('here');
 		if (!is_resource($socket))
 		{
 			$error = "$errstr ($errno)";
@@ -1059,24 +1140,23 @@ class TaskManager extends Module
 	 */
     public static function addTask($task, $datetime = 0, $repeat=null, $title='')
 	{
-        // Calcule l'heure de prochaine exécution pour vérifier que $repeat est valide
-        if (! is_null($repeat)) 
-            self::nextTime($datetime, $repeat);
-        
         // Crée la tâche
-        $id=self::storeTask
+        $task=array
         (
-            array
-            (
-                'root'=>Runtime::$root,
-                'task'=>$task,
-                'time'=>$datetime,
-                'repeat'=>$repeat,
-                'status'=>'wait',
-                'creation'=>time(),
-                'title'=>$title?$title:$task
-            )
+            'root'=>Runtime::$root,
+            'task'=>$task,
+            'time'=>$datetime,
+            'repeat'=>$repeat,
+            'status'=>'wait',
+            'creation'=>time(),
+            'title'=>$title?$title:$task
         );
+        
+        // Calcule l'heure de prochaine exécution pour vérifier que $repeat est valide
+        if (!is_null($repeat)) self::computeNextTime($task);
+        
+        // Stocke la tâche
+        $id=self::storeTask($task);
         
         // Signale au démon qu'il a du boulot
         self::request('add ' . $id);
