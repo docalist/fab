@@ -597,12 +597,15 @@ class TemplateCode
             (
                 'empty', 'isset',
                 'trim', 'rtrim', 'ltrim',
-                'substr','str_replace','str_repeat',
+                'substr','str_replace','str_repeat','strtr',
                 'implode','explode',
                 'urlencode',
                 'var_export', 'print_r',
                 'file_get_contents',
-                'count'
+                'count',
+                'is_null',
+                'array_sum',
+                'date'
             ));
             $runtimeFunctions=array_flip(array
             (
