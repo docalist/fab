@@ -731,6 +731,8 @@ final class Utils
                 $_REQUEST[$key]=$t[$key]=$matches[1];
             }
         }
+        
+        // TODO: voir si array_map peut remplacer la création de la fonction anonyme et l'appel à array_walk
     }    
 
 
@@ -755,6 +757,21 @@ final class Utils
         return (strpos('POST PUT', $_SERVER['REQUEST_METHOD']) !== false);
     }
     
+    /**
+     * Détermine si la requête en cours est une requête ajax ou non.
+     * 
+     * La détection est basée sur la présence ou non de l'entête http
+     * X_REQUESTED_WITH qui est ajouté à la requête http par les librairies
+     * ajax les plus courante (cas de prototype, jquery, YUI, mais pas 
+     * de dojo).
+     * 
+     * @return boolean true si la requête http contient un entête 
+     * x-requested-withcontenant la valeur XMLHttpRequest (sensible à la casse)
+     */
+    public static function isAjax()
+    {
+    	return isset($_SERVER['HTTP_X_REQUESTED_WITH']) && ($_SERVER['HTTP_X_REQUESTED_WITH']==='XMLHttpRequest');
+    }
     
     /**
      * Charge un fichier de configuration au format YAML
