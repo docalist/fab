@@ -181,25 +181,36 @@ class TemplateCompiler
     
     public static function autoId($name=null)
     {
+        // Aucun "nom suggéré" : recherche le nom du parent, du grand-parent, etc.
         if (is_null($name) || $name==='')
         {
             $node=self::$currentNode;
             for(;;)
             {
-                if (is_null($node) ) break; //or !($node instanceof DOMElement)
+                if (is_null($node) ) break;
                 if ($node instanceof DOMElement)    // un DOMText, par exemple, n'a pas d'attributs
-                    if ($name=$node->getAttribute('id') or $name=$node->getAttribute('name')) break;
+                {
+                    if ($name=$node->getAttribute('id')) break;
+                    if ($name=$node->getAttribute('name')) break;
+                }
             	$node=$node->parentNode;
             }
             if (!$name)
                 $name=self::$currentNode->tagName;
         }
-        
+        else
+        {
+            // si le nom suggéré contient des expressions, il faut les évaluer
+            self::parse($name);
+
+            $node=self::$currentNode->parentNode;
+        }
+
         if (isset(self::$usedId[$name]))
             $name=$name.(++self::$usedId[$name]);
         else
             self::$usedId[$name]=1;
-        
+
         return self::$lastId=$name;
     }
     
