@@ -61,21 +61,19 @@ templates:
   
   # liste des fichiers à inclure dans le source lors de la compilation d'un template
   autoinclude:
-#     - autoroute.html
-     - generators/button.html
-     - generators/checkbox.html
-     - generators/checklist.html
-     - generators/fieldset.html
-     - generators/hidden.html
-     - generators/multiLineText.html
-     - generators/password.html
-     - generators/radio.html
-     - generators/radiolist.html
-     - generators/reset.html
-     - generators/select.html
-     - generators/singleLineText.html
-     - generators/submit.html
-     - generators/upload.html
+     - include/button.html
+     - include/checkbox.html
+     - include/checklist.html
+     - include/fieldset.html
+     - include/hidden.html
+     - include/password.html
+     - include/radio.html
+     - include/radiolist.html
+     - include/reset.html
+     - include/select.html
+     - include/textbox.html
+     - include/submit.html
+     - include/upload.html
 
   # indique s'il faut tenir compte des DTD. Lorsque l'option est à true,
   # le DTD indiqué dans le template sera chargé lors de la compilation est pris
@@ -99,9 +97,9 @@ taskmanager:
   
   # où se trouve l'exécutable php à utiliser en ligne de commande ?
   # Exemple windows :
-  #php: "c:\php-5.1.4-Win32\php.exe"
+  php: "c:\php-5.2.2-Win32\php.exe"
   # Exemple linux :
-  php: /usr/bin/php5
+  #php: /usr/bin/php5
   
   # options éventuelles à passer à l'exécutable php
   phpargs: "-C"
