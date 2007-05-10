@@ -41,8 +41,7 @@ class Template
 
     /**
      * @var array Pile utilisée pour enregistrer l'état du gestionnaire de
-     * templates et permettre à {@link run()} d'être réentrante. Voir {@link
-     * saveState()} et {@link restoreState()}
+     * templates et permettre à {@link run()} d'être réentrante.
      */
     private static $stateStack=array();
     
@@ -99,6 +98,7 @@ class Template
     }
     
     /**
+     * TODO: doc obsolète, à revoir
      * Exécute un template, en le recompilant au préalable si nécessaire.
      * 
      * La fonction run est réentrante : on peut appeller run sur un template qui
@@ -163,51 +163,90 @@ class Template
      * essaiera d'utiliser une fonction dont le nom correspond au nom du
      * script appellant suffixé avec "_callback".
      */
-    public static function runSource($source /* $dataSource1, $dataSource2, ..., $dataSourceN */ )
+
+
+    /**
+     * Exécute un template
+     * 
+     * @param string $path le nom du template (il peut s'agir du path du template s'il s'agit
+     * d'un fichier ou d'un nom symbolique s'il s'agit d'un source généré)
+     * 
+     * @param array|boolean les données du template
+     * @param string $source le source du template. (uniquement pour les templates générés à la volée)
+     * quand source est non null, on n'essaie pas de charger le fichier $path, on utilise dirtectement
+     * le source
+     */
+    private static function runInternal($path, array $data, $source=null)
     {
-echo 'Template :<pre>';
-echo htmlentities($source);
-echo '</pre>';
-        debug && Debug::log('Exécution du source %s', $source);
+        debug && Debug::log('Exécution du template %s', $path);
 
         // Sauvegarde l'état
-        self::saveState();
+        array_push
+        (
+            self::$stateStack, 
+            array
+            (
+                'template'      => self::$template,
+                'data'          => self::$data
+            )
+        );
 
-        // Détermine le path du répertoire du script qui nous appelle
-        $template=dirname(Utils::callerScript()).DIRECTORY_SEPARATOR;
-        
         // Stocke le path du template
-        debug && Debug::log("Path du template initialisé au path de l'appellant : '%s'", $template);
-        self::$template=$template; // enregistre le path du template en cours (cf walkTable)
+        self::$template=$path;
         
         // Stocke les sources de données passées en paramètre
-        self::$data=func_get_args();
-        array_shift(self::$data);
-        array_unshift(self::$data,array('this'=>Utils::callerObject(2)));
+        self::$data=$data;
+        
+        // Calcule la signature des sources de données
+        $signature='';
+        foreach(self::$data as $data)
+        {
+            if (is_object($data))
+                $signature.='o';
+            elseif (is_string($data))
+            {
+                $signature.='f';
+                if (! is_callable($data))
+                    throw new Exception("fonction $data non trouvée");     
+            }
+            elseif (is_array($data))  
+            {
+                if (is_callable($data))
+                    $signature.='m'; 
+                else
+                    $signature.='a';
+                    // TODO : les clés du tableau doivent être des chaines 
+            }
+            else
+                throw new Exception('Type de source de données incorrecte : objet, tableau ou callback attendu');
+        }
+        
+        // Détermine le path dans le cache du fichier 
+        $cachePath=Utils::setExtension($path, $signature . Utils::getExtension($path));
         
         // Compile le template s'il y a besoin
-        if (true)
+        if (self::needsCompilation($path, $cachePath))
         {
-            debug && Debug::notice("'%s' doit être compilé", $template);
+            // Charge le contenu du template
+            if (is_null($source))
+                if ( false === $source=file_get_contents($path) )
+                    throw new Exception("Le template '$template' est introuvable.");
             
             // Compile le code
-            debug && Debug::log('Compilation du source');
             require_once dirname(__FILE__) . '/TemplateCompiler.php';
             $source=TemplateCompiler::compile($source, self::$data);
+
+//          if (php_version < 6) ou  if (! PHP_IS_UTF8)
             $source=utf8_decode($source);
-            
-echo 'Version compilée :<pre>';
-echo htmlentities($source);
-echo '</pre>';
-return;
-                
+
             // Stocke le template dans le cache et l'exécute
             if (config::get('cache.enabled'))
             {
-                debug && Debug::log("Mise en cache de '%s'", $template);
-                Cache::set($template, $source);
+                debug && Debug::log("Mise en cache de '%s'", $path);
+                Cache::set($cachePath, $source);
                 debug && Debug::log("Exécution à partir du cache");
-                require(Cache::getPath($template));
+
+                require(Cache::getPath($cachePath));
             }
             else
             {
@@ -220,21 +259,68 @@ return;
         else
         {
             debug && Debug::log("Exécution à partir du cache");
-            require(Cache::getPath($template));
+            require(Cache::getPath($cachePath));
         }
 
         // restaure l'état du gestionnaire
-        self::restoreState();
+        $t=array_pop(self::$stateStack);
+        self::$template         =$t['template'];
+        self::$data             =$t['data'];
+    }
+
+    public static function run($path /* $dataSource1, $dataSource2, ..., $dataSourceN */ )
+    {
+        // Résout le path s'il est relatif
+        if (Utils::isRelativePath($path))
+        {
+            $sav=$path;
+            if (false === $path=Utils::searchFile($path))
+                throw new Exception("Impossible de trouver le template $sav. searchPath=".print_r(Utils::$searchPath, true));
+        }
+
+        // Crée un tableau à partir des sources de données passées en paramètre
+        $data=func_get_args();
+        array_shift($data);
+        
+        // Ajoute une source '$this' correspondant au module appellant        
+        array_unshift($data,array('this'=>Utils::callerObject(2)));
+
+        // Exécute le template        
+        self::runInternal($path,$data);
     }
     
-    public static function run($template /* $dataSource1, $dataSource2, ..., $dataSourceN */ )
+    public static function runSource($source /* $dataSource1, $dataSource2, ..., $dataSourceN */ )
+    {
+        // Détermine le path du répertoire du script qui nous appelle
+        $path=dirname(Utils::callerScript()).DIRECTORY_SEPARATOR;
+        // TODO: +numéro de ligne ou nom de la fonction ?
+        
+        // Crée un tableau à partir des sources de données passées en paramètre
+        $data=func_get_args();
+        array_shift($data);
+        
+        // Ajoute une source '$this' correspondant au module appellant        
+        array_unshift($data,array('this'=>Utils::callerObject(2)));
+
+        // Exécute le template        
+        self::runInternal($path,$data);
+    }
+    
+    public static function runold($template /* $dataSource1, $dataSource2, ..., $dataSourceN */ )
     {
         debug && Debug::log('Exécution du template %s', $template);
 
-        $parentDir=dirname(self::$template);
-
         // Sauvegarde l'état
-        self::saveState();
+        array_push
+        (
+            self::$stateStack, 
+            array
+            (
+                'template'      => self::$template,
+                'data'          => self::$data
+            )
+        );
+
 
         if (Utils::isRelativePath($template))
         {
@@ -243,22 +329,6 @@ return;
             if ($template===false) 
                 throw new Exception("Impossible de trouver le template $sav. searchPath=".print_r(Utils::$searchPath, true));
         }
-//        // Détermine le path du répertoire du script qui nous appelle
-//        $caller=dirname(Utils::callerScript()).DIRECTORY_SEPARATOR;
-//        
-//        // Recherche le template
-//        if (! file_exists($template)) // TODO: ne pas faire ça en mode normal
-//        {
-//            $sav=$template;
-//            $template=Utils::searchFile
-//            (
-//                $template,                          // On recherche le template :
-//                $caller,                            // 2. dans le répertoire du script appellant
-//                $parentDir
-//            );
-//            if (! $template) 
-//                throw new Exception("Impossible de trouver le template $sav");
-//        }
 
         // Stocke le path du template
         debug && Debug::log("Path du template : '%s'", $template);
@@ -328,7 +398,9 @@ return;
         }
 
         // restaure l'état du gestionnaire
-        self::restoreState();
+        $t=array_pop(self::$stateStack);
+        self::$template         =$t['template'];
+        self::$data             =$t['data'];
     }        
 
     /**
@@ -408,34 +480,6 @@ return;
             self::$optFilled[self::$optLevel]++;
     	return $x;
     }
-    
-    /**
-     * Enregistre l'état du gestionnaire de template. 
-     * Utilisé pour permettre à {@link run()} d'être réentrant
-     */
-    private static function saveState()
-    {
-        array_push
-        (
-            self::$stateStack, 
-            array
-            (
-                'template'      => self::$template,
-                'data'          => self::$data
-            )
-        );
-    }
-
-    /**
-     * Restaure l'état du gestionnaire de template.
-     * Utilisé pour permettre à {@link run()} d'être réentrant
-     */
-    private static function restoreState()
-    {
-        $t=array_pop(self::$stateStack);
-        self::$template         =$t['template'];
-        self::$data             =$t['data'];
-    }
 
 /*
 runSlot examine la config en cours pour savoir s'il faut examiner le noeud ou pas.
@@ -465,14 +509,51 @@ return false (ne pas afficher le contenu par défaut)
         }
         debug && Debug::log('slot %s : %s', $name, $action);
 
-        if (!is_null($args))
+        // S'il s'agit d'une action, on l'exécute
+        if ($action[0]==='/')
         {
-            if (Utils::isGet()) $t=& $_GET; else $t=& $_POST;
+            if (!is_null($args))
+            {
+                if (Utils::isGet()) $t=& $_GET; else $t=& $_POST;
+    
+                foreach ($args as $argName=>$argValue)
+                    $t[$argName]=$_REQUEST[$argName]=$argValue;
+            }
+            Routing::dispatch($action);
+        }
 
-            foreach ($args as $argName=>$argValue)
-                $t[$argName]=$_REQUEST[$argName]=$argValue;
-        }         
-        Routing::dispatch($action);
+        // C'est un template : on l'exécute
+        else
+        {
+            $path=$action;
+            
+            // Résout le path s'il est relatif
+            if (Utils::isRelativePath($action))
+            {
+                if (false === $path=Utils::searchFile($path))
+                    throw new Exception("Impossible de trouver le template $action. searchPath=".print_r(Utils::$searchPath, true));
+            }
+    
+            // Ajoute les arguments passés en paramètre aux sources de données en cours        
+            $data=self::$data;
+            if (!is_null($args))
+            {
+                // Le premier élément de self::$data correspond à $this
+                // On l'enlève de data (array_shift)
+                // on l'ajoute comme premier élément de args (+)
+                // et on ajoute le tout au début de data (array_unshift) 
+                array_unshift($data,array_shift($data)+$args);
+
+                // for the record : j'ai cherché longtemps comment utiliser array_shift pour 
+                // ajouter un élément en conservant la clé. En fait il suffit suffit d'utiliser 
+                // l'opérateur de tableaux '+'...
+
+                // echo '<h1>data final</h1>', Debug::dump($data,false);
+            }
+            
+            // Exécute le template        
+            self::runInternal($path,$data);
+        }
         return false;
     }    
 }
