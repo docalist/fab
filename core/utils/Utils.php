@@ -289,14 +289,16 @@ final class Utils
         foreach(self::$searchPath as $dir)
             if ($path=realpath($dir.DIRECTORY_SEPARATOR.$file)) 
                 return $path;
+            
         return false;
     }
 
     static $searchPath=array();
     public static function clearSearchPath()
     {
-    	self::$searchPath=array();
-//        echo 'Reset searchPath <br />';
+        self::$searchPath=array(realpath(Runtime::$fabRoot.'core/template'));
+        // HACK: le fait de toujours avoir core/template dans le chemin est un hack
+        // il faudrait gérer des "états" et pouvoir revenir à un état donné
     }
     public static function addSearchPath($path)
     {

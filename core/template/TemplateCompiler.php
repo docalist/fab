@@ -96,6 +96,7 @@ die();
 require_once(dirname(__FILE__).'/TemplateCode.php');
 require_once(dirname(__FILE__).'/TemplateEnvironment.php');
 
+
 /**
  * Compilateur de templates
  * 
@@ -296,8 +297,12 @@ class TemplateCompiler
         // TODO: tester que le fichier existe et est lisible et générer une exception sinon 
         $h='';
         foreach((array)$files as $file)
-        	$h.=file_get_contents(Runtime::$fabRoot.'core/template/autoincludes/'.$file);
-
+        {
+            if (false === $path=Utils::searchFile($file))
+                throw new Exception("Impossible de trouver le fichier include $file spécifié dans la config");
+            debug && Debug::log('Concaténation du fichier include %s au source du template.file=%s, searchpath=%s', $path, $file, print_r(Utils::$searchPath, true));
+        	$h.=file_get_contents($path);
+        }
         if ($h) $source=str_replace('</root>', '<div test="{false}">'.$h.'</div></root>', $source);
 //        if (Template::getLevel()==0) file_put_contents(dirname(__FILE__).'/dm.xml', $source);
 
