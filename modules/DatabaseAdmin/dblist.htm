@@ -1,0 +1,19 @@
+<h1>Gestion des bases de données</h1>
+<table>
+    <tr>
+        <th scope="col">Nom</th>
+        <th scope="col">Type</th>
+        <th scope="col">Path</th>
+    </tr>
+    
+    <loop on="{Config::get('db')}" as="$name,$db">
+        <tr>
+            <td>$name</td>
+            <td>{$db['type']}</td>
+            <td>{$db['path']}</td>
+        </tr>    
+    </loop>
+</table>
+<form action="/DatabaseAdmin/newdatabase" method="get">
+    <submit label="Créer une nouvelle base" />
+</form>
