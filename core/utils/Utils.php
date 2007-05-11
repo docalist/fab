@@ -811,22 +811,24 @@ final class Utils
         // Si on a déjà déterminé le répertoire temp, terminé
         if (!is_null($dir)) return $dir;
         
-        // Si la fonction sys_get_temp_dir est dispo (php 6 ?), on l'utilise
-        if ( function_exists('sys_get_temp_dir') )
-            return $dir=rtrim(sys_get_temp_dir(), '/\\');
+        /*
+        remarques : la fonction sys_get_temp_dir() a été introduite (en douce!)
+        dans php 5.2.2 mais elle est buggée : elle ne tient pas compte des variables
+        d'environnemenet temp ou tmp éventuellement définies.
+        Par ailleurs, ces variables ne semble plus transmises à php, donc on n'a
+        aucun moyen de les récupérer.
+        Résultat : pour le moment, un appel à Utils::getTempDirectory() retourne
+        toujours le répertoire windows.
+        */
         
+        // Si la fonction sys_get_temp_dir est dispo (php 6 ?), on l'utilise
+        if (function_exists('sys_get_temp_dir') )
+            return rtrim(sys_get_temp_dir(), '/\\');
+
         // Regarde si on a l'une des variables d'environnement connues
         foreach(array('TMPDIR','TMP','TEMP') as $var)
             if ($h=Utils::get($_ENV[$var])) 
-                return $dir=rtrim($h, '/\\');
-        
-        // Crée un fichier temporaire, récupère son path, puis le détruit
-//        if (false !== $file = tempnam( md5(uniqid(rand(), TRUE)), '' ))
-//        {
-//            $dir = rtrim(realpath( dirname($file) ), '/\\');
-//            unlink( $file );
-//            return $dir;
-//        }
+                return rtrim($h, '/\\');
         
         if (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN')         
             return $dir='c:\\temp';
