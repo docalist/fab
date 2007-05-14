@@ -13,6 +13,9 @@
  */
 class CartModule extends Module
 {
+	// TODO : Besoin de quantité ou non à mettre dans config
+	// TODO : Panier à catégorie ou non : à mettre dans config
+	
 	public $cart=array();
     
     /**
@@ -46,11 +49,18 @@ class CartModule extends Module
      
 
 	/**
-	 * Ajoute un item dans le panier, en précisant sa quantité.
+	 * Ajoute un item ou plusieurs item dans le panier, en précisant la quantité.
 	 * Si une catégorie est précisée, l'item sera ajouté à cette catégorie.
+	 * 
+	 * Ajout de plusieurs éléments :
+	 * - On suppose que les navigateurs respectent l'ordre dans lequel les paramètres 
+	 * sont passés. On obtient ainsi 3 tableaux (item, category, quantity).
+	 * item[X] est à ajouter à la catégorie category[X], en quantité quantity[X].
+	 * - Si une seule catégorie et/ou une seule quantité, alors la catégorie et/ou la 
+	 * quantité s'appliquent à chaque élément à ajouter.
 	 */
 	public function actionAdd()
-	{		
+	{
 		// Récupère la catégorie
 		$category=Utils::get($_REQUEST['category']);
 		
@@ -60,14 +70,41 @@ class CartModule extends Module
 		// Récupère la quantité
 		$quantity=Utils::get($_REQUEST['quantity'],1);
 		
-		// Ajoute l'item au panier
-		$this->add($item, $quantity, $category);
+		// Plusieurs éléments à ajouter
+		if (is_array($item))
+		{
+			if (isset($category) && is_array($category) && (count($category)!= count($item)))
+				throw new Exception('Erreur : il doit y avoir autant de catégories que d\'éléments à ajouter.');
+			
+			if (isset($quantity) && is_array($quantity) && (count($quantity)!= count($item)))
+				throw new Exception('Une quantité doit être précisée pour chaque élément à ajouter.');
+		
+			foreach($item as $key=>$value)
+			{
+				// Si on a une catégorie pour chaque élément
+				(is_array($category)) ? $cat=$category[$key] : $cat=$category;
+				
+				// Si une quantité pour chaque élément
+				(is_array($quantity)) ? $quant=$quantity[$key] : $quant=$quantity;
+				
+				// Ajoute l'élément au panier
+				$this->add($value, $quant, $cat);
+			}
+		}
+		
+		// Un seul élément à ajouter
+		else
+		{
+			// Ajoute l'item au panier
+			$this->add($item, $quantity, $category);
+		}	
 		
 		// Détermine le callback à utiliser
 		// TODO : Vérifier que le callback existe
 		$callback=Config::get('callback');
 		
 		// Exécute le template, s'il a été indiqué
+		// TODO : adapter le template pour le cas de l'ajout de plusieurs éléments
 		if ($template=Config::get('template'))
 			Template::run
 			(
@@ -79,8 +116,7 @@ class CartModule extends Module
 	
 	/**
 	 * Supprime un item du panier. Si une catégorie a été précisée,
-	 * supprime, de cette catégorie, l'item associé à la clé key. Sinon, supprime
-	 * l'item associé à la clé key.
+	 * supprime l'item, de cette catégorie.
 	 */
 	public function actionRemove()
 	{
@@ -168,11 +204,10 @@ class CartModule extends Module
 	
     
     /**
-     * Ajoute un item dans le panier. Si un item ayant la même clé figurait déjà
-     * dans le panier, il est écrasé.
+     * Ajoute un item dans le panier.
      * 
      * @param mixed $item l'élément à ajouter
-     * @param mixed $quantity la quantité d'élément $item
+     * @param int $quantity la quantité d'élément $item
      * @param mixed $category optionnel la catégorie dans laquelle on veut ajouter
      * l'item
      */
@@ -217,16 +252,15 @@ class CartModule extends Module
      
     /**
      * Supprime un élément du panier 
-     * Si une catégorie est précisée en paramètre, supprime, de la catégorie 'category'
-     * l'élément associé à la clé key passée en paramètre.
-     * Sinon, supprime l'élément associé à la clé key passée en paramètre.
+     * Si une catégorie est précisée en paramètre, supprime l'item, de la catégorie.
      * Supprime la catégorie, si elle ne contient plus d'élément.
      * remarque : Aucune erreur n'est générée si l'item ne figure pas dans le
      * panier
 	 *
-     * @param mixed $key la clé de l'item à supprimer
+	 * @param mixed $item l'item à supprimer
+     * @param int $quantity la quantité d'item à supprimer
      * @param mixed $category optionnel la catégorie dans laquelle on veut supprimer
-     * l'item 
+     * l'item
      */
     private function remove($item, $quantity=1, $category=null)
     {
@@ -276,11 +310,7 @@ class CartModule extends Module
      */
     private function clear($category=null)
     {
-        if ($this->hasCategory)
-        {
-            if (is_null($category)) throw new Exception('Vous devez spécifier une catégorie');
-        }
-        else
+        if (! $this->hasCategory)
         {
             if (!is_null($category)) throw new Exception('Catégorie non autorisée');
         }
