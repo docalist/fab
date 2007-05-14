@@ -1,5 +1,8 @@
 # Fichier de configuration du module CartModule
 
+# Nom du panier
+#name:
+
 sessions:
   use: true
 
