@@ -474,10 +474,35 @@ class Template
         }
     }
     
+    /**
+     * Examine la valeur passée en paramètre et marque le bloc opt en cours comme
+     * "rempli" si la valeur est renseignée.
+     * 
+     * La valeur est considérée comme vide si :
+     * - c'est la valeur 'null'
+     * - c'est une chaine de caractères vide
+     * - c'est un tableau ne contenant aucun élément
+     * 
+     * Elle est comme renseignée si :
+     * - c'est une chaine non vide
+     * - c'est un entier ou un réel (même si c'est la valeur zéro)
+     * - c'est un booléen (même si c'est la valeur false)
+     * - c'est un tableau non vide
+     * - un objet, une ressource, etc. 
+     * 
+     * @param mixed $x la valeur à examiner
+     * @return mixed la valeur passée en paramètre
+     */
     public static function filled($x)
     {
-        if ($x != '') 
-            self::$optFilled[self::$optLevel]++;
+        // Cas où $x est considéré comme non rempli
+        if (is_null($x)) return $x;
+        if ($x==='') return $x;
+        if (is_array($x) && count($x)===0) return $x;
+
+        // Dans tous les autres cas, considéré comme renseigné
+        // int ou float (y compris 0), array non vide, bool (y compris false)
+        self::$optFilled[self::$optLevel]++;
     	return $x;
     }
 
