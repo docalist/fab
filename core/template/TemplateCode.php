@@ -604,6 +604,7 @@ class TemplateCode
                 'file_get_contents',
                 'count',
                 'is_null',
+                'is_array',
                 'array_sum',
                 'date'
             ));
