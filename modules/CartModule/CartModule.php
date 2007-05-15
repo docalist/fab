@@ -49,8 +49,8 @@ class CartModule extends Module
      
 
 	/**
-	 * Ajoute un item ou plusieurs item dans le panier, en précisant la quantité.
-	 * Si une catégorie est précisée, l'item sera ajouté à cette catégorie.
+	 * Ajoute un ou plusieurs éléments dans le panier, en précisant la quantité.
+	 * Si une catégorie est précisée, l'élément sera ajouté à cette catégorie.
 	 * 
 	 * Ajout de plusieurs éléments :
 	 * - On suppose que les navigateurs respectent l'ordre dans lequel les paramètres 
@@ -97,14 +97,13 @@ class CartModule extends Module
 		{
 			// Ajoute l'item au panier
 			$this->add($item, $quantity, $category);
-		}	
+		}
 		
 		// Détermine le callback à utiliser
 		// TODO : Vérifier que le callback existe
 		$callback=Config::get('callback');
 		
 		// Exécute le template, s'il a été indiqué
-		// TODO : adapter le template pour le cas de l'ajout de plusieurs éléments
 		if ($template=Config::get('template'))
 			Template::run
 			(
@@ -115,8 +114,15 @@ class CartModule extends Module
 	}
 	
 	/**
-	 * Supprime un item du panier. Si une catégorie a été précisée,
-	 * supprime l'item, de cette catégorie.
+	 * Supprime un ou plusieurs éléments du panier, en précisant la quantité.
+	 * Si une catégorie a été précisée, supprime l'élément, de cette catégorie.
+	 * 
+	 * Suppresion de plusieurs éléments :
+	 * - On suppose que les navigateurs respectent l'ordre dans lequel les paramètres 
+	 * sont passés. On obtient ainsi 3 tableaux (item, category, quantity).
+	 * item[X] est à supprimer de la catégorie category[X], en quantité quantity[X].
+	 * - Si une seule catégorie et/ou une seule quantité, alors la catégorie et/ou la 
+	 * quantité s'appliquent à chaque élément à supprimer.
 	 */
 	public function actionRemove()
 	{
@@ -129,9 +135,34 @@ class CartModule extends Module
 		// Récupère la quantité
 		$quantity=Utils::get($_REQUEST['quantity'],1);
 		
-		// Supprime l'item du panier
-		$this->remove($item, $quantity, $category);
+		// Plusieurs éléments à supprimer
+		if (is_array($item))
+		{
+			if (isset($category) && is_array($category) && (count($category)!= count($item)))
+				throw new Exception('Erreur : il doit y avoir autant de catégories que d\'éléments à ajouter.');
+			
+			if (isset($quantity) && is_array($quantity) && (count($quantity)!= count($item)))
+				throw new Exception('Une quantité doit être précisée pour chaque élément à ajouter.');
 		
+			foreach($item as $key=>$value)
+			{
+				// Si on a une catégorie pour chaque élément
+				(is_array($category)) ? $cat=$category[$key] : $cat=$category;
+				
+				// Si une quantité pour chaque élément
+				(is_array($quantity)) ? $quant=$quantity[$key] : $quant=$quantity;
+				
+				// Supprime l'élément du panier
+				$this->remove($value, $quant, $cat);
+			}
+		}
+		
+		// Un seul élément à supprimer
+		else
+		{
+			$this->remove($item, $quantity, $category);
+		}
+
 		// Détermine le callback à utiliser
 		// TODO : Vérifier que le callback existe
 		$callback=Config::get('callback');
