@@ -1,0 +1,146 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<database version='1.0'>
+    <description>Structure de la base ASCODOCPSY, convertie à partir du .def</description>
+
+    <sep>/</sep>
+
+    <stopwords>
+        about afin after against ainsi aisement all alors among and approximativement aquello are assez
+        aucun aucune aujourd aupres auquel auxquelles auxquels aussi autant autour autrefois autres aux
+        avaient avait avant avec avoir avons ayant beaucoup been between bij bonne bonnes both bref brefs
+        breve breves car cela celle celles celui cependant certain certaine certaines certains ces cet cette
+        ceux chacun chacune chaque chez cinq combien comme comment con conformement contre cual dans dat
+        debajo del dela den depuis der dernier derniere dernieres derniers des dessous dessus deux devant
+        devient directement dit donc donnant dont een egalement elle elles ellos encore enfin ensuite
+        entierement entre environ est esta esto estos etait etant etc etre eux fait first follow for from
+        fur furent had has have her het high hij his hors hui ici ils inc inversement its jusqu laquelle las
+        lequel les lesquelles lesquels leur leurs lors lorsqu lorsque los lui malgre mas meme memes mes met
+        mon more most new nog nos nosotros not notamment notre notres nous nuestro one ont ook other oui
+        outre over par para parce parmi pendant per peu peut plupart plus plusieurs plutot por porque pour
+        pourquoi premieres presque puis quand quant quatre que quel quelconque quelle quelles quelque
+        quelques quelquefois quels qui quoi quoiqu quoique sans sauf selon sera serez seront ses seulement
+        she simplement sin sinon six sobre some sont sous souvent specialement specifiquement suffisamment
+        suis sur surtout sus tal tant tel telle telles tels tes than that the their them then there they
+        this those three through ton tot tous tout toute toutes travers tres trois trop two una und under
+        une unes uno uns van via voor vos vosotros votre votres vous vuestro was wat were which wie with you
+        your zij
+    </stopwords>
+
+    <field name="REF" type="int">
+        <index type="5" />
+    </field>
+    <field name="Type" type="text" label="Type de document">
+        <index type="5" />
+        <entries name="types" />
+    </field>
+    <field name="NatText" type="text" label="Nature du texte officiel">
+        <index type="5" />
+        <entries name="nattext" />
+    </field>
+    <field name="Aut" type="text" label="Auteurs">
+        <index type="7" />
+        <entries name="auteurs" />
+    </field>
+    <field name="Tit" type="text" label="Titre">
+        <index type="5" />
+    </field>
+    <field name="Annexe" type="text" label="Titre de l'annexe suivi de l'adresse Internet">
+        <index type="5" />
+    </field>
+    <field name="CongrTit" type="text" label="Intitulé du congrès">
+        <index type="5" />
+    </field>
+    <field name="CongrNum" type="text" label="Numéro du congrès">
+        <index type="5" />
+    </field>
+    <field name="CongrDat" type="text" label="Année du congrès AAAA">
+        <index type="5" />
+    </field>
+    <field name="CongrLie" type="text" label="Ville du congrès">
+        <index type="5" />
+    </field>
+    <field name="DipSpe" type="text" label="Spécialité du diplôme">
+        <index type="5" />
+        <entries name="diplomes" />
+    </field>
+    <field name="Date" type="text" label="Année du document ou de soutenance AAAA">
+        <index type="5" />
+    </field>
+    <field name="DateText" type="text" label="Date du texte officiel AAAA-MM-JJ">
+        <index type="5" />
+    </field>
+    <field name="DatePub" type="text" label="Date de publication du texte officiel AAAA-MM-JJ" />
+    <field name="DateVali" type="text" label="Date de fin de validité d'un texte officiel AAAA-MM-JJ" />
+    <field name="Rev" type="text" label="Titre du périodique">
+        <index type="7" />
+        <entries name="revues" />
+    </field>
+    <field name="Vol" type="text" label="Volume du périodique">
+        <index type="5" />
+    </field>
+    <field name="Num" type="text" label="Numéro du périodique">
+        <index type="5" />
+    </field>
+    <field name="NumTexOf" type="text" label="Numéro du texte officiel">
+        <index type="5" />
+    </field>
+    <field name="ViePerio" type="text" label="Date de vie et de mort d'un titre de périodique" />
+    <field name="EtatCol" type="text" label="Etat de la collection" />
+    <field name="Page" type="text" label="Nombre de pages" />
+    <field name="PdPf" type="text" label="Page début-page fin" />
+    <field name="Notes" type="text" label="Notes bibliographiques" />
+    <field name="Col" type="text" label="Collection">
+        <index type="5" />
+    </field>
+    <field name="Edit" type="text" label="Editeur">
+        <index type="5" />
+        <entries name="editeurs" />
+    </field>
+    <field name="Lieu" type="text" label="Lieu d'édition, de soutenance">
+        <index type="5" />
+    </field>
+    <field name="Reed" type="text" label="Mention édition" />
+    <field name="IsbnIssn" type="text" label="ISBN, ISSN">
+        <index type="5" />
+    </field>
+    <field name="Resu" type="text" label="Résumé">
+        <index type="5" />
+    </field>
+    <field name="Theme" type="text" label="Thème">
+        <index type="7" />
+        <entries name="themes" />
+    </field>
+    <field name="MotCle" type="text" label="Descripteurs">
+        <index type="7" />
+        <entries name="descripteurs" />
+    </field>
+    <field name="Nomp" type="text" label="Nom propre">
+        <index type="7" />
+        <entries name="nomspropres" />
+    </field>
+    <field name="CanDes" type="text" label="Candidats descripteurs">
+        <index type="7" />
+        <entries name="candes" />
+    </field>
+    <field name="Lien" type="text" label="Adresse Internet">
+        <index type="5" />
+    </field>
+    <field name="Loc" type="text" label="Localisation du document">
+        <index type="5" />
+    </field>
+    <field name="ProdFich" type="text" label="Producteur de la fiche">
+        <index type="5" />
+    </field>
+    <field name="FinSaisie" type="bool" label="1 Saisie de la notice terminée - 0 Notice en cours de saisie">
+        <index type="5" />
+    </field>
+    <field name="Valide" type="bool" label="1 Validée - 0 Non validée">
+        <index type="5" />
+    </field>
+    <field name="Creation" type="text" label="Date de création de la notice format : AAAAMMJJ">
+        <index type="5" />
+    </field>
+    <field name="LastUpdate" type="text" label="Date de dernière mise à jour de la notice format : AAAAMMJJ">
+        <index type="5" />
+    </field>
+</database>
