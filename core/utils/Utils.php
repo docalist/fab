@@ -687,19 +687,21 @@ final class Utils
      */
     public static function getHost()
     {
-        $host= Utils::get($_SERVER['HTTP_HOST']);
-        if (! $host) $host=Utils::get($_SERVER['SERVER_NAME']);
-        if (! $host) $host=Utils::get($_SERVER['SERVER_ADDR']);
-            
-        if (Utils::get($_SERVER['HTTPS'])=='on')
-            $host='https://' . $host;
-        else 
-            $host='http://' . $host;
+        if (Utils::get($_SERVER['HTTPS'])==='on' || Utils::get($_SERVER['HTTP_X_FORWARDED_PROTO'])==='on')
+        {
+            $http='https';
+            $defaultPort=':443';
+        }
+        else
+        {
+        	$http='http';
+            $defaultPort=':80';
+        }
+
+        $port=':' . $_SERVER['SERVER_PORT'];
+        if ($port===$defaultPort || $port==='') $port='';
         
-        $port=$_SERVER['SERVER_PORT'];
-        if ($port != '80') $host .= ':' . $port;
-        
-    	return $host;
+    	return $http . '://' . $_SERVER['SERVER_NAME'] . $port;
     }
 
 
