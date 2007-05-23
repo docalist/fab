@@ -79,8 +79,9 @@ class Runtime
      * @var string Adresse relative de la page demandée par l'utilisateur
      */
     public static $url='';
+    private static $fcInUrl;
+    private static $fcName;
     
-
     public static $env='';
     
     public static $queryString=''; // initialisé par repairgetpost
@@ -97,6 +98,177 @@ class Runtime
         // ini_set('option à changer', 0));
     }
     
+    private static function setupPaths()
+    {
+        // Initialise $fabRoot : la racine du framework
+        self::$fabRoot=dirname(__FILE__) . DIRECTORY_SEPARATOR;
+
+        // Cas particulier : lancé en ligne de commande
+        if (php_sapi_name()=='cli') 
+        {
+            ignore_user_abort(true);    // à mettre ailleurs
+            set_time_limit(0);          // à mettre ailleurs
+
+            // on récupère éventuellement la webroot à utiliser en second paramètre
+            if (isset($_SERVER['argv'][2]))
+                self::$root=self::$webRoot=$_SERVER['argv'][2];
+            else
+                self::$root=self::$webRoot=self::$fabRoot;
+
+            // détermine "l'url" demandée, la query_string, etc.
+            self::$url=$_SERVER['argv'][1];
+            $pt=strpos(self::$url, '?');
+            if ($pt!==false)
+            {
+                $_SERVER['QUERY_STRING']=substr(self::$url, $pt+1);
+                self::$url=substr(self::$url, 0, $pt);
+                parse_str($_SERVER['QUERY_STRING'], $_GET);
+                $_REQUEST=$_GET;
+            }
+            else
+                $_SERVER['QUERY_STRING']='';
+            
+            $_SERVER['REQUEST_METHOD']='GET';
+            self::$fcInUrl=null;
+            return;
+        }
+
+        // Path du script auquel a échu la requête demandée par l'utilisateur
+        if (isset($_SERVER['SCRIPT_FILENAME']))
+            $path=$_SERVER['SCRIPT_FILENAME'];
+        else
+            die("Impossible d'initialiser l'application, SCRIPT_FILENAME non disponible");
+        
+        // Nom du front controler = le nom du script qui traite la requête (index.php, debug.php...)
+        self::$fcName=basename($path);
+        
+        // Path du répertoire web de l'application = le répertoire qui contient le front controler
+        self::$webRoot=dirname($path) . DIRECTORY_SEPARATOR ;
+        
+        // Path de l'application = par convention, le répertoire parent du répertoire web de l'application
+        self::$root= dirname(self::$webRoot) . DIRECTORY_SEPARATOR;
+        
+        // Url demandée par l'utilisateur
+        if (isset($_SERVER['REQUEST_URI']))
+            self::$url=$_SERVER['REQUEST_URI'];
+        else
+            die("Impossible d'initialiser l'application, REQUEST_URI non disponible");
+
+        // Préfixe de l'url : partie de l'url entre le nom du serveur et le nom du front controler
+        if (false !== $pt=stripos(self::$url, self::$fcName))
+        {
+            // l'url demandée contient le nom du front controler
+            self::$realHome=substr(self::$url, 0, $pt);
+            self::$home=self::$realHome.self::$fcName;
+            self::$fcInUrl=true;
+        }
+        else
+        {
+            if (isset($_SERVER['ORIG_PATH_INFO']))
+                $path=$_SERVER['ORIG_PATH_INFO'];
+            else
+                die("Impossible d'initialiser l'application : url redirigée (sans front controler) mais ORIG_PATH_INFO non disponible");
+
+            if (false=== $pt=strpos($path, self::$fcName))
+                die("Impossible d'initialiser l'application : url redirigée mais nom du script non trouvé dans ORIG_PATH_INFO");
+
+            self::$fcInUrl=false;
+
+            self::$home=self::$realHome=substr(self::$url,0,$pt);
+        }
+
+        // garantit que home et realHome contiennent toujours un slash final
+        self::$realHome=rtrim(self::$realHome,'/').'/';
+        self::$home=rtrim(self::$home,'/').'/';
+        
+        // ajuste self::url pour qu'elle ne contienne que le module/action demandé par l'utilisateur
+        if(strncasecmp(self::$url,self::$home,strlen(self::$home)-1)!==0) // debug
+        {
+            var_dump(self::$url);
+            echo '<hr />';
+            var_dump(self::$home);
+            die("erreur interne lors de l'examen de l'url");
+        }
+             
+        if (strlen(self::$url)<strlen(self::$home))
+            self::$url='';
+        else
+        {
+            self::$url=substr(self::$url, strlen(self::$home)-1);
+            if (false !== $pt=strpos(self::$url,'?'))
+                self::$url=substr(self::$url,0,$pt);
+        }
+    }
+
+    /**
+     * Vérifie que l'url demandée par l'utilisateur correspond à l'url réelle de la page demandée.
+     * 
+     * - si les smarturls sont activées et que l'adresse comporte le nom du script d'entrée,
+     * redirige l'utilisateur vers l'url sans nom du script
+     * 
+     * - si les smarturls sont désactivées et que l'adresse ne mentionne pas le nom du script
+     * d'entrée, redirige vers l'url comportant le nom du script
+     * 
+     * - si la "home page" est appellée sans slash final, redirige l'utilisateur vers la home
+     * page avec un slash (xxx/index.php -> xxx/index.php/)
+     */
+    private static function checkSmartUrls()
+    {
+
+//echo '<h1>FINAL</h1>';
+//echo '<br /><big>';
+//echo'self::$fabRoot : ', self::$fabRoot, '<br />';
+//echo'self::$url : ', self::$url, '<br />';
+//echo'self::fcName : ', self::$fcName, '<br />';
+//echo'self::$webRoot : ', self::$webRoot, '<br />';
+//echo'self::$root : ', self::$root, '<br />';
+//echo'self::$realHome : ', self::$home, '<br />';
+//echo'self::$home : ', self::$home, '<br />';
+//echo 'host : ', Utils::getHost(), '<br />';
+//echo 'query string : ', $_SERVER['QUERY_STRING'], '<br />';
+//echo '</big>';
+
+        if (!is_bool(self::$fcInUrl)) // fcName=null : mode cli, ignorer le test
+            return;
+            
+        if (! Utils::isGet())  // on ne sait pas faire de redirect si on est en POST, inutile de tester
+            return;
+        
+        $smartUrls=Config::get('smarturls',false);
+
+        // fc dans l'url && SmartUrl=off -> url sans fc 
+        if ($smartUrls && self::$fcInUrl)
+        {
+            if (false===$pt=strrpos(rtrim(self::$home,'/'),'/'))
+                die("redirection impossible, valeur erronée pour 'home'");
+
+            $url=substr(self::$home, 0, $pt+1).ltrim(self::$url,'/');
+            
+            if (! empty($_SERVER['QUERY_STRING'])) $url.='?' . $_SERVER['QUERY_STRING'];
+            self::redirect($url, true);
+        }
+
+        // pas de fc dans l'url && smarturls=on -> url avec fc
+        if (!$smartUrls && !self::$fcInUrl)
+        {
+            $url=self::$home.self::$fcName.self::$url;
+            if (! empty($_SERVER['QUERY_STRING'])) $url.='?' . $_SERVER['QUERY_STRING'];
+            self::redirect($url, true);
+        }
+
+        if (self::$url==='')
+        {
+            if (self::$fcInUrl)
+            { 
+                $url=self::$home.self::$url;
+                if (! empty($_SERVER['QUERY_STRING'])) $url.='?' . $_SERVER['QUERY_STRING'];
+                self::redirect($url, true);
+            }
+            else
+                self::$url='/';
+        }
+    }   
+     
     /**
      * Initialise et lance l'application
      * @param string $path Path complet du script appellant (utiliser __FILE__)
@@ -104,6 +276,7 @@ class Runtime
     public static function setup($env='')
     {
         self::checkRequirements();
+        self::setupPaths();
 
 //        xdebug_enable();
 //        xdebug_start_trace('c:/temp/profiles/trace', XDEBUG_TRACE_COMPUTERIZED);
@@ -114,9 +287,6 @@ class Runtime
          
         $fab_start_time=microtime(true);
     
-        // Initialise $fabRoot : la racine du framework
-        self::$fabRoot=dirname(__FILE__) . DIRECTORY_SEPARATOR;
-        
         // Charge les fonctions utilitaires
         require_once self::$fabRoot.'core/utils/Utils.php'; 
         
@@ -124,28 +294,6 @@ class Runtime
         require_once self::$fabRoot.'core/debug/Debug.php';
         Debug::notice('Initialisation du framework en mode %s', $env ? $env : 'normal');
         
-        // cas spécial, lancé en ligne de commande
-        if (php_sapi_name()=='cli') 
-        {
-            ignore_user_abort(true);
-            set_time_limit(0);
-
-            // on récupère éventuellement la webroot à utiliser en second paramètre
-            if (isset($_SERVER['argv'][2]))
-                self::$root=self::$webRoot=$_SERVER['argv'][2];
-            else
-                self::$root=self::$webRoot=self::$fabRoot;
-        }
-        else
-        {
-            // Initialise $webRoot : racine du site
-            $caller=Utils::callerScript();
-            self::$webRoot=dirname($caller) . DIRECTORY_SEPARATOR;
-    
-            // Initialise $root : racine de l'application (répertoire parent de webroot)
-            self::$root=realpath(self::$webRoot.DIRECTORY_SEPARATOR.'..') . DIRECTORY_SEPARATOR;
-        }
-                
         // Charge le gestionnaire de configuration
         require_once self::$fabRoot.'core/config/Config.php'; 
         
@@ -163,84 +311,24 @@ class Runtime
         self::setupGeneralConfig();                 // Modules requis : Debug, Config
                                                     // variables utilisées : fabRoot, root, env
 
+        self::checkSmartUrls();
+
         if (config::get('debug'))
             define('debug', true);
         else
             define('debug', false);
     
-        // Initialise $url : l'adresse relative de la page demandée par l'utilisateur
-        
-        // TODO : faire en sorte que ça fonctionne sous IIS
-        
-        // Enlève l'éventuel slash de fin de document_root(sous linux, on a un slash final, pas sous windows)
-        $_SERVER['DOCUMENT_ROOT']= rtrim($_SERVER['DOCUMENT_ROOT'], DIRECTORY_SEPARATOR);
+//echo '<h1>FINAL</h1>';
+//echo '<br /><big>';
+//echo'self::$fabRoot : ', self::$fabRoot, '<br />';
+//echo'self::$url : ', self::$url, '<br />';
+//echo'self::fcName : ', self::$fcName, '<br />';
+//echo'self::$webRoot : ', self::$webRoot, '<br />';
+//echo'self::$root : ', self::$root, '<br />';
+//echo'self::$realHome : ', self::$home, '<br />';
+//echo'self::$home : ', self::$home, '<br />';
+//echo '</big>';
 
-        // Initialise $home : la "différence" entre server[DOCUMENT_ROOT] et webroot
-        self::$realHome=self::$home=strtr(substr(self::$webRoot, strlen($_SERVER['DOCUMENT_ROOT'])), DIRECTORY_SEPARATOR, '/');
-
-        // cas spécial, lancé en ligne de commande
-        if (php_sapi_name()=='cli')
-        { 
-            self::$url=$_SERVER['argv'][1];
-            $pt=strpos(self::$url, '?');
-            if ($pt!==false)
-            {
-                $_SERVER['QUERY_STRING']=substr(self::$url, $pt+1);
-                self::$url=substr(self::$url, 0, $pt);
-                parse_str($_SERVER['QUERY_STRING'], $_GET);
-                $_REQUEST=$_GET;
-            }
-            else
-                $_SERVER['QUERY_STRING']='';
-            
-            $_SERVER['REQUEST_METHOD']='GET';
-            
-
-        }    
-        else
-        {
-            self::$url=$_SERVER['REQUEST_URI'];
-            self::$url=substr(self::$url, strlen(self::$home)-1); // avec smarturls
-
-            // TODO : ne marche pas, à réétudier
-            if (($pt=strpos(self::$url,'?')) !== false) self::$url=substr(self::$url, 0, $pt);
-            if (self::$url=='') self::$url='/';
-    
-            // Redirige l'utilisateur si l'url qu'il a demandé ne correspond pas à l'option smarturls
-            $fcName=basename($caller);
-
-            // Si les smarturls sont actives (pas de FC) et que l'url mentionne le FC, redirection
-            if (Config::get('smarturls'))
-            {
-                $fcName='/' . $fcName;
-                if (Utils::isGet())  // on ne sait pas faire de redirect si on est en POST
-                {
-                    if (strncasecmp(self::$url, $fcName, strlen($fcName))==0) // l'url mentionne le FC
-                    {
-                        $h=rtrim(self::$home,'/') . substr(self::$url, strlen($fcName));
-                        if (! empty($_SERVER['QUERY_STRING'])) $h.='?' . $_SERVER['QUERY_STRING'];
-                        self::redirect($h, true);
-                    }
-                }
-            }
-    
-            // Si les smarturls sont désactivées (indiquer le FC) et que l'url ne mentionne pas le FC, redirection
-            else
-            {
-                self::$home .= $fcName . '/';
-                if (Utils::isGet())  // on ne sait pas faire de redirect si on est en POST
-                {
-                    if (strncasecmp(self::$url, '/' . $fcName, strlen($fcName)+1)!=0) // l'url ne mentionne pas le fc
-                    {
-                        $h=self::$home . trim(self::$url,'/');
-                        if (! empty($_SERVER['QUERY_STRING'])) $h.='?' . $_SERVER['QUERY_STRING'];
-                        self::redirect($h, true);
-                    }
-                }
-                self::$url=substr(self::$url, 1+strlen($fcName));
-                if (self::$url=='') self::$url='/';
-            }
-        }
         debug && Debug::notice("Module/action demandés par l'utilisateur : " . self::$url);
         
         // Répare les tableaux $_GET, $_POST et $_REQUEST
@@ -253,11 +341,7 @@ class Runtime
         
         // Initialise le gestionnaire de templates
         debug && Debug::log('Initialisation du gestionnaire de templates');
-//        if (self::$env=='test')
         require_once self::$fabRoot.'core/template/Template.php';
-//        else
-//            require_once self::$fabRoot.'Template.php';
-         
         Template::setup();
         
         // Initialise le gestionnaire de modules
@@ -509,16 +593,16 @@ $fab_init_time=microtime(true);
             echo 'ERREUR : redirection vers une url vide<br />', "\n";
             return;
         }
-        header("Location: $url");
+//        header("Location: $url");
         
         $url=htmlentities($url);
         echo sprintf
         (
             '<html>' .
             '<head>' . 
-            '<meta http-equiv="refresh" content="0;url=%s"/>' .
-            '<script type="text/javascript">' .
-            'window.location="%s";' .
+//            '<meta http-equiv="refresh" content="0;url=%s"/>' .
+//            '<script type="text/javascript">' .
+//            'window.location="%s";' .
             '</script>' .
             '</head>' .
             '<body>' .
