@@ -1,4 +1,7 @@
 <?php
+define('DB_PATH', Runtime::$root.'data/db/test');
+
+//die(DB_PATH);
 class QueryParser
 {
     private $db;
@@ -84,16 +87,75 @@ class DatabaseAdmin extends Module
             Template::run('newdb.htm', array('error'=>'Vous devez indiquer '.substr($error,1).'.'), $_REQUEST);
         else
         {
-            $t=eval('return ' . $structure);
-            $db=Database::create($path, $t, $type);
+            $db=Database::create($path, $structure, $type);
 
             echo "La base a été créé dans $path.";
         }    
         
     }
+    
+    public function actionAscoLoad()
+    {
+        // charge le .def de ascodocpsy
+        $def=file_get_contents(dirname(__FILE__).'/ascodocpsy.def.xml');
+        
+        // crée la base
+        $xapianDb=Database::create(DB_PATH, $def, 'xapian');
+        
+        // Importe des notices de la base bis dans la base xapian
+        $bisDb=Database::open('ascodocpsy', true);
+                
+        if (!$bisDb->search('*', array('_sort'=>'-','_start'=>1,'_max'=>1000)))
+            die('aucune réponse');
+            
+        foreach($bisDb as $record)
+        {
+            $xapianDb->addRecord();
+
+            foreach($record as $name=>$value)
+            {
+                if (in_array($name, array('Aut','Edit','Lieu','Theme','MotCle','Nomp','CanDes','Loc','ProdFich')))
+                {
+                    $value=explode('/',$value);
+                    if (count($value)===1) $value=$value[0];
+                }
+                $xapianDb[$name]=$value;
+            }
+            $xapianDb->saveRecord();
+        }
+        
+        unset($bisDb);
+        unset($xapianDb);
+        
+        echo 'Terminé';
+    }
+    
+    public function actionBisToXapian()
+    {
+        $bisDb=Database::open('ascodocpsy', true);
+                
+        if (!$bisDb->search('Type=rapport', array('_sort'=>'+','_start'=>1,'_max'=>100)))
+            die('aucune réponse');
+            
+        $xapianDb=Database::open(DB_PATH, false, 'xapian');
+
+        foreach($bisDb as $record)
+        {
+            $xapianDb->addRecord();
+            foreach($record as $name=>$value)
+            {
+                if ($value) echo $name, ' : ', $value, "<br />";
+                $xapianDb[$name]=$value;
+            }
+            $xapianDb->saveRecord();
+            echo '<hr />';
+        }
+        die('ok');
+    }
+    
     public function actionDumpTerms()
     {
-        $db=Database::open('/var/web/fab/data/test', true, 'xapian');
+        $db=Database::open(DB_PATH, true, 'xapian');
         $prefix=$_SERVER['QUERY_STRING'];
         $db->dumpTerms($prefix);
     	
@@ -116,7 +178,7 @@ class DatabaseAdmin extends Module
                 'indexvaluescount' => true,
             );  
         };
-        $db=Database::create('/var/web/fab/data/test', $structure, 'xapian');
+        $db=Database::create(DB_PATH, $structure, 'xapian');
 // faire un c/c de l'export csv du site bdsp. vérifier que après <<<endOfData et avant endOfData; on a uniquement un cr (alt+013)
 $data=<<<endOfData
 "REF","AUT","AUTS","AUTCOLL","AUTCOLS","ORGCOMM","TITPERIO","TITFASC","TITENS","TITORIGM","TITCONG","TITCOL","TITORIGA","TITFRAN","DATEDIT","DATORIGI","NOFASC","NOVOL","ISBN","NUMDIV","ISSN","TYPDOC","TYPDOCB","PAYS","LANGUE","LANGRESU","PAGECOLL","REFBIB","IDENT","VILCONG","DIPLOM","VILED","CODORIEN","RESUM","MOTSCLE1","TITCOFRE","TITENG","NOUVDESC","PASCAL","PASENG","NC_FRE","NC_ENG","RESU_ENG","RESU_ESP",
@@ -276,7 +338,7 @@ endOfData;
 //        $qp->parse($_REQUEST['_equation']);
         
         echo '<h1>Recherche</h1>';
-        $path='/var/web/fab/data/test';
+        $path=DB_PATH;
             	
         $db=Database::open($path, true, 'xapian');
         if ($db->search($_REQUEST['_equation'], $_GET))

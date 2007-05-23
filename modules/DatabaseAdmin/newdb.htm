@@ -6,7 +6,7 @@
             <textbox name="name" label="Nom :" value="test" />
         </div>
         <div>
-            <textbox name="path" label="Path :" value="/var/web/fab/data/test" />
+            <textbox name="path" label="Path :" value="\\bdspserver\d\$\WebApache\AscoFuturSite\data\db\test" />
         </div>
 
         <div>
@@ -16,174 +16,21 @@
         </div>
 
     </fieldset>
-    <fieldset label="Structure de la base (pour le moment, il faut taper un tableau php)">
-        <textbox name="structure" cols="80" rows="100"  style="width: 100%;" wrap="off">array
-(
-    // Description libre de la base, notes, précisions, historique des modifs, ...
-    'description'=>'...',               
-    
-    // Séparateur par défaut utilisé dans les champs pour lesquels multiple=true.
-    'sep'=>'/',                         
-
-    // Liste par défaut des mots-vides qui seront ignorés lors d'une indexation au mot
-    'stopwords' => 'about afin...',     
-
-    // Liste des champs constituant la base    
-    'fields'=>array
-    (
-        0=>array
-        (
-            // Nom du champ
-            'name'=>'AUT',
-            
-            // Type du champ (entier, booléen, texte...)
-            'type'=>'text',
-            
-            // True : le champ peut contenir plusieurs valeurs (champ articles)
-            'multiple'=>true,
-            
-            // Séparateur utilisé entre les différentes valeurs. (si absent : utiliser sep par défaut de la base)
-            'sep'=>'*',
-            
-            // Libellé du champ (utilisé dans un load ou un show généré automatiquement)
-            'label'=>'auteurs',
-            
-            // Description libre du champ, notes, précisions... susceptble d'être affiché
-            'description'=>'les auteurs du doc',
-
-            // Rien=le champ n'est pas indexé, sinon : nom de l'index (utilisé dans les équations)
-            'indexname'=>'AUT',
-            
-            // Ajouter dans l'index un token pour chaque mot du champ, sauf si mot vide
-            'indexwords'=>true,
-            
-            // Ajouter dans l'index un token pour l'ensemble du champ si multiple=false, ou pour chaque valeur (si multiple=true)
-            'indexvalues'=>true,
-            
-            // Pour chaque token ajouté à l'index, stocker également la position du token (near, phrases...) 
-            'indexpositions'=>true,
-            
-            // Ajouter dans l'index un token indiquant le nombre de valeurs présentes dans le champ
-            'indexvaluescount'=>true,
-
-            // Pour chaque token créé, ne prendre en compte qu'à partir du start-ième caractère
-            'indexstart'=>0,
-            
-            // Pour chaque token créé, tronquer et ne stocker que length caractères
-            'indexlength'=>0,
-
-            // Créer un catalogue de toutes les valeurs différentes saisies pour ce champ (+nb d'occurences)
-            'valuescatalog'=>'auteurs',
-
-            // Liste des mots-vides. Absent=utiliser la liste par défaut de la base. Chaine vide=pas de stopwords
-            'stopwords'=>'le la les',
-
-            // Faire en sorte qu'on puisse trier les résultats d'une recherche sur ce champ
-            'sortable'=> true,
-            
-            // Suggestion sur la manière dont ce champ devrait être affiché à l'écran (dans un load, par ex)
-            'showas'=>'textarea',
-            
-            // Identifiant du contexte d'aide de ce champ (par exemple, url d'une page d'aide)
-            'help'=>'aide/aut.html',
-
-            // longueur minimale du champ (si multiple=false), de chacune des valeurs (si multiple=true)
-            'minlength'=>0,
-            
-            // longueur maximale du champ (si multiple=false), de chacune des valeurs (si multiple=true). 0=pas de max
-            'maxlength'=>0,
-            
-            // uniquement si multiple=true : nombre minimum de valeurs
-            'minvalues'=>0,
-            
-            // uniquement si multiple=true : nombre maximum de valeurs
-            'maxvalues'=>0,
-            
-            // true : champ obligatoire, false: champ faculatif
-            'mandatory'=>true,
-            
-            // syntaxe que le champ (si multiple=true) ou chacune des valeurs (si multiple=false) doit respecter
-            'regexp'=>'~[A-Z][a-z]+~m',
-            
-            // nom de la table d'autorité fermée de ce champ (les valeurs présentes dans le champ doivent exister dans la table)
-            'authtable'=>'pays.txt'
-            
-        ),
-        1=>array
-        (
-            'name'=>'AUTCOLL',
-            // ...
-        )
-    ),
-    
-    // clé de tris supplémentaires utilisables pour trier les résultats d'une recherche
-    'sortkeys'=>array
-    (
-        // sortkey: 'Date:DateText:CongrDat,8,KeyDate,+ ; Type,20,KeyTextIgnoreCase,+ ; Rev,50,KeyTextIgnoreCase,-'
-        'sort1' => array                // nom de la clé de tri
-        (
-            array                       
-            (
-                'fields'=>array('Date', 'DateText', 'CongrDat'),
-                'length'=>8,
-                'type'=>'date',
-                'reverse'=>false
-            )
-            ,
-            array
-            (
-                'fields'=>array('Type'),
-                'length'=>20,
-                'type'=>'textnocase',
-                'reverse'=>false
-            )
-            ,
-            array
-            (
-                'fields'=>array('Rev'),
-                'length'=>20,
-                'type'=>'textnocase',
-                'reverse'=>false
-            )
-        )
-    )
-    ,
-    'alias'=>array                      // Noms d'index supplémentaires (synonymes, index de regroupements)
-    (
-        'org'=>'AUTCOLL',                   // simple synonyme une recherche "org=xxx" fait la même chose que "autcoll=xxx"
-        'au'=>array('AUT','AUTS')           // index de regroupement : "mcl=xxx" fait la même chose que "motscles=xxx OR nouvdesc=xxx"
-    )
-/*    
-    ,
-    'views'=>array                      // à étudier, juste pour garder l'idée
-    (
-        'article'=>array
-        (
-        ),
-        'ouvrage'=>array
-        (
-        )
-    ),
-    
-    // à partir de la structure de base ci-dessus, un certains nombre de choses sont calculées pour optimiser les traitements
-    'fieldsbyname'=>array           // à partir du nom, donne le numéro. peut aussi servir à indiquer l'ordre des champs
-    (
-        'AUT'=>0,          // ie référence sur database['fields'][0]
-        'AUTCOLL'=>1
-    )
-    ,
-    'indexprefixes'=>array          // liste de tous les index disponibles et préfixe(s) des tokens de chaque
-    (
-        'AUT'=>'X0:',
-        'AUTCOLL'=>'X1:',
-        // ...
-        'org'=>'X1:',
-        'au'=>array('X0:','X1:')
-    )
-*/
-);
-
-        </textbox>
+    <fieldset label="Structure xml de la base">
+        <textbox name="structure" cols="80" rows="100"  style="width: 100%;" wrap="off">&lt;?xml version="1.0" encoding="iso-8859-1"?>
+    <database>
+        <description>...</description>
+        <sep>,</sep>
+        <stopwords>afin ainsi alors...</stopwords>
+        
+        <field name="REF" type="int" />
+        
+        <field name="Type" type="text" label="Type de document">
+            <index type="5" />
+        </field>
+        
+<!--            etc...-->
+    </database></textbox>
     </fieldset>
     
     <submit label="Créer la base..." />
