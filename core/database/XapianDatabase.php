@@ -1,5 +1,4 @@
 <?php
-
 /**
  * @package     fab
  * @subpackage  database
@@ -26,6 +25,7 @@ class XapianDatabaseDriver extends Database
     private $structure=null;
     
     private $fields=array();
+    private $fieldName=array();
     
     /**
      * @var XapianQueryParser l'analyseur d'équations de xapian
@@ -108,7 +108,7 @@ class XapianDatabaseDriver extends Database
         }
         $length=strlen($result);
         $result=chr($length).$result;
-        $buffer=substr_replace($buffer, $result, $i, $length+1);
+        $buffer=substr_replace($buffer, $result, $i/*, $length+1*/);
         $i+=$length+1;
         return $result;
     }
@@ -150,7 +150,7 @@ class XapianDatabaseDriver extends Database
         }
         $result.=chr($value);
         $length=strlen($result);
-        $buffer=substr_replace($buffer, $result, $i, $length);
+        $buffer=$ret=substr_replace($buffer, $result, $i/*, $length*/);
         $i+=$length;
         return $result;
     }
@@ -180,7 +180,7 @@ class XapianDatabaseDriver extends Database
         $j=$i;
         $length=strlen($string);
         self::writeVInt($length, $buffer, $i);
-        $buffer=substr_replace($buffer, $string, $i, $length);
+        $buffer=substr_replace($buffer, $string, $i/*, $length*/);
         $i+=$length;
         return substr($buffer, $j, $i-$j);
     }
@@ -189,113 +189,239 @@ class XapianDatabaseDriver extends Database
     {
         if (0 == $length=self::readVInt($buffer, $i)) return '';
         $result=substr($buffer, $i, $length);
-//        echo 'readString. i=', $i, ', length=', $length, 'value=[', $result, ']<br />';
         $i+=$length;
         return $result;
     }
     
-    private static function structure(& $structure)
+
+//************************************
+    private static function xmlToDef($xmlSource)
     {
-        // Vérifie que c'est bien une structure de base de données
-        if (! is_array($structure) or 0 == count($structure))
-            throw new Exception('Structure incorrecte, tableau non vide attendu');
+        // Le tableau généré
+        $def=array();
+        
+        // Crée un document XML
+        $xml=new domDocument();
+        $xml->preserveWhiteSpace=false;
+    
+        // gestion des erreurs : voir comment 1 à http://fr.php.net/manual/en/function.dom-domdocument-loadxml.php
+        libxml_clear_errors(); // >PHP5.1
+        libxml_use_internal_errors(true);// >PHP5.1
+    
+        // Charge le document
+        if (! $xml->loadXML($xmlSource))
+        {
+            $h="Structure de base incorrecte, ce n'est pas un fichier xml valide :<br />\n"; 
+            foreach (libxml_get_errors() as $error)
+                $h.= "- ligne $error->line, colonne $error->column : $error->message<br />\n";
+    
+            throw new Exception($h);
+        }
+    
+        // L'élément racine doit être '<database>'
+        $database=$xml->documentElement;
+        if ($database->tagName !=='database')
+            throw new Exception('Structure de base incorrecte : doit commencer par un tag "database"');
             
-        if (! isset($structure['fields']) or ! is_array($structure['fields']) or 0==count($structure['fields']))
-            throw new Exception('Structure incorrecte, aucun champ défini');
+        // Convertit la structure xml en tableau php
+        $dtd=array
+        (
+            'label',
+            'version',
+            'description',
+            'sep',
+            'stopwords',                // Liste par défaut des mots-vides à ignorer lors de l'indexation
+            'field'=>array
+            (
+                'name',                 // Nom du champ, d'autres noms peuvent être définis via des alias
+                'type',                 // Type du champ (juste à titre d'information, non utilisé pour l'instant)
+                'label',                // Libellé du champ
+                'description',          // Description
+                
+                'stopwords',            // Liste spécifique de mots-vides à appliquer à ce champ
+                
+                'index'=>array          // Liste des index à créer pour ce champ  
+                (
+                    'name',             // Nom de l'index
+                    'type',             // Type
+                ),
+                
+                'entries'=>array        // Liste des tables des valeurs à constituer
+                (
+                    'name',             // Nom de la table
+                    'start',            // Position de début ou chaine délimitant le début de la valeur à ajouter à la table
+                    'end'               // Longueur ou chaine délimitant la fin de la valeur à ajouter à la table
+                ),
+                
+                'sortable'=>array       // Permet de trier sur ce champ
+                (
+                    'start',            // Position de début ou chaine délimitant le début de la clé de tri à créer
+                    'end'               // Longueur ou chaine délimitant la fin de la clé de tri à créer
+                )
+            )
+        );
+//                <entries name="auteurs" start="0" end="/" />
+//                <entries name="noms" start="0" end="(" />
+//                <entries name="prénoms" start="(" end=")" />
+//                <entries name="roles" start="/" end=":" />
+//                <entries name="affiliations" start=":" end="" />
+
+//                <sortable start="(" end=")" />
+//                <sortable start="0" end=")" />
         
-        // Initialise les attributs non définis à leur valeur par défaut
-        if (! isset($structure['sep'])) $structure['sep']=';';
-        if (! isset($structure['stopwords'])) $structure['stopwords']='';
+        $def=self::xmlToArray($database,$dtd);
+    
+        // Vérifie que c'est bien une structure de base de données
+        if (! is_array($def) or 0 == count($def))
+            throw new Exception('Structure de base incorrecte');
+            
+        // Tri et nettoyage des mots-vides
+        if (isset($def['stopwords']))
+        { 
+            $t=preg_split('~\s~', $def['stopwords'], -1, PREG_SPLIT_NO_EMPTY);
+            sort($t);
+            $def['stopwords']=array_flip($t);    
+        }
+        else
+            $def['stopwords']=array();
         
-        // Numérote les champs et les index
-        $fields=$structure['fields'];
-        $structure['fields']=array();
-        $structure['fieldbyname']=array();
-        $structure['indexbyname']=array();
+        // Vérifie qu'on a au moins un champ
+        if (! isset($def['field']) or ! is_array($def['field']) or 0==count($def['field']))
+            throw new Exception('Structure de base incorrecte, aucun champ défini');
+    
+        $fields=array();
+        
         $fieldNumber=1;
         $indexNumber=1;
-        foreach ($fields as $field)
-        {
-            if (! isset($field['name']))
-                throw new Exception('Le champ numéro '.$fieldNumber.' sans nom');
-
-            $field['number']=$fieldNumber;
-             
-            if (! isset($field['type'])) $field['type']='text';
-            if (! isset($field['multiple'])) $field['multiple']=false;
-            if (! isset($field['sep'])) $field['sep']=& $structure['sep'];
-            if (! isset($field['label'])) $field['label']=$field['name'];
-            if (! isset($field['stopwords'])) $field['stopwords']=& $structure['stopwords'];
-
-
-            $indexed=
-                (isset($field['indexwords']) and $field['indexwords']==true)
-             or (isset($field['indexvalues']) and $field['indexvalues']==true)
-             or (isset($field['indexvaluescount']) and $field['indexvaluescount']==true);
-            $field['indexed']=$indexed;
-            
-            if ($indexed)
-            {
-                if (! isset($field['indexname'])) $field['indexname']=$field['name'];
-                $indexname=$field['indexname'];
-                if (isset($structure['indexbyname'][$indexname]))
-                    $field['indexprefix']=$structure['indexbyname'][$indexname];
-                else
-                    $field['indexprefix']=$structure['indexbyname'][$indexname]=($indexNumber++).':';
-            }
-            
-            $structure['fields'][$fieldNumber]=$field;
-            if (isset($structure['fieldbyname'][$field['name']]))
-                throw new Exception('Plusieurs champs avec le même nom : ' . $field['name']);
-                
-            $structure['fieldbyname'][$field['name']]= & $structure['fields'][$fieldNumber];
-            $fieldNumber++;
-        }
         
-/*
-
-    ,
-    'alias'=>array                      // Noms d'index supplémentaires (synonymes, index de regroupements)
-    (
-        'org'=>'AUTCOLL',                   // simple synonyme une recherche "org=xxx" fait la même chose que "autcoll=xxx"
-        'au'=>array('AUT','AUTS')           // index de regroupement : "mcl=xxx" fait la même chose que "motscles=xxx OR nouvdesc=xxx"
-    )
-    ,
-    'views'=>array                      // à étudier, juste pour garder l'idée
-    (
-        'article'=>array
-        (
-        ),
-        'ouvrage'=>array
-        (
-        )
-    ),
+        $def['index']=array();      // Les prefixes des index
+        $def['entries']=array();    // Les préfixes des tables des entrées
+        
+        foreach($def['field'] as $fieldNumber=>$field)
+        {
+            // Numérote le champ
+            $field['number']=$fieldNumber++;
+             
+            // Tri et nettoie les mots-vides
+            if (isset($field['stopwords']))
+            { 
+                $t=preg_split('~\s~', $def['stopwords'], -1, PREG_SPLIT_NO_EMPTY);
+                sort($t);
+                $field['stopwords']=array_flip($t);
+            }    
     
-    // à partir de la structure de base ci-dessus, un certains nombre de choses sont calculées pour optimiser les traitements
-    'fieldsbyname'=>array           // à partir du nom, donne le numéro. peut aussi servir à indiquer l'ordre des champs
-    (
-        'AUT'=>0,          // ie référence sur database['fields'][0]
-        'AUTCOLL'=>1
-    )
-    ,
-    'indexprefixes'=>array          // liste de tous les index disponibles et préfixe(s) des tokens de chaque
-    (
-        'AUT'=>'X0:',
-        'AUTCOLL'=>'X1:',
-        // ...
-        'org'=>'X1:',
-        'au'=>array('X0:','X1:')
-    )
-  
- */        
+            // Les index
+            if (isset($field['index']))
+            {
+                foreach($field['index'] as & $index)
+                {
+                    // Détermine le nom de l'index (=le nom du champ si non précisé)
+                    if (isset($index['name'])) $name=$index['name']; else $name=$field['name'];
+                    
+                    // Détermine le préfixe de cet index
+                    if (!isset($def['index'][$name])) $def['index'][$name]=count($def['index']).':';
+                }
+            }
+    
+            // Tables des entrées
+            if (isset($field['entries']))
+            {
+                foreach($field['entries'] as & $entry)
+                {
+                    // Détermine le nom de la table (=le nom du champ si non précisé)
+                    if (isset($entry['name'])) $name=$entry['name']; else $name=$field['name'];
+                    
+                    // Détermine le préfixe de cette table
+                    if (!isset($def['entries'][$name])) $def['entries'][$name]='T'.count($def['entries']).':';
+                }
+            }
+    
+            // Vérifie que le champ a un nom
+            if (! isset($field['name'])) 
+                throw new Exception("Le champ numéro $fieldNumber n'a pas de nom");
+    
+            // Vérifie que le nom du champ est unique
+            $name=$field['name'];
+            if (isset($fields[$name]))
+                throw new Exception("Champ $name définit plusieurs fois");
+            unset($field['name']);
+                        
+            $fields[$name]=$field;
+        }
+        $def['field']=$fields;
+    
+        return $def;
     }
     
-    protected function doCreate($path, $structure, $options=null)
+    private static function xmlToArray(DOMNode $node, array $dtd)
     {
-        self::structure($structure);
-//        echo '<pre>';
-//        var_export($structure);
-        //die();
+        $result=array();
+        
+        // Les attributs du tag sont des propriétés du champ (peuvent aussi figurer sous forme de noeud fils)
+        if ($node->hasAttributes())
+        {
+            foreach ($node->attributes as $attribute)
+            {
+                if (! in_array($attribute->nodeName, $dtd, true))
+                    throw new Exception('Attribut "'.$attribute->nodeName.'" incorect pour un élément <'.$node->tagName.'>');
+                    
+                $result[$attribute->nodeName]=utf8_decode($attribute->nodeValue);
+            }
+        }
+        
+        // Parcourt tous les fils
+        foreach ($node->childNodes as $child)
+        {
+            switch ($child->nodeType)
+            {
+                case XML_ELEMENT_NODE:
+                    $name=$child->tagName;
+                    
+                    // Propriété définie sous forme de noeud enfant
+                    if (in_array($name, $dtd, true))
+                    {
+                        // Vérifie que la propriété n'est pas déjà définie
+                        if (isset($result[$name]))
+                            throw new Exception('La propriété '.$name.' est définie à la fois comme attribut et comme noeud enfant');
+    
+                        // Récupère le contenu du noeud
+                        $h='';
+                        foreach($child->childNodes as $n)
+                            $h.=$child->ownerDocument->saveXml($n);
+                        $result[$name]=utf8_decode($h);
+                        break;
+                    }
+                    if(isset($dtd[$name]))
+                    {
+                        $t=self::xmlToArray($child, $dtd[$name]);
+                        if (! isset($result[$name]))
+                            $result[$name][1]=$t;
+                        else
+                            $result[$name][]=$t;
+                        break;
+                    }
+                    throw new Exception('Un tag <'.$node->tagName.'> ne peut pas contenir d\'éléments <'.$name.'>');    
+                
+                // Types de noeud autorisés mais ignorés
+                case XML_COMMENT_NODE:
+                    break;
+                    
+                // Types de noeud interdits
+                default:
+                    throw new Exception('Type de noeud interdit dans un tag <'.$node->tagName.'>');
+            }
+        }
+        
+        return $result;
+    }
+
+//************************************
+    
+    protected function doCreate($path, $xml, $options=null)
+    {
+        // Convertit la structure xml en tableau php
+        $def=self::xmlToDef($xml);
+        
         // Crée la base xapian
         putenv('XAPIAN_PREFER_FLINT=1'); // uniquement pour xapian < 1.0
         echo "création de la base...<br />";
@@ -305,13 +431,13 @@ class XapianDatabaseDriver extends Database
         // Enregistre la structure de la base
         echo "enregistrement de la structure...<br />";
         $h=rtrim($path, '/').'/structure.php';
-        file_put_contents($h, "<?php\n return " . var_export($structure, true) . "\n?>");
+        file_put_contents($h, "<?php\n return " . var_export($def, true) . "\n?>");
         echo "structure enregistrée !<br />";
         
         // Enregistre la structure de la base dans l'enreg #1
         $doc=new XapianDocument();
-        $doc->set_data(serialize($structure));
-        $this->structure=$structure;
+        $doc->set_data(serialize($def));
+        $this->structure=$def;
         $doc->add_term('@structure');
 //        $this->xapianDatabase->add_document($doc);
 // 
@@ -326,28 +452,20 @@ class XapianDatabaseDriver extends Database
         
     protected function doOpen($path, $readOnly=true)
     {
-        // Charge la structure de la base
-//        $h=rtrim($path, '/').'/structure.php';
-//        $structure=file_get_contents($h);
-        echo 'doOpen<br />';
         // Ouvre la base xapian
         if ($readOnly)
-        {
-            echo "Ouverture de $path en readonly<br />";
             $this->xapianDatabase=new XapianDatabase($path);
-        }
         else
-        {  
-            echo "Ouverture de $path en read/write<br />";
             $this->xapianDatabase=new XapianWritableDatabase($path, Xapian::DB_OPEN);
-        }
 
         // Charge la structure de la base
-        echo "Chargement de la structure<br />";
         $this->structure=unserialize($this->xapianDatabase->get_document(self::ConfigDocId)->get_data());
         
-        foreach ($this->structure['fieldbyname'] as $name=>$field)
+        foreach ($this->structure['field'] as $name=>$field)
+        {
             $this->fields[$name]=null;
+            if ($i=$field['number']) $this->fieldName[$i]=$name; 
+        }
         $this->record=new XapianDatabaseRecord($this, $this->fields);
             
         // TODO : reset de toutes les propriétés
@@ -363,20 +481,31 @@ class XapianDatabaseDriver extends Database
         $this->parser=new XapianQueryParser();
         
         // Initialise la liste des noms d'index reconnus dans les équations et associe le préfixe correspondant
-        foreach($this->structure['indexbyname'] as $name=>$prefix)
+        foreach($this->structure['index'] as $name=>$prefix)
         {
             //$this->parser->add_boolean_prefix($name, $prefix);
             $this->parser->add_prefix($name, $prefix);
+            $this->parser->add_prefix(strtolower($name), $prefix);  // TODO : les préfixes sont sensibles à la casse, ajouter wishlist à xapian
+            $this->parser->add_prefix(strtoupper($name), $prefix);
         }
 
         // Initialise le stopper (suppression des mots-vides)
         $stopper=new XapianSimpleStopper();
-        foreach (explode(' ', $this->structure['stopwords']) as $stopWord)
-            $stopper->add($stopWord);
+        foreach ($this->structure['stopwords'] as $stopWord=>$i)
+            $stopper->add($stopWord.'');
         
         echo 'stopper : ', $stopper->get_description(), ' (non appliqués pour le moment, bug xapian/apache)<br />';
         
-//        $this->parser->set_stopper($stopper); // TODO : segfault
+        $this->parser->set_stopper($stopper); // TODO : segfault
+        flush();
+        
+        
+// IDEM si on bypass xapian.php
+//        $stopper=new_SimpleStopper();
+//        foreach ($this->structure['stopwords'] as $stopWord=>$i)
+//            SimpleStopper_add($stopper,$stopWord);
+//        echo 'stopper : ', SimpleStopper_get_description($stopper),'<br />';
+//        QueryParser_set_stopper($this->parser->_cPtr,$stopper);                
     
         $this->parser->set_database($this->xapianDatabase); // indispensable pour FLAG_WILDCARD
     }
@@ -458,7 +587,6 @@ class XapianDatabaseDriver extends Database
         $this->iterator=$this->mset->begin();
         if ($this->eof=$this->iterator->equals($this->mset->end())) { echo 'eof atteint dès le début<br />'; return false;} 
         $this->loadDocument();
-        echo 'first doc loaded<br />';
         $this->eof=false;              
         // Retourne le résultat
         return true;
@@ -476,6 +604,9 @@ class XapianDatabaseDriver extends Database
 //     *       pertinence.
 //     *     - 'xxx-%' : trier sur le champ xxx par ordre décroissant, puis par
 //     *       pertinence.
+//     *     - '%xxx+'
+//     *     - '%xxx-'
+
         switch ($sort)
         {
             case '%':
@@ -507,11 +638,11 @@ class XapianDatabaseDriver extends Database
                 )
                     throw new Exception('Ordre de tri incorrect, syntaxe non reconnue : ' . $sort);
                 $sortField=$matches[3];
-                if (! isset($this->structure['fieldbyname'][$sortField])
-                    or ! isset($this->structure['fieldbyname'][$sortField]['sortable'])
-                    or $this->structure['fieldbyname'][$sortField]['sortable']===false)
+                if (! isset($this->structure['field'][$sortField])
+                    or ! isset($this->structure['field'][$sortField]['sortable'])
+                    or $this->structure['field'][$sortField]['sortable']===false)
                     throw new Exception('Impossible de trier sur le champ indiqué : ' . $sortField);
-                $fieldNumber=$this->structure['fieldbyname'][$sortField]['number'];
+                $fieldNumber=$this->structure['field'][$sortField]['number'];
                 $order = ((($matches[2]==='-') || ($matches[4]) === '-')) ? XapianEnquire::DESCENDING : XapianEnquire::ASCENDING;
                 if ($matches[1])        // trier par pertinence puis par champ
                 {
@@ -547,6 +678,67 @@ class XapianDatabaseDriver extends Database
         }
     } 
 
+    public function getTerms()
+    {
+        if (is_null($this->doc))
+            throw new Exception('Pas de document courant');
+          
+        $indexName=array_flip($this->structure['index']);
+        $entryName=array_flip($this->structure['entries']);
+          
+        $result=array();
+        
+        $begin=$this->doc->termlist_begin();
+        $end=$this->doc->termlist_end();
+        while (!$begin->equals($end))
+        {
+            $term=$begin->get_term();
+            if (false === $pt=strpos($term,':'))
+            {
+            	$kind='index';
+                $index='*';
+            }
+            else
+            {
+            	$prefix=substr($term,0,$pt+1);
+                if($prefix[0]==='T')
+                {
+                	$kind='entries';
+                    $index=$entryName[$prefix];
+                }
+                else
+                {
+                    $kind='index';
+                    $index=$indexName[$prefix];
+                }
+                $term=substr($term,$pt+1);
+            }
+            
+            $posBegin=$begin->positionlist_begin();
+            $posEnd=$begin->positionlist_end();
+            $pos=array();
+            while(! $posBegin->equals($posEnd))
+            {
+            	$pos[]=$posBegin->get_termpos();
+                $posBegin->next();
+            }
+            
+            $result[$kind][$index][$term]=array
+            (
+                'freq'=>$begin->get_termfreq(),
+                'wdf'=>$begin->get_wdf(),
+//                'positions'=>$pos
+            );
+            if ($pos)
+                $result[$kind][$index][$term]['positions']=$pos;
+            
+            //'freq='.$begin->get_termfreq(). ', wdf='. $begin->get_wdf();                
+            $begin->next();
+        }
+        return $result;
+    }
+    
+
     /**
      * Retourne une chaine contenant la version serialisée de $this->fields, telle
      * qu'elle est stockée dans les documents (set_data)
@@ -563,7 +755,7 @@ class XapianDatabaseDriver extends Database
             if (! is_null($data) && ($data !== '') && ($data !== false) && ($data !== 0) && ($data !== 0.0))
             {
                 // Ecrit le numéro du champ
-                self::writeVInt((int) $this->structure['fieldbyname'][$name]['number'], $buffer, $i);
+                self::writeVInt((int) $this->structure['field'][$name]['number'], $buffer, $i);
                 
                 // Ecrit le contenu du champ
                 if (is_array($data))
@@ -622,11 +814,13 @@ class XapianDatabaseDriver extends Database
             }
             
             // Stocke le champ 
-            if (isset($this->structure['fields'][$fieldNumber]) and isset($this->structure['fields'][$fieldNumber]['name']))
-                $this->fields[$this->structure['fields'][$fieldNumber]['name']]=$data;
+            if (isset($this->fieldName[$fieldNumber]))
+            {
+                $this->fields[$this->fieldName[$fieldNumber]]=$data;
+            }
             // else : le champ n'a plus de nom = champ supprimé, on l'ignore. Sera supprimé lors du prochain save.
         }
-        foreach ($this->structure['fieldbyname'] as $name=>$field)
+        foreach ($this->structure['field'] as $name=>$field)
         {
         	if (! isset($this->fields[$name])) $this->fields[$name]=null;
         }
@@ -689,10 +883,10 @@ class XapianDatabaseDriver extends Database
         if (! isset($this->fields['REF']) or ($this->fields['REF']==''))
             $this->fields['REF']=$this->xapianDatabase->get_lastdocid()+1;
             
-        echo '<H1>FIELDS</H1><pre>';
-        var_dump($this->fields);
-        echo '</pre>';
-
+//        echo '<H1>FIELDS</H1><pre>';
+//        var_dump($this->fields);
+//        echo '</pre>';
+//
         // indexe chaque champ un par un
         $this->createTokens();
 
@@ -703,9 +897,9 @@ class XapianDatabaseDriver extends Database
         
         if ($this->editMode==1)
         {
-            echo "Création d'un nouvel enreg dans la base<br />";
             $docId=$this->xapianDatabase->add_document($this->doc);
-            echo 'DocId=', $docId, '<br />';
+            echo 'Nouvel enref, DocId=', $docId, '<br />';
+//            $this->xapianDatabase->flush();
         }
         else
         {
@@ -726,7 +920,21 @@ class XapianDatabaseDriver extends Database
     {
         $this->selection->delete();
     }
-    
+    const 
+        WORDS=1, 
+        VALUES=2,
+        COUNT=4,
+        POSITIONS=8
+        ;
+        
+    const
+        MAX_KEY=240,            // Longueur maximale d'un terme, tout compris (doit être inférieur à BTREE_MAX_KEY_LEN de xapian)
+        MAX_PREFIX=4,           // longueur maxi d'un préfixe (par exemple 'T99:')
+        MAX_TERM=236,           // =MAX_KEY-MAX_PREFIX, longueur maximale d'un terme
+        MAX_ENTRY_SLOT=20,      // longueur maximale d'un mot de base dans une table des entrées
+        MAX_ENTRY=219           // =MAX_KEY-MAX_ENTRY_SLOT-1, longueur maximale d'une valeur dans une table des entrées (e.g. masson:Editions Masson)
+        ;
+        
     private function createTokens()
     {
         static $charFroms=
@@ -738,98 +946,205 @@ class XapianDatabaseDriver extends Database
         // la position du token en cours
         $position=0;
         
-        // index tous les champs
+        // indexe tous les champs
         echo 'Indexation de l\'enreg :<br />';
-        foreach($this->structure['fields'] as $field)
+        
+        foreach($this->structure['field'] as $name=>$field)
         {
-            if ( (!isset($field['indexed'])) or ($field['indexed']!==true)) continue;
-
-            if (isset($this->fields[$field['name']])) 
-                $data=$this->fields[$field['name']];
-            else
-                $data='';
-                
-            $indexWords     = isset($field['indexwords'     ]) && ($field['indexwords'     ]===true);
-            $indexValues    = isset($field['indexvalues'    ]) && ($field['indexvalues'    ]===true);
-            $indexPositions = isset($field['indexpositions' ]) && ($field['indexpositions' ]===true);
-            $indexValuesCount= isset($field['indexvaluescount' ]) && ($field['indexvaluescount' ]===true);
-            $prefix=$field['indexprefix'];
-            $indextoall=true;
-
-            echo '- ', $field['name'], '=[', $data, ']. Index=words:',$indexWords, ',values:', $indexValues,',positions:',$indexPositions,',valuesCount=',$indexValuesCount,'<br />';
-
+            // Récupère le contenu du champ sous forme de tableau
+            $data=(array) $this->fields[$name];
             
-//            $data=(array)$data;
-            // champ vide : ajoute uniquement empty/notempty si l'option est activée
-            if ($data==='' or $data===false or (is_array($data) and count($data)===0))
+            // Les index de ce champ
+            if ( isset($field['index']) ) foreach($field['index'] as $index)
             {
-            	if (! $indexValuesCount) continue;
-                $this->doc->add_term($prefix.'isempty');
-                echo 'term("', $prefix.'isempty"', ')<br />';
-                if ($indextoall)
-                {
-                    $this->doc->add_term('isempty');
-                    echo 'term("', 'isempty', '")<br />';
-                }
-                continue;
-            }
+                // Récupère le type de l'index
+                $type=$index['type'];
+    
+                $indextoall=false; // true;
+                
+                // Détermine le nom (le préfixe) de l'index
+                $prefix=$this->structure['index'][isset($index['name']) ? $index['name'] : $name];
 
-            $data=(array)$data;
-
-            if ($indexValuesCount)
-            {
-                $this->doc->add_term($prefix.'has'.count($data));
-                echo 'term("', $prefix.'has'.count($data).'"', ')<br />';
-                if ($indextoall)
+                // Indexation au mot
+                if ($type & self::WORDS && !is_null($data)) foreach ($data as $value)
                 {
-                    $this->doc->add_term('has'.count($data));
-                    echo 'term("', 'has'.count($data).'"', ')<br />';
-                }
-            }                
-
-            foreach ($data as $value)
-            {
-            	if ($indexWords)
-                {
+                    // convertit le texte
                     $text=strtr($value, $charFroms, $charTo);
+                    
+                    // Extrait chaque mot et l'ajoute dans l'index
                     $token=strtok($text, ' ');
                     while ($token !== false)
                     {
+                        // Passe les termes vides et les termes trop longs
                         $len=strlen($token);
+                        if ($len==0 or $len>self::MAX_TERM) continue;
                         
-                        // passe les termes vides et les termes vraiment trop longs
-                        if ($len==0 or $len>64) continue;
-                        
-                        if ($indexPositions)
+                        if ($type & self::POSITIONS)
                         {
-                            ++$position;
-                            $this->doc->add_posting($prefix.$token, $position);
-                            echo 'posting("', $prefix.$token, '",', $position, ')<br />';
+                            $this->doc->add_posting($prefix.$token, ++$position);
                             if ($indextoall)
-                            {
                                 $this->doc->add_posting($token, $position);
-                                echo 'posting("', $token, '",', $position, ')<br />';
-                            }
                         }
                         else
                         {
                             $this->doc->add_term($prefix.$token);
-                            echo 'term("', $prefix.$token, '")<br />';
                             if ($indextoall)
-                            {
                                 $this->doc->add_term($token);
-                                echo 'term("', $token, '")<br />';
-                            }
                         }
         
                         $token=strtok(' ');
                     }
-                    if ($indexPositions) $position+=10;
+                    if ($type & self::POSITIONS) $position+=10;
                 }
-            }            
+
+                // Indexation empty/not empty
+                if ($type & self::COUNT)
+                {
+                    if (count($data)===0)
+                        $this->doc->add_term($prefix.'isempty');
+                    else        
+                        $this->doc->add_term($prefix.'has'.count($data));
+                }    
+                
+            }
+            
+            // Table des entrées
+            if ( isset($field['entries']) ) foreach($field['entries'] as $entry)
+            {
+                // Détermine le nom (le préfixe) de la table
+                $prefix=$this->structure['entries'][isset($entry['name']) ? $entry['name'] : $name];
+
+                // Détermine la table des mots-vides à utiliser
+                if (isset($field['stopwords']))
+                    $stopWords=$field['stopwords'];
+                elseif(isset($this->structure['stopwords']))
+                    $stopWords=$this->structure['stopwords'];
+                else
+                    $stopWords=array();
+                    
+                // Ajoute les entrées
+                foreach ($data as $value)
+                {
+                    $value=trim($value);
+                    
+                    // convertit le texte
+                    $text=strtr($value, $charFroms, $charTo);
+                    
+                    // Extrait chaque mot et l'ajoute dans l'index sous la forme "Txx:token=Entrée de la table""
+                    $token=strtok($text, ' ');
+                    while ($token !== false)
+                    {
+                        if (strlen($token)>1 && !isset($stopWords[$token]))
+                        {
+                            $this->doc->add_term(substr($prefix.$token.'='.$value,0,self::MAX_KEY));
+                            echo $prefix.$token.'='.$value, '<br />';
+                        }
+                        $token=strtok(' ');
+                    }
+                }
+            }
         }	
     }
-    
+
+    /**
+     * Recherche dans une table des entrées les valeurs qui commence par le terme indiqué.
+     * 
+     * @param string $table le nom de la table des entrées à utiliser.
+     * 
+     * @param string $term le terme recherché
+     * 
+     * @param int $max le nombre maximum de valeurs à retourner
+     * 
+     * @param int $sort l'ordre de tri souhaité pour les réponses :
+     *   - 0 : trie les réponses par nombre décroissant d'occurences dans la base (valeur par défaut)
+     *   - 1 : trie les réponses par ordre alphabétique croissant
+     * 
+     * @param bool $splitTerms définit le format du tableau obtenu. Par défaut 
+     * (splitTerms à faux), la fonction retourne un tableau simple associatif de la forme
+     * array
+     * (
+     *     'droit du malade' => 10,
+     *     'information du malade' => 3
+     * )
+     * Quand splitTerms est à true, chaque élément du tableau va être un tableau contenant
+     * le nombre d'occurences, la partie à gauche du terme recherché, le mot contenant le terme 
+     * recherché et la partie à droite du terme recherché :
+     * array
+     * (
+     *     'droit du malade'=>array(10, 'droit ', 'du', ' malade'),
+     *     'information du malade'=>array(3, 'information ', 'du', ' malade')
+     * )
+     * 
+     * @return array
+     */
+    public function lookup($table, $term, $max=100000, $sort=0, $splitTerms=false)
+    {
+        if ('' === $prefix=Utils::get($this->structure['entries'][$table],''))
+            throw new Exception("La table des entrées '$table' n'existe pas");
+        
+        if ('' === $token=trim(Utils::convertString($term,'bis')))
+            return array();
+        
+        $start=$prefix.$token;
+        
+        $begin=$this->xapianDatabase->allterms_begin();
+        $end=$this->xapianDatabase->allterms_end();
+
+        $begin->skip_to($start);
+        
+        $count=0;
+        if ($max<=0) $max=PHP_INT_MAX;
+        $result=array();
+        while (!$begin->equals($end))
+        {
+            $entry=$begin->get_term();
+
+            if ($start !== substr($entry, 0, strlen($start))) 
+                break;
+                         
+            $entry=substr($entry, strpos($entry, '=')+1);
+
+            if ($splitTerms)
+            {
+                $h=Utils::convertString($entry,'bis');
+                if (false === $pt=strpos(' '.$h, ' '.$token)) $pt=0;       
+                if (false === $pt2=strpos($h, ' ', $pt+1))$pt2=strlen($entry);
+                $left=substr($entry, 0, $pt);
+                $middle=substr($entry, $pt, $pt2-$pt);
+                $right=substr($entry, $pt2);                
+
+                if (!isset($result[$entry]))
+                    $result[$entry]=array($begin->get_termfreq(), $left, $middle, $right);
+                else
+                    $result[$entry][0]+=$begin->get_termfreq();
+            }
+            else
+            {
+                
+                if (!isset($result[$entry]))
+                    $result[$entry]=$begin->get_termfreq();
+                else
+                    $result[$entry]+=$begin->get_termfreq();
+            }
+            if (count($result) >= $max) break;
+
+            $begin->next();
+        }
+        
+        // Trie des réponses
+        switch ($sort)
+        {
+        	case 0:     // Tri par occurences
+                arsort($result, SORT_NUMERIC);
+                break;  
+            default:    // Tri alpha
+                ksort($result, SORT_LOCALE_STRING);
+                break;
+        }
+        
+        return $result;	
+    }
+     
     private function index($field, &$data, $document, &$position)
     {
         $MAX_TOKEN_LENGTH=64;
@@ -912,7 +1227,7 @@ class XapianDatabaseDriver extends Database
             if ($count >= $max) break;
             $term=$begin->get_term();
             if (substr($term, 0, strlen($start))!=$start) break;
-        	echo '<li>[', $term, '], freq=', $begin->get_termfreq(), ', wdf=', $begin->get_wdf(), '</li>', "\n";
+        	echo '<li>[', $term, '], freq=', $begin->get_termfreq(), '</li>', "\n";
             $count++;            
             $begin->next();
         }

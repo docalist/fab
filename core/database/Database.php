@@ -770,6 +770,7 @@ abstract class Database implements ArrayAccess, Iterator
      * @param int $totalCount référence qui stockera le nombre d'occurences remplacées par la fonction
      *
      */
+     // ANCIENNE VERSION
     public function strReplace($fields, $search, $replace, $caseInsensitive = false, & $totalCount)
     {
         if($caseInsensitive)
@@ -781,18 +782,54 @@ abstract class Database implements ArrayAccess, Iterator
         // boucle sur les champs et effecue le chercher/remplacer
         foreach($fields as $field)
         {
-            $value = $this->record[$field];  
-        
-            if (is_null($value) || $value === '') continue;
-
+            $value = $this->record[$field]; // le contenu actuel du champ
+            
             if ($caseInsensitive)
                 $value = strtolower($value);
                 
             $this->record[$field] = str_replace($search, $replace, $value, $count); // effectue le remplacement
 
             $totalCount += $count;  // Met à jour le compteur
-        }      
+        }
     }
+    // Version utilisant un $callback de validation des données au format : array(objet, méthode)
+//    public function strReplace($fields, $search, $originalReplace, $caseInsensitive = false, & $totalCount, $callback)
+//    {
+//        if($caseInsensitive)
+//            $search = strtolower($search);   // pour optimiser un peu la boucle principale
+//        
+//        $totalCount = 0;    // nombre total de remplacements effectués
+//        $count = 0;         // nombre de remplacements effectués pour chaque champ
+//        
+//        echo "fields vaut ", print_r($fields), '<br />';
+//                            
+//        // boucle sur les champs et effecue le chercher/remplacer
+//        foreach($fields as $field)
+//        {
+//            echo "Nouveau tour de boucle : field vaut $field<br />";
+//            $value = $this->record[$field]; // le contenu actuel du champ
+//            $replace = $originalReplace;    // au cas où modifié par la fonction de callback
+//            
+//            if ($caseInsensitive)
+//                $value = strtolower($value);
+//                
+//            echo "Avant l'appel à validData, replace vaut $replace<br />";
+//
+//            // gestion d'un éventuel callback pour valider les données
+//            if ($callback === null || call_user_func($callback, $field, $replace) !== false)
+//            {
+//                echo "Remplacement autorisé pour $field : replace vaut $replace<br />";
+//                $this->record[$field] = str_replace($search, $replace, $value, $count); // effectue le remplacement
+//    
+//                $totalCount += $count;  // Met à jour le compteur
+//            }
+//            else
+//            {
+//                echo "Remplacement refusé pour $field<br />";
+//            }
+//            
+//        }      
+//    }
     
     /**
      * Chercher/Remplacer les champs vides de l'enregistrement en cours d'une base de données ouverte 
