@@ -70,7 +70,7 @@ class DatabaseModule extends Module
      * @return boolean true si une recherche a été lancée et qu'on a au moins 
      * une réponse, false sinon
      */
-    protected function OpenSelection($equation=null, $readOnly=false)
+    protected function OpenSelection($equation=null, $readOnly=true)
     {
         // Le fichier de config du module indique la base à utiliser
         $database=Config::get('database');
@@ -283,7 +283,7 @@ class DatabaseModule extends Module
         $baseQueryString=self::buildQuery($queryStr);
         
         $actionName = $this->action;    // on adapte l'URL en fonction de l'action en cours (search, show, ...)
-        
+
         $currentStart = $this->selection->searchInfo('_start');  // num dans la sélection du première enreg de la page en cours 
         $maxRes = $this->selection->searchInfo('max');          // le nombre de réponses max par page
         
@@ -340,14 +340,20 @@ class DatabaseModule extends Module
                 $navBar = $navBar . '<span class="prevPage"><a href="' . $actionName . '?' . $baseQueryString . "&_start=$prevStart" . '">' . $prevLabel . '</a></span> ';
             }
             
-            // géncère les liens vers chaque numéro de page de résultats
+            // génère les liens vers chaque numéro de page de résultats
             for($pageNum; $pageNum <= $lastDispPageNum; ++$pageNum)
             {
                 if($startParam == $currentStart)    // s'il s'agit du numéro de la page qu'on va afficher, pas de lien
                     $navBar = $navBar . $pageNum . ' ';
-                else 
+                else
+                {
                     $navBar = $navBar . '<span class="pageNum"><a href="' . $actionName . '?' . $baseQueryString . "&_start=$startParam" . '">'. $pageNum . '</a></span> ';
-                    
+//                    $link=$actionName . '?' . $baseQueryString . "&_start=$startParam";
+                    //echo Routing::linkFor(Utils::convertString($link, 'lower'));
+//                    echo Routing::linkFor($link);
+//                    echo $link;
+//                    $navBar = $navBar . '<span class="pageNum"><a href="' . Routing::linkFor($link) . '">'. $pageNum . '</a></span> ';
+                }    
                 $startParam += $maxRes;
             }
             
@@ -411,7 +417,7 @@ class DatabaseModule extends Module
             $template,  
             array($this, $callback),
             $this->selection->record,
-            array('selection',$this->selection)  
+            array('selection',$this->selection)  // TODO : connerie+inutile : à virer en testant
         );  
     }
     
@@ -695,7 +701,7 @@ class DatabaseModule extends Module
         if (! $this->openSelection($this->equation) )
             return $this->showError("Aucune réponse. Equation : $this->equation");
 
-        // Construit le tableau de des champs modifiables des enregistrements retournés par la recherche
+        // Construit le tableau des champs modifiables des enregistrements retournés par la recherche.
         // Par compatibilité avec les générateurs de contrôles utilisateurs (fichier generators.xml)
         // il faut un tableau de tableaux contenant chacun une clé 'code' et une clé 'label'
         // On suppose que la sélection peut contenir des enregistrements provenants de différentes tables (pas la même structure)
@@ -753,7 +759,9 @@ class DatabaseModule extends Module
      public function actionReplace()
      {       
         $this->equation=$this->makeEquation('_start,_max,_sort,search,replaceStr,fields,wholeWord,caseInsensitive,regExp');
-
+        
+        // TODO : Pb avec les équations qui ont des guillemets + le OpenSelection donne les 10 premières ?
+        
         $search=Utils::get($_REQUEST['search'], '');
         $replace=Utils::get($_REQUEST['replaceStr'], '');
         $fields = (array) Utils::get($_REQUEST['fields']);
@@ -773,15 +781,16 @@ class DatabaseModule extends Module
         // Lance la requête qui détermine les enregistrements sur lesquels on va opérer le chercher/remplacer 
         if (! $this->openSelection($this->equation))
             return $this->showError("Aucune réponse. Equation : $this->equation");
-            
+
+		echo 'Equation : ', $this->equation;
+		echo ' Sélection : ',$this->selection->count();
+
         // Eventuelle callback de validation des données passée au format array(object, nom méthode) 
 //        if (($callback = $this->getCallback()) !== 'none')
 //            $callback = array($this, $callback);
 //        else
 //            $callback = null;
 
-        
-            
         $count = 0;         // nombre de remplacements effectués par enregistrement
         $totalCount = 0;    // nombre total de remplacements effectués sur le sous-ensemble de notices
         
@@ -1085,6 +1094,42 @@ class DatabaseModule extends Module
         if ($hasFields) return $equation; else return null;
     }
     
+    // lookup dans une table des entrées (xapian only)
+    function actionLookup()
+    {
+//        header('Content-type: text/plain; charset=iso-8859-1');
+        header('Content-type: text/xml');
+//        var_export($_POST,true);
+        
+        // Ouvre la base
+        $this->openSelection();
+        
+        // Récupère le nom de la table dans laquelle il faut rechercher
+        if ('' === $table=Utils::get($_REQUEST['table'],''))
+            die('aucune table indiquée');
+        
+        // Récupère le terme recherché
+        if ('' === $term=Utils::get($_REQUEST['value'],''))
+            die('aucun terme indiqué');
+
+        // Lance la recherche
+        $terms=$this->selection->lookup($table,$term, 10, 0, true);
+
+        // Détermine le template à utiliser
+        if (! $template=$this->getTemplate())
+            throw new Exception('Le template à utiliser n\'a pas été indiqué');
+        
+        // Détermine le callback à utiliser
+        $callback=$this->getCallback();
+
+        // Exécute le template         
+        Template::run
+        (
+            $template,  
+            array($this, $callback),
+            array('terms'=>$terms)
+        );  
+    }
 }
 function ftrace($h)
 {
