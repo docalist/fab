@@ -391,16 +391,21 @@ class TemplateCompiler
         
         $h=self::PHP_START_TAG ."\n\n";
         $name=uniqid('tpl_');
-        $h.="$name();\n\nfunction $name()\n{\n\n";                
-        
-        $h.=self::$env->getBindings();
-        
-        $h.="\n".self::PHP_END_TAG;
-        $result = $h.$result;
-        $result.=self::PHP_START_TAG . '}' . self::PHP_END_TAG;                
+        $h.="if (! function_exists('$name'))\n";
+        $h.="{\n";
+            $h.="function $name()\n";
+            $h.="{\n";                
+            $h.=self::$env->getBindings();
+            $h.="\n".self::PHP_END_TAG;
+            $h.=$result;
+            $h.=self::PHP_START_TAG;
+            $h.="}\n";
+        $h.="}\n";                
+        $h.="$name();";
+        $h.=self::PHP_END_TAG;                
 
         list(self::$loop, self::$opt, self::$env)=array_pop(self::$stack);
-        return $result;
+        return $h;
     }
 
     /**
@@ -2217,9 +2222,16 @@ return false (ne pas afficher le contenu par défaut)
                 else 
                 {
                     $source.=self::PHP_START_TAG.'echo ';
+                    $source.='is_array($_ee=';
                     $source.=(self::$opt ? 'Template::filled(' . $piece[1] . ')' : $piece[1]);
+                    $source.=')?implode(\' ¤ \',$_ee):$_ee';
                     while((false !== $piece=next($pieces)) && ($piece[0]===false))
-                        $source.=',' . (self::$opt ? 'Template::filled(' . $piece[1] . ')' : $piece[1]);
+                    {
+                        $source.=',';
+                        $source.='is_array($_ee=';
+                        $source.=(self::$opt ? 'Template::filled(' . $piece[1] . ')' : $piece[1]);
+                        $source.=')?implode(\' ¤ \',$_ee):$_ee';
+                    }
                     $source.=self::PHP_END_TAG;
                 }
             }
