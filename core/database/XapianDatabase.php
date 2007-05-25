@@ -1,4 +1,5 @@
 <?php
+//set_time_limit(10);
 /**
  * @package     fab
  * @subpackage  database
@@ -20,7 +21,7 @@ class XapianDatabaseDriver extends Database
     const ConfigDocId=1; // = 4294967295 = (2^32)-1
     
     // l'objet XapianDatabase
-    private $xapianDatabase=null;
+    public $xapianDatabase=null;
     
     private $structure=null;
     
@@ -37,20 +38,20 @@ class XapianDatabaseDriver extends Database
      * @var XapianEnquire l'environnement de recherche. Vaut null tant que search n'a pas été appellée.
      * @access private
      */
-    private $enquire=null; // l'environnement de recherche
+    public $enquire=null; // l'environnement de recherche
 
     /**
      * @var XapianMSet les résultats de la recherche. Vaut null tant que search n'a pas été appellée.
      * @access private
      */
-    private $mset=null; // la sélection
+    public $mset=null; // la sélection
 
     /**
      * @var XapianIterator L'iterateur sur les résultats de la recherche.
      * Vaut null tant que search n'a pas été appellée
      * @access private
      */
-    private $iterator=null; // le msetiterator
+    public $iterator=null; // le msetiterator
     
     /**
      * @var XapianDocument le document en cours parmi les résultats de la recherche
@@ -258,6 +259,11 @@ class XapianDatabaseDriver extends Database
                     'start',            // Position de début ou chaine délimitant le début de la clé de tri à créer
                     'end'               // Longueur ou chaine délimitant la fin de la clé de tri à créer
                 )
+            ),
+            'alias'=>array
+            (
+                'name',
+                'index'
             )
         );
 //                <entries name="auteurs" start="0" end="/" />
@@ -270,7 +276,7 @@ class XapianDatabaseDriver extends Database
 //                <sortable start="0" end=")" />
         
         $def=self::xmlToArray($database,$dtd);
-    
+
         // Vérifie que c'est bien une structure de base de données
         if (! is_array($def) or 0 == count($def))
             throw new Exception('Structure de base incorrecte');
@@ -313,10 +319,13 @@ class XapianDatabaseDriver extends Database
             // Les index
             if (isset($field['index']))
             {
-                foreach($field['index'] as & $index)
+                foreach($field['index'] as $index)
                 {
                     // Détermine le nom de l'index (=le nom du champ si non précisé)
                     if (isset($index['name'])) $name=$index['name']; else $name=$field['name'];
+                    
+                    // 
+                    $name=strtolower($name);
                     
                     // Détermine le préfixe de cet index
                     if (!isset($def['index'][$name])) $def['index'][$name]=count($def['index']).':';
@@ -326,7 +335,7 @@ class XapianDatabaseDriver extends Database
             // Tables des entrées
             if (isset($field['entries']))
             {
-                foreach($field['entries'] as & $entry)
+                foreach($field['entries'] as $entry)
                 {
                     // Détermine le nom de la table (=le nom du champ si non précisé)
                     if (isset($entry['name'])) $name=$entry['name']; else $name=$field['name'];
@@ -350,6 +359,38 @@ class XapianDatabaseDriver extends Database
         }
         $def['field']=$fields;
     
+        $aliases=array();
+        foreach($def['alias'] as $alias)
+        {
+            if (!isset($alias['name']))
+                throw new Exception('Alias incorrect : attribut name non indiqué');
+            $name=strtolower($alias['name']);
+            
+            if (!isset($alias['index']))
+                throw new Exception('Alias incorrect : attribut index non indiqué');
+            $index=strtolower($alias['index']);
+                
+            if (isset($def['index'][$name]))
+                throw new Eception("Impossible de définir l'alias '$name' : ce nom existe déjà comme");
+            
+            $prefix=array();
+            foreach(explode('+', strtr($index, ',;/', '+++')) as $index)
+            {
+            	if (''===$index=trim($index)) continue;
+                
+                if (!isset($def['index'][$index]))
+                    throw new Exception("Erreur dans l'alias $name, index inconnu : $index");
+            
+                $index=$def['index'][$index];
+                if (is_array($index))
+                    array_merge($prefix, $index);
+                else        
+                    $prefix[]=$index;
+            }
+            $prefix=array_unique($prefix);
+            $def['index'][$name]=$prefix;
+        }
+        unset($def['alias']);
         return $def;
     }
     
@@ -484,6 +525,7 @@ class XapianDatabaseDriver extends Database
         foreach($this->structure['index'] as $name=>$prefix)
         {
             //$this->parser->add_boolean_prefix($name, $prefix);
+            if (is_array($prefix)) continue;
             $this->parser->add_prefix($name, $prefix);
             $this->parser->add_prefix(strtolower($name), $prefix);  // TODO : les préfixes sont sensibles à la casse, ajouter wishlist à xapian
             $this->parser->add_prefix(strtoupper($name), $prefix);
@@ -494,10 +536,12 @@ class XapianDatabaseDriver extends Database
         foreach ($this->structure['stopwords'] as $stopWord=>$i)
             $stopper->add($stopWord.'');
         
-        echo 'stopper : ', $stopper->get_description(), ' (non appliqués pour le moment, bug xapian/apache)<br />';
+//        $this->parser->set_default_op(XapianQuery::OP_ELITE_SET);
         
-        $this->parser->set_stopper($stopper); // TODO : segfault
-        flush();
+//        echo 'stopper : ', $stopper->get_description(), ' (non appliqués pour le moment, bug xapian/apache)<br />';
+        
+//        $this->parser->set_stopper($stopper); // TODO : segfault
+//        flush();
         
         
 // IDEM si on bypass xapian.php
@@ -510,7 +554,418 @@ class XapianDatabaseDriver extends Database
         $this->parser->set_database($this->xapianDatabase); // indispensable pour FLAG_WILDCARD
     }
 
+    const
+      TOK_END=-1,
+      TOK_ERROR=0,
+      
+      TOK_AND=10,
+      TOK_OR=11,
+      TOK_AND_NOT=12,
+      TOK_XOR=13,
+      
+      TOK_NEAR=20,
+      TOK_ADJ=21,
+
+      TOK_LOVE=30,
+      TOK_HATE=31,
+      
+      TOK_INDEX_NAME=40,
+      
+      TOK_TERM=41,
+      TOK_WILD_TERM=42,
+      TOK_PHRASE_TERM=43,
+      TOK_PHRASE_WILD_TERM=44,
+      TOK_MATCH_ALL=45,
+      
+      TOK_START_BRACKET=50,
+      TOK_END_BRACKET=51,
+      
+      TOK_RANGE_START=60,
+      TOK_RANGE_END=61
+      ;
     
+    private $toParse, $id, $token;
+
+    private function read($text=null)
+    {
+        static $opInternalName=array
+        (
+            XapianQuery::OP_AND => 'OP_AND',
+            XapianQuery::OP_OR => 'OP_OR',
+            XapianQuery::OP_AND_NOT => 'OP_AND_NOT',
+            XapianQuery::OP_XOR => 'OP_XOR',
+            XapianQuery::OP_AND_MAYBE => 'OP_AND_MAYBE',
+            XapianQuery::OP_FILTER => 'OP_FILTER',
+            XapianQuery::OP_NEAR => 'OP_NEAR',
+            XapianQuery::OP_PHRASE => 'OP_PHRASE',
+            XapianQuery::OP_VALUE_RANGE => 'OP_VALUE_RANGE',
+            XapianQuery::OP_ELITE_SET => 'OP_ELITE_SET',
+        );
+
+        static $opValue=array
+        (
+            'et'=>self::TOK_AND,
+            'ou'=>self::TOK_OR,
+            'sauf'=>self::TOK_AND_NOT,
+    
+            'and'=>self::TOK_AND,
+            'or'=>self::TOK_OR,
+            'not'=>self::TOK_AND_NOT,
+            'but'=>self::TOK_AND_NOT, // ancien bis
+    
+            'xor'=>self::TOK_XOR,
+            'near'=>self::TOK_NEAR,
+            'adj'=>self::TOK_ADJ
+        );
+        
+        static $equation;
+        static $i;
+        static $inString;
+        
+        // Initialisation si on nous passe un nouvelle équation à parser
+        if (!is_null($text))
+        {
+            $equation=$text;
+            
+            $equation=Utils::convertString($equation, 'queryparser');
+            $equation=trim($equation) . '¤';
+
+            $i=0;
+            $inString=false;	
+        }
+        elseif(is_null($equation)) throw new Exception('lexer non initialisé');
+
+        //
+        for(;;)
+        {
+            // Passe les blancs
+            while($equation[$i]===' ') ++$i;
+            
+            switch($this->token=$equation[$i])
+            {
+                case '¤':       return $this->id=self::TOK_END;
+                case '+': ++$i; return $this->id=self::TOK_LOVE;
+                case '-': ++$i; return $this->id=self::TOK_HATE;
+                case '(': ++$i; return $this->id=self::TOK_START_BRACKET;
+                case ')': ++$i; return $this->id=self::TOK_END_BRACKET;
+                case '*': ++$i; return $this->id=self::TOK_MATCH_ALL;
+                case ':':
+                case '=': ++$i; return $this->id=self::TOK_ERROR;
+                case '"':
+                    ++$i;
+                    $inString=!$inString;
+                    if ($inString)
+                    {
+                        if (false===$pt=strpos($equation, '"', $i))
+                            throw new Exception('guillemet fermant non trouvé');
+                        $len=$pt-$i;
+                        $string=strtr(substr($equation, $i, $len), '+-():=', '       ');
+                        $equation=substr_replace($equation, $string, $i, $len); 
+                    }
+                    else return self::TOK_OR;
+                    return $this->read();
+                    
+                default:
+                    $len=1+strspn($equation, 'abcdefghijklmnopqrstuvwxyz0123456789', $i+1);
+                    $this->token=substr($equation, $i, $len);
+                    $i+=$len;
+
+                    // Un mot avec troncature à droite ?
+                    if ($equation[$i]==='*')
+                    {
+                        ++$i;
+                        return $inString ? ($this->id=self::TOK_PHRASE_WILD_TERM) : ($this->id=self::TOK_WILD_TERM);
+                    }    
+
+                    if ($inString) return $this->id=self::TOK_PHRASE_TERM; 
+                    
+                    // Un opérateur ?
+                    if (isset($opValue[$this->token]))
+                        return $this->id=$opValue[$this->token];
+
+                    // Un nom d'index ?
+                    while($equation[$i]===' ') ++$i; // Passe les blancs
+                    if ($equation[$i]===':' || $equation[$i]==='=' )
+                    {
+                        ++$i;
+                        return $this->id=self::TOK_INDEX_NAME;
+                    }
+                    
+                    // Juste un mot
+                    return $this->id=self::TOK_TERM;
+            }
+        }
+
+    }
+
+/*
+    parseExpression():
+        var L = parseOperand()
+        if next token is operator then
+            var op = parseOperator()
+            var R = parseOperand()
+            return infix( L, op, R )
+        else
+            return L
+        endif 
+*/
+
+//HIGHEST 
+//    = (terme, wildterm, nomd'index + terme...)
+//    (  ) Parentheses
+//    NEAR Proximity
+//    NOT
+//    AND
+//    OR
+//LOWEST       
+
+/*
+
+    *  word
+    * ( terms ) phrase
+    * w/n pre/n w/seg /n/ /m,n/ @ name ( terms )
+    * or & &&
+    * and not ^ || | , ; 
+ 
+ */
+    private $prefix;
+
+    public function parseQuery($equation)
+    {
+        // Initialise le lexer
+        $this->read($equation);
+
+        // Préfixe par défaut
+        $this->prefix='';
+        
+        // Analyse l'équation
+        $query=$this->parseExpression();
+        
+        // Retourne la requête
+        return $query;
+    }
+    
+    private function parseExpression()
+    {
+        $query=$this->parseOr();
+        while($this->id !== self::TOK_END)
+            $query=new XapianQuery(XapianQuery::OP_OR, $query, $this->parseOr()); // OP_OR=default op
+
+        return $query;    	
+    }
+
+    private function parseOr()
+    {
+        $query=$this->parseAnd();
+        while ($this->id===self::TOK_OR)
+        {
+            $this->read();
+            $query=new XapianQuery(XapianQuery::OP_OR, $query, $this->parseAnd());
+        }
+        return $query;
+    }
+    
+    private function parseAnd()
+    {
+        $query=$this->parseAndNot();
+        while ($this->id===self::TOK_AND)
+        {
+            $this->read();
+            $query=new XapianQuery(XapianQuery::OP_AND, $query, $this->parseAndNot());
+        }        
+        return $query;
+    }
+    
+    private function parseAndNot()
+    {
+        $query=$this->parseNear();
+        while ($this->id===self::TOK_AND_NOT)
+        {
+            $this->read();
+            $query=new XapianQuery(XapianQuery::OP_AND_NOT, $query, $this->parseNear());
+        }        
+        return $query;
+    }
+
+    private function parseNear()
+    {
+        $query=$this->parseAdj();
+        while ($this->id===self::TOK_NEAR)
+        {
+            $this->read();
+            $query=new XapianQuery(XapianQuery::OP_NEAR, array($query, $this->parseAdj()), 5); // TODO: 5=window size du near, à mettre en config
+        }        
+        return $query;
+    }
+
+    private function parseAdj()
+    {
+        $query=$this->parseCompound();
+        while ($this->id===self::TOK_ADJ)
+        {
+            $this->read();
+            $query=new XapianQuery(XapianQuery::OP_PHRASE, array($query, $this->parseCompound()), 1); // TODO: 1=window size du ADJ, à mettre en config
+        }        
+        return $query;
+    }
+
+    /**
+     * @param mixed $prefix préfixe ou tableau de préfixes
+     */
+    private function expandTerm($term, $prefix='')
+    {
+        $max=100; // TODO: option de XapianDatabase ou bien dans la config
+        
+        $begin=$this->xapianDatabase->allterms_begin();
+        $end=$this->xapianDatabase->allterms_end();
+
+        $terms=array();
+        $nb=0;
+        foreach((array)$prefix as $prefix)
+        {
+            $prefixTerm=$prefix.$term;
+            $begin->skip_to($prefixTerm);
+            while (!$begin->equals($end))
+            {
+                $h=$begin->get_term();
+                if (substr($h, 0, strlen($prefixTerm))!==$prefixTerm) break;
+                $terms[]=$h;
+                if (++$nb>$max)
+                    throw new Exception("Le terme '$term*' génère trop de possibilités, augmentez la longueur du préfixe");
+                $begin->next();
+            }
+        }
+        return $terms;    	
+    }
+    
+    private function parseCompound()
+    {
+        switch($this->id)
+        {
+            case self::TOK_WILD_TERM:
+            case self::TOK_TERM:
+                $terms=array();
+                do
+                {
+                    if($this->id===self::TOK_WILD_TERM)
+                        $terms=array_merge($terms, $this->expandTerm($this->token, $this->prefix));
+                    else
+                        foreach((array)$this->prefix as $prefix)
+                            $terms[]=$prefix.$this->token;
+                    
+                    $this->read();
+                }
+                while($this->id===self::TOK_TERM || $this->id===self::TOK_WILD_TERM);
+                $query=new XapianQuery(XapianQuery::OP_OR, $terms); // TODO: OP_OR=default operator, à mettre en config
+
+                break;
+
+            case self::TOK_INDEX_NAME:
+
+                // Sauvegarde le préfixe actuel
+                $save=$this->prefix;    
+
+                // Vérifie que ce nom d'index existe et récupère le(s) prédixe(s) associé(s)
+                $index=$this->token;
+                if (! isset($this->structure['index'][$index]))
+                {
+                var_export($this->structure['index']);
+                    throw new Exception("Impossible d'interroger sur le champ '$index' : index inconnu");
+                }
+                $this->prefix=$this->structure['index'][$index];
+
+                // Analyse l'expression qui suit
+                $this->read();
+                $query=$this->parseExpression();
+                
+                // Restaure le préfixe précédent
+                $this->prefix=$save;
+                
+                break;
+
+            case self::TOK_START_BRACKET:
+                $this->read();
+                $query=$this->parseExpression();
+                if ($this->id !== self::TOK_END_BRACKET)
+                    throw new Exception('Parenthèse fermante attendue');
+                $this->read();
+                break;
+
+            case self::TOK_PHRASE_TERM:
+                $terms=array();
+                do
+                {
+                	$terms[]=$this->token;
+                    $this->read();
+                }
+                while($this->id===self::TOK_PHRASE_TERM);
+                $query=new XapianQuery(XapianQuery::OP_PHRASE, $terms, 3); // TODO: 3=window size du PHRASE, à mettre en config
+                break;
+                
+            case self::TOK_MATCH_ALL:
+                $this->read();
+                if ($this->prefix==='')
+                    return new XapianQuery($terms);// la syntaxe spéciale de xapian pour désigner [match anything]
+                else
+                    return new XapianQuery(XapianQuery::OP_OR, $this->expandTerm('has', $this->prefix));
+            default:
+                die('truc inattendu : '.$this->id);
+        }
+        return $query;
+    }
+
+    private function dumpEquationTokens($equation)
+    {
+        $tokenName=array
+        (
+              self::TOK_END=>'TOK_END',
+              self::TOK_ERROR=>'TOK_ERROR',
+              
+              self::TOK_AND=>'TOK_AND',
+              self::TOK_OR=>'TOK_OR',
+              self::TOK_AND_NOT=>'TOK_AND_NOT',
+              self::TOK_XOR=>'TOK_XOR',
+              
+              self::TOK_NEAR=>'TOK_NEAR',
+              self::TOK_ADJ=>'TOK_ADJ',
+            
+              self::TOK_LOVE=>'TOK_LOVE',
+              self::TOK_HATE=>'TOK_HATE',
+              
+              self::TOK_INDEX_NAME=>'TOK_INDEX_NAME',
+              
+              self::TOK_TERM=>'TOK_TERM',
+              self::TOK_WILD_TERM=>'TOK_WILD_TERM',
+              self::TOK_PHRASE_TERM=>'TOK_PHRASE_TERM',
+              self::TOK_PHRASE_WILD_TERM=>'TOK_PHRASE_WILD_TERM',
+              self::TOK_MATCH_ALL=>'TOK_MATCH_ALL',
+                        
+              self::TOK_START_BRACKET=>'TOK_START_BRACKET',
+              self::TOK_END_BRACKET=>'TOK_END_BRACKET',
+              
+              self::TOK_RANGE_START=>'TOK_RANGE_START',
+              self::TOK_RANGE_END=>'TOK_RANGE_END'
+        );
+        
+        $query=null;
+        
+        while(ob_get_level()) ob_end_flush();
+        $t=$this->read($equation);
+        $nb=0;
+        while($t > 0)
+        {
+            echo '<code>', $tokenName[$t], ' : [', $this->token, ']</code><br />';
+            flush();
+        	$t=$this->read();
+            if ($nb++>100) break;
+        }
+        echo '<code>', $tokenName[$t], ' : [', $this->token, ']</code><br />';
+    }
+    
+private function dumpQuery($equation)
+{
+	return substr($equation, 14, -1);
+}
     public function search($equation=null, $options=null)
     {
         // a priori, pas de réponses
@@ -553,34 +1008,56 @@ class XapianDatabaseDriver extends Database
         if (is_null($this->enquire)) $this->setupSearch();
 
         // Construit la requête
-        $equation=strtr($equation,'=',':');
-        echo "Equation donnée à xapian : ", $equation, "<br />";
-        
         $query=$this->parser->parse_Query
         (
-            $equation, 
+            utf8_encode(strtr($equation,'=',':')),         // à partir de la version 1.0.0, les composants "texte" de xapian attendent de l'utf8 
             XapianQueryParser::FLAG_BOOLEAN |
             XapianQueryParser::FLAG_PHRASE | 
             XapianQueryParser::FLAG_LOVEHATE |
             XapianQueryParser::FLAG_BOOLEAN_ANY_CASE |
             XapianQueryParser::FLAG_WILDCARD
         );
-//     echo "here"; return;    
+            
+        $h=utf8_decode($query->get_description());
+        $h=substr($h, 14, -1);
+        $h=preg_replace('~:\(pos=\d+?\)~', '', $h);
         
-        $this->equation=$query->get_description();
-        echo "Equation comprise par xapian : ", $this->equation, "<br />"; 
+
+        echo '<pre>';
+        if (true) //Utils::get($_REQUEST['testdm'])==='1')
+        {
+            $query2=$this->parseQuery($equation);
+            echo "Equation user..... : (", rtrim($equation), ")<br />"; 
+            echo "Equation xapian... : ", $h, "<br />"; 
+            $h=utf8_decode($query2->get_description());
+            $h=substr($h, 14, -1);
+            $h=preg_replace('~:\(pos=\d+?\)~', '', $h);
+            echo "Equation DM....... : ", $h, "<br />"; 
+
+            // Exécute la requête
+            $this->enquire->set_query($query2);
+
+        }
+        else
+        {
+            echo "Equation user..... : (", rtrim($equation), ")<br />"; 
+            echo "Equation xapian... : ", $h, "<br />"; 
+        // Exécute la requête
+        $this->enquire->set_query($query);
+
+        }
+        echo '</pre>';
         // générer la liste des mots ignorés dans la requête
 
         // Définit l'ordre de tri des réponses
         $this->setSortOrder($sort);
         
-        // Exécute la requête
-        $this->enquire->set_query($query);
-
         $this->mset=$this->enquire->get_MSet($start, $max);
         $this->count=$this->mset->get_matches_estimated();
         echo 'Nb de réponses : ' , $this->count, '<br />';
         echo 'start : ', $start, ', max=', $max, '<br />';
+        echo 'Equation xapian exécutée : <code>', utf8_decode($this->enquire->get_query()->get_description()), '</code>';
+        
 //        $this->moveFirst();
 //        if (is_null($this->mset)) return;
         //echo "mset.size=", $this->mset->size(), "\n";
@@ -662,6 +1139,43 @@ class XapianDatabaseDriver extends Database
         }
     }
 
+    public function suggestTerms($table)
+    {
+        if (is_null($this->iterator))
+            throw new Exception('Pas de document courant');
+
+        if ($table)
+        {
+            if ('' === $prefix=Utils::get($this->structure['entries'][$table],''))
+                throw new Exception("La table des entrées '$table' n'existe pas");
+        }
+        
+        $rset=new XapianRset();
+
+        $it=$this->mset->begin();
+//        $nb=0;
+        while (!$it->equals($this->mset->end()))
+        {
+        	$rset->add_document($it->get_docid());
+//            $nb++;
+//            if ($nb>5) break;
+            $it->next();
+        }
+
+        $eset=$this->enquire->get_eset(100, $rset);
+        $terms=array();
+        $it=$eset->begin();
+        while (!$it->equals($eset->end()))
+        {
+            $term=$it->get_term();
+            if (substr($term,0,strlen($prefix))===$prefix)
+                $terms[substr($term, strpos($term, '=')+1)]=true;// . '('.$it->get_weight().')';
+            $it->next();
+        }
+        
+        return array_keys($terms);
+    }
+    
     private function loadDocument()
     {
         if (is_null($this->iterator))
@@ -878,7 +1392,7 @@ class XapianDatabaseDriver extends Database
         if ($this->editMode == 0)
             throw new Exception('L\'enregistrement n\est pas en cours de modification');
 
-        echo 'saveRecord. editMode=', $this->editMode, '<br />';
+//        echo 'saveRecord. editMode=', $this->editMode, '<br />';
 
         if (! isset($this->fields['REF']) or ($this->fields['REF']==''))
             $this->fields['REF']=$this->xapianDatabase->get_lastdocid()+1;
@@ -898,13 +1412,13 @@ class XapianDatabaseDriver extends Database
         if ($this->editMode==1)
         {
             $docId=$this->xapianDatabase->add_document($this->doc);
-            echo 'Nouvel enref, DocId=', $docId, '<br />';
+//            echo 'Nouvel enref, DocId=', $docId, '<br />';
 //            $this->xapianDatabase->flush();
         }
         else
         {
             $docId=$this->iterator->get_docid();
-            echo "Remplacement de l'enreg docId=", $docId,'<br />';
+//            echo "Remplacement de l'enreg docId=", $docId,'<br />';
             $this->xapianDatabase->replace_document($docId, $this->doc);
         }
     }
@@ -947,7 +1461,7 @@ class XapianDatabaseDriver extends Database
         $position=0;
         
         // indexe tous les champs
-        echo 'Indexation de l\'enreg :<br />';
+//        echo 'Indexation de l\'enreg :<br />';
         
         foreach($this->structure['field'] as $name=>$field)
         {
@@ -960,11 +1474,14 @@ class XapianDatabaseDriver extends Database
                 // Récupère le type de l'index
                 $type=$index['type'];
     
-                $indextoall=false; // true;
+                $indextoall=true;
                 
                 // Détermine le nom (le préfixe) de l'index
-                $prefix=$this->structure['index'][isset($index['name']) ? $index['name'] : $name];
+                $prefix=isset($index['name']) ? $index['name'] : $name;
+                $prefix=strtolower($prefix);
 
+                $prefix=$this->structure['index'][$prefix];
+                
                 // Indexation au mot
                 if ($type & self::WORDS && !is_null($data)) foreach ($data as $value)
                 {
@@ -1037,7 +1554,7 @@ class XapianDatabaseDriver extends Database
                         if (strlen($token)>1 && !isset($stopWords[$token]))
                         {
                             $this->doc->add_term(substr($prefix.$token.'='.$value,0,self::MAX_KEY));
-                            echo $prefix.$token.'='.$value, '<br />';
+//                            echo $prefix.$token.'='.$value, '<br />';
                         }
                         $token=strtok(' ');
                     }
