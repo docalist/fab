@@ -1,3 +1,25 @@
+nouveau mode opératoire (il n'est plus nécessaire de recompiler php) :
+
+PHP :
+- récupérer la version binaire pour windows de php 5.2.2, installer dans c:\php-5.2.2-win32\
+- récupérer le source de php 5.2.2, installer dans c:\php-5.2.2\
+
+XAPIAN :
+1. création du répertoire c:\work
+2. déchargement du dernier snapshot de xapian à partir de http://www.oligarchy.co.uk/xapian/trunk/
+    a. xapian-core-0.9.99_svn8553.tar.gz 
+       unzip dans c:\work\ pour obtenir le répertoire c:\work\xapian-core-0.9.99_svn8553
+    b. xapian-bindings-0.9.99_svn8553.tar.gz
+       unzip dans c:\work pour obtenir le répertoire c:\work\xapian-bindings-0.9.99_svn8553
+3. Récupérer les makefiles pour msvc, les installer dans le répertoire win32 de xapian-core
+4. Editer le fichier config.mak et ajuster les path
+5. nmake /f win32.mak clean  (nmake clean plus tard)
+(à continuer).
+
+---
+ancienne version
+
+
 A. Créer un répertoire de travail qui contiendra tous les outils, fichiers
 includes, librairies, code sources, etc. dont on a besoin
 
