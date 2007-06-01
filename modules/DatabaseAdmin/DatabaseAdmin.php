@@ -98,14 +98,18 @@ class DatabaseAdmin extends Module
     {
         set_time_limit(0);
         // charge le .def de ascodocpsy
+        echo 'Chargement du .def<br />';
         $def=file_get_contents(dirname(__FILE__).'/ascodocpsy.def.xml');
         
         // crée la base
+        echo 'Création de la base xapian dans ', DB_PATH, '<br />';
         $xapianDb=Database::create(DB_PATH, $def, 'xapian');
         
         // Importe des notices de la base bis dans la base xapian
+        echo 'Ouverture de la base BIS : ', $database=Config::get("db.$database.path", $database), '<br />';
         $bisDb=Database::open('ascodocpsy', true);
                 
+        echo 'Lancement d\'une recherche * dans la base BIS<br />';
         if (!$bisDb->search('*', array('_sort'=>'-','_start'=>1,'_max'=>-1)))
             die('aucune réponse');
 
