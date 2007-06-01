@@ -1,0 +1,138 @@
+Mise en évidence d'un bug dans les templates match dont un des attributs a une
+valeur par  défaut égale à {false} (et peut-être dans d'autres cas)
+
+================================================================================
+--test--
+Le bug obtenu dans load.html d'AscoFuturSite
+--file--
+/* Raccourci pour les champs Aut et Tit
+@titLabel : le label pour le champ Tit : ne pas oublier le caractère '*'
+*/
+<template match="//AutTit" titLabel="Titre *">
+    <fieldset label="Auteurs *">
+        <textbox name="Aut" rows="1" class="fullwidth autoheight mandatory" />
+    </fieldset>
+    <fieldset label="$titLabel">
+        <textbox name="Tit" rows="1" class="fullwidth autoheight mandatory" />
+    </fieldset>
+</template>
+
+
+/* Raccourci pour la section Mentions bibliographiques
+@pageName : le nom de l'attribut du premier tag du fieldset
+@pageLabel : le label de l'attribut du premier tag du fieldset : ne pas oublier le caractère '*' dans le titre
+le titre du label pour le champ Tit : ne pas oublier le caractère '*' dans le libellé
+*/
+<template match="//MentionsBib" pageName="Page" pageLabel="Nombre de pages *">
+    <fieldset label="Mentions bibliographiques">
+        <div><textbox name="$pageName" label="$pageLabel" class="fullwidth mandatory" /></div>
+        <div><textbox name="Notes" label="Notes bibliographiques" rows="1" class="fullwidth autoheight" /></div>
+    </fieldset>
+</template>
+
+
+/* Raccourci pour la section Périodique
+@revMandatory indique si le champ $Rev est obligatoire
+@volExists indique si on créé une div pour le champ $Vol
+*/
+<template match="//Periodique" revMandatory="{true}" volExists="{true}">
+    <fieldset label="Périodique">
+        <if test="$revMandatory">
+            <div><textbox name="Rev" label="Titre du périodique *" rows="1" class="fullwidth autoheight mandatory" /></div>
+        </if>
+        <else>
+            <div><textbox name="Rev" label="Titre du périodique" rows="1" class="fullwidth autoheight" /></div>
+        </else>
+        <if test="$volExists">
+            <div><textbox name="Vol" label="Volume" class="fullwidth" /></div>
+        </if>
+        <div><textbox name="Num" label="Numéro *" class="fullwidth mandatory" /></div>
+    </fieldset>
+</template>
+
+        
+/* Raccourci pour le champ Résumé et la section Indexation */
+<template match="//ResuIndexation">
+    <fieldset label="Résumé">
+        <textbox name="Resu" rows="1" class="fullwidth autoheight" />
+    </fieldset>
+    <fieldset label="Indexation">
+        <div><textbox name="Theme" rows="1" label="Thème *" class="fullwidth autoheight mandatory" /></div>
+        <div><textbox name="MotCle" rows="1" label="Descripteurs *" class="fullwidth autoheight mandatory" /></div>
+        <div><textbox name="Nomp" rows="1" label="Noms propres" class="fullwidth autoheight" /></div>
+        <div><textbox name="CanDes" rows="1" label="Candidats descripteurs" class="fullwidth autoheight" /></div>
+    </fieldset>
+</template>
+
+
+/* Raccourci pour le champ Lien vers le producteur
+@mandatory : indique si le lien est obligatoire
+*/
+<template match="//Lien" mandatory="{false}">
+    <if test="$mandatory">
+        <fieldset label="Lien vers le document *">
+            <textbox name="Lien" rows="1" class="fullwidth autoheight mandatory" />
+        </fieldset>
+    </if>
+    <else>
+        <fieldset label="Lien vers le document">
+            <textbox name="Lien" rows="1" class="fullwidth autoheight" />
+        </fieldset>
+    </else>
+</template>
+
+
+
+/* Raccourci pour le champ Producteur de la fiche */
+<template match="//ProdFich">
+    <fieldset label="Producteur de la fiche *">
+        <textbox name="ProdFich" class="fullwidth mandatory" />
+    </fieldset>
+</template>
+
+/* Raccourci pour la section Congrès
+@mandatory indique si les attributs sont obligatoires ou non
+*/
+<template match="//Congres" mandatory="{false}">
+    <fieldset label="Congrès">
+    <if test="$mandatory">
+        <div><textbox name="CongrTit" rows="1" label="Intitulé *" class="fullwidth autoheight mandatory" /></div>
+        <div><textbox name="CongrNum" label="Numéro *" class="fullwidth mandatory" /></div>
+        <div><textbox name="CongrLie" label="Ville *" class="fullwidth mandatory" /></div>
+        <div><textbox name="CongrDat" label="Année *" class="fullwidth mandatory" /></div>
+    </if>
+    <else>
+        <div><textbox name="CongrTit" rows="1" label="Intitulé" class="fullwidth autoheight" /></div>
+        <div><textbox name="CongrNum" label="Numéro" class="fullwidth" /></div>
+        <div><textbox name="CongrLie" label="Ville" class="fullwidth" /></div>
+        <div><textbox name="CongrDat" label="Année" class="fullwidth" /></div>
+    </else>
+    </fieldset>
+</template>
+
+
+
+<form action="/base/save">
+    
+	<switch test="Article">
+	
+	/* TODO : factoriser le switch : Congrès et Livre presque identiques */
+	
+	    <case test="Article">
+	        <AutTit titLabel="Titre de l*****article *" />
+	        <fieldset label="Année du document *">
+	            <textbox name="Date" class="fullwidth mandatory" />
+	        </fieldset>
+	        <MentionsBib pageName="PdPf" pageLabel="Page début-fin *" />
+	        <Periodique />
+	        <ResuIndexation />
+	        <Lien />
+	        <ProdFich />
+	        <script type="text/javascript">ctrlInitialize("ControlsArticle");</script>      
+	    </case>
+	    
+	</switch>
+</form>
+--expect--
+
+================================================================================

@@ -1,0 +1,63 @@
+================================================================================
+--test--
+l'attribut name d'un slot est obligatoire
+--file--
+<slot />
+--expect Exception--
+attribut name manquant
+================================================================================
+--test--
+l'attribut name d'un slot est obligatoire (non vide)
+--file--
+<slot name=""/>
+--expect Exception--
+attribut name manquant
+================================================================================
+--test--
+l'attribut name d'un slot est obligatoire (ok)
+--file--
+<slot name="sidebar"/>
+--expect--
+<?php Template::runSlot('sidebar','',true)?>
+================================================================================
+--test--
+l'attribut name d'un slot peut être une expression
+--file--
+<slot name="{trim($varA)}"/>
+--expect--
+<?php Template::runSlot(trim($_ArrayAccessObject['varA']),'',true)?>
+================================================================================
+--test--
+l'attribut action est optionnel
+--file--
+<slot name="sidebar" action="/blog/recent"/>
+--expect--
+<?php Template::runSlot('sidebar','/blog/recent',true)?>
+================================================================================
+--test--
+un tag slot peut avoir un contenu par défaut
+--file--
+<slot name="sidebar">
+	<p><strong>hello</strong></p>
+</slot>
+--expect--
+<?php if(Template::runSlot('sidebar','',true)){?>
+	<p><strong>hello</strong></p>
+<?php }?>
+================================================================================
+--test--
+on ne peut pas avoir à la fois une action et un contenu par défaut
+--file--
+<slot name="sidebar" action="menu.html">hello</slot>
+--expect Exception--
+soit une action, soit un contenu par défaut, pas les deux
+================================================================================
+================================================================================
+--test--
+un tag slot peut avoir un contenu par défaut
+--file--
+<slot name="sidebar" a="1" b="2" cart="{self::getCart()}">
+	<p><strong>hello</strong></p>
+</slot>
+--expect--
+================================================================================
