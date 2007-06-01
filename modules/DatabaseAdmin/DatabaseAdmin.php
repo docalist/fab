@@ -112,7 +112,7 @@ class DatabaseAdmin extends Module
         $bisDb=Database::open(BIS_PATH, true, 'bis');
                 
         echo 'Lancement d\'une recherche * dans la base BIS<br />';
-        if (!$bisDb->search('*', array('_sort'=>'-','_start'=>1,'_max'=>1)))
+        if (!$bisDb->search('*', array('_sort'=>'-','_start'=>1,'_max'=>-1)))
             die('aucune réponse');
 
 
