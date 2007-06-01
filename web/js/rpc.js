@@ -49,16 +49,23 @@ jQuery.AutoCompleteHandler =
             );
             jQuery.AutoCompleteHandler.popup=jQuery('#'+popupId);
             if (jQuery.AutoCompleteHandler.popup.length===0)
-                console.error('Impossible de créer le popup');
+            {
+//                console.error('Impossible de créer le popup');
+                return;
+            }
         }
         
         // Récupére les paramètres et application les valeurs par défaut
+/*        
         settings=jQuery.extend(
             {
                 url: url,
                 delay: 500,
             }, settings);
-            
+*/
+        settings.url=url;
+        settings.delay=500;
+                    
 	   // Initialise les contrôles
         return this.each(function(){
 /*
@@ -68,8 +75,8 @@ jQuery.AutoCompleteHandler =
                 return;
             }
 */            
-            this.autocomplete=settings;
-            this.autocomplete.cache=new Array();
+            this.ac=settings;
+            this.ac.cache=new Array();
 
             jQuery(this)
                 // Désactive le autocomplete du navigateur
@@ -88,8 +95,10 @@ jQuery.AutoCompleteHandler =
                 })
 */                
                 // Point d'entrée principal : appellé chaque fois que l'utilisateur tape une touche
-                .keypress(function(event){
+                .keydown(function(event){
 
+/*
+vitesse de frappe de l'utilisateur
                     if (0==jQuery.AutoCompleteHandler.lastKeyTime)
                         jQuery.AutoCompleteHandler.lastKeyTime=(new Date()).getTime();
                     else
@@ -98,7 +107,7 @@ jQuery.AutoCompleteHandler =
                         console.info('speed', time-jQuery.AutoCompleteHandler.lastKeyTime);
                         jQuery.AutoCompleteHandler.lastKeyTime=time;
                     }
-                    
+*/
                     // Si on a déjà une requête à lancer en attente, on l'annule
                     if (jQuery.AutoCompleteHandler.xhr)
                     {
@@ -133,22 +142,14 @@ jQuery.AutoCompleteHandler =
 
                     if ( nav[event.keyCode] )
                     {
-                        if (special)
-                        {
-                            console.info('ctrl/shift/alt : pas de nouveau timer');
-                            return;
-                        }
-                        if (! jQuery.AutoCompleteHandler.visible) 
-                        {
-                            console.info('popup non visible : pas de nouveau timer');
-                            return;
-                        }
+
+                        if (special) return;
+                        if (! jQuery.AutoCompleteHandler.visible)  return;
                         jQuery.AutoCompleteHandler.select(nav[event.keyCode]);
                             
                         if (event.keyCode != 9) 
                         {
                             event.preventDefault(); 
-                            console.info('touche de navigation : pas de nouveau timer');
                             return false;
                         }
                     }
@@ -245,11 +246,8 @@ jQuery.AutoCompleteHandler =
     // Injecte la valeur passée en paramètre dans le champ
     set : function(item)
     {
-        console.info('valeur à injecter : ', item);
-        
         var target=jQuery.AutoCompleteHandler.target;
         var value=target.value;
-        console.log('Value=', value);
 
         selectionStart=jQuery.AutoCompleteHandler.getSelectionStart(target);
         selection=jQuery.AutoCompleteHandler.getTextRange(value,selectionStart);
@@ -263,7 +261,6 @@ jQuery.AutoCompleteHandler =
     // Affiche le popup
     show: function()
     {
-        console.info('show');
         jQuery.AutoCompleteHandler.popup
             .css('left', jQuery.AutoCompleteHandler._calculateOffsetLeft(jQuery.AutoCompleteHandler.target)+"px")
             .css('top', jQuery.AutoCompleteHandler._calculateOffsetTop(jQuery.AutoCompleteHandler.target)+jQuery.AutoCompleteHandler.target.offsetHeight+2+"px")
@@ -295,15 +292,10 @@ jQuery.AutoCompleteHandler =
                 if (current > -1)
                 {
                     item=items.eq(current);
-                    console.log(item);
-
                     if (item.attr('onclick'))
-                    {
-                        // déclenche l'événement onclick
                         item.trigger('click');
-                    }
                     else
-                        alert(item.text());                    
+                        jQuery.AutoCompleteHandler.set(item.text());                    
                 }
             case 'none':
                 jQuery.AutoCompleteHandler.hide();
@@ -323,8 +315,8 @@ jQuery.AutoCompleteHandler =
             default:
                 // si what est un des items du popup, ok, sinon erreur
                 current=items.index(what);
-                if (current == -1)
-                    console.error('Appel incorrect de select : ', what);
+                if (current == -1) return;
+//                    console.error('Appel incorrect de select : ', what);
         }
 
         if (jQuery.AutoCompleteHandler.current > -1)
@@ -335,8 +327,6 @@ jQuery.AutoCompleteHandler =
     
     update: function()
     {
-        console.log('update');
-
         // Récupère la valeur du champ
         var target=jQuery.AutoCompleteHandler.target;
         var value=target.value;
@@ -365,12 +355,11 @@ jQuery.AutoCompleteHandler =
 
         // Teste si le cache contient déjà les résultats pour cette valeur
         jQuery.AutoCompleteHandler.xhrValue=selection.value;
-        if (target.autocomplete.cache)
+        if (target.ac.cache)
         {
-            var data=target.autocomplete.cache[selection.value];
+            var data=target.ac.cache[selection.value];
             if (data !== undefined) // on l'a en cache
             {
-                console.info('cache hit pour ', selection.value);
                 jQuery.AutoCompleteHandler.gotResult(data);
                 return;
             }
@@ -379,7 +368,7 @@ jQuery.AutoCompleteHandler =
         // Cache la boite en attendant qu'on ait les résultats
         jQuery.AutoCompleteHandler.xhr=jQuery.ajax({
             type: 'GET',
-            url: target.autocomplete.url.replace('%s', escape(selection.value)),
+            url: target.ac.url.replace('%s', escape(selection.value)),
             success: jQuery.AutoCompleteHandler.gotResult
         });
     },
@@ -393,8 +382,8 @@ jQuery.AutoCompleteHandler =
         
         target=jQuery.AutoCompleteHandler.target;
         
-        if (target.autocomplete.cache)
-            target.autocomplete.cache[jQuery.AutoCompleteHandler.xhrValue]=data;
+        if (target.ac.cache)
+            target.ac.cache[jQuery.AutoCompleteHandler.xhrValue]=data;
 
         popup.attr("innerHTML", data);
         
