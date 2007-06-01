@@ -88,16 +88,13 @@ class BisDatabase extends Database
             if (is_array($max))
                 foreach ($max as $i)
                     if ($i) { $max=$i; break;}
-            if ($max!=-1)
+            if (is_numeric($max))
             {
-	            if (is_numeric($max))
-	            {
-	                $max=(int)$max;
-	                if ($max<0) $max=10;
-	            }
-	            else
-	                $max=10;
+                $max=(int)$max;
+                if ($max<-1) $max=10;
             }
+            else
+                $max=10;
         }
         else
         {
