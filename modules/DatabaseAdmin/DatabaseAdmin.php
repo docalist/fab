@@ -97,6 +97,7 @@ class DatabaseAdmin extends Module
     public function actionAscoLoad()
     {
         set_time_limit(0);
+        echo '<pre>', var_export(Config::getAll(), true), '</pre>';
         // charge le .def de ascodocpsy
         echo 'Chargement du .def<br />';
         $def=file_get_contents(dirname(__FILE__).'/ascodocpsy.def.xml');
