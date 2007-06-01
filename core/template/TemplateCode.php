@@ -600,13 +600,15 @@ class TemplateCode
                 'substr','str_replace','str_repeat','strtr',
                 'implode','explode',
                 'urlencode',
+                'addslashes',
                 'var_export', 'print_r',
                 'file_get_contents',
                 'count',
                 'is_null',
                 'is_array',
                 'array_sum',
-                'date'
+                'date',
+                'sprintf'
             ));
             $runtimeFunctions=array_flip(array
             (
