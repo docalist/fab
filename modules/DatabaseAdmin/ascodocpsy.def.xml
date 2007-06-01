@@ -27,62 +27,63 @@
     </stopwords>
 
     <field name="REF" type="int">
-        <index type="5" />
+        <index type="words" />
     </field>
     <field name="Type" type="text" label="Type de document">
-        <index type="5" />
+        <index type="values" weight="5" />
         <entries name="types" />
     </field>
     <field name="NatText" type="text" label="Nature du texte officiel">
-        <index type="5" />
+        <index type="values" global="true" weight="5" />
         <entries name="nattext" />
     </field>
     <field name="Aut" type="text" label="Auteurs">
-        <index type="7" />
+        <index type="values" global="true" weight="5" />
         <entries name="auteurs" />
     </field>
     <field name="Tit" type="text" label="Titre">
-        <index type="5" />
+        <index type="phrases" global="true" weight="2" />
     </field>
     <field name="Annexe" type="text" label="Titre de l'annexe suivi de l'adresse Internet">
-        <index type="5" />
+        <index type="phrases" global="true" />
     </field>
     <field name="CongrTit" type="text" label="Intitulé du congrès">
-        <index type="5" />
+        <index type="phrases" global="true" weight="2" />
     </field>
     <field name="CongrNum" type="text" label="Numéro du congrès">
-        <index type="5" />
+        <index type="words" />
     </field>
     <field name="CongrDat" type="text" label="Année du congrès AAAA">
-        <index type="5" />
+        <index type="words" global="true" weight="5" />
     </field>
     <field name="CongrLie" type="text" label="Ville du congrès">
-        <index type="5" />
+        <index type="words" global="true" />
+        <entries name="villes" />
     </field>
     <field name="DipSpe" type="text" label="Spécialité du diplôme">
-        <index type="5" />
+        <index type="phrases" />
         <entries name="diplomes" />
     </field>
     <field name="Date" type="text" label="Année du document ou de soutenance AAAA">
-        <index type="5" />
+        <index type="words" global="true" weight="5" />
     </field>
     <field name="DateText" type="text" label="Date du texte officiel AAAA-MM-JJ">
-        <index type="5" />
+        <index type="phrases" global="true" weight="5" />
     </field>
     <field name="DatePub" type="text" label="Date de publication du texte officiel AAAA-MM-JJ" />
     <field name="DateVali" type="text" label="Date de fin de validité d'un texte officiel AAAA-MM-JJ" />
     <field name="Rev" type="text" label="Titre du périodique">
-        <index type="7" />
+        <index type="values" weight="5" />
         <entries name="revues" />
     </field>
     <field name="Vol" type="text" label="Volume du périodique">
-        <index type="5" />
+        <index type="words" />
     </field>
     <field name="Num" type="text" label="Numéro du périodique">
-        <index type="5" />
+        <index type="words" />
     </field>
     <field name="NumTexOf" type="text" label="Numéro du texte officiel">
-        <index type="5" />
+        <index type="words" />
     </field>
     <field name="ViePerio" type="text" label="Date de vie et de mort d'un titre de périodique" />
     <field name="EtatCol" type="text" label="Etat de la collection" />
@@ -90,57 +91,73 @@
     <field name="PdPf" type="text" label="Page début-page fin" />
     <field name="Notes" type="text" label="Notes bibliographiques" />
     <field name="Col" type="text" label="Collection">
-        <index type="5" />
+        <index type="phrases" />
+        <entries name="collections" />
     </field>
     <field name="Edit" type="text" label="Editeur">
-        <index type="5" />
+        <index type="words" />
         <entries name="editeurs" />
     </field>
     <field name="Lieu" type="text" label="Lieu d'édition, de soutenance">
-        <index type="5" />
+        <index type="words" global="true" />
+        <entries name="lieux" />
     </field>
     <field name="Reed" type="text" label="Mention édition" />
     <field name="IsbnIssn" type="text" label="ISBN, ISSN">
-        <index type="5" />
+        <index type="phrases" />
     </field>
     <field name="Resu" type="text" label="Résumé">
-        <index type="5" />
+        <index type="phrases" global="true" />
     </field>
     <field name="Theme" type="text" label="Thème">
-        <index type="7" />
+        <index type="values" global="true" weight="10" />
         <entries name="themes" />
     </field>
     <field name="MotCle" type="text" label="Descripteurs">
-        <index type="7" />
+        <index type="values" count="true" global="true" weight="5" />
         <entries name="descripteurs" />
     </field>
     <field name="Nomp" type="text" label="Nom propre">
-        <index type="7" />
+        <index type="values" global="true" weight="5" />
         <entries name="nomspropres" />
     </field>
     <field name="CanDes" type="text" label="Candidats descripteurs">
-        <index type="7" />
+        <index type="values" global="true" weight="5" />
         <entries name="candes" />
     </field>
     <field name="Lien" type="text" label="Adresse Internet">
-        <index type="5" />
+        <index count="true" />
     </field>
     <field name="Loc" type="text" label="Localisation du document">
-        <index type="5" />
+        <index type="words" />
+        <entries name="producteurs" />
     </field>
     <field name="ProdFich" type="text" label="Producteur de la fiche">
-        <index type="5" />
+        <index type="words" />
+        <entries name="producteurs" />
     </field>
     <field name="FinSaisie" type="bool" label="1 Saisie de la notice terminée - 0 Notice en cours de saisie">
-        <index type="5" />
+        <index type="words" />
     </field>
     <field name="Valide" type="bool" label="1 Validée - 0 Non validée">
-        <index type="5" />
+        <index type="words" />
     </field>
     <field name="Creation" type="text" label="Date de création de la notice format : AAAAMMJJ">
-        <index type="5" />
+        <index type="words" />
     </field>
     <field name="LastUpdate" type="text" label="Date de dernière mise à jour de la notice format : AAAAMMJJ">
-        <index type="5" />
+        <index type="words" />
     </field>
+    
+    <alias>
+        <name>Motsclesdm</name>
+        <index>MotCle+Nomp+CanDes+Theme</index>
+    </alias>
+    <alias name="Motscles" index="MotCle+Nomp+CanDes+Theme" />
+    <alias name="Titres" index="Tit+CongrTit+Annexe" />
+    <alias name="Dates" index="Date+CongrDat" />
+    <alias name="Numeros" index="Num+CongrNum+NumTexOf" />
+    <alias name="Mots" index="Tit+Annexe+CongrTit+CongrDat+CongrLie+Aut+Date+DateText+Lieu+NatText+Resu+Motscles" />
+    <alias name="Liens" index="Lien+Annexe" />
+    
 </database>

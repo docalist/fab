@@ -96,6 +96,7 @@ class DatabaseAdmin extends Module
     
     public function actionAscoLoad()
     {
+        set_time_limit(0);
         // charge le .def de ascodocpsy
         $def=file_get_contents(dirname(__FILE__).'/ascodocpsy.def.xml');
         
@@ -105,11 +106,35 @@ class DatabaseAdmin extends Module
         // Importe des notices de la base bis dans la base xapian
         $bisDb=Database::open('ascodocpsy', true);
                 
-        if (!$bisDb->search('*', array('_sort'=>'-','_start'=>1,'_max'=>1000)))
+        if (!$bisDb->search('*', array('_sort'=>'-','_start'=>1,'_max'=>-1)))
             die('aucune réponse');
-            
+
+
+        echo '<hr />';
+        echo $bisDb->count(), ' notices à charger à partir de la base BIS<br />';
+        echo '<hr />';
+        
+        while(ob_get_level()) ob_end_flush();
+        echo '<pre>';
+        echo 'nb total de notices chargées; secondes depuis le début; secondes depuis précédent; nb de notices par seconde<br />';            
+        $nb=0;
+        $startTime=$time=microtime(true);
         foreach($bisDb as $record)
         {
+            if ($nb %100 == 0)
+            {
+                $lastTime=$time;
+                $time=microtime(true);
+                echo sprintf
+                (
+                    '%6d ; %8.2f ; %6.2f ; %6.2f<br />', 
+                    $nb,
+                    $time-$startTime,
+                    $time-$lastTime,
+                    $nb==0 ? 0.0: 100/($time-$lastTime)
+                );
+                flush();
+            }
             $xapianDb->addRecord();
 
             foreach($record as $name=>$value)
@@ -122,12 +147,40 @@ class DatabaseAdmin extends Module
                 $xapianDb[$name]=$value;
             }
             $xapianDb->saveRecord();
+            $nb++;
         }
+
+        // infos du dernier lot chargé
+        $lastTime=$time;
+        $time=microtime(true);
+        echo sprintf
+        (
+            '%6d ; %8.2f ; %6.2f ; %6.2f<br />', 
+            $nb,
+            $time-$startTime,
+            $time-$lastTime,
+            $nb==0 ? 0.0: 100/($time-$lastTime)
+        );
+        flush();
         
+        echo 'Fermeture (et flush) de la base<br />';
         unset($bisDb);
         unset($xapianDb);
+
+        // pour mesurer le temps de fermeture
+        $lastTime=$time;
+        $time=microtime(true);
+        echo sprintf
+        (
+            '%6d ; %8.2f ; %6.2f ; %6.2f<br />', 
+            $nb,
+            $time-$startTime,
+            $time-$lastTime,
+            0
+        );
+        flush();
         
-        echo 'Terminé';
+        echo 'Terminé<br />';
     }
     
     public function actionBisToXapian()
