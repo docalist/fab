@@ -1,5 +1,6 @@
 <?php
 define('DB_PATH', Runtime::$root.'data/db/test');
+define('BIS_PATH', Runtime::$root.'data/db/ascodocpsy.bed');
 
 //die(DB_PATH);
 class QueryParser
@@ -97,7 +98,7 @@ class DatabaseAdmin extends Module
     public function actionAscoLoad()
     {
         set_time_limit(0);
-        echo '<pre>', var_export(Config::getAll(), true), '</pre>';
+//        echo '<pre>', var_export(Config::getAll(), true), '</pre>';
         // charge le .def de ascodocpsy
         echo 'Chargement du .def<br />';
         $def=file_get_contents(dirname(__FILE__).'/ascodocpsy.def.xml');
@@ -107,12 +108,11 @@ class DatabaseAdmin extends Module
         $xapianDb=Database::create(DB_PATH, $def, 'xapian');
         
         // Importe des notices de la base bis dans la base xapian
-        $bis='ascodocpsy';
-        echo 'Ouverture de la base BIS : ', Config::get("db.$bis.path", $bis), '<br />';
-        $bisDb=Database::open($bis, true);
+        echo 'Ouverture de la base BIS : ', BIS_PATH, '<br />';
+        $bisDb=Database::open(BIS_PATH, true);
                 
         echo 'Lancement d\'une recherche * dans la base BIS<br />';
-        if (!$bisDb->search('*', array('_sort'=>'-','_start'=>1,'_max'=>-1)))
+        if (!$bisDb->search('*', array('_sort'=>'-','_start'=>1,'_max'=>1)))
             die('aucune réponse');
 
 
