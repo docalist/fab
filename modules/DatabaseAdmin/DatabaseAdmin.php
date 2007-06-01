@@ -109,7 +109,7 @@ class DatabaseAdmin extends Module
         
         // Importe des notices de la base bis dans la base xapian
         echo 'Ouverture de la base BIS : ', BIS_PATH, '<br />';
-        $bisDb=Database::open(BIS_PATH, true);
+        $bisDb=Database::open(BIS_PATH, true, 'bis');
                 
         echo 'Lancement d\'une recherche * dans la base BIS<br />';
         if (!$bisDb->search('*', array('_sort'=>'-','_start'=>1,'_max'=>1)))
