@@ -10,6 +10,22 @@
 
 class TaskManager extends Module
 {
+    const Pending=1;
+    const Starting=2;
+    const Running=3;
+    const Done=4;
+    const Error=5;
+    const Disabled=6;
+
+/*
+        création de la tâche                        ->  Pending
+        début d'exécution                           ->  Running
+            la tâche se termine normallement            ->  Done
+            une exception survient durant l'exéction    ->  Error
+        
+        
+
+*/
     public static $id='';
     
 	public function preExecute()
@@ -134,10 +150,23 @@ class TaskManager extends Module
                     case 'list':
                         $result=serialize($tasks);
                         break;
+                    case 'settaskstatus':
+                        $id=strtok($param, ' ');
+                        $status=trim(substr($param, strlen($id)));
+                        if (! isset($tasks[$id]))
+                        {
+                            $result='error : bad ID';
+                        }
+                        else
+                        {
+                            $tasks[$id]['status']=$status;
+                            self::storeTask($tasks[$id]);	
+                        }
+                        break;
 					case 'quit' :
 						break;
 					default :
-						$result = 'error';
+						$result = 'error : bad command';
 				}
 
 				// Envoie la réponse au client
@@ -145,8 +174,7 @@ class TaskManager extends Module
 				fclose($conn);
 
 				// Si on a reçu une commande d'arrêt, terminé, sinon on recommence
-				if ($cmd == 'quit')
-					break;
+				if ($cmd == 'quit') break;
 			}
 
 			// On est sorti en time out, exécute la tâche en attente s'il y en a une
@@ -157,18 +185,19 @@ class TaskManager extends Module
                     // Modifie la date de dernière exécution et le statut de la tâche
                     $task['lasttime']=time();
                     if ($task['time']==0) $task['time']=$task['lasttime']; // dès que possible = maintenant
-                    $task['status']='running';
+
+                    $task['status']='starting'; // on ne peut pas appeller request sinon on s'appelle nous même
                     self::storeTask($task);
                      
                     // Lance la tâche
                 	self::out('Exécution de la tâche '. $task['id'] . ' : ' . $task['task']. "\n");
                     if (++$nn>100) die();
-                    //self::runBackgroundModule('/TaskManager/RunTask?id=' . $task['id'], $task['root']);
+                    self::runBackgroundModule('/TaskManager/RunTask?id=' . $task['id'], $task['root']);
                     
-                    // S'il s'agit d'une tâche répétée, calcule la date de la prochaine exécution
+                    // S'il s'agit d'une tâche répêtée, calcule la date de la prochaine exécution
                     if ($task['repeat'])
                     {
-                        // Force sortTasks à calcule la date de prochaine exécution
+                        // Force sortTasks à calculer la date de prochaine exécution
                         unset($task['nexttime']);
                         self::sortTasks($tasks);
                         self::listTasks($tasks);
@@ -198,11 +227,22 @@ class TaskManager extends Module
      * @param string $path le path complet du fichier de tâche à charger.
      * @return array un tableau contenant les paramètres de la tâche
      */
-    private static function loadTask($id)
+    private static function loadTask($id, $path=null)
     {
-        $dir=Runtime::$fabRoot.'data'.DIRECTORY_SEPARATOR.'tasks'.DIRECTORY_SEPARATOR;
-        $path=$dir.$id.'.task';
-        return include($path);
+        // Détermine le path du fichier tâche
+        if (is_null($path))
+        {
+            $dir=Runtime::$fabRoot.'data'.DIRECTORY_SEPARATOR.'tasks'.DIRECTORY_SEPARATOR;
+            $path=$dir.$id.'.task';
+        }
+                
+        // Charge le fichier tâche
+        $task=require($path);
+
+        // Vérifie qu'on a un ID valide
+        if (!isset($task['id']))
+            throw new Exception("La tâche $path n'a pas d'ID");
+        return $task;
     }
     
     /**
@@ -219,8 +259,15 @@ class TaskManager extends Module
         $tasks=array();
         foreach(glob($dir . '*.task', GLOB_NOSORT) as $path)
         {
-            $tasks[]=$task=include($path);
-            if (!isset($task['id'])) die("Tâche $path : pas d'ID");
+            // Charge le fichier tâche
+            $task=self::loadTask(null, $path);
+                
+            // Vérifie que l'ID est unique
+            $id=$task['id'];
+            if (isset($tasks[$id]))
+                throw new Exception("Les tâches $path et $tasks[$id][path] ont le même ID");
+            
+            $tasks[$id]=$task;
         }
         return $tasks;
     }
@@ -283,6 +330,8 @@ class TaskManager extends Module
     
     private static function listTasks($tasks)
     {
+        var_export($tasks);
+        return;
         foreach($tasks as $task)
         {
         	echo '- [TASK ', $task['id'], '], next=[', $task['nextexecstring'], '], last=[', @$task['lasttime'], '], ', $task['task'], "\n";
@@ -319,10 +368,28 @@ class TaskManager extends Module
         // Redirige la sortie vers le fichier id_tâche.output
         ob_start(array('TaskManager', 'taskOutputHandler'), 2);//, 4096, false);
         // ob_implicit_flush(true); // aucun effet en CLI. Le 2 ci-dessus est un workaround
+        // cf : http://fr2.php.net/manual/en/function.ob-implicit-flush.php#60973
         
+        // Indique que la tâche est en cours d'exécution
+        self::request("settaskstatus $id running");
+
         // Exécute la tâche
-        Routing::dispatch($url);
+        try
+        {
+            Routing::dispatch($url);
+        }
         
+        // Une erreur s'est produite
+        catch (Exception $e)
+        {
+            self::request("settaskstatus $id error");
+            ExceptionManager::handleException($e,false);
+            ob_end_flush();
+        	return;
+        }
+
+        // Indique que la tâche s'est exécutée correctement
+        self::request("settaskstatus $id done");
         ob_end_flush();
     }
     
@@ -834,36 +901,9 @@ echo $cmd;
             $data['running']=true;
             $data['status']=self::status();
             
-            $tasks=unserialize(self::request('list'));
+//            $tasks=unserialize(self::request('list'));
+            $tasks=self::loadTasks();
 
-            $i=0;
-            foreach ($tasks as & $task)
-            {
-                foreach(array('time', 'nexttime','lasttime') as $h)
-                {
-                	if (!isset($task[$h]))
-                        $task[$h]='-';
-                    elseif (is_null($task[$h]))
-                        $task[$h]='jamais';
-                    elseif ($task[$h]==0)
-                        $task[$h]='dès que possible';
-                    else
-                    {
-                        if (date('d/m/y', $task[$h])==date('d/m/y'))
-                            $task[$h]=date('H:i:s', $task[$h]);
-                        elseif (date('d/m/y', $task[$h])==date('d/m/y', time()+86400))
-                            $task[$h]='demain à ' . date('H:i:s', $task[$h]);
-                        elseif (date('d/m/y', $task[$h])==date('d/m/y', time()-86400))
-                            $task[$h]='hier à ' . date('H:i:s', $task[$h]);
-                        else
-                            $task[$h]=date('d/m/y H:i:s', $task[$h]);
-                    }
-                }
-                $task['class']= (($i % 2 )== 0) ? 'even' : 'odd';
-                $i++; 
-            }
-            
-            $data['hastasks']=count($tasks)>0;
             $data['tasks']=$tasks;
         }
         else
@@ -1147,13 +1187,21 @@ echo $cmd;
             'task'=>$task,
             'time'=>$datetime,
             'repeat'=>$repeat,
-            'status'=>'wait',
+            'status'=>'pending',
             'creation'=>time(),
             'title'=>$title?$title:$task
         );
         
         // Calcule l'heure de prochaine exécution pour vérifier que $repeat est valide
-        if (!is_null($repeat)) self::computeNextTime($task);
+        if (is_null($repeat)) 
+        {
+            if ($datetime!=0 && $datetime<time())
+                throw new Exception("La date d'exécution de la tâche est dépassée, la tâche ne sera jamais exécutée");
+        }
+        else
+        {
+            self::computeNextTime($task);	
+        }   
         
         // Stocke la tâche
         $id=self::storeTask($task);

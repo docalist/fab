@@ -1,15 +1,16 @@
-<div id="output"></div>
+<div id="output">$output</div>
 
 <div id="progressbar" style="display: none;">
     <div style="border: 1px solid #2AF; width: 20em; background-color: #C8E6FF; ">
         <div id="indicator" style="background: url('/asco/web/fabweb/images/famfamfam/sylk/shape_square.png'); width: 0%;">
-            &nbsp;
+            &#160;
         </div>
     </div>
     <div id="text"></div>
 </div>
-
+seek=$seek
 <script type="text/javascript">
+var seek=$seek;
 <!--
 function hideProgressBar()
 {
@@ -24,20 +25,24 @@ function showProgressBar(percent, step, max, label)
 
 function setSeek(seek)
 {
-   updater.url='taskstatusupdate'+window.location.search+'&seek='+seek;
+//   updater.url='taskstatusupdate'+window.location.search+'&seek='+seek;
 }
 
+/*
 var updater=new Ajax.PeriodicalUpdater
 //var updater=new Ajax.Updater
 (
     'output', 
-    'taskstatusupdate'+window.location.search+'&seek=0', 
+    'taskstatusupdate'+window.location.search+'&seek='+seek,
     {
         asynchronous:true, 
         frequency:1,
+        decay:2,
         evalScripts: true,
         insertion: Insertion.Bottom
     }
 );
-
+*/
+-->
+//setSeek($seek);
 </script>

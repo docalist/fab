@@ -21,40 +21,56 @@
 <p>Date/heure courante : $now</p>
 
 <if test="$running">
-    <h2>Liste des tâches en attente</h2>
-    <if test="$hastasks">
+    <if test="{count($tasks)}">
+        <h2>Liste des tâches</h2>
         <table class="taskmanager">
             <tr>
                 <th>ID</th>        
+                <th>statut</th>        
                 <th>site</th>        
                 <th>titre</th>
                 <th>tâche</th>        
-                <th>date/heure</th>        
-                <th>répétition</th>        
+                <th>planification</th>        
                 <th>prochaine exécution</th>        
                 <th>dernière exécution</th>        
             </tr>
             <loop on="$tasks" as="$task">
                 <tr class="{$task['class']}">
                     <td>{$task['id']}</td>
+                    <td>{$task['status']}</td>        
                     <td>{$task['root']}</td>        
                     <td>{$task['title']}</td>
                     <td>{$task['task']}</td>        
-                    <td>{$task['time']}</td>        
-                    <td>{$task['repeat']}</td>        
-                    <td>{$task['nexttime']}</td>        
                     <td>
-                        <a  href="taskstatus?id={$task['id']}" 
-                            title="Voir le résultat de la dernière exécution">
-                            {$task['lasttime']}
-                        </a>
+                        {$task['time']==0 ? 'dès que possible' : date('d/m/y H:i:s', $task['time'])}
+                        /
+                        {$task['repeat']}
+                    </td>        
+                    <td>
+                        <if test="{isset($task['nexttime'])}">
+                            {date('d/m/y H:i:s', $task['nexttime'])}
+                        </if>
+                        <else>
+                            jamais
+                        </else>
+                    </td>        
+                    <td>
+                        <if test="{isset($task['lasttime'])}">
+                            <a  href="taskstatus?id={$task['id']}" 
+                                title="Voir le résultat de la dernière exécution">
+                                {date('d/m/y H:i:s', $task['lasttime'])}
+                            </a>
+                        </if>
+                        <else>
+                            jamais
+                        </else>
                     </td>        
                 </tr>
             </loop>
         </table>
     </if>
     <else>
-        <p>Il n'y a aucune tâche en attente.</p>
+        <h2>Il n'y a aucune tâche en attente.</h2>
     </else>
 </if>
 
@@ -64,7 +80,6 @@
     si on a des droits étendus permettant de lister tout. La commande 'list'
     devient 'list root' : on ne liste que les tâches qui ont root=à la racine
     demandée.</li>
-    <li>Afficher le statut des tâches : en attente, en cours d'exécution</li>
     <li>Permettre de créer une nouvelle tâche, de supprimer une tâche 
     programmée, de changer la date d'exécution ou le champ répétition pour
     une tâche existante</li>
