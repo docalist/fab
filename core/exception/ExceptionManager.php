@@ -78,7 +78,7 @@ class ExceptionManager
 
             Template::run
             (
-                'Exception.htm', 
+                dirname(__FILE__).'/Exception.htm', 
                 array
                 (
                     'message'   => $exception->getMessage(),
