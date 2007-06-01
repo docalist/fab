@@ -70,7 +70,7 @@ class DatabaseModule extends Module
      * @return boolean true si une recherche a été lancée et qu'on a au moins 
      * une réponse, false sinon
      */
-    protected function OpenDatabase($readOnly=true)
+    protected function openDatabase($readOnly=true)
     {
         // Le fichier de config du module indique la base à utiliser
         $database=Config::get('database');
@@ -82,18 +82,7 @@ class DatabaseModule extends Module
         $this->selection=Database::open($database, $readOnly);
     }
 
-    protected function SelectOld($equation)
-    {
-        $options=array
-        (
-            '_sort'  => Utils::get($_REQUEST['_sort'], Config::get('sort','+')),
-            '_start' => Utils::get($_REQUEST['_start'], 1),
-            '_max'   => Utils::get($_REQUEST['_max'], Config::get('max',10)),
-        );
-        return $this->selection->search($equation, $options);
-    }
-    
-    protected function Select($equation, $options=null)
+    protected function select($equation, $options=null)
     {
 		// Valeurs par défaut des options
 	    $defaultOptions=array
@@ -115,55 +104,7 @@ class DatabaseModule extends Module
         	return $this->selection->search($equation, $defaultOptions);
         }
     }
-    
-    /**
-     * Ouvre la base de données du module
-     * 
-     * Si une équation est indiquée, une recherche est lancée.
-     * 
-     * @param string $equation optionnel, l'équation de recherche à lancer
-     * 
-     * @param readOnly indique si la base doit être ouverte en lecture seule
-     * (valeur par défaut) ou en lecture/écriture
-     * 
-     * @return boolean true si une recherche a été lancée et qu'on a au moins 
-     * une réponse, false sinon
-     */
-    protected function OpenSelection($equation=null, $readOnly=true)
-    {
-        // Le fichier de config du module indique la base à utiliser
-        $database=Config::get('database');
-
-        if (is_null($database))
-            throw new Exception('La base de données à utiliser n\'a pas été indiquée dans le fichier de configuration du module');
-        
-        debug && Debug::log("Ouverture de la base '%s' en mode '%s'", $database, $readOnly ? 'lecture seule' : 'lecture/écriture');
-        $this->selection=Database::open($database, $readOnly);
-                
-        if ($equation)
-        {
-//            echo 'Avant search<br />';
-            // TODO: ne pas passer directement $_REQUEST
-            $options=array
-            (
-                '_sort'  => Utils::get($_REQUEST['_sort'], Config::get('sort','+')),
-                '_start' => Utils::get($_REQUEST['_start'], 1),
-                '_max'   => Utils::get($_REQUEST['_max'], Config::get('max',10)),
-            );
-            $result=$this->selection->search($equation, $options);
-//            echo 'Après search<br />';
-//            echo is_null($this->selection) ? 'NULL' : 'NOT NULL';
-//            die();
-//            echo '<br />$this->selection=', var_dump($this->selection);
-//            die();
-//            echo "count = ", $this->selection->count();
-            debug && Debug::log("Requête : %s, %s réponse(s).", $equation, $this->selection->count());
-            return $result;
-        }
-            
-        return false;	
-    }
-    
+   
     /**
      * Affiche le formulaire de recherche indiqué dans la clé 'template' de la
      * configuration, en utilisant le callback indiqué dans la clé 'callback' de
@@ -277,7 +218,7 @@ class DatabaseModule extends Module
             return $this->showError('Vous n\'avez indiqué aucun critère de recherche.');
         
         // Aucune réponse
-        if (! $this->Select($this->equation))
+        if (! $this->select($this->equation))
             return $this->showNoAnswer("La requête $this->equation n'a donné aucune réponse.");
         
         // Détermine le template à utiliser
@@ -466,7 +407,7 @@ class DatabaseModule extends Module
             return $this->showError('Vous n\'avez indiqué aucun critère permettant de sélectionner la notice à afficher.');
 
         // Aucune réponse
-        if (! $this->Select($this->equation))
+        if (! $this->select($this->equation))
             return $this->showNoAnswer("La requête $this->equation n'a donné aucune réponse.");
 
         // Détermine le template à utiliser
@@ -532,7 +473,7 @@ class DatabaseModule extends Module
 
         // Si un numéro de référence a été indiqué, on charge cette notice         
         // Vérifie qu'elle existe
-        if (! $this->Select($this->equation))
+        if (! $this->select($this->equation))
         	return $this->showError('La référence demandée n\'existe pas.');
 
         // Si sélection contient plusieurs enreg, erreur
@@ -583,28 +524,25 @@ class DatabaseModule extends Module
         
         $ref=(int) $ref;
         
+        // Ouvre la base
+        $this->openDatabase(false);
+        
         // Si un numéro de référence a été indiqué, on charge cette notice         
         if ($ref>0)
         {
             // Ouvre la sélection
             debug && Debug::log('Chargement de la notice numéro %s', $ref);
-            if (! $this->openSelection("REF=$ref", false))
+            
+            if (! $this->select("REF=$ref"))
                 throw new Exception('La référence demandée n\'existe pas');
                 
             $this->selection->editRecord();     // mode édition enregistrement
         } 
         // Sinon (REF == 0), on en créée une nouvelle
         else
-        {        
-            // Ouvre la sélection
+        {
             debug && Debug::log('Création d\'une nouvelle notice');
-            $this->openSelection('', false); 
-
-            $this->selection->addRecord();
-            
-            // Récupère le numéro de la notice créée
-            $ref=$this->selection['REF'];
-            debug && Debug::log('Numéro de la notice créée : %s', $ref);
+            $this->selection->addRecord();            
         }            
         
         // Mise à jour de chacun des champs
@@ -629,14 +567,18 @@ class DatabaseModule extends Module
         }
         
         // Enregistre la notice
-        debug && Debug::log('Sauvegarde de la notice %s', $ref);
+        //debug && Debug::log('Sauvegarde de la notice %s', $ref);
         
         // CODE DE DEBUGGAGE
 //        ftrace('Appel de SaveRecord');
 //        ob_start();
         
-        $this->selection->saveRecord();   // TODO: gestion d'erreurs
-        
+        $ref=$this->selection->saveRecord();   // TODO: gestion d'erreurs
+
+        // Récupère le numéro de la notice créée
+        //$ref=$this->selection['REF'];
+        debug && Debug::log('Sauvegarde de la notice %s', $ref);
+
 //        $output=ob_get_clean();
 //        ftrace('Après SaveRecord');
 //        ftrace('ob output : ' . $output);
@@ -722,7 +664,7 @@ class DatabaseModule extends Module
             return $this->showError('Le ou les numéros des notices à supprimer n\'ont pas été indiqués.');
 
         // Aucune réponse
-        if (! $this->Select($this->equation, array('_max'=>-1)) )
+        if (! $this->select($this->equation, array('_max'=>-1)) )
             return $this->showError("Aucune réponse. Equation : $this->equation");
 
         // TODO: déléguer au TaskManager
@@ -777,12 +719,9 @@ class DatabaseModule extends Module
             return $this->showError('Vous n\'avez indiqué aucun critère de recherche sur les enregistrements de la base de données.');
             
         // Aucune réponse
-        if (! $this->Select($this->equation, array('_max'=>-1)) )
+        if (! $this->select($this->equation, array('_max'=>-1)) )
             return $this->showError("Aucune réponse. Equation : $this->equation");
 
-		echo 'ReplaceForm - Nb notices :', $this->selection->count();
-		echo 'ReplaceForm - Equation :', $this->equation;
-		
         // Construit le tableau des champs modifiables des enregistrements retournés par la recherche.
         // Par compatibilité avec les générateurs de contrôles utilisateurs (fichier generators.xml)
         // il faut un tableau de tableaux contenant chacun une clé 'code' et une clé 'label'
@@ -865,11 +804,8 @@ class DatabaseModule extends Module
             Runtime::redirect('replaceform?_equation=' . urlencode($this->equation));
             
         // Lance la requête qui détermine les enregistrements sur lesquels on va opérer le chercher/remplacer 
-        if (! $this->Select($this->equation, array('_max'=>-1)) )
+        if (! $this->select($this->equation, array('_max'=>-1)) )
             return $this->showError("Aucune réponse. Equation : $this->equation");
-
-//		echo 'Equation  Replace: ', $this->equation;
-//		echo 'Replace - Nb notices : ',$this->selection->count();
 
         // Eventuelle callback de validation des données passée au format array(object, nom méthode) 
 //        if (($callback = $this->getCallback()) !== 'none')
@@ -1188,18 +1124,18 @@ class DatabaseModule extends Module
 //        var_export($_POST,true);
         
         // Ouvre la base
-        $this->openSelection();
+        $this->openDatabase();
         
         // Récupère le nom de la table dans laquelle il faut rechercher
         if ('' === $table=Utils::get($_REQUEST['table'],''))
             die('aucune table indiquée');
         
         // Récupère le terme recherché
-        if ('' === $search=Utils::get($_REQUEST['value'],''))
-            die('aucun terme indiqué');
-
+        $search=Utils::get($_REQUEST['value'],'');
+        $max=Utils::get($_REQUEST['max'],10);
+        
         // Lance la recherche
-        $terms=$this->selection->lookup($table, $search, 10, 1, true);
+        $terms=$this->selection->lookup($table, $search, $max, 0, true);
 
         // Détermine le template à utiliser
         if (! $template=$this->getTemplate())
