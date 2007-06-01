@@ -134,9 +134,9 @@ abstract class Database implements ArrayAccess, Iterator
      * proposées ({@link create}, {@link open}, ...) et via les méthodes
      * non statiques implémentées par les drivers.
      */
-    protected function __construct()
-    {
-    }
+//    protected function __construct()
+//    {
+//    }
 
 
     /**
