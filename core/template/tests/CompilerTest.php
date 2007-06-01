@@ -15,7 +15,7 @@ class CompilerTest extends AutoTestCase
     public function testfileCompile()
     {
 //        $this->runTestFile(dirname(__FILE__).'/Template.opt.testfile', array($this, 'compileCallback'));
-        $this->runTestFile(dirname(__FILE__).'/temp.testfile', array($this, 'compileCallback'));
+        $this->runTestFile(dirname(__FILE__).'/slots.testfile', array($this, 'compileCallback'));
 //        $this->runTestFile(dirname(__FILE__).'/Template.compile.testfile', array($this, 'compileCallback'));
 //        $this->runTestFile(dirname(__FILE__).'/Template.compile.strip_et_test.testfile', array($this, 'compileCallback'));
     }

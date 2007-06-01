@@ -117,6 +117,7 @@ class TemplateTest extends AutoTestCase
             $this->runTestFile(dirname(__FILE__).'/Template.strip.testfile', array($this, "templateCompilerCallbackWith$h"));
             $this->runTestFile(dirname(__FILE__).'/Template.test.testfile', array($this, "templateCompilerCallbackWith$h"));
             $this->runTestFile(dirname(__FILE__).'/Template.misc.testfile', array($this, "templateCompilerCallbackWith$h"));
+            $this->runTestFile(dirname(__FILE__).'/Template.iffalsebug.testfile', array($this, "templateCompilerCallbackWith$h"));
         }
     }
     
