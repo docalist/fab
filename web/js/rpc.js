@@ -29,9 +29,11 @@ jQuery.AutoCompleteHandler =
 
     // la requête XmlHttpRequest en cours (null = aucune)
     xhr: null,
+    xhrValue: null,
     
     // Le handle du timer de mise à jour en cours (null=aucun)
     timer: null,
+    lastKeyTime:0,
     
     initialize: function(url, settings)
     {
@@ -67,6 +69,7 @@ jQuery.AutoCompleteHandler =
             }
 */            
             this.autocomplete=settings;
+            this.autocomplete.cache=new Array();
 
             jQuery(this)
                 // Désactive le autocomplete du navigateur
@@ -87,10 +90,18 @@ jQuery.AutoCompleteHandler =
                 // Point d'entrée principal : appellé chaque fois que l'utilisateur tape une touche
                 .keypress(function(event){
 
+                    if (0==jQuery.AutoCompleteHandler.lastKeyTime)
+                        jQuery.AutoCompleteHandler.lastKeyTime=(new Date()).getTime();
+                    else
+                    {
+                        time=(new Date()).getTime();
+                        console.info('speed', time-jQuery.AutoCompleteHandler.lastKeyTime);
+                        jQuery.AutoCompleteHandler.lastKeyTime=time;
+                    }
+                    
                     // Si on a déjà une requête à lancer en attente, on l'annule
                     if (jQuery.AutoCompleteHandler.xhr)
                     {
-                        console.info('Annulation requête xhr en cours');
                         jQuery.AutoCompleteHandler.xhr.abort();
                         jQuery.AutoCompleteHandler.xhr=null;
                     }
@@ -98,7 +109,6 @@ jQuery.AutoCompleteHandler =
                     // Si on a déjà un timer update en cours, on l'annule
                     if (jQuery.AutoCompleteHandler.timer) 
                     {
-                        console.info('Annulation timer en cours');
                         window.clearTimeout(jQuery.AutoCompleteHandler.timer);
                         jQuery.AutoCompleteHandler.timer=null;
                     }
@@ -123,30 +133,29 @@ jQuery.AutoCompleteHandler =
 
                     if ( nav[event.keyCode] )
                     {
-                        if (special) return;
-                        if (! jQuery.AutoCompleteHandler.visible) return;
+                        if (special)
+                        {
+                            console.info('ctrl/shift/alt : pas de nouveau timer');
+                            return;
+                        }
+                        if (! jQuery.AutoCompleteHandler.visible) 
+                        {
+                            console.info('popup non visible : pas de nouveau timer');
+                            return;
+                        }
                         jQuery.AutoCompleteHandler.select(nav[event.keyCode]);
                             
                         if (event.keyCode != 9) 
                         {
                             event.preventDefault(); 
+                            console.info('touche de navigation : pas de nouveau timer');
                             return false;
                         }
                     }
-//                    console.info(event);
-                    
-                    if (event.charCode != 0) 
-                    {
-                        // Si la valeur actuelle est identique à la valeur précédente, terminé
-                        if (this.lastValue && this.lastValue==this.value) return;
-                        
-                        console.info('Nouveau timer');
-                        jQuery.AutoCompleteHandler.timer=window.setTimeout(jQuery.AutoCompleteHandler.update, 750); // entre 500 et 750
-                    }
+                    jQuery.AutoCompleteHandler.timer=window.setTimeout(jQuery.AutoCompleteHandler.update, 250); // entre 500 et 750
                 })
                 ;
         });
-        
     },
 
     getSelectionStart : function(field)
@@ -195,35 +204,58 @@ jQuery.AutoCompleteHandler =
         return $offset;
     },
 
+    getTextRange: function(value, selection)
+    {
+        // Définit la liste des séparateurs qu'on reconnait
+        var sep = /\s*(?:,|;|\/)\s*|\s+(?:et|ou|sauf|and|or|not|near|adj)\s*/ig;
+        
+        // texte SEP te|xte SEP texte SEP texte
+        //       ^          ^
+        //
+        
+        // a priori, un seul article, on prends tout du début à la fin
+        start=0;
+        end=value.length;
 
+        // Recherche les séparateurs
+        sep.lastIndex=0; // indispensable comme on utilise /g et qu'on ne va pas toujours jusqu'au dernier match (exec recommece toujours à partir de lastIndex)
+
+        while ((match = sep.exec(value)) != null)
+        {
+            // Sep après le curseur, position de fin=un car avant
+            if (match.index>selection)
+            {
+                end=match.index;
+                break;
+            }
+            // le séparateur est avant le curseur. nouveau start=fin du séparateur
+            start=match.index+match[0].length;
+        }
+        
+        t=
+            {
+                start: start,
+                end: end,
+                value: value.substring(start,end),
+                insep: (start > selection)
+            };
+        return t;
+    },
+    
     // Injecte la valeur passée en paramètre dans le champ
     set : function(item)
     {
         console.info('valeur à injecter : ', item);
-
+        
         var target=jQuery.AutoCompleteHandler.target;
         var value=target.value;
         console.log('Value=', value);
 
-        var sep = /\s*(?:,|;|\/)\s*|\s+(?:et|ou|sauf|and|or|not|near|adj)\s*/ig;
-        start=0;
-        end=value.length;
-        found=false;
-        while ((match = sep.exec(value)) != null)
-        {
-            if (match.index>selection)
-            {
-                end=match.index-1;
-                break;
-            }
-            start=match.index+match[0].length;
-        }
-        console.log('début :' , value.substr(0,start-1));
-        console.log('item :' , item);
-        console.log('fin :' , value.substr(end));
-        value=value.substr(0,start-1)+item+value.substr(end);
+        selectionStart=jQuery.AutoCompleteHandler.getSelectionStart(target);
+        selection=jQuery.AutoCompleteHandler.getTextRange(value,selectionStart);
 
-		jQuery.AutoCompleteHandler.target.value=value;
+        target.value=value.substr(0, selection.start) + item + value.substr(selection.end);
+
         jQuery.AutoCompleteHandler.hide();
         jQuery.AutoCompleteHandler.target.focus();
     },
@@ -318,62 +350,51 @@ jQuery.AutoCompleteHandler =
         // Si le champ de saisie est vide, cache la boite de résultats
         if (value=='')
         {
-            this.autocomplete.hide();
+            jQuery.AutoCompleteHandler.hide();
             return;
         }
-        
-        selection=jQuery.AutoCompleteHandler.getSelectionStart(jQuery.AutoCompleteHandler.target);
-        
-//*********
-//        var sep = /^\s*(?:,|;|)\s*|\s+(?:et|ou|sauf|and|or|not|near|adj)\s+/i;
-        var sep = /\s*(?:,|;|\/)\s*|\s+(?:et|ou|sauf|and|or|not|near|adj)\s*/ig;
-        
-        start=0;
-        found=false;
-        while ((match = sep.exec(value)) != null)
+
+        selectionStart=jQuery.AutoCompleteHandler.getSelectionStart(jQuery.AutoCompleteHandler.target);
+        selection=jQuery.AutoCompleteHandler.getTextRange(value,selectionStart);
+
+        if (selection.insep || selection.value==='')
         {
-            console.dir(match);
-            if (match.index>selection)
-            {
-                value=value.substring(start, match.index);
-                found=true;
-                break;
-            }
-            start=match.index+match[0].length;
+            jQuery.AutoCompleteHandler.hide();
+            return;
         }
-        if (!found)
-            value=jQuery.trim(value.substr(start));
-        console.info('VALUE=', value);
-        
-        if(value.length==0) return;
+
         // Teste si le cache contient déjà les résultats pour cette valeur
-/*
-        if (target.autocomplete_cache)
+        jQuery.AutoCompleteHandler.xhrValue=selection.value;
+        if (target.autocomplete.cache)
         {
-            var $cache=target.autocomplete_cache[value];
-            if ($cache !== undefined) // on l'a en cache
+            var data=target.autocomplete.cache[selection.value];
+            if (data !== undefined) // on l'a en cache
             {
-                jQuery.AutoCompleteHandler._show_results($cache);
+                console.info('cache hit pour ', selection.value);
+                jQuery.AutoCompleteHandler.gotResult(data);
                 return;
             }
         }
-*/
+
         // Cache la boite en attendant qu'on ait les résultats
-//        jQuery.AutoCompleteHandler.hide();
-//        url=target.autocomplete.url.replace('%s', escape(value));
-//        jQuery.AutoCompleteHandler.popup.load(url, jQuery.AutoCompleteHandler.gotResult);
         jQuery.AutoCompleteHandler.xhr=jQuery.ajax({
             type: 'GET',
-            url: target.autocomplete.url.replace('%s', escape(value)),
+            url: target.autocomplete.url.replace('%s', escape(selection.value)),
             success: jQuery.AutoCompleteHandler.gotResult
         });
     },
 
+    
     gotResult: function(data)
     {
         jQuery.AutoCompleteHandler.xhr=null;
         jQuery.AutoCompleteHandler.current=-1;
         popup=jQuery.AutoCompleteHandler.popup;
+        
+        target=jQuery.AutoCompleteHandler.target;
+        
+        if (target.autocomplete.cache)
+            target.autocomplete.cache[jQuery.AutoCompleteHandler.xhrValue]=data;
 
         popup.attr("innerHTML", data);
         
@@ -384,7 +405,6 @@ jQuery.AutoCompleteHandler =
                 jQuery.AutoCompleteHandler.hide();
             return;
         }
-        console.log(items, ', lenght=', items.length);
         items
             .mouseover(function(){
                 jQuery.AutoCompleteHandler.select(this);
