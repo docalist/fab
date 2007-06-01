@@ -61,19 +61,19 @@ templates:
   
   # liste des fichiers à inclure dans le source lors de la compilation d'un template
   autoinclude:
-     - include/button.html
-     - include/checkbox.html
-     - include/checklist.html
-     - include/fieldset.html
-     - include/hidden.html
-     - include/password.html
-     - include/radio.html
-     - include/radiolist.html
-     - include/reset.html
-     - include/select.html
-     - include/textbox.html
-     - include/submit.html
-     - include/upload.html
+     button: include/button.html
+     checkbox: include/checkbox.html
+     checklist: include/checklist.html
+     fieldset: include/fieldset.html
+     hidden: include/hidden.html
+     password: include/password.html
+     radio: include/radio.html
+     radiolist: include/radiolist.html
+     reset: include/reset.html
+     select: include/select.html
+     textbox: include/textbox.html
+     submit: include/submit.html
+     upload: include/upload.html
 
   # indique s'il faut tenir compte des DTD. Lorsque l'option est à true,
   # le DTD indiqué dans le template sera chargé lors de la compilation est pris
