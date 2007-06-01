@@ -18,9 +18,10 @@ function diff_divs(id1, id2)
         var item=diffs[i][1];
 
         //item = item.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-        item = item.replace(/\n/g, "&para;<br>");
+        item = item.replace(/\n/g, "<br>");
+/*        item = item.replace(/\n/g, "&para;<br>");
         item = item.replace(/\t/g, "&rarr;");
-        item = item.replace(/ /g, "&#8231;"); // &#8228;
+        item = item.replace(/ /g, "&#8231;"); // &#8228;*/
         switch(type)
         {
             case DIFF_EQUAL: 
