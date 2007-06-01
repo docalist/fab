@@ -106,8 +106,9 @@ class DatabaseAdmin extends Module
         $xapianDb=Database::create(DB_PATH, $def, 'xapian');
         
         // Importe des notices de la base bis dans la base xapian
-        echo 'Ouverture de la base BIS : ', $database=Config::get("db.$database.path", $database), '<br />';
-        $bisDb=Database::open('ascodocpsy', true);
+        $bis='ascodocpsy';
+        echo 'Ouverture de la base BIS : ', Config::get("db.$bis.path", $bis), '<br />';
+        $bisDb=Database::open($bis, true);
                 
         echo 'Lancement d\'une recherche * dans la base BIS<br />';
         if (!$bisDb->search('*', array('_sort'=>'-','_start'=>1,'_max'=>-1)))
