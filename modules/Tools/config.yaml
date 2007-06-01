@@ -1,1 +1,4 @@
 layout: none
+slots:
+  a: /autotest/
+#  c: none

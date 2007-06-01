@@ -6,6 +6,11 @@
  
 class Tools extends Module
 {
+    public function actionAjax()
+    {
+    	var_export(Utils::isAjax());
+    }
+    
     public function actionTo()
     {
         TaskManager::progress('Préparation du mail à envoyer',10);
@@ -40,6 +45,62 @@ class Tools extends Module
         phpinfo();
     }
 
+    public function actionTestTask()
+    {
+        
+        // On est "en ligne" : crée la tâche
+        if (! User::hasAccess('cli'))
+        {
+            // si aucun param, afficher le formulaire de choix
+            // sinon...
+            
+            // Vérifie que le gestionnaire de tâche est démarré
+            if (! TaskManager::isRunning())
+                throw new Exception('Le gestionnaire de tâches n\'est pas démarré.');
+
+            // Ajoute une tâche au gestionnaire de tâches
+//            $id=TaskManager::addTask('/tools/testTask',time()-10*60,null,'date dépassée no-repeat');
+//            echo "Tâche $id, dépassée<br />"; 
+
+            $id=TaskManager::addTask('/tools/testTask',0,null,'dès que possible no-repeat');
+            echo "Tâche $id, dès que possible<br />"; 
+
+            $id=TaskManager::addTask('/tools/testTask', 0, '12 mois','dès que possible, tous les ans');
+            echo "Tâche $id, dès que possible, tous les 12 mois<br />"; 
+
+            $id=TaskManager::addTask('/tools/testTask', time(), "12 mois", 'maintenant(time) tous les ans');
+            echo "Tâche $id, maintenant(time), tous les 12 mois<br />"; 
+
+            $id=TaskManager::addTask('/tools/testTask', time()+5, "30 sec", "dans 5 sec, toutes les 20 sec");
+            echo "Tâche $id, dans 5 secondes, toutes les 30 secondes<br />"; 
+
+
+            // Redirige vers la page d'état de la tâche
+            //Runtime::redirect('/taskmanager/taskstatus?id='.$id);
+            return;
+        }
+        
+        // On est en ligne de commande : exécute la tâche
+        echo "Démarrage de la tâche de test<br />";
+        
+        for($i=0; $i<5; $i++)
+        {
+            TaskManager::progress("Etape $i", 5);
+            for($j=1; $j<=5; $j++)
+            {
+                TaskManager::progress($j);
+                sleep(1);
+            }
+            
+        }
+        throw new Exception('erreur volontaire');
+        echo "Fin de la tâche<br />";
+    }
+    
+    public function actionSlot()
+    {
+    	Template::run('slot.html');
+    }
 }
 
 ?>
