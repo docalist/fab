@@ -18,6 +18,7 @@ rawDBOutput:
   action: show
   callback: none
   template: rawDB.html
+  layout: none
 
 #save:
 #    template: saved.html
@@ -28,3 +29,6 @@ rawDBOutput:
 search:
     sort: "+"      # ordre de tri par défaut
     max: 10        # nombre maximum de réponses par page par défaut
+lookup:
+  template: ajaxlookup3.html
+  layout: none

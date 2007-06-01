@@ -1,0 +1,10 @@
+/*<small>Suggestions pour <code>$search</code> (table $table) :</small><br />*/
+<ul>
+/*    <loop on="$terms" as="$term,$info"><li onclick="console.log('clic');this.set('{addslashes($term)}')"><span>{$info[0]}</span>$term</li></loop>*/
+    <loop on="$terms" as="$term,$info">
+        <li onclick="console.log('clic');this.set('{addslashes($term)}')">
+            <span>{$info[0]}</span>
+            {$info[1]} <strong>{$info[2]}</strong>{$info[3]}
+        </li>
+    </loop>
+</ul>
