@@ -56,6 +56,65 @@ class DatabaseModule extends Module
      * @access protected
      */
     public $selection=null;
+
+    /**
+     * Ouvre la base de données du module
+     * 
+     * Si une équation est indiquée, une recherche est lancée.
+     * 
+     * @param string $equation optionnel, l'équation de recherche à lancer
+     * 
+     * @param readOnly indique si la base doit être ouverte en lecture seule
+     * (valeur par défaut) ou en lecture/écriture
+     * 
+     * @return boolean true si une recherche a été lancée et qu'on a au moins 
+     * une réponse, false sinon
+     */
+    protected function OpenDatabase($readOnly=true)
+    {
+        // Le fichier de config du module indique la base à utiliser
+        $database=Config::get('database');
+
+        if (is_null($database))
+            throw new Exception('La base de données à utiliser n\'a pas été indiquée dans le fichier de configuration du module');
+        
+        debug && Debug::log("Ouverture de la base '%s' en mode '%s'", $database, $readOnly ? 'lecture seule' : 'lecture/écriture');
+        $this->selection=Database::open($database, $readOnly);
+    }
+
+    protected function SelectOld($equation)
+    {
+        $options=array
+        (
+            '_sort'  => Utils::get($_REQUEST['_sort'], Config::get('sort','+')),
+            '_start' => Utils::get($_REQUEST['_start'], 1),
+            '_max'   => Utils::get($_REQUEST['_max'], Config::get('max',10)),
+        );
+        return $this->selection->search($equation, $options);
+    }
+    
+    protected function Select($equation, $options=null)
+    {
+		// Valeurs par défaut des options
+	    $defaultOptions=array
+	    (
+	        '_sort'  => Utils::get($_REQUEST['_sort'], Config::get('sort','+')),
+	        '_start' => Utils::get($_REQUEST['_start'], 1),
+	        '_max'   => Utils::get($_REQUEST['_max'], Config::get('max',10)),
+	    );
+
+        if (is_array($options))
+        {
+        	// On fusionne le tableau d'options passé en paramètre et les options par défaut
+        	// On prend par défaut $defaultOptions. Si $options redéfinit la valeur d'une option,
+        	// alors c'est cette nouvelle valeur qui sera prise en compte.
+        	return $this->selection->search($equation,array_merge($defaultOptions, $options));
+        }
+        else
+        {
+        	return $this->selection->search($equation, $defaultOptions);
+        }
+    }
     
     /**
      * Ouvre la base de données du module
@@ -202,7 +261,11 @@ class DatabaseModule extends Module
      */
     public function actionSearch()
     {
-        $this->equation=$this->makeEquation('_start,_max,_sort');
+        // Ouvre la base de données (le nouveau makeEquation en a besoin)
+        $this->openDatabase();
+
+        // Détermine la recherche à exécuter        
+        $this->equation=$this->selection->makeEquation(Utils::isGet() ? $_GET : $_POST);
 
         // Si aucun paramètre de recherche n'a été passé, il faut afficher le formulaire
         // de recherche
@@ -214,7 +277,7 @@ class DatabaseModule extends Module
             return $this->showError('Vous n\'avez indiqué aucun critère de recherche.');
         
         // Aucune réponse
-        if (! $this->openSelection($this->equation))
+        if (! $this->Select($this->equation))
             return $this->showNoAnswer("La requête $this->equation n'a donné aucune réponse.");
         
         // Détermine le template à utiliser
@@ -229,8 +292,7 @@ class DatabaseModule extends Module
         (
             $template,
             array($this, $callback),
-            $this->selection->record,
-            array('selection',$this->selection)  
+            $this->selection->record  
         );                
     }   
     
@@ -389,19 +451,22 @@ class DatabaseModule extends Module
      */
     public function actionShow()
     {
-        // Construit l'équation de recherche
-        $this->equation=$this->makeEquation('_start,_max,_sort,_nb');
-        
+        // Ouvre la base de données (le nouveau makeEquation en a besoin)
+        $this->openDatabase();
+
+        // Détermine la recherche à exécuter        
+        $this->equation=$this->selection->makeEquation(Utils::isGet() ? $_GET : $_POST);
+
         // Si aucun paramètre de recherche n'a été passé, erreur
         if (is_null($this->equation))
-            return $this->showError('Le numéro de la référence à afficher n\'a pas été indiqué');
-        
+            return $this->showError('Le numéro de la référence à afficher n\'a pas été indiqué.');
+
         // Des paramètres ont été passés, mais tous sont vides et l'équation obtenue est vide
         if ($this->equation==='')
-            return $this->showError('Vous n\'avez indiqué aucun critère permettant de sélectionner la notice à afficher');
-        
-        // Ouvre la sélection
-        if (! $this->openSelection($this->equation))
+            return $this->showError('Vous n\'avez indiqué aucun critère permettant de sélectionner la notice à afficher.');
+
+        // Aucune réponse
+        if (! $this->Select($this->equation))
             return $this->showNoAnswer("La requête $this->equation n'a donné aucune réponse.");
 
         // Détermine le template à utiliser
@@ -416,8 +481,7 @@ class DatabaseModule extends Module
         (
             $template,  
             array($this, $callback),
-            $this->selection->record,
-            array('selection',$this->selection)  // TODO : connerie+inutile : à virer en testant
+            $this->selection->record
         );  
     }
     
@@ -455,19 +519,26 @@ class DatabaseModule extends Module
      */
     public function actionLoad()
     {
-        // Construit l'équation de recherche
-        $this->equation=$this->makeEquation('_start,_max,_sort,_nb');
-//        $this->equation=$this->makeEquation('start,nb');
-        
-        // Si aucun paramètre de recherche n'a été passé, erreur
-        if (is_null($this->equation))
-            throw new Exception('Le numéro de la référence à afficher n\'a pas été indiqué');
-        
-        // Des paramètres ont été passés, mais tous sont vides et l'équation obtenue est vide
-        if ($this->equation==='')
-            return $this->showError('Vous n\'avez indiqué aucun critère permettant de sélectionner la notice à afficher');
-            //TODO: à gérer
-        
+        // Ouvre la base de données (le nouveau makeEquation en a besoin)
+        $this->openDatabase();
+
+        // Détermine la recherche à exécuter        
+        $this->equation=$this->selection->makeEquation(Utils::isGet() ? $_GET : $_POST);
+
+        // Erreur, si aucun paramètre de recherche n'a été passé
+        // Erreur, si des paramètres ont été passés, mais tous sont vides et l'équation obtenue est vide
+        if (is_null($this->equation) || $this->equation==='')
+        	return $this->showError('Le numéro de la référence à modifier n\'a pas été indiqué.');
+
+        // Si un numéro de référence a été indiqué, on charge cette notice         
+        // Vérifie qu'elle existe
+        if (! $this->Select($this->equation))
+        	return $this->showError('La référence demandée n\'existe pas.');
+
+        // Si sélection contient plusieurs enreg, erreur
+        if ($this->selection->count() > 1)
+            return $this->showError('Vous ne pouvez pas éditer plusieurs enregistrements à la fois.');     
+
         // Détermine le template à utiliser
         if (! $template=$this->getTemplate())
             throw new Exception('Le template à utiliser n\'a pas été indiqué');
@@ -475,21 +546,11 @@ class DatabaseModule extends Module
         // Détermine le callback à utiliser
         $callback=$this->getCallback();
         
-        // Si un numéro de référence a été indiqué, on charge cette notice         
-        // Vérifie qu'elle existe
-        if (! $this->openSelection($this->equation))
-            throw new Exception('La référence demandée n\'existe pas');
-            
-        // Si sélection contient plusieurs enreg, erreur
-        if ($this->selection->count() > 1)
-            showError('Vous ne pouvez pas éditer plusieurs enregistrements à la fois.');     
-
         Template::run
         (
-            $template,  
+            $template,
             array($this, $callback),
-            $this->selection->record,
-            array('selection',$this->selection)  
+            $this->selection->record  
         );             
     }
     
@@ -552,16 +613,16 @@ class DatabaseModule extends Module
             if ($fieldName==='REF') continue;   // Pour l'instant, REF non modifiable codé en dur
                 
             $fieldValue=Utils::get($_REQUEST[$fieldName], null);
+
+            // Si la valeur est un tableau, convertit en articles séparés par le séparateur 
+            if (is_array($fieldValue))
+                $fieldValue=implode('/', array_filter($fieldValue)); // TODO : comment accéder au séparateur ???
                 
             // Appel le callback qui peut :
             // - indiquer à l'application d'interdire la modification du champ
             // - ou modifier sa valeur avant l'enregistrement (validation données utilisateur)
             if ($this->$callback($fieldName, $fieldValue) === true)
             {
-                // Si la valeur est un tableau, convertit en articles séparés par le séparateur
-                if (is_array($fieldValue))
-                    $fieldValue=implode(' / ', array_filter($fieldValue)); // TODO : comment accéder au séparateur ???
-
                 // Met à jour le champ
                 $this->selection[$fieldName]=$fieldValue;
             }
@@ -650,18 +711,34 @@ class DatabaseModule extends Module
      */
     public function actionDelete()
     {
-        // récupère l'équation de recherche qui donne les enregistrements sur lesquels travailler
-        $this->equation=$this->makeEquation('_start,_max,_sort');
-        
+        // Ouvre la base de données (le nouveau makeEquation en a besoin)
+        $this->openDatabase();
+
+        // Récupère l'équation de recherche qui donne les enregistrements à supprimer
+        $this->equation=$this->selection->makeEquation(Utils::isGet() ? $_GET : $_POST);
+
         // Paramètre equation manquant
         if (is_null($this->equation) || (! $this->equation))
-            return $this->showError('Vous n\'avez indiqué aucun critère de recherche sur les enregistrements de la base de données.');
-            
-        // Lance la récherche
-        if (! $this->openSelection($this->equation) )
+            return $this->showError('Le ou les numéros des notices à supprimer n\'ont pas été indiqués.');
+
+        // Aucune réponse
+        if (! $this->Select($this->equation, array('_max'=>-1)) )
             return $this->showError("Aucune réponse. Equation : $this->equation");
 
         // TODO: déléguer au TaskManager
+
+//        echo 'Delete - Nb notices : ', $this->selection->count(),"\n";
+////        echo '<pre>';
+////        echo print_r($_GET);
+////        echo '</pre>';
+////        echo 'fin';
+//        echo 'Equation Delete :', $this->equation,"<br />";
+////        $nb=0;
+//        foreach($this->selection as $record)
+//        {
+//        	echo $record['REF'],';';
+//        }
+//        die();
 
         // Supprime toutes les notices de la sélection
         while ($this->selection->count())
@@ -679,8 +756,7 @@ class DatabaseModule extends Module
         (
             $template,  
             array($this, $callback),
-            $this->selection->record,
-            array('selection',$this->selection)  
+            $this->selection->record  
         );
     }
     
@@ -690,17 +766,23 @@ class DatabaseModule extends Module
      */
      public function actionReplaceForm()
      {        
-        // récupère l'équation de recherche qui donne les enregistrements sur lesquels travailler
-        $this->equation=$this->makeEquation('_start,_max,_sort');
-        
+        // Ouvre la base de données (le nouveau makeEquation en a besoin)
+        $this->openDatabase();
+
+        // Récupère l'équation de recherche qui donne les enregistrements sur lesquels travailler
+        $this->equation=$this->selection->makeEquation(Utils::isGet() ? $_GET : $_POST);
+
         // Paramètre equation manquant
         if (is_null($this->equation) || (! $this->equation))
             return $this->showError('Vous n\'avez indiqué aucun critère de recherche sur les enregistrements de la base de données.');
             
-        // Lance la récherche
-        if (! $this->openSelection($this->equation) )
+        // Aucune réponse
+        if (! $this->Select($this->equation, array('_max'=>-1)) )
             return $this->showError("Aucune réponse. Equation : $this->equation");
 
+		echo 'ReplaceForm - Nb notices :', $this->selection->count();
+		echo 'ReplaceForm - Equation :', $this->equation;
+		
         // Construit le tableau des champs modifiables des enregistrements retournés par la recherche.
         // Par compatibilité avec les générateurs de contrôles utilisateurs (fichier generators.xml)
         // il faut un tableau de tableaux contenant chacun une clé 'code' et une clé 'label'
@@ -758,7 +840,11 @@ class DatabaseModule extends Module
      */
      public function actionReplace()
      {       
-        $this->equation=$this->makeEquation('_start,_max,_sort,search,replaceStr,fields,wholeWord,caseInsensitive,regExp');
+        // Ouvre la base de données (le nouveau makeEquation en a besoin)
+        $this->openDatabase(false);
+
+        // Récupère l'équation de recherche qui donne les enregistrements sur lesquels travailler
+        $this->equation=$this->selection->makeEquation(Utils::isGet() ? $_GET : $_POST);
         
         // TODO : Pb avec les équations qui ont des guillemets + le OpenSelection donne les 10 premières ?
         
@@ -779,11 +865,11 @@ class DatabaseModule extends Module
             Runtime::redirect('replaceform?_equation=' . urlencode($this->equation));
             
         // Lance la requête qui détermine les enregistrements sur lesquels on va opérer le chercher/remplacer 
-        if (! $this->openSelection($this->equation))
+        if (! $this->Select($this->equation, array('_max'=>-1)) )
             return $this->showError("Aucune réponse. Equation : $this->equation");
 
-		echo 'Equation : ', $this->equation;
-		echo ' Sélection : ',$this->selection->count();
+//		echo 'Equation  Replace: ', $this->equation;
+//		echo 'Replace - Nb notices : ',$this->selection->count();
 
         // Eventuelle callback de validation des données passée au format array(object, nom méthode) 
 //        if (($callback = $this->getCallback()) !== 'none')
@@ -1008,7 +1094,7 @@ class DatabaseModule extends Module
      * paramètre n'a été passé dans la requête (l'utilisateur a simplement
      * demandé l'affichage du formulaire de recherche)
      */
-    public function makeEquation($ignore='')
+    public function makeEquationOld($ignore='')
     {
         // si '_equation' a été transmis, on prend tel quel
         if (! is_null($equation = Utils::get($_REQUEST['_equation']))) return $equation;
@@ -1098,7 +1184,7 @@ class DatabaseModule extends Module
     function actionLookup()
     {
 //        header('Content-type: text/plain; charset=iso-8859-1');
-        header('Content-type: text/xml');
+        header('Content-type: text/html; charset=iso-8859-1');
 //        var_export($_POST,true);
         
         // Ouvre la base
@@ -1109,11 +1195,11 @@ class DatabaseModule extends Module
             die('aucune table indiquée');
         
         // Récupère le terme recherché
-        if ('' === $term=Utils::get($_REQUEST['value'],''))
+        if ('' === $search=Utils::get($_REQUEST['value'],''))
             die('aucun terme indiqué');
 
         // Lance la recherche
-        $terms=$this->selection->lookup($table,$term, 10, 0, true);
+        $terms=$this->selection->lookup($table, $search, 10, 1, true);
 
         // Détermine le template à utiliser
         if (! $template=$this->getTemplate())
@@ -1127,7 +1213,7 @@ class DatabaseModule extends Module
         (
             $template,  
             array($this, $callback),
-            array('terms'=>$terms)
+            array('search'=>$search, 'table'=>$table, 'terms'=>$terms)
         );  
     }
 }
