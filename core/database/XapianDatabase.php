@@ -675,8 +675,8 @@ class XapianDatabaseDriver extends Database
       TOK_PHRASE_WILD_TERM=44,
       TOK_MATCH_ALL=45,
       
-      TOK_START_BRACKET=50,
-      TOK_END_BRACKET=51,
+      TOK_START_PARENTHESE=50,
+      TOK_END_PARENTHESE=51,
       
       TOK_RANGE_START=60,
       TOK_RANGE_END=61
@@ -730,7 +730,7 @@ class XapianDatabaseDriver extends Database
         if (!is_null($text))
         {
             $equation=$text;
-            
+            $equation=str_replace(array('[',']'), array('"@break ', ' @break"'), $equation);
             $equation=Utils::convertString($equation, 'queryparser');
             $equation=trim($equation) . '¤';
 
@@ -751,8 +751,8 @@ class XapianDatabaseDriver extends Database
                 case '¤':       return $this->id=self::TOK_END;
                 case '+': ++$i; return $this->id=self::TOK_LOVE;
                 case '-': ++$i; return $this->id=self::TOK_HATE;
-                case '(': ++$i; return $this->id=self::TOK_START_BRACKET;
-                case ')': ++$i; return $this->id=self::TOK_END_BRACKET;
+                case '(': ++$i; return $this->id=self::TOK_START_PARENTHESE;
+                case ')': ++$i; return $this->id=self::TOK_END_PARENTHESE;
                 case '*': ++$i; return $this->id=self::TOK_MATCH_ALL;
                 case ':':
                 case '=': ++$i; return $this->id=self::TOK_ERROR;
@@ -764,11 +764,11 @@ class XapianDatabaseDriver extends Database
                     if (!$inString)
                         return $this->id=self::TOK_BLANK;
                         
-                    // Début d'une chaine : ignore les caractères spéciaus et retourne le premier mot
+                    // Début d'une chaine : ignore les caractères spéciaux et retourne le premier mot
                     if (false===$pt=strpos($equation, '"', $i))
                         throw new Exception('guillemet fermant non trouvé');
                     $len=$pt-$i;
-                    $string=strtr(substr($equation, $i, $len), '+-():=', '       ');
+                    $string=strtr(substr($equation, $i, $len), '+-():=[]', '       ');
                     $equation=substr_replace($equation, $string, $i, $len); 
                     return $this->read();
                     
@@ -864,15 +864,21 @@ class XapianDatabaseDriver extends Database
                         $hateQuery=new XapianQuery(XapianQuery::OP_OR, $hateQuery, $this->parseOr());
                     break;
 
-                case self::TOK_START_BRACKET:
+                case self::TOK_START_PARENTHESE:
                     if (is_null($query))
                         $query=$this->parseCompound();
                     else
                         $query=new XapianQuery(XapianQuery::OP_OR, $query, $this->parseCompound());
                     break;
+
                 case self::TOK_END:
-                case self::TOK_END_BRACKET:
+                case self::TOK_END_PARENTHESE:
                     break 2;
+
+                case self::TOK_MATCH_ALL:
+                    $query=$this->parseCompound();
+                    break;
+
                 default: 
                     echo 'inconnu2 : ', 'id=', $this->id, ', token=', $this->token;
                     return;
@@ -892,7 +898,6 @@ class XapianDatabaseDriver extends Database
         {
             if (!is_null($hateQuery)) $query=new XapianQuery(XapianQuery::OP_AND_NOT, $query, $hateQuery);
         }
-        
         return $query;      
     }
     
@@ -952,41 +957,92 @@ class XapianDatabaseDriver extends Database
                 $this->prefix=$save;
                 break;
 
-            case self::TOK_START_BRACKET:
+            case self::TOK_START_PARENTHESE:
                 $this->read();
                 $query=$this->parseExpression();
-                if ($this->id !== self::TOK_END_BRACKET)
-                    throw new Exception('Parenthèse fermante attendue');
+                if ($this->id !== self::TOK_END_PARENTHESE)
+                    throw new Exception($this->token.'Parenthèse fermante attendue');
                 $this->read();
                 break;
 
-            case self::TOK_PHRASE_TERM:
+
             case self::TOK_PHRASE_WILD_TERM:
+                $nbWild=1;
+            case self::TOK_PHRASE_TERM:
+                $nbWild=0;
+                
                 $terms=array();
+                $type=array();
                 do
                 {
-                    if($this->id===self::TOK_PHRASE_WILD_TERM)
-                        $terms[]=$q=new XapianQuery(XapianQuery::OP_OR, $this->expandTerm($this->token, $this->prefix));
-                    else
-                        foreach((array)$this->prefix as $prefix)
-                            $terms[]=$prefix.$this->token;
-
+                    $terms[]=$this->token;
+                    $type[]=$this->id;
                     $this->read();
                 }
-                while($this->id===self::TOK_PHRASE_TERM || $this->id===self::TOK_PHRASE_WILD_TERM);
-
-                $query=new XapianQuery(XapianQuery::OP_PHRASE, $terms, 3); // TODO: 3=window size du PHRASE, à mettre en config
+                while($this->id===self::TOK_PHRASE_TERM || ($this->id===self::TOK_PHRASE_WILD_TERM && (++$nbWild)));
                 if ($this->id===self::TOK_BLANK) $this->read();
+
+                // Limitation actuelle de xapian : on ne peut avoir qu'une seule troncature dans une expression
+//                if($nbWild>1)
+//                    throw new exception("$nbWild xxxLa troncature ne peut être utilisé qu'une seule fois dans une expression entre guillemets");
+                if($nbWild>1)                   // TODO: mettre en option ?
+                    $op=XapianQuery::OP_AND;    // plusieurs troncatures : la phrase devient un "et"
+                else                            
+                    $op=XapianQuery::OP_PHRASE;
+
+
+                // on a des préfixes en cours : p1,p2,p3                
+                //    -> requête de la forme "term1 term2 term3" 
+                // on aura autant de phrases qu'on a de préfixes : 
+                //    -> phrase1 OU phrase 2 OU phrase3
+                $phrases=array();
+                // (sauf si la requête contient un terme avec troncature et que expand ne retourne rien pour ce préfixe)
+                 
+                // chaque phrase contient tous les termes
+                //    -> (p1:term1 PHRASE p1:term2) OU (p2:term1 PHRASE p2:term2) OU (p3:term1 PHRASE p3:term2)
+                $phrase=array();
+                foreach((array)$this->prefix as $prefix)
+                {
+                    foreach($terms as $i=>$term)
+                    {
+                        if ($type[$i]===self::TOK_PHRASE_TERM)
+                        {
+                            $phrase[$i]=$prefix.$term;
+                        }
+                        else
+                        {
+                            // Génère toutes les possibilités
+                            $t=$this->expandTerm($term, $prefix);
+
+                            // Aucun résultat : la phrase ne peut pas aboutir
+                            if (count($t)===0) continue 2; // 2=continuer avec le prochain préfixe
+
+                            $phrase[$i]=new XapianQuery(XapianQuery::OP_OR, $t);
+                        }
+                    }
+
+                    // Fait une phrase avec le tableau phrase obtenu
+                    $phrases[]=$p=new XapianQuery($op, $phrase); // TODO: 3=window size du PHRASE, à mettre en config
+                }
+                
+                // COmbine toutes les phrases en ou
+                $query=new XapianQuery(XapianQuery::OP_OR, $phrases);
                 break;
+
             case self::TOK_MATCH_ALL:
                 $this->read();
                 if ($this->prefix==='')
                     $query=new XapianQuery('');// la syntaxe spéciale de xapian pour désigner [match anything]
                 else
                 {
-                    $query=new XapianQuery(XapianQuery::OP_OR, $this->expandTerm('@has', $this->prefix));
+                    $t=$this->expandTerm('@has', $this->prefix);
+                    if (count($t)===0) // aucun des chaps interrogés n'est "comptable", transforme en requete 'toutes les notices'
+                        $query=new XapianQuery(''); // syntaxe spéciale de xapian : match all
+                    else
+                        $query=new XapianQuery(XapianQuery::OP_OR, $t);
                 }
                 break;
+                
             default:
                 die('truc inattendu : '.$this->id);
         }
@@ -1065,16 +1121,12 @@ class XapianDatabaseDriver extends Database
         {
             $prefixTerm=$prefix.$term;
             $begin->skip_to($prefixTerm);
-//            echo 'expand ', $prefixTerm, '<br />';
             while (!$begin->equals($end))
             {
                 $h=$begin->get_term();
                 if (substr($h, 0, strlen($prefixTerm))!==$prefixTerm) 
-                {
-//                	echo '...got ', $h, ', break;<br />';
                 	break;
-                }
-//                echo '...', $h, ', ok<br />';
+
                 $terms[]=$h;
                 if (++$nb>$max)
                     throw new Exception("Le terme '$term*' génère trop de possibilités, augmentez la longueur du préfixe");
@@ -1111,8 +1163,8 @@ class XapianDatabaseDriver extends Database
               self::TOK_PHRASE_WILD_TERM=>'TOK_PHRASE_WILD_TERM',
               self::TOK_MATCH_ALL=>'TOK_MATCH_ALL',
                         
-              self::TOK_START_BRACKET=>'TOK_START_BRACKET',
-              self::TOK_END_BRACKET=>'TOK_END_BRACKET',
+              self::TOK_START_PARENTHESE=>'TOK_START_PARENTHESE',
+              self::TOK_END_PARENTHESE=>'TOK_END_PARENTHESE',
               
               self::TOK_RANGE_START=>'TOK_RANGE_START',
               self::TOK_RANGE_END=>'TOK_RANGE_END'
@@ -1211,7 +1263,7 @@ private function dumpQuery($equation)
         // Met en place l'environnement de recherche lors de la première recherche
         if (is_null($this->enquire)) $this->setupSearch();
 
-        // Construit la requête
+//        // Construit la requête
 //        $query=$this->parser->parse_Query
 //        (
 //            utf8_encode(strtr($equation,'=',':')),         // à partir de la version 1.0.0, les composants "texte" de xapian attendent de l'utf8 
@@ -1603,7 +1655,7 @@ private function dumpQuery($equation)
 
         if (! isset($this->fields['REF']) or ($this->fields['REF']==''))
             $this->fields['REF']=$this->xapianDatabase->get_lastdocid()+1;
-            
+
 //        echo '<H1>FIELDS</H1><pre>';
 //        var_dump($this->fields);
 //        echo '</pre>';
@@ -1628,6 +1680,7 @@ private function dumpQuery($equation)
 //            echo "Remplacement de l'enreg docId=", $docId,'<br />';
             $this->xapianDatabase->replace_document($docId, $this->doc);
         }
+        return $this->fields['REF'];
     }
 
     public function cancelUpdate()
@@ -1823,70 +1876,81 @@ private function dumpQuery($equation)
      */
     public function lookup($table, $term, $max=100000, $sort=0, $splitTerms=false)
     {
+        static $charFroms=
+            "\x00\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f\x10\x11\x12\x13\x14\x15\x16\x17\x18\x19\x1a\x1b\x1c\x1d\x1e\x1f\x20\x21\x22\x23\x24\x25\x26\x27\x28\x29\x2a\x2b\x2c\x2d\x2e\x2f\x30\x31\x32\x33\x34\x35\x36\x37\x38\x39\x3a\x3b\x3c\x3d\x3e\x3f\x40\x41\x42\x43\x44\x45\x46\x47\x48\x49\x4a\x4b\x4c\x4d\x4e\x4f\x50\x51\x52\x53\x54\x55\x56\x57\x58\x59\x5a\x5b\x5c\x5d\x5e\x5f\x60\x61\x62\x63\x64\x65\x66\x67\x68\x69\x6a\x6b\x6c\x6d\x6e\x6f\x70\x71\x72\x73\x74\x75\x76\x77\x78\x79\x7a\x7b\x7c\x7d\x7e\x7f\x80\x81\x82\x83\x84\x85\x86\x87\x88\x89\x8a\x8b\x8c\x8d\x8e\x8f\x90\x91\x92\x93\x94\x95\x96\x97\x98\x99\x9a\x9b\x9c\x9d\x9e\x9f\xa0\xa1\xa2\xa3\xa4\xa5\xa6\xa7\xa8\xa9\xaa\xab\xac\xad\xae\xaf\xb0\xb1\xb2\xb3\xb4\xb5\xb6\xb7\xb8\xb9\xba\xbb\xbc\xbd\xbe\xbf\xc0\xc1\xc2\xc3\xc4\xc5\xc6\xc7\xc8\xc9\xca\xcb\xcc\xcd\xce\xcf\xd0\xd1\xd2\xd3\xd4\xd5\xd6\xd7\xd8\xd9\xda\xdb\xdc\xdd\xde\xdf\xe0\xe1\xe2\xe3\xe4\xe5\xe6\xe7\xe8\xe9\xea\xeb\xec\xed\xee\xef\xf0\xf1\xf2\xf3\xf4\xf5\xf6\xf7\xf8\xf9\xfa\xfb\xfc\xfd\xfe\xff";
+        
+        static $charTo=
+            '                                                0123456789      @abcdefghijklmnopqrstuvwxyz      abcdefghijklmnopqrstuvwxyz                                                                     aaaaaaaceeeeiiiidnooooo 0uuuuy saaaaaaaceeeeiiiidnooooo  uuuuyby';
+
         if ('' === $prefix=Utils::get($this->structure['entries'][$table],''))
             throw new Exception("La table des entrées '$table' n'existe pas");
-        
-        if ('' === $token=trim(Utils::convertString($term,'bis')))
-            return array();
-        
-        $start=$prefix.$token;
         
         $begin=$this->xapianDatabase->allterms_begin();
         $end=$this->xapianDatabase->allterms_end();
 
-        $begin->skip_to($start);
-        
         $count=0;
         if ($max<=0) $max=PHP_INT_MAX;
         $result=array();
-        while (!$begin->equals($end))
-        {
-            $entry=$begin->get_term();
 
-            if ($start !== substr($entry, 0, strlen($start))) 
-                break;
-                         
-            $entry=substr($entry, strpos($entry, '=')+1);
+        $term=trim($term);
+        $term=strtr($term, $charFroms, $charTo);
+        if (false === $token=strtok($term, ' ')) 
+            $token=''; // term=vide : sort les n premiers de la liste
 
-            if ($splitTerms)
-            {
-                $h=Utils::convertString($entry,'bis');
-                if (false === $pt=strpos(' '.$h, ' '.$token)) $pt=0;       
-                if (false === $pt2=strpos($h, ' ', $pt+1))$pt2=strlen($entry);
-                $left=substr($entry, 0, $pt);
-                $middle=substr($entry, $pt, $pt2-$pt);
-                $right=substr($entry, $pt2);                
-
-                if (!isset($result[$entry]))
-                    $result[$entry]=array($begin->get_termfreq(), $left, $middle, $right);
-                else
-                    $result[$entry][0]+=$begin->get_termfreq();
-            }
-            else
-            {
-                
-                if (!isset($result[$entry]))
-                    $result[$entry]=$begin->get_termfreq();
-                else
-                    $result[$entry]+=$begin->get_termfreq();
-            }
-            if (count($result) >= $max) break;
-
-            $begin->next();
-        }
+        $length=strlen($term);
         
+        while($token !== false)
+        {
+            $start=$prefix.$token;
+            $begin->skip_to($start);
+            
+            while (!$begin->equals($end))
+            {
+                $entry=$begin->get_term();
+    
+                if ($start !== substr($entry, 0, strlen($start))) 
+                    break;
+                             
+                $entry=substr($entry, strpos($entry, '=')+1);
+                $h=strtr($entry, $charFroms, $charTo);
+                if (false !== $pt=strpos(' '.$h, ' '.$term))
+                {
+                    if ($splitTerms)
+                    {
+                        $left=substr($entry, 0, $pt);
+                        $middle=substr($entry, $pt, $length);
+                        $right=substr($entry, $pt+$length);                
+        
+                        if (!isset($result[$entry]))
+                            $result[$entry]=array($begin->get_termfreq(), $left, $middle, $right);
+                    }
+                    else
+                    {
+                        if (!isset($result[$entry]))
+                            $result[$entry]=$begin->get_termfreq();
+                    }
+                }    
+                $begin->next();
+            }
+            $token=strtok(' ');            
+        }
+
         // Trie des réponses
         switch ($sort)
         {
             case 0:     // Tri par occurences
-                arsort($result, SORT_NUMERIC);
+                if ($splitTerms)
+                    uasort($result, create_function('$a,$b','return $b[0]-$a[0];')); // nb décroissants
+                else
+                    arsort($result, SORT_NUMERIC);
                 break;  
             default:    // Tri alpha
                 ksort($result, SORT_LOCALE_STRING);
                 break;
         }
-        
-        return $result; 
+
+        return array_slice($result,0,$max);
+//        return $result; 
     }
      
     private function index($field, &$data, $document, &$position)
