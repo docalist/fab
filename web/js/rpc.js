@@ -56,17 +56,20 @@ jQuery.AutoCompleteHandler =
         }
         
         // Récupére les paramètres et application les valeurs par défaut
-/*        
-        settings=jQuery.extend(
-            {
-                url: url,
-                delay: 500,
-            }, settings);
-*/
-        settings.url=url;
-        settings.delay=500;
-                    
-	   // Initialise les contrôles
+        defaultSettings=
+        {
+            url: url,
+            delay: 500,
+            asValue: false,
+            asExpression: false
+        };
+        
+        if (settings)
+            settings=jQuery.extend(defaultSettings, settings);
+        else
+            settings=defaultSettings;
+                            
+	    // Initialise les contrôles
         return this.each(function(){
 /*
             if (this.tagName != 'INPUT' && this.getAttribute('type') != 'text' )
@@ -252,6 +255,12 @@ vitesse de frappe de l'utilisateur
         selectionStart=jQuery.AutoCompleteHandler.getSelectionStart(target);
         selection=jQuery.AutoCompleteHandler.getTextRange(value,selectionStart);
 
+        if (target.ac.asValue)
+            item='['+item+']';
+        else
+            if (target.ac.asExpression)
+                item='"'+item+'"';
+                
         target.value=value.substr(0, selection.start) + item + value.substr(selection.end);
 
         jQuery.AutoCompleteHandler.hide();
