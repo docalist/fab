@@ -403,7 +403,7 @@ final class Utils
                     /* 20 */    '  "     ()*+ -  '.
                     /* 30 */    '0123456789:  =  '.
                     /* 40 */    '@abcdefghijklmno'.
-                    /* 50 */    'pqrstuvwxyz     '.
+                    /* 50 */    'pqrstuvwxyz[ ]  '.
                     /* 60 */    ' abcdefghijklmno'.
                     /* 70 */    'pqrstuvwxyz     '.
                     /* 80 */    '                '.
