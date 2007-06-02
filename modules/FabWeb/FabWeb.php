@@ -34,7 +34,8 @@ class FabWeb extends Module
         // la suite est inspirée de : http://fr2.php.net/header
         // commentaire de pechkin at zeos dot net, 05-May-2006 03:00
         $size = filesize($path);
-        $date=gmdate('D, d M Y H:i:s', filemtime($path)).' GMT';
+        $fileDate=filemtime($path);
+        $date=gmdate('D, d M Y H:i:s', $fileDate).' GMT';
         
         if (isset($_SERVER['HTTP_RANGE']))  //Partial download
         {
@@ -78,11 +79,21 @@ class FabWeb extends Module
         }
         else // Usual download
         {
-            header("HTTP/1.1 200 OK");
-            header("Last-Modified: $date");
-            header("Content-Length: $size");
-            header("Content-Type: $mime");
-            readfile($path);        
+            // Checking if the client is validating his cache and if it is current.
+            if (isset($_SERVER['HTTP_IF_MODIFIED_SINCE']) && (strtotime($_SERVER['HTTP_IF_MODIFIED_SINCE']) <= $fileDate))
+            {
+                // Client's cache IS current, so we just respond '304 Not Modified'.
+                header('Last-Modified: '.$date, true, 304);
+                header('DmHeader: not modified');
+            }
+            else
+            {
+                header("HTTP/1.1 200 OK");
+                header("Last-Modified: $date");
+                header("Content-Length: $size");
+                header("Content-Type: $mime");
+                readfile($path);
+            }        
         }                
         Config::set('showdebug', false);
         return true; // indique à fab qu'on a fini, ne pas exécuter d'action
