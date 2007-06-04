@@ -510,7 +510,9 @@ class DatabaseModule extends Module
         // pas par exit(0) (voir plus bas)
 //        ftrace(str_repeat('-', 80));
 //        ftrace('Entrée dans actionSave');
-
+		
+		// TODO: dans la config, on devrait avoir, par défaut, access: admin (ie base modifiable uniquement par les admin)
+		
         // Détermine le callback à utiliser
         $callback=$this->getCallback();
         
@@ -522,7 +524,7 @@ class DatabaseModule extends Module
         if (is_null($ref=Utils::get($_REQUEST['REF'])) || (! ctype_digit($ref)))
             throw new Exception('Appel incorrect de save : REF non transmis ou invalide');
         
-        $ref=(int) $ref;
+        $ref=(int) $ref;  // TODO: dangereux, si ref n'est pas un entier, générer une exception
         
         // Ouvre la base
         $this->openDatabase(false);
@@ -550,13 +552,13 @@ class DatabaseModule extends Module
         {         
             if ($fieldName==='REF') continue;   // Pour l'instant, REF non modifiable codé en dur
                 
-            $fieldValue=Utils::get($_REQUEST[$fieldName], null);
+            $fieldValue=Utils::get($_REQUEST[$fieldName], null); // TODO: ne devrait pas être là, à charge pour le callback de savoir d'où viennent les données
 
-            // Si la valeur est un tableau, convertit en articles séparés par le séparateur 
-            if (is_array($fieldValue))
-                $fieldValue=implode('/', array_filter($fieldValue)); // TODO : comment accéder au séparateur ???
+//            // Si la valeur est un tableau, convertit en articles séparés par le séparateur 
+//            if (is_array($fieldValue))
+//                $fieldValue=implode('/', array_filter($fieldValue)); // TODO : comment accéder au séparateur ???
                 
-            // Appel le callback qui peut :
+            // Appelle le callback qui peut :
             // - indiquer à l'application d'interdire la modification du champ
             // - ou modifier sa valeur avant l'enregistrement (validation données utilisateur)
             if ($this->$callback($fieldName, $fieldValue) === true)
@@ -567,60 +569,21 @@ class DatabaseModule extends Module
         }
         
         // Enregistre la notice
-        //debug && Debug::log('Sauvegarde de la notice %s', $ref);
-        
-        // CODE DE DEBUGGAGE
-//        ftrace('Appel de SaveRecord');
-//        ob_start();
-        
         $ref=$this->selection->saveRecord();   // TODO: gestion d'erreurs
 
         // Récupère le numéro de la notice créée
         //$ref=$this->selection['REF'];
         debug && Debug::log('Sauvegarde de la notice %s', $ref);
 
-//        $output=ob_get_clean();
-//        ftrace('Après SaveRecord');
-//        ftrace('ob output : ' . $output);
-//        foreach($this->selection->record as $fieldName => $fieldValue)
-//            if ($fieldValue) ftrace($fieldName . '=' . $fieldValue);         
-//        unset($this->selection);
-//        unset($this->record);
-//        unset($fieldName);
-//        unset($fieldValue);
-//        ftrace('fermeture te ré-ouverture de la base');
-//        $bis=new COM('Bis.Engine');
-//        $dbpath='d:/WebApache/AscoFuturSite/data/db/ascodocpsy.bed';
-//        $db=$bis->openDatabase($dbpath, false, true);
-//        $dataset=$db->datasets(1)->name;
-//        $selection=$db->openSelection($dataset);
-//        $selection->equation='REF=' . $ref;
-//        $fields=$selection->fields;
-//        for ($i=1; $i<=$fields->count;$i++)
-//            ftrace($fields[$i]->name . '=' . $fields[$i]->value);         
-             
-//            $this->openSelection("REF=$ref", false);
-//        foreach($this->selection->record as $fieldName => $fieldValue)
-//            if ($fieldValue) ftrace($fieldName . '=' . $fieldValue);         
-//sleep(5);
-        
-//        echo "ref = $ref";
-//        die();
         // redirige vers le template s'il y en a un, vers l'action show sinon
         if (! $template=$this->getTemplate())
         {
-//            ftrace('Aucun template indiqué, redirection vers le show');
-            
             // Redirige l'utilisateur vers l'action show
             debug && Debug::log('Redirection pour afficher la notice enregistrée %s', $ref);
             Runtime::redirect('/base/show?REF='.$ref);
-            
-//            ftrace('not reached');
         }
         else
         {
-//            ftrace('Un template a été indiqué, template::run');
-
             Template::run
             (
                 $template,
@@ -628,8 +591,6 @@ class DatabaseModule extends Module
                 $this->selection->record,
                 array('selection',$this->selection)  
             );
-            
-//            ftrace('Template exécuté');
         }
     }
     
