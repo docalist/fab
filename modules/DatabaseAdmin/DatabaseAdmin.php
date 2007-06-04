@@ -145,7 +145,7 @@ class DatabaseAdmin extends Module
 
             foreach($record as $name=>$value)
             {
-                if (in_array($name, array('Aut','Edit','Lieu','Theme','MotCle','Nomp','CanDes','Loc','ProdFich')))
+                if (in_array($name, array('Aut','Edit','Lieu','MotCle','Nomp','CanDes','EtatCol', 'Loc','ProdFich')))
                 {
                     $value=explode('/',$value);
                     if (count($value)===1) $value=$value[0];
