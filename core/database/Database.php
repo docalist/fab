@@ -735,10 +735,13 @@ abstract class Database implements ArrayAccess, Iterator
      */
     public function pregReplace($fields, $pattern, $replace, & $totalCount)
     {
-        $totalCount = 0;    // nombre total de remplacements effectués
-        $count = 0;         // nombre de remplacements effectués pour un champ
+        // Nombre total de remplacements effectués
+        $totalCount = 0; 
+           
+        // Nombre de remplacements effectués pour un champ
+        $count = 0;
         
-        // boucle sur tous les champs à remplacer
+        // Boucle sur tous les champs à remplacer
         foreach($fields as $field)
         {
             $value=$this->record[$field];
@@ -749,12 +752,16 @@ abstract class Database implements ArrayAccess, Iterator
             // TODO: si possible, utiliser preg_last_error à partir de PHP 5.2.0
             if (is_null($value = @preg_replace($pattern, $replace, $value, -1, $count))) 
                 return false;
-                
+
+			// Si tableau, supprime les valeurs vides
+			if (is_array($value)) $value=array_filter($value);
+
             $this->record[$field] = $value;
             $totalCount += $count;   
         }
         
-        return true;   // tout s'est bien déroulé        
+        // Tout s'est bien déroulé
+        return true;        
     }
     
  
@@ -764,32 +771,37 @@ abstract class Database implements ArrayAccess, Iterator
      * (peut être appelé dans une boucle sur une sélection par exemple)
      * 
      * @param array fields la liste des champs sur lesquels on effectue le chercher/remplacer
-     * @param string $search la chaîne de caractère de recherche
+     * @param string $search la chaîne de caractères à rechercher
      * @param string $replace la chaîne de remplacement pour les occurences trouvées
-     * @param bool $caseInsensitive indique si la recherche est (true) ou non (false) insensible à la case
+     * @param bool $caseInsensitive indique si la recherche est (true) ou non (false) insensible à la casse
      * @param int $totalCount référence qui stockera le nombre d'occurences remplacées par la fonction
-     *
      */
      // ANCIENNE VERSION
     public function strReplace($fields, $search, $replace, $caseInsensitive = false, & $totalCount)
     {
-        if($caseInsensitive)
-            $search = strtolower($search);   // pour optimiser un peu la boucle principale
+        // Nombre total de remplacements effectués
+        $totalCount = 0;
         
-        $totalCount = 0;    // nombre total de remplacements effectués
-        $count = 0;         // nombre de remplacements effectués pour chaque champ
-                            
-        // boucle sur les champs et effecue le chercher/remplacer
+        // Nombre de remplacements effectués pour chaque champ
+        $count = 0;
+
+        // Boucle sur les champs et effectue le chercher/remplacer
         foreach($fields as $field)
         {
-            $value = $this->record[$field]; // le contenu actuel du champ
-            
-            if ($caseInsensitive)
-                $value = strtolower($value);
-                
-            $this->record[$field] = str_replace($search, $replace, $value, $count); // effectue le remplacement
+			//  Contenu actuel du champ
+			$value=$this->record[$field];
+			
+			// Fait le remplacement
+			$value=($caseInsensitive) ? str_ireplace($search, $replace, $value, $count) : str_replace($search, $replace, $value, $count);
 
-            $totalCount += $count;  // Met à jour le compteur
+			// Si tableau, supprime les valeurs vides
+			if (is_array($value)) $value=array_filter($value);
+			
+			// Met le champ à jour
+			$this->record[$field]=$value;
+			
+			// Met le compteur à jour
+			$totalCount += $count;
         }
     }
     // Version utilisant un $callback de validation des données au format : array(objet, méthode)
@@ -838,11 +850,11 @@ abstract class Database implements ArrayAccess, Iterator
      * @param array fields la liste des champs sur lesquels on effectue le chercher/remplacer
      * @param string $replace la chaîne de remplacement pour les champs vides trouvés
      * @param int $count référence qui stockera le nombre d'occurences remplacées par la fonction
-     * 
      */
      public function replaceEmpty($fields, $replace, & $count)
      {
-        $count = 0;      // nombre de remplacements
+        // Nombre de remplacements
+        $count = 0;
         
         foreach($fields as $field)
         {
