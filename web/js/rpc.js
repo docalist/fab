@@ -35,6 +35,8 @@ jQuery.AutoCompleteHandler =
     timer: null,
     lastKeyTime:0,
     
+    keepFocus: false,
+    
     initialize: function(url, settings)
     {
         var popupId='autocompletePopup';
@@ -47,7 +49,15 @@ jQuery.AutoCompleteHandler =
                 '<div id="'+popupId+'" style="display: none;position: absolute; top: 0; left: 0; z-index: 30001;"></div>'
                 /*style=" display: none;"*/
             );
-            jQuery.AutoCompleteHandler.popup=jQuery('#'+popupId);
+            jQuery.AutoCompleteHandler.popup=
+                jQuery('#'+popupId)
+                .mouseover(function(){
+                    jQuery.AutoCompleteHandler.keepFocus=true;
+                })
+                .mouseout(function(){
+                    jQuery.AutoCompleteHandler.keepFocus=false;
+                });
+                        
             if (jQuery.AutoCompleteHandler.popup.length===0)
             {
 //                console.error('Impossible de créer le popup');
@@ -91,12 +101,13 @@ jQuery.AutoCompleteHandler =
                 })
                 
                 // Met à null la target en cours et cache le popup quand le champ perd le focus
-/*                
+
                 .blur (function(){
+                    if (jQuery.AutoCompleteHandler.keepFocus) return;
                     jQuery.AutoCompleteHandler.hide();
                     jQuery.AutoCompleteHandler.target=null;
                 })
-*/                
+
                 // Point d'entrée principal : appellé chaque fois que l'utilisateur tape une touche
                 .keydown(function(event){
 
@@ -148,13 +159,11 @@ vitesse de frappe de l'utilisateur
 
                         if (special) return;
                         if (! jQuery.AutoCompleteHandler.visible)  return;
+                        if (event.keyCode == 9 && jQuery.AutoCompleteHandler.current == -1) return;
+
                         jQuery.AutoCompleteHandler.select(nav[event.keyCode]);
-                            
-                        if (event.keyCode != 9) 
-                        {
-                            event.preventDefault(); 
-                            return false;
-                        }
+                        event.preventDefault(); 
+                        return false;
                     }
                     jQuery.AutoCompleteHandler.timer=window.setTimeout(jQuery.AutoCompleteHandler.update, 250); // entre 500 et 750
                 })
@@ -305,7 +314,9 @@ vitesse de frappe de l'utilisateur
                         item.trigger('click');
                     else
                         jQuery.AutoCompleteHandler.set(item.text());                    
+                    jQuery.AutoCompleteHandler.hide();
                 }
+                break;
             case 'none':
                 jQuery.AutoCompleteHandler.hide();
                 return;
