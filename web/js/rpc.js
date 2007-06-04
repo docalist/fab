@@ -92,17 +92,20 @@ jQuery.AutoCompleteHandler =
             this.ac.cache=new Array();
 
             jQuery(this)
+            
                 // Désactive le autocomplete du navigateur
                 .attr('autocomplete', 'off')
                 
                 // Mémorise la target en cours lorsque le champ obtient le focus
                 .focus(function(){
                     jQuery.AutoCompleteHandler.target=this;
+//	                jQuery(this).attr('autocomplete', 'off');
                 })
                 
                 // Met à null la target en cours et cache le popup quand le champ perd le focus
 
                 .blur (function(){
+//	                jQuery(this).attr('autocomplete', 'on');
                     if (jQuery.AutoCompleteHandler.keepFocus) return;
                     jQuery.AutoCompleteHandler.hide();
                     jQuery.AutoCompleteHandler.target=null;
@@ -349,6 +352,7 @@ vitesse de frappe de l'utilisateur
     {
         // Récupère la valeur du champ
         var target=jQuery.AutoCompleteHandler.target;
+        if (!target) return;
         var value=target.value;
                     
         // Si la valeur actuelle est identique à la valeur précédente, terminé
