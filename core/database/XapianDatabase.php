@@ -465,26 +465,31 @@ class XapianDatabaseDriver extends Database
             
             if (!isset($alias['index']))
                 throw new Exception('Alias incorrect : attribut index non indiqué');
-            $index=strtolower($alias['index']);
+            $index=strtolower(trim($alias['index']));
                 
             if (isset($def['index'][$name]))
                 throw new Eception("Impossible de définir l'alias '$name' : ce nom existe déjà comme");
             
-            $prefix=array();
-            foreach(explode('+', strtr($index, ',;/', '+++')) as $index)
-            {
-                if (''===$index=trim($index)) continue;
-                
-                if (!isset($def['index'][$index]))
-                    throw new Exception("Erreur dans l'alias $name, index inconnu : $index");
-            
-                $index=$def['index'][$index];
-                if (is_array($index))
-                    array_merge($prefix, $index);
-                else        
-                    $prefix[]=$index;
-            }
-            $prefix=array_unique($prefix);
+            if ($index==='') // index "tous champs"
+				$prefix='';
+			else
+			{            
+	            $prefix=array();
+	            foreach(explode('+', strtr($index, ',;/', '+++')) as $index)
+	            {
+	                if (''===$index=trim($index)) continue;
+	                
+	                if (!isset($def['index'][$index]))
+	                    throw new Exception("Erreur dans l'alias $name, index inconnu : $index");
+	            
+	                $index=$def['index'][$index];
+	                if (is_array($index))
+	                    array_merge($prefix, $index);
+	                else        
+	                    $prefix[]=$index;
+	            }
+	            $prefix=array_unique($prefix);
+			}
             $def['index'][$name]=$prefix;
         }
         unset($def['alias']);
@@ -616,22 +621,22 @@ class XapianDatabaseDriver extends Database
         $this->enquire=new XapianEnquire($this->xapianDatabase);
         
         // Initialise le QueryParser
-        $this->parser=new XapianQueryParser();
+//        $this->parser=new XapianQueryParser();
         
         // Initialise la liste des noms d'index reconnus dans les équations et associe le préfixe correspondant
-        foreach($this->structure['index'] as $name=>$prefix)
-        {
-            //$this->parser->add_boolean_prefix($name, $prefix);
-            if (is_array($prefix)) continue;
-            $this->parser->add_prefix($name, $prefix);
-            $this->parser->add_prefix(strtolower($name), $prefix);  // TODO : les préfixes sont sensibles à la casse, ajouter wishlist à xapian
-            $this->parser->add_prefix(strtoupper($name), $prefix);
-        }
+//        foreach($this->structure['index'] as $name=>$prefix)
+//        {
+//            //$this->parser->add_boolean_prefix($name, $prefix);
+//            if (is_array($prefix)) continue;
+//            $this->parser->add_prefix($name, $prefix);
+//            $this->parser->add_prefix(strtolower($name), $prefix);  // TODO : les préfixes sont sensibles à la casse, ajouter wishlist à xapian
+//            $this->parser->add_prefix(strtoupper($name), $prefix);
+//        }
 
         // Initialise le stopper (suppression des mots-vides)
-        $stopper=new XapianSimpleStopper();
-        foreach ($this->structure['stopwords'] as $stopWord=>$i)
-            $stopper->add($stopWord.'');
+//        $stopper=new XapianSimpleStopper();
+//        foreach ($this->structure['stopwords'] as $stopWord=>$i)
+//            $stopper->add($stopWord.'');
         
 //        $this->parser->set_default_op(XapianQuery::OP_ELITE_SET);
         
@@ -648,7 +653,7 @@ class XapianDatabaseDriver extends Database
 //        echo 'stopper : ', SimpleStopper_get_description($stopper),'<br />';
 //        QueryParser_set_stopper($this->parser->_cPtr,$stopper);                
     
-        $this->parser->set_database($this->xapianDatabase); // indispensable pour FLAG_WILDCARD
+//        $this->parser->set_database($this->xapianDatabase); // indispensable pour FLAG_WILDCARD
     }
 
     const
@@ -914,7 +919,7 @@ class XapianDatabaseDriver extends Database
                     $terms=array_merge($terms, $this->expandTerm($term, $this->prefix));
                 else
                 {
-					if (false)
+//					if (false)
 					{
 	                    if 
 	                    (
