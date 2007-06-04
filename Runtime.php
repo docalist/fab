@@ -593,16 +593,16 @@ $fab_init_time=microtime(true);
             echo 'ERREUR : redirection vers une url vide<br />', "\n";
             return;
         }
-//        header("Location: $url");
+        header("Location: $url");
         
         $url=htmlentities($url);
         echo sprintf
         (
             '<html>' .
             '<head>' . 
-//            '<meta http-equiv="refresh" content="0;url=%s"/>' .
-//            '<script type="text/javascript">' .
-//            'window.location="%s";' .
+            '<meta http-equiv="refresh" content="0;url=%s"/>' .
+            '<script type="text/javascript">' .
+            'window.location="%s";' .
             '</script>' .
             '</head>' .
             '<body>' .
