@@ -112,25 +112,29 @@
     <field name="Theme" type="text" label="Thème">
         <index type="values" global="true" weight="10" />
         <entries name="themes" />
+        <entries name="motscles" />
     </field>
     <field name="MotCle" type="text" label="Descripteurs">
         <index type="values" count="true" global="true" weight="5" />
         <entries name="descripteurs" />
+        <entries name="motscles" />
     </field>
     <field name="Nomp" type="text" label="Nom propre">
         <index type="values" global="true" weight="5" />
         <entries name="nomspropres" />
+        <entries name="motscles" />
     </field>
     <field name="CanDes" type="text" label="Candidats descripteurs">
         <index type="values" global="true" weight="5" />
         <entries name="candes" />
+        <entries name="motscles" />
     </field>
     <field name="Lien" type="text" label="Adresse Internet">
         <index count="true" />
     </field>
     <field name="Loc" type="text" label="Localisation du document">
         <index type="words" />
-        <entries name="producteurs" />
+        <entries name="localisations" />
     </field>
     <field name="ProdFich" type="text" label="Producteur de la fiche">
         <index type="words" />
@@ -148,11 +152,8 @@
     <field name="LastUpdate" type="text" label="Date de dernière mise à jour de la notice format : AAAAMMJJ">
         <index type="words" />
     </field>
-    
-    <alias>
-        <name>Motsclesdm</name>
-        <index>MotCle+Nomp+CanDes+Theme</index>
-    </alias>
+
+    <alias name="all" index="" />
     <alias name="Motscles" index="MotCle+Nomp+CanDes+Theme" />
     <alias name="Titres" index="Tit+CongrTit+Annexe" />
     <alias name="Dates" index="Date+CongrDat" />
