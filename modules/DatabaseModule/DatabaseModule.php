@@ -276,6 +276,43 @@ class DatabaseModule extends Module
      * 
      * @return chaîne XHTML correspond à la barre de navigation ou une chaîne vide s'il n'y a qu'une seule page à afficher
      */
+    public function getSimpleNav($prevLabel = '&lt;&lt; Précédent', $nextLabel = 'Suivant &gt;&gt;')
+    {
+        // la base de la query string pour la requête
+        $query=$_GET;
+        unset($query['_start']);
+        unset($query['module']);
+        unset($query['action']);
+        $query=self::buildQuery($query);
+        
+        $actionName = $this->action;    // on adapte l'URL en fonction de l'action en cours (search, show, ...)
+
+        $start=$this->selection->searchInfo('start');
+        $max= $this->selection->searchInfo('max');
+        $count=$this->selection->count();
+        
+        $this->module=strtolower($this->module); // BUG : this->module devrait être tel que recherché par les routes
+        $url='/'.$this->module.'/'.$this->action.'?'.$query;
+
+        $h='Résultats ' . $start.' à '.min($start+$max-1,$count) . ' sur environ '.$count. ' ';
+        if ($start > 1)
+        {
+            $newStart=max(1,$start-$max);
+            $prevUrl=Routing::linkFor($url.'&_start='.$newStart);
+            $h.='<a href="'.$prevUrl.'">'.$prevLabel.'</a>';
+        }
+        
+        
+        if ( ($newStart=$start+$max) < $count)
+        {
+            $nextUrl=Routing::linkFor($url.'&_start='.$newStart);
+            if ($h) $h.=' ';
+            $h.='<a href="'.$nextUrl.'">'.$nextLabel.'</a>';
+        }
+
+        return '<span class="navbar">'.$h.'</span>';
+    }
+    
     public function getResNavigation($maxLinks = 10, $prevLabel = '<', $nextLabel = '>', $firstLabel = '', $lastLabel = '')
     {        
         // la base de la query string pour la requête
@@ -287,7 +324,7 @@ class DatabaseModule extends Module
         
         $actionName = $this->action;    // on adapte l'URL en fonction de l'action en cours (search, show, ...)
 
-        $currentStart = $this->selection->searchInfo('_start');  // num dans la sélection du première enreg de la page en cours 
+        $currentStart = $this->selection->searchInfo('start');  // num dans la sélection du première enreg de la page en cours 
         $maxRes = $this->selection->searchInfo('max');          // le nombre de réponses max par page
         
         $startParam = 1;                // le param start pour les URL des liens générés dans la barre de navigation
