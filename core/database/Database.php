@@ -754,6 +754,7 @@ abstract class Database implements ArrayAccess, Iterator
                 return false;
 
 			// Si tableau, supprime les valeurs vides
+			// TODO : A revoir car supprime les valeurs false, null, ''
 			if (is_array($value)) $value=array_filter($value);
 
             $this->record[$field] = $value;
@@ -795,6 +796,7 @@ abstract class Database implements ArrayAccess, Iterator
 			$value=($caseInsensitive) ? str_ireplace($search, $replace, $value, $count) : str_replace($search, $replace, $value, $count);
 
 			// Si tableau, supprime les valeurs vides
+			// TODO : A revoir car supprime les valeurs false, null, ''
 			if (is_array($value)) $value=array_filter($value);
 			
 			// Met le champ à jour
