@@ -484,7 +484,9 @@ class XapianDatabaseDriver extends Database
 	            
 	                $index=$def['index'][$index];
 	                if (is_array($index))
-	                    array_merge($prefix, $index);
+                    {
+                       $prefix=array_merge($prefix, $index);
+                    }
 	                else        
 	                    $prefix[]=$index;
 	            }
@@ -564,7 +566,7 @@ class XapianDatabaseDriver extends Database
     {
         // Convertit la structure xml en tableau php
         $def=self::xmlToDef($xml);
-        
+
         // Crée la base xapian
         putenv('XAPIAN_PREFER_FLINT=1'); // uniquement pour xapian < 1.0
         echo "création de la base...<br />";
