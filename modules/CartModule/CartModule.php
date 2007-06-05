@@ -135,13 +135,6 @@ class CartModule extends Module
 		// Récupère la quantité
 		$quantity=Utils::get($_REQUEST['quantity'],1);
 
-		echo '<pre>';
-		echo 'Item : ', print_r($item);
-		echo 'Category : ', print_r($category);
-		echo 'Quantity : ', print_r($quantity);
-		echo '</pre>';
-		
-		
 		// Plusieurs éléments à supprimer
 		if (is_array($item))
 		{
