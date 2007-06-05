@@ -930,14 +930,14 @@ class XapianDatabaseDriver extends Database
 	                            strlen($term)<3 && !ctype_digit($term)
 	                    )
 	                    {
-	                        echo 'STOPWORD : ', $term, '<br />';
-	                        $query=new XapianQuery('');
+	                        $query=new XapianQuery(); // TODO: à revoir. retourner une MATCH_ALL ou une MATCH_NOTHING ?
 	                        $this->read();
 	                        break;
 	                    }
 					}
                     foreach((array)$this->prefix as $prefix)
                         $terms[]=$prefix.$term;
+                    
                 }
                 $this->read();
 
@@ -1318,7 +1318,7 @@ private function dumpQuery($equation)
         // Définit l'ordre de tri des réponses
         $this->setSortOrder($sort);
         
-        $this->mset=$this->enquire->get_MSet($start, $max);
+        $this->mset=$this->enquire->get_MSet($start, $max, $max+1);
         $this->count=$this->mset->get_matches_estimated();
 //        echo 'Nb de réponses : ' , $this->count, '<br />';
 //        echo 'start : ', $start, ', max=', $max, '<br />';
@@ -1834,7 +1834,8 @@ private function dumpQuery($equation)
                     // convertit le texte
                     $text=strtr($value, $charFroms, $charTo);
                     
-                    // Extrait chaque mot et l'ajoute dans l'index sous la forme "Txx:token=Entrée de la table""
+                    // Extrait chaque mot et l'ajoute dans l'index sous la forme "Txx:token=Entrée de la table"
+                    // TODO : optimiser si token=entrée, ne pas stocker l'entrée mais uniquement token= (et le gérer dans le lookup)
                     $token=strtok($text, ' ');
                     while ($token !== false)
                     {
@@ -1846,6 +1847,10 @@ private function dumpQuery($equation)
                     }
                 }
             }
+            
+            // TODO: tri par valeurs
+            // if $field[sortable]... ajouter mid(champ,start,end) dans value[n° de champ]
+            // $doc->setValue(n°de champ, $h)
 //echo '</blockquote>';
         }   
     }
