@@ -843,8 +843,8 @@ final class Utils
         */
         
         // Si la fonction sys_get_temp_dir est dispo (php 6 ?), on l'utilise
-        if (function_exists('sys_get_temp_dir') )
-            return rtrim(sys_get_temp_dir(), '/\\');
+//        if (function_exists('sys_get_temp_dir') )
+//            return rtrim(sys_get_temp_dir(), '/\\');
 
         // Regarde si on a l'une des variables d'environnement connues
         foreach(array('TMPDIR','TMP','TEMP') as $var)
