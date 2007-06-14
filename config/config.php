@@ -31,7 +31,7 @@ Config::addArray
             // répertoire correspondant au nom de l'application
             // Dans tous les cas, deux sous-répertoires seront créés,
             // un pour fab, un pour l'application  
-            'path'      => 'c:\\temp',
+            //'path'      => 'c:\\temp',
         )
     )
 );
