@@ -90,7 +90,7 @@ config:
 # Paramétrage du gestionnaire de tâches
 taskmanager:
   # port tcp sur lequel le démon va tourner
-  port: 86
+  port: 87
   
   # timeout (en secondes, un réel) laissé au démon pour répondre à une requête
   timeout: 0.5
