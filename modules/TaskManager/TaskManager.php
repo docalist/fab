@@ -139,7 +139,7 @@ class TaskManager extends Module
 						$result = 'yes';
 						break;
 					case 'status':
-						$result = 'Démarré depuis le ' . $startTime;
+						$result = 'Démarré depuis le ' . $startTime . ' sur tcp#' . $port;
 						break;
                     case 'add':
                         $tasks[]=$tt=self::loadTask($param);    // Ajoute la tâche
@@ -999,8 +999,8 @@ echo $cmd;
      */
     public function actionStart()
     {
-        self :: start();
-        //Runtime::redirect('index');
+        self::start();
+        Runtime::redirect('index');
     }
 
     /**
@@ -1025,7 +1025,7 @@ echo $cmd;
      */
     public function actionRestart()
     {
-        self :: restart();
+        self::restart();
         Runtime::redirect('index');
     }
 
@@ -1086,10 +1086,10 @@ echo $cmd;
 	 */
 	public static function restart()
 	{
-		if (self :: isRunning())
-			if (!self :: stop())
+		if (self::isRunning())
+			if (!self::stop())
 				return false;
-		return self :: start();
+		return self::start();
 	}
 
 	/**
@@ -1208,7 +1208,9 @@ echo $cmd;
         
         // Signale au démon qu'il a du boulot
         self::request('add ' . $id);
-        
+
+        // TODO : vérifier que response=="ok"
+
         // Retourne l'ID de la tâche créée
         return $id;
     }
