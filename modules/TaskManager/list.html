@@ -35,30 +35,27 @@
                 <th>dernière exécution</th>        
             </tr>
             <loop on="$tasks" as="$task">
-                <tr class="{$task['class']}">
-                    <td>{$task['id']}</td>
-                    <td>{$task['status']}</td>        
-                    <td>{$task['root']}</td>        
-                    <td>{$task['title']}</td>
-                    <td>{$task['task']}</td>        
+                <tr>
+                    <td>{$task->getId()}</td>
+                    <td>{$task->getStatus(true)}</td>        
+                    <td>{$task->getRoot()}</td>        
+                    <td>{$task->getTitle()}</td>
+                    <td>{$task->getTask()}</td>        
                     <td>
-                        {$task['time']==0 ? 'dès que possible' : date('d/m/y H:i:s', $task['time'])}
+                        {$task->getTime(true)}
+                        <opt>
                         /
-                        {$task['repeat']}
+                        {$task->getRepeat()}
+                        </opt>
                     </td>        
                     <td>
-                        <if test="{isset($task['nexttime'])}">
-                            {date('d/m/y H:i:s', $task['nexttime'])}
-                        </if>
-                        <else>
-                            jamais
-                        </else>
+                        {$task->getNext(true)}
                     </td>        
                     <td>
-                        <if test="{isset($task['lasttime'])}">
-                            <a  href="taskstatus?id={$task['id']}" 
+                        <if test="{$task->getLast()}">
+                            <a  href="taskstatus?id={$task->getId()}" 
                                 title="Voir le résultat de la dernière exécution">
-                                {date('d/m/y H:i:s', $task['lasttime'])}
+                                {$task->getLast(true)}
                             </a>
                         </if>
                         <else>

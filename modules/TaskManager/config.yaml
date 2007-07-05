@@ -15,3 +15,6 @@ taskstatus:
 
 taskstatusupdate:
   layout: none
+
+test:
+  layout: none

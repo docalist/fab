@@ -36,8 +36,8 @@ var updater=new Ajax.PeriodicalUpdater
     'taskstatusupdate'+window.location.search+'&seek='+seek,
     {
         asynchronous:true, 
-        frequency:1,
-        decay:2,
+        frequency:0.5,
+//        decay:2,
         evalScripts: true,
         insertion: Insertion.Bottom
     }
