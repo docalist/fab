@@ -45,6 +45,15 @@ class CartModule extends Module
         // et enregistré 
         $this->cart =& $_SESSION[$name];        
         $this->hasCategory=& $_SESSION[$name.'hascategory'];
+
+//        if (Utils::isAjax())
+//        {
+//            $this->setLayout('none');
+//            Config::set('debug', false);
+//            Config::set('showdebug', false);
+//            header('Content-Type: text/html; charset=ISO-8859-1'); // TODO : avoir une rubrique php dans general.yaml permettant de "forcer" les options de php.ini
+//        }
+         
 	}
      
 
@@ -98,7 +107,11 @@ class CartModule extends Module
 			// Ajoute l'item au panier
 			$this->add($item, $quantity, $category);
 		}
-		
+		if (Utils::isAjax())
+        {
+        	echo 'ajax submit done';
+            return;
+        }
 		// Détermine le callback à utiliser
 		// TODO : Vérifier que le callback existe
 		$callback=Config::get('callback');

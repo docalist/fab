@@ -207,6 +207,14 @@ class Module
         
         debug && Debug::log('Exécution de %s', get_class($this));
 
+        if (Utils::isAjax())
+        {
+            $this->setLayout('none');
+            Config::set('debug', false);
+            Config::set('showdebug', false);
+            header('Content-Type: text/html; charset=ISO-8859-1'); // TODO : avoir une rubrique php dans general.yaml permettant de "forcer" les options de php.ini
+        }
+
         // Pré-exécution   
         debug && Debug::log('Appel de %s->preExecute()', get_class($this));
         if ($this->preExecute() === true) 
