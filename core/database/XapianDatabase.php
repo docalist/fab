@@ -28,6 +28,8 @@ class XapianDatabaseDriver extends Database
     private $fields=array();
     private $fieldName=array();
     
+    private $editMode=0;
+    
     /**
      * @var XapianQueryParser l'analyseur d'équations de xapian
      * @access private
@@ -457,7 +459,7 @@ class XapianDatabaseDriver extends Database
         $def['field']=$fields;
     
         $aliases=array();
-        foreach($def['alias'] as $alias)
+        if (isset($def['alias'])) foreach($def['alias'] as $alias)
         {
             if (!isset($alias['name']))
                 throw new Exception('Alias incorrect : attribut name non indiqué');
@@ -638,7 +640,7 @@ class XapianDatabaseDriver extends Database
         // Initialise le stopper (suppression des mots-vides)
 //        $stopper=new XapianSimpleStopper();
 //        foreach ($this->structure['stopwords'] as $stopWord=>$i)
-//            $stopper->add($stopWord.'');
+//            $stopper->add($stopWord);
         
 //        $this->parser->set_default_op(XapianQuery::OP_ELITE_SET);
         
@@ -1261,15 +1263,14 @@ private function dumpQuery($equation)
         $this->start=$start+1;
         $this->max=$max;
 
-        //echo 'equation=', $equation, ', options=', print_r($options,true), ', sort=', $sort, ', start=', $start, "\n";
-        
+//        echo 'equation=', $equation, ', options=', print_r($options,true), ', sort=', $sort, ', start=', $start, "\n";
+        //die();
         // Lance la recherche
         $this->rank=0;
         
         
         // Met en place l'environnement de recherche lors de la première recherche
         if (is_null($this->enquire)) $this->setupSearch();
-
 //        // Construit la requête
 //        $query=$this->parser->parse_Query
 //        (
@@ -1280,6 +1281,7 @@ private function dumpQuery($equation)
 //            XapianQueryParser::FLAG_BOOLEAN_ANY_CASE |
 //            XapianQueryParser::FLAG_WILDCARD
 //        );
+//die();
 //            
 //        $h=utf8_decode($query->get_description());
 //        $h=substr($h, 14, -1);
@@ -1568,7 +1570,7 @@ private function dumpQuery($equation)
      */
     private function unserializeFields($buffer)
     {
-        $this->fields=array();
+        //$this->fields=array();
         $length=strlen($buffer);
         $i=0;
         while ($i<$length) 
@@ -1699,8 +1701,12 @@ private function dumpQuery($equation)
 
     public function deleteRecord()
     {
-        //$this->selection->delete();
-        // appeller la fonction xapian pour supprimer l'enreg'
+        if ($this->editMode == 1)
+            throw new Exception("Appel de deleteRecord après un addRecord");
+
+        $docId=$this->iterator->get_docid();
+        echo "Suppression de l'enreg docId=", $docId,'<br />';
+        $this->xapianDatabase->delete_document($docId);            
     }
 
     const
