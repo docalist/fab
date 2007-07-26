@@ -17,6 +17,7 @@ class Module
     public $path;
     public $module;
     public $action;
+    public $realAction;
     
     /**
      * Crée une instance du module dont le nom est passé en paramètre.
@@ -83,14 +84,18 @@ class Module
             Utils::addSearchPath($dir);        
             
         }
+        
+        // Stocke le nom initial de l'action ou de la pseudo action
+        $object->path=$dir;
+        $object->action=$action;
+        $object->module=$module;
 
+        // Charge la configuration spécifique à l'action
         if (! empty($action))
             $action=self::loadActionConfig($action);
 
-        // Conserve le path du module pour résoudre les chemins relatifs
-        $object->path=$dir;
-        $object->module=$module;
-        $object->action=$action;
+        // Si l'action était une pseudo action, on a maintenant le nom de l'action réelle
+        $object->realAction=$action;
 
         return $object;
     }
@@ -227,7 +232,7 @@ class Module
         $access=Config::get('access');
         if (! empty($access)) User::checkAccess($access);
         
-        $this->method='action'. ucfirst($this->action);
+        $this->method='action'. ucfirst($this->realAction);
         if ( ! method_exists($this, $this->method))
         {
             debug && Debug::warning('Action non trouvée : %s', $this->method);
