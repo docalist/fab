@@ -858,6 +858,110 @@ final class Utils
     }
 
     /**
+     * Crée un fichier temporaire et retourne un handle ouvert en écriture
+     * 
+     * Le fichier est créé dans le répertoire temporaire du système tel que
+     * retourné par {@link getTempDirectory()}.
+     * 
+     * @param int $timeToLive la durée de vie du fichier temporaire, en secondes
+     * Le fichier existera pendant au moins la durée indiquée, mais pourra être supprimé
+     * à tout moment une fois ce délai dépassé. Si timeToLive est à zéro, le fichier sera
+     * supprimé dès la fin de l'exécution du script.
+     * 
+     * @param string $basename le nom de base du fichier à créer
+     * 
+     * @return resource le handle du fichier temporaire, ouvert en accès x+
+     */
+    public static function getTempFile($timeToLive=0, $basename='tmp.txt')
+    {
+        static $firstCall=true;
+        
+        // Si c'est le premier appel, installe le gestionnaire chargé du nettoyage
+        if ($firstCall)
+        {
+        	$firstCall=false;
+            register_shutdown_function(array(__CLASS__, 'cleanTempFiles'));
+        }
+        
+        if ($timeToLive<0) $timeToLive=0;
+        
+        // Détermine le répertoire des fichiers temporaires
+    	$dir=self::getTempDirectory().DIRECTORY_SEPARATOR;
+        
+        // Extrait de basename l'extension et le préfixe demandés
+        $ext=Utils::getExtension($basename);
+        $basename='fab'.basename($basename, $ext);
+        
+        // Essaie de créer un fichier temporaire
+        for($i=0; $i<100; $i++)
+        {
+            // Le nom du fichier généré contient :
+            $path=sprintf
+            (
+                '%s%s-%d-%d-%d%s',
+                $dir,
+                $basename,      // le nom de base demandé
+                time(),         // la date/heure de création
+                rand(),         // un nombre aléatoire
+                $timeToLive,    // la durée de vie du fichier
+                $ext            // l'extension demandée
+            );
+            
+            // Essaie de créer le fichier, s'il n'existe pas on ré-essaiera avec un autre nombre aléatoire
+            if (false !== $file=@fopen($path, 'xb+'))
+            {
+                if ($timeToLive===0)
+                	register_shutdown_function('unlink', $path);
+                return $file;
+            }
+        }
+        
+        throw new Exception('Impossible de créer le fichier temporaire');
+    }
+
+    /**
+     * Supprime les fichiers temporaires créés par getTempFile
+     * 
+     * Cette fonction est automatiquement installée comme fonction de terminaison
+     * exécutée à la fin du script lorsque getTempFile() est appellée, mais elle peut 
+     * aussi être appellée directement.
+     */
+    public static function cleanTempFiles()
+    {
+        $dir=self::getTempDirectory().DIRECTORY_SEPARATOR;
+        foreach(glob($dir. '*-*-*-*', GLOB_NOSORT|GLOB_NOESCAPE) as $path)
+        {
+            if (preg_match('~.*-(\d+)-\d+-(\d+).*~',basename($path), $match))
+            {
+                $creation=(int)$match[1];
+                $ttl=(int)$match[2];
+
+                 // on ne supprime pas les fichiers qui ont un ttl=0 car sinon, on risque 
+                 // de supprimer un fichier qui vient juste d'être créé par un autre script
+                 // (ils seront supprimés à la fin du script, cf getTempFile)
+                if ($ttl!==0)
+                    if (time()>$creation+$ttl) @unlink($path);
+            }
+        }
+    }
+    
+    /**
+     * Retourne l'adresse d'un fichier ouvert (son chemin d'accès pour un fichier local)
+     * 
+     * Cette fonction a été écrite à l'otigine pour connaître le path d'un fichier 
+     * temporaire retourné par getTempFile(), c'est simplement un wrapper autour de la
+     * fonction stream_get_meta_data().
+     * 
+     * @param resource $handle le handle du fichier ouvert
+     * @return string
+     */
+    public static function getFileUri($handle)
+    {
+    	$data=stream_get_meta_data($handle);
+        return $data['uri'];
+    }
+    
+    /**
      * Affiche ou retourne la représentation sous forme de code php
      * du contenu de la variable passée en paramètre.
      * 
@@ -1134,6 +1238,32 @@ final class Utils
             }        	
         }
         return $result;
-    }    
+    }
+    
+    /**
+     * Formatte une chaine pour qu'elle puisse être écrite dans un fichier CSV.
+     *
+     * Voir : http://www.rfc-editor.org/rfc/rfc4180.txt
+     *  
+     * Fields containing line breaks (CRLF), double quotes, and commas should be 
+     * enclosed in double-quotes.
+     * 
+     * If double-quotes are used to enclose fields, then a double-quote appearing 
+     * inside a field must be escaped by preceding it with another double quote.
+     */
+    public static function csvQuote($string, $sep="\t")
+    {
+//        // Si on nous a passé un tableau (un champ articles par exemple), convertit en chaine
+//        if (is_array($string)) $string=implode($sep,$string);
+        
+        // Si la chaine ne contient aucun caractère spécial, on la retourne telle quelle
+        if (strpbrk($string, "\n\r\"".$sep) === false)
+            return $string;
+
+        // Encadre la chaine de guillemets et doubles guillemets existants
+        return '"' . str_replace('"', '""', $string) . '"';
+    }
+    
+    
 }
 ?>
