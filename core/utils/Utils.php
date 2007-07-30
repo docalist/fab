@@ -926,7 +926,7 @@ final class Utils
      * exécutée à la fin du script lorsque getTempFile() est appellée, mais elle peut 
      * aussi être appellée directement.
      */
-    public static function cleanTempFiles()
+    public static function cleanTempFiles() // private impossible, register_shutdown_function veut une fonction publique
     {
         $dir=self::getTempDirectory().DIRECTORY_SEPARATOR;
         foreach(glob($dir. '*-*-*-*', GLOB_NOSORT|GLOB_NOESCAPE) as $path)
@@ -1269,23 +1269,19 @@ final class Utils
     /**
      * Handler utilisé par {@link startCapture()} et {@link endCapture()}
      */
-    private static function captureHandler($data, $mode)
+    public static function captureHandler($data, $mode)
     {
-        global $log;
-    
-        $h='';
-        if ($mode & PHP_OUTPUT_HANDLER_START)
-            $h.='start ';
-        if ($mode & PHP_OUTPUT_HANDLER_CONT)
-            $h.='continue ';
-        if ($mode & PHP_OUTPUT_HANDLER_END)
-            $h.='end ';
-        $h=trim($h);
-        
-        $len=strlen($data);
-        $log.="Appel du handler. mode=$mode ($h), len=$len\n";
-    //    $log.="<textarea cols='120'>$data</textarea>\n";
+        /* 
+         * Important : la méthode *DOIT* être publique
+         * Si on appelle ob_start() avec un handler privé, on n'a aucun message d'erreur
+         * et ob_start() retourne true, mais PHP plante (et apache aussi).
+         * Il faut donc que la méthode soit publique ou bien utiliser une fonction globale 
+         * comme handler
+         */
+//        $len=strlen($data);
+//        fwrite(self::$captureFile, "\nAppel du handler. mode=$mode, len=$len\n");
         fwrite(self::$captureFile, $data);
+        fflush(self::$captureFile); // sur quelques tests, semble plus rapide de flusher à chaque appel, étonnant... 
         return '';  
     }
     
@@ -1307,7 +1303,7 @@ final class Utils
      * Utils::startCapture();
      * 
      * Il est possible d'indiquer la durée de vie du fichier temporaire (ttl)
-     * en paramètre.
+     * en paramètre (en secondes).
      * 
      * Exemple :
      * Utils::startCapture(3600); // crée un fichier temporaire valable pour une heure
@@ -1344,7 +1340,7 @@ final class Utils
         }
 
         // Installe le gestionnaire
-        if (!ob_start(array(__CLASS__,'captureHandler'), $chunkSize)) // captureHandler est private mais php a l'air OK
+        if (!ob_start(array(__CLASS__,'captureHandler'), $chunkSize)) // le handler DOIT être une méthode publique (cf commentaire dans captureHandler)
         {
             fclose(self::$captureFile);
             self::$captureFile=null;
@@ -1369,7 +1365,6 @@ final class Utils
             throw new Exception('Aucune capture en cours');
         
         // Flushe les données éventuelles en attente
-        flush(); // est-ce utile ?
         ob_end_flush();
         
         // Ferme le fichier de capture
