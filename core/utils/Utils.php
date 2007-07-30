@@ -872,7 +872,7 @@ final class Utils
      * 
      * @return resource le handle du fichier temporaire, ouvert en accès x+
      */
-    public static function getTempFile($timeToLive=0, $basename='tmp.txt')
+    public static function getTempFile($timeToLive=0, $basename='tmp.txt', $type='')
     {
         static $firstCall=true;
         
@@ -891,7 +891,7 @@ final class Utils
         // Extrait de basename l'extension et le préfixe demandés
         $ext=Utils::getExtension($basename);
         $basename='fab'.basename($basename, $ext);
-        
+
         // Essaie de créer un fichier temporaire
         for($i=0; $i<100; $i++)
         {
@@ -948,7 +948,7 @@ final class Utils
     /**
      * Retourne l'adresse d'un fichier ouvert (son chemin d'accès pour un fichier local)
      * 
-     * Cette fonction a été écrite à l'otigine pour connaître le path d'un fichier 
+     * Cette fonction a été écrite à l'origine pour connaître le path d'un fichier 
      * temporaire retourné par getTempFile(), c'est simplement un wrapper autour de la
      * fonction stream_get_meta_data().
      * 
@@ -1264,6 +1264,122 @@ final class Utils
         return '"' . str_replace('"', '""', $string) . '"';
     }
     
+    private static $captureFile=null;
+    
+    /**
+     * Handler utilisé par {@link startCapture()} et {@link endCapture()}
+     */
+    private static function captureHandler($data, $mode)
+    {
+        global $log;
+    
+        $h='';
+        if ($mode & PHP_OUTPUT_HANDLER_START)
+            $h.='start ';
+        if ($mode & PHP_OUTPUT_HANDLER_CONT)
+            $h.='continue ';
+        if ($mode & PHP_OUTPUT_HANDLER_END)
+            $h.='end ';
+        $h=trim($h);
+        
+        $len=strlen($data);
+        $log.="Appel du handler. mode=$mode ($h), len=$len\n";
+    //    $log.="<textarea cols='120'>$data</textarea>\n";
+        fwrite(self::$captureFile, $data);
+        return '';  
+    }
+    
+    /**
+     * Démarre la redirection de la sortie standard vers un fichier
+     * 
+     * A partir du moment où startCapture() est appellée, toutes les sorties générées
+     * depuis echo, print, readfile, etc. sont redirigées vers un fichier.
+     * 
+     * La redirection prend fin lorsque {@link endCapture()} est appellée.
+     * 
+     * Une seule capture peut être active à la fois. Si on appelle startCapture() alors
+     * qu'une capture a déjà été lancée, une exception sera générée.
+     * 
+     * Par défaut, la capture se fait vers un fichier temporaire créé par 
+     * {@link getTempFile()}.
+     * 
+     * Exemple :
+     * Utils::startCapture();
+     * 
+     * Il est possible d'indiquer la durée de vie du fichier temporaire (ttl)
+     * en paramètre.
+     * 
+     * Exemple :
+     * Utils::startCapture(3600); // crée un fichier temporaire valable pour une heure
+     * 
+     * Si vous souhaitez faire une capture vers un fichier pérenne (non temporaire), vous
+     * pouvez indiquer le path complet du fichier de capture.
+     * 
+     * Exemple :
+     * Utils::startCapture(dirname(__FILE__).'/static.html');
+     * 
+     * @param mixed $path_or_ttl path du fichier de capture ou durée de vie du fichier temporaire
+     * @param int $chunkSize taille des blocs de capture (passé lors de l'appel à ob_start())
+     * @return string le path du fichier de capture
+     */
+    public static function startCapture($path_or_ttl=0, $chunkSize=8192)
+    {
+        // Erreur si une capture est déjà en cours
+        if (!is_null(self::$captureFile))
+            throw new Exception('Une capture est déjà en cours');
+            
+        // Si l'utilisateur nous a passé le path du fichier à créer, on l'ouvre 
+        if (is_string($path_or_ttl))
+        {
+            if (!is_resource(self::$captureFile=@fopen($path_or_ttl, 'wb+')))
+                throw new Exception("Impossible de créer le fichier $path_or_ttl");
+        }
+        
+        // Entier ou null
+        else
+        {
+            if (! is_int($path_or_ttl))
+                throw new Exception('Paramètre incorrect, entier ou chaine attendue');
+            self::$captureFile=self::getTempFile($path_or_ttl); 
+        }
+
+        // Installe le gestionnaire
+        if (!ob_start(array(__CLASS__,'captureHandler'), $chunkSize)) // captureHandler est private mais php a l'air OK
+        {
+            fclose(self::$captureFile);
+            self::$captureFile=null;
+            throw new Exception("Impossible d'installer le gestionnaire de capture");
+        }    
+
+        // Retourne le path du fichier de capture
+        return Utils::getFileUri(self::$captureFile);
+    }
+    
+    /**
+     * Met fin à une capture commencée par un appel à {@link startCapture()}
+     * 
+     * Génère une exception si aucune captre n'est en cours
+     * 
+     * @return string le path du fichier de capture
+     */
+    public static function endCapture()
+    {
+        // Erreur s'il n'y a aucune capture en cours
+        if (is_null(self::$captureFile))
+            throw new Exception('Aucune capture en cours');
+        
+        // Flushe les données éventuelles en attente
+        flush(); // est-ce utile ?
+        ob_end_flush();
+        
+        // Ferme le fichier de capture
+        $path=Utils::getFileUri(self::$captureFile);
+        fclose(self::$captureFile);
+        self::$captureFile=null; 
+
+        // Retourne le path du fichier de capture
+        return $path;
+    }
     
 }
 ?>
