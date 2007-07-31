@@ -1,4 +1,4 @@
-# Fichier de configuration du module Database
+# Fichier de configuration du module DatabaseModule
 
 # database : nom symbolique (alias) ou path de la base de données à utiliser.
 # il est *fortement* conseillé d'utiliser un alias (définit dans le fichier
@@ -32,3 +32,23 @@ search:
 lookup:
   template: ajaxlookup3.html
   layout: none
+
+export:
+  list: export.yaml
+  template: export.html
+#  mailtemplate: email.html
+
+  allowzip: true		# autoriser la création de fichier zip
+#  forcezip:true		# toujours créer un fichier zip, ne pas demander à l'utilisateur
+
+  allowmail: true		# autoriser l'envoi par mail
+#  forcemail: true		# toujours envoyer par mail, ne pas demander à l'utilisateur
+  admin:				# cooordonnées de "qui" envoie le mail (écrase les valeurs de general.yaml)
+    name: moimoimoi
+    email: Daniel.Menard@bdsp.tm.fr
+
+RSS:
+  action: export
+  list: rss.yaml
+  allowzip: false
+  allowmail: false
