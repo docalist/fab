@@ -598,7 +598,9 @@ class TemplateCode
                 'empty', 'isset',
                 'trim', 'rtrim', 'ltrim',
                 'substr','str_replace','str_repeat','strtr',
+                'strtoupper',
                 'implode','explode',
+                'strpos',
                 'urlencode',
                 'addslashes',
                 'var_export', 'print_r',
@@ -608,11 +610,18 @@ class TemplateCode
                 'is_array',
                 'array_sum',
                 'date',
-                'sprintf'
+                'sprintf',
+                'strpbrk',
+                'wordwrap',
+                
             ));
             $runtimeFunctions=array_flip(array
             (
-                'array', 'range','extension_loaded','array_keys',
+                'array',
+                'range',
+                'extension_loaded',
+                'array_keys',
+                'class_exists',
             ));
         }
 
