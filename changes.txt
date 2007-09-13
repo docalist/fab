@@ -1,3 +1,4 @@
+modifi bidon
 Ce fichier liste les modifications apportées au site (les plus récentes en tête).
 
 11/09/06, SF
