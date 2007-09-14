@@ -814,7 +814,7 @@ final class Utils
             return syck_load($path);
 
         // utilise la classe spyc sinon
-        require_once (Runtime::$fabRoot.'lib/spyc/spyc.php');
+        require_once (Runtime::$fabRoot.'lib/Spyc/spyc.php5');
         $spyc = new Spyc();
         return $spyc->load($path);
     }
