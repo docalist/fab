@@ -1733,6 +1733,9 @@ private function dumpQuery($equation)
         // la position du token en cours
         $position=0;
         
+        // Efface les tokens existants (sinon, lorsqu'on met à jour un enreg, les anciens tokens restent interrogeables)
+        $this->doc->clear_terms();
+
         // indexe tous les champs
         foreach($this->structure['field'] as $name=>$field)
         {
