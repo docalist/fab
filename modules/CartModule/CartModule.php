@@ -80,6 +80,7 @@ class CartModule extends Module
 		$quantity=Utils::get($_REQUEST['quantity'],1);
 		
 		// Plusieurs éléments à ajouter
+		$nb=0;
 		if (is_array($item))
 		{
 			if (isset($category) && is_array($category) && (count($category)!= count($item)))
@@ -98,6 +99,7 @@ class CartModule extends Module
 				
 				// Ajoute l'élément au panier
 				$this->add($value, $quant, $cat);
+				++$nb;
 			}
 		}
 		
@@ -106,10 +108,15 @@ class CartModule extends Module
 		{
 			// Ajoute l'item au panier
 			$this->add($item, $quantity, $category);
+			$nb=1;
 		}
 		if (Utils::isAjax())
         {
-        	echo 'ajax submit done';
+        	if ($nb===1)
+                echo $nb . ' notice ajoutée au panier';
+            else
+                echo $nb . ' notices ajoutées au panier';
+            
             return;
         }
 		// Détermine le callback à utiliser
