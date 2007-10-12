@@ -44,9 +44,12 @@
     <field name="Tit" type="text" label="Titre">
         <index type="phrases" global="true" weight="2" />
     </field>
-    <field name="Annexe" type="text" label="Titre de l'annexe suivi de l'adresse Internet">
+    <field name="Annexe" type="text" label="Titres des annexes">
         <index type="phrases" global="true" />
     </field>
+    <field name="LienAnne" type="text" label="Adresses Internet des annexes">
+        <index count="true" />
+    </field>    
     <field name="CongrTit" type="text" label="Intitulé du congrès">
         <index type="phrases" global="true" weight="2" />
     </field>
@@ -68,7 +71,7 @@
         <index type="words" global="true" weight="5" />
     </field>
     <field name="DateText" type="text" label="Date du texte officiel AAAA-MM-JJ">
-        <index type="phrases" global="true" weight="5" />
+        <index type="values" global="true" weight="5" />
     </field>
     <field name="DatePub" type="text" label="Date de publication du texte officiel AAAA-MM-JJ" />
     <field name="DateVali" type="text" label="Date de fin de validité d'un texte officiel AAAA-MM-JJ" />
@@ -89,7 +92,9 @@
     <field name="EtatCol" type="text" label="Etat de la collection" />
     <field name="Page" type="text" label="Nombre de pages" />
     <field name="PdPf" type="text" label="Page début-page fin" />
-    <field name="Notes" type="text" label="Notes bibliographiques" />
+    <field name="Notes" type="text" label="Notes bibliographiques">
+        <index type="phrases" />
+    </field>
     <field name="Col" type="text" label="Collection">
         <index type="phrases" />
         <entries name="collections" />
@@ -139,11 +144,12 @@
     <field name="ProdFich" type="text" label="Producteur de la fiche">
         <index type="words" />
         <entries name="producteurs" />
-    </field>
-    <field name="FinSaisie" type="bool" label="1 Saisie de la notice terminée - 0 Notice en cours de saisie">
+    </field>    
+    <field name="Statut" type="text" label="Statut de la notice : encours, avalider , valide">
         <index type="words" />
+        <entries name="statuts" />
     </field>
-    <field name="Valide" type="bool" label="1 Validée - 0 Non validée">
+    <field name="Doublon" type="bool" label="1 : Existence de doublons potentiels, 0 : Pas de doublon">
         <index type="words" />
     </field>
     <field name="Creation" type="text" label="Date de création de la notice format : AAAAMMJJ">
@@ -152,6 +158,7 @@
     <field name="LastUpdate" type="text" label="Date de dernière mise à jour de la notice format : AAAAMMJJ">
         <index type="words" />
     </field>
+    <field name="LastAuthor" type="text" label="Dernière personne à avoir modifié la notice" />   
 
     <alias name="all" index="" />
     <alias name="Motscles" index="MotCle+Nomp+CanDes+Theme" />
@@ -159,6 +166,6 @@
     <alias name="Dates" index="Date+CongrDat" />
     <alias name="Numeros" index="Num+CongrNum+NumTexOf" />
     <alias name="Mots" index="Tit+Annexe+CongrTit+CongrDat+CongrLie+Aut+Date+DateText+Lieu+NatText+Resu+Motscles" />
-    <alias name="Liens" index="Lien+Annexe" />
+    <alias name="Liens" index="Lien+LienAnne" />
     
 </database>
