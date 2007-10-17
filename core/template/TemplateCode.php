@@ -613,6 +613,7 @@ class TemplateCode
                 'sprintf',
                 'strpbrk',
                 'wordwrap',
+                'number_format'
                 
             ));
             $runtimeFunctions=array_flip(array
