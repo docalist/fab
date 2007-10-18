@@ -491,6 +491,24 @@ final class Utils
                     /* e0 */ "\xd3\xdf\xd4\xd2\xf5\xd5\xb5\xfe\xde\xda\xdb\xd9\xfd\xdd\xaf\xb4" .
                     /* f0 */ "\xad\xb1\xf2\xbe\xb6\xa7\xf7\xb8\xb0\xa8\xb7\xb9\xb3\xb2\xfe\xa0",
                     
+                'alphanum'=> // ne garde que les lettres et les chiffres, minusculise, supprime les accents
+                    /*           0123456789ABCDEF*/
+                    /* 00 */    '                '.
+                    /* 10 */    '                '.
+                    /* 20 */    '                '.
+                    /* 30 */    '0123456789      '.
+                    /* 40 */    ' abcdefghijklmno'.
+                    /* 50 */    'pqrstuvwxyz     '.
+                    /* 60 */    ' abcdefghijklmno'.
+                    /* 70 */    'pqrstuvwxyz     '.
+                    /* 80 */    '                '.
+                    /* 90 */    '                '.
+                    /* A0 */    '                '.
+                    /* B0 */    '                '.
+                    /* C0 */    'aaaaaaaceeeeiiii'.
+                    /* D0 */    'dnooooo 0uuuuy s'.
+                    /* E0 */    'aaaaaaaceeeeiiii'.
+                    /* F0 */    'dnooooo  uuuuyby',
             );
         }
         if (! isset($tables[$table]))
@@ -817,6 +835,18 @@ final class Utils
         require_once (Runtime::$fabRoot.'lib/Spyc/spyc.php5');
         $spyc = new Spyc();
         return $spyc->load($path);
+    }
+    
+    public static function saveYaml($array, $path)
+    {
+        // utilise l'extension syck.dll si elle est disponible
+//        if (function_exists('syck_load'))
+//            return syck_load($path);
+
+        // utilise la classe spyc sinon
+        require_once (Runtime::$fabRoot.'lib/Spyc/spyc.php5');
+        $spyc = new Spyc;
+        file_put_contents($path, $spyc->dump($array, 2, 0));
     }
     
     /**
@@ -1376,5 +1406,120 @@ final class Utils
         return $path;
     }
     
+    /**
+     * Applique utf8_encode récursivement sur une variable.
+     * 
+     * Les chaines de caractères sont converties en utilisant utf8_encode.
+     * Les autres types simples (entiers, booléens...) sont retournés tels
+     * quels.
+     * 
+     * Pour les tableaux, la fonction encode à la fois les valeur et les clés
+     * si celles-ci sont des chaines.
+     * Les tableaux de tableaux sont gérés et encodés récursivement. 
+     *
+     * @param mixed $var le tableau à convertir
+     * @return mixed
+     */
+    public static function utf8Encode($var)
+    {
+        // Chaine : on utilise directement utf8_encode
+        if (is_string($var)) return utf8_encode($var);
+        
+        // Autre type simple : retourne tel quel
+        if (is_scalar($var)) return $var;
+        
+        // Tableau ou objet
+        $t = array();
+        foreach ($var as $key => $value)
+        {
+            if (is_int($key))
+                $t[$key] = self::utf8Encode($value);
+            else
+                $t[utf8_encode($key)] = self::utf8Encode($value);
+        }
+        return is_array($var) ? $t : (object) $t;
+    }
+    
+    /**
+     * Applique utf8_decode récursivement sur une variable.
+     * 
+     * Les chaines de caractères sont converties en utilisant utf8_decode.
+     * Les autres types simples (entiers, booléens...) sont retournés tels
+     * quels.
+     * 
+     * Pour les tableaux, la fonction décode à la fois les valeur et les clés
+     * si celles-ci sont des chaines.
+     * Les tableaux de tableaux sont gérés et décodés récursivement. 
+     *
+     * @param mixed $var le tableau à convertir
+     * @return mixed
+     */
+    public static function utf8Decode($var)
+    {
+        // Chaine : on utilise directement utf8_decode
+        if (is_string($var)) return utf8_decode($var);
+        
+        // Autre type simple : retourne tel quel
+        if (is_scalar($var)) return $var;
+        
+        // Tableau ou objet
+        $t = array();
+        foreach ($var as $key => $value)
+        {
+            if (is_int($key))
+                $t[$key] = self::utf8Decode($value);
+            else
+                $t[utf8_decode($key)] = self::utf8Decode($value);
+        }
+        return is_array($var) ? $t : (object) $t;
+    }
+
+    /**
+     * Formatte la taille d'un fichier ou d'un dossier pour un affichage à 
+     * l'utilisateur.
+     * 
+     * La fonction arrondi la taille à l'unité la plus proche et retourne une
+     * chaine contenant la valeur arrondie suivie d'un espace et de l'unité
+     * (par exemple '199 Mo', '3.89 Mo', etc.) 
+     *
+     * @param int $bytes
+     * @return string
+     */
+    public static function formatSize($bytes)
+    {
+        static $symbols = array('octets', 'Ko', 'Mo', 'Go', 'To', 'Po', 'Eo', 'Zo', 'Yo');
+        
+        if (0 === $bytes=(int)$bytes) return '';
+        $exp = floor(log($bytes)/log(1024));
+    
+        return round($bytes/pow(1024, floor($exp)),2) . ' ' . $symbols[$exp];
+    }
+
+    /**
+     * Retourne la taille sur le disque d'un répertoire
+     *
+     * @param string $path
+     * @return int
+     */
+    public static function dirSize($path)
+    {
+        if (is_file($path)) return filesize($path);
+        if (!is_dir($path)) return 0;
+        $size = 0;
+    
+        foreach(scandir($path) as $item)
+        {
+            if (is_dir($item)) 
+            { 
+                if ($item==='.' || $item==='..') continue;
+                $total += self::dirSize($path . '/' . $item);
+            }
+            else 
+            { 
+                $size += filesize($path . '/' . $item);
+            }   
+        }
+        return $size;
+    }    
 }
 ?>

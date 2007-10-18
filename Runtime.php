@@ -278,6 +278,8 @@ class Runtime
         self::checkRequirements();
         self::setupPaths();
 
+        spl_autoload_register(array(__CLASS__, 'autoload'));
+                
 //        xdebug_enable();
 //        xdebug_start_trace('c:/temp/profiles/trace', XDEBUG_TRACE_COMPUTERIZED);
 //        xdebug_start_trace('c:/temp/profiles/trace');
@@ -288,14 +290,14 @@ class Runtime
         $fab_start_time=microtime(true);
     
         // Charge les fonctions utilitaires
-        require_once self::$fabRoot.'core/utils/Utils.php'; 
+        //require_once self::$fabRoot.'core/utils/Utils.php'; 
         
         // Fonctions de déboggage // TODO : seulement si mode debug
-        require_once self::$fabRoot.'core/debug/Debug.php';
+        //require_once self::$fabRoot.'core/debug/Debug.php';
         Debug::notice('Initialisation du framework en mode %s', $env ? $env : 'normal');
         
         // Charge le gestionnaire de configuration
-        require_once self::$fabRoot.'core/config/Config.php'; 
+        //require_once self::$fabRoot.'core/config/Config.php'; 
         
         // Charge la configuration de base (fichiers config.php application/fab/environnement)
         self::setupBaseConfig();                    // Modules requis : Debug
@@ -336,22 +338,22 @@ class Runtime
         
         // Charge les routes - routes.yaml -
         debug && Debug::log('Initialisation du routeur');
-        require_once self::$fabRoot.'core/routing/Routing.php'; 
+        //require_once self::$fabRoot.'core/routing/Routing.php'; 
         self::setupRoutes();
         
         // Initialise le gestionnaire de templates
         debug && Debug::log('Initialisation du gestionnaire de templates');
-        require_once self::$fabRoot.'core/template/Template.php';
+        //require_once self::$fabRoot.'core/template/Template.php';
         Template::setup();
         
         // Initialise le gestionnaire de modules
         debug && Debug::log('Initialisation du gestionnaire de modules');
-        require_once self::$fabRoot.'core/module/Module.php'; 
+        //require_once self::$fabRoot.'core/module/Module.php'; 
         
         // Initialise le gestionnaire de sécurité
         debug && Debug::log('Initialisation du gestionnaire de sécurité');
-        require_once self::$fabRoot.'modules/NoSecurity/NoSecurity.php'; // uniquement pour les classes qui implémentent 
-        require_once self::$fabRoot.'core/user/User.php'; 
+        //require_once self::$fabRoot.'modules/NoSecurity/NoSecurity.php'; // uniquement pour les classes qui implémentent 
+        //require_once self::$fabRoot.'core/user/User.php'; 
 
         User::$user=Module::loadModule(Config::get('security.handler'));
         //User::$user->rights=Config::get('rights');
@@ -365,18 +367,46 @@ class Runtime
 
         // Initialise le gestionnaire d'exceptions
         debug && Debug::log("Initialisation du gestionnaire d'exceptions");
-        require_once self::$fabRoot.'core/exception/ExceptionManager.php';
+        //require_once self::$fabRoot.'core/exception/ExceptionManager.php';
         self::setupExceptions(); 
         
         // Includes supplémentaires
         // TODO: écrire un class manager pour ne pas inclure systématiquement tout (voir du coté du gestionnaire de modules)
-        require_once self::$fabRoot.'core/database/Database.php';
-        require_once self::$fabRoot.'modules'.DIRECTORY_SEPARATOR.'DatabaseModule/DatabaseModule.php';
-		require_once self::$fabRoot.'modules'.DIRECTORY_SEPARATOR.'CartModule/CartModule.php';
-		
-        require_once self::$fabRoot.'modules'.DIRECTORY_SEPARATOR.'TaskManager/TaskManager.php';
-        require_once self::$fabRoot.'core/helpers/TextTable/TextTable.php';
+        //require_once self::$fabRoot.'core/database/Database.php';
+//        require_once self::$fabRoot.'modules'.DIRECTORY_SEPARATOR.'DatabaseModule/DatabaseModule.php';
+//		require_once self::$fabRoot.'modules'.DIRECTORY_SEPARATOR.'CartModule/CartModule.php';
+//		
+//        require_once self::$fabRoot.'modules'.DIRECTORY_SEPARATOR.'TaskManager/TaskManager.php';
+//        require_once self::$fabRoot.'core/helpers/TextTable/TextTable.php';
 
+        /**
+         * Charge les fichiers de configuration de base de données (db.yaml, db.
+         * debug.yaml...) dans la configuration en cours.
+         * 
+         * L'ordre de chargement est le suivant :
+         * 
+         * - fichier db.yaml de fab (si existant)
+         * 
+         * - fichier db.$env.yaml de fab (si existant)
+         * 
+         * - fichier db.yaml de l'application (si existant)
+         * 
+         * - fichier db.$env.yaml de l'application (si existant)
+         */
+        debug && Debug::log("Chargement de la configuration des bases de données");
+        if (file_exists($path=Runtime::$fabRoot.'config' . DIRECTORY_SEPARATOR . 'db.yaml'))
+            Config::load($path, 'db');
+        if (file_exists($path=Runtime::$root.'config' . DIRECTORY_SEPARATOR . 'db.yaml'))
+            Config::load($path, 'db');
+        
+        if (!empty(Runtime::$env))   // charge la config spécifique à l'environnement
+        {
+            if (file_exists($path=Runtime::$fabRoot.'config'.DIRECTORY_SEPARATOR.'db.' . Runtime::$env . '.yaml'))
+                Config::load($path, 'db');
+            if (file_exists($path=Runtime::$root.'config'.DIRECTORY_SEPARATOR.'db.' . Runtime::$env . '.yaml'))
+                Config::load($path, 'db');
+        }
+        
         // Dispatch l'url
 $fab_init_time=microtime(true);
         debug && Debug::log("Lancement de l'application");
@@ -390,7 +420,7 @@ $fab_init_time=microtime(true);
     private static function setupBaseConfig()
     {
         Debug::log('Chargement de la configuration initiale');
-        require_once(self::$fabRoot . 'config' . DIRECTORY_SEPARATOR . 'config.php');
+        //require_once(self::$fabRoot . 'config' . DIRECTORY_SEPARATOR . 'config.php');
         if (file_exists($path=self::$root . 'config' . DIRECTORY_SEPARATOR . 'config.php'))
         {
             Debug::log('Chargement de %s', $path);
@@ -436,7 +466,7 @@ $fab_init_time=microtime(true);
     {
         if (Config::get('cache.enabled'))
         {
-            require_once self::$fabRoot.'core/cache/Cache.php';
+            //require_once self::$fabRoot.'core/cache/Cache.php';
             
             // Détermine le nom de l'application
             $appname=basename(self::$root);
@@ -618,27 +648,51 @@ $fab_init_time=microtime(true);
         
     }
 
-            
+    /**
+     * Essaie de charger le fichier qui contient la définition de la classe 
+     * indiquée en paramètre.
+     * 
+     * Cette fonction n'est pas destinée à être appellée directement : c'est une
+     * fonction magique que php appelle lorsqu'il ne trouve pas la définition d'une
+     * classe demandée.
+     * 
+     * Pour que cette fonction marche, il faut que les fichiers de classes soient 
+     * nommés selon la convention NomDeClasse.class.php
+     * 
+     * @param string $className le nom de la classe qui n'a pas été trouvée
+     */
+    public static function autoload($class)
+    {
+        static $core='';
+        static $dir=array
+        (
+            'Utils'=>'core/utils/Utils.php',
+            'Debug'=>'core/debug/Debug.php',
+            'Config'=>'core/config/Config.php',
+            'Routing'=>'core/routing/Routing.php',
+            'Template'=>'core/template/Template.php',
+            'User'=>'core/user/User.php',
+            'Module'=>'core/module/Module.php',
+            'NoSecurity'=>'modules/NoSecurity/NoSecurity.php',
+            'ExceptionManager'=>'core/exception/ExceptionManager.php',
+            'Database'=>'core/database/Database.php',
+            'DatabaseModule'=>'modules/DatabaseModule/DatabaseModule.php',
+            'TextTable'=>'core/helpers/TextTable/TextTable.php',
+            'XapianDatabaseDriver'=>'core/database/XapianDatabase.php',
+            'XapianDatabaseDriver2'=>'core/database/XapianDatabase2.php',
+            'DatabaseStructure'=>'core/database/DatabaseStructure.php',
+            'TemplateCompiler'=>'core/template/TemplateCompiler.php',
+            'TemplateCode'=>'core/template/TemplateCode.php',
+            'TemplateEnvironment'=>'core/template/TemplateEnvironment.php',
+        
+        );
+        if (!isset($dir[$class])) return;
+        $path=self::$fabRoot. strtr($dir[$class],'/', DIRECTORY_SEPARATOR);
+//        echo "__autoload('$class') -> require_once('$path')<br />\n";
+        require_once($path);
+    }
+    
 }
 
-/**
- * Essaie de charger le fichier qui contient la définition de la classe 
- * indiquée en paramètre.
- * 
- * Cette fonction n'est pas destinée à être appellée directement : c'est une
- * fonction magique que php appelle lorsqu'il ne trouve pas la définition d'une
- * classe demandée.
- * 
- * Pour que cette fonction marche, il faut que les fichiers de classes soient 
- * nommés selon la convention NomDeClasse.class.php
- * 
- * @param string $className le nom de la classe qui n'a pas été trouvée
- */
-//function __autoload($className)
-//{
-//    $path="$className.class.php";
-//    echo "__autoload('$className') -> require_once('$path')<br />\n";
-//    require_once($path);
-//}
 
 ?>

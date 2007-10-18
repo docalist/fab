@@ -93,8 +93,8 @@ die();
 //echo "décodé : ", utf8_decode('Résumé'), "<br />";
 //die();
 //
-require_once(dirname(__FILE__).'/TemplateCode.php');
-require_once(dirname(__FILE__).'/TemplateEnvironment.php');
+//require_once(dirname(__FILE__).'/TemplateCode.php');
+//require_once(dirname(__FILE__).'/TemplateEnvironment.php');
 
 
 /**

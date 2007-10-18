@@ -233,7 +233,7 @@ class Template
                     throw new Exception("Le template '$template' est introuvable.");
             
             // Compile le code
-            require_once dirname(__FILE__) . '/TemplateCompiler.php';
+//            require_once dirname(__FILE__) . '/TemplateCompiler.php';
             $source=TemplateCompiler::compile($source, self::$data);
 
 //          if (php_version < 6) ou  if (! PHP_IS_UTF8)
@@ -368,7 +368,7 @@ class Template
             
             // Compile le code
             debug && Debug::log('Compilation du source');
-            require_once dirname(__FILE__) . '/TemplateCompiler.php';
+            //require_once dirname(__FILE__) . '/TemplateCompiler.php';
             $source=TemplateCompiler::compile($source, self::$data);
 
 //          if (php_version < 6) ou  if (! PHP_IS_UTF8)

@@ -1,35 +1,4 @@
 <?php
-
-/**
- * Charge les fichiers de configuration de base de données (db.yaml, db.
- * debug.yaml...) dans la configuration en cours.
- * 
- * L'ordre de chargement est le suivant :
- * 
- * - fichier db.yaml de fab (si existant)
- * 
- * - fichier db.$env.yaml de fab (si existant)
- * 
- * - fichier db.yaml de l'application (si existant)
- * 
- * - fichier db.$env.yaml de l'application (si existant)
- */
-debug && Debug::log("Chargement de la configuration des bases de données");
-if (file_exists($path=Runtime::$fabRoot.'config' . DIRECTORY_SEPARATOR . 'db.yaml'))
-    Config::load($path, 'db');
-if (file_exists($path=Runtime::$root.'config' . DIRECTORY_SEPARATOR . 'db.yaml'))
-    Config::load($path, 'db');
-
-if (!empty(Runtime::$env))   // charge la config spécifique à l'environnement
-{
-    if (file_exists($path=Runtime::$fabRoot.'config'.DIRECTORY_SEPARATOR.'db.' . Runtime::$env . '.yaml'))
-        Config::load($path, 'db');
-    if (file_exists($path=Runtime::$root.'config'.DIRECTORY_SEPARATOR.'db.' . Runtime::$env . '.yaml'))
-        Config::load($path, 'db');
-}
-
-// TODO : revoir API pour editRecord, saveRecord, addNew
-
 /**
  * @package     fab
  * @subpackage  database
@@ -184,14 +153,20 @@ abstract class Database implements ArrayAccess, Iterator
         switch($type=strtolower($type))
         {
             case 'bis':
-                require_once dirname(__FILE__).'/BisDatabase.php';
+                //require_once dirname(__FILE__).'/BisDatabase.php';
                 $db=new BisDatabase();
                 $db->doCreate($database, $structure, $options);
                 break;
                 
             case 'xapian':
-                require_once dirname(__FILE__).'/XapianDatabase.php';
+                //require_once dirname(__FILE__).'/XapianDatabase.php';
                 $db=new XapianDatabaseDriver();
+                $db->doCreate($database, $structure, $options);
+                break;
+                
+            case 'xapian2':
+                //require_once dirname(__FILE__).'/XapianDatabase2.php';
+                $db=new XapianDatabaseDriver2();
                 $db->doCreate($database, $structure, $options);
                 break;
                 
@@ -283,14 +258,20 @@ abstract class Database implements ArrayAccess, Iterator
         switch($type=strtolower($type))
         {
             case 'bis':
-                require_once dirname(__FILE__).'/BisDatabase.php';
+                //require_once dirname(__FILE__).'/BisDatabase.php';
                 $db=new BisDatabase();
                 $db->doOpen($path, $readOnly);
                 break;
                 
             case 'xapian':
-                require_once dirname(__FILE__).'/XapianDatabase.php';
+                //require_once dirname(__FILE__).'/XapianDatabase.php';
                 $db=new XapianDatabaseDriver();
+                $db->doOpen($path, $readOnly);
+                break;
+                
+            case 'xapian2':
+                //require_once dirname(__FILE__).'/XapianDatabase2.php';
+                $db=new XapianDatabaseDriver2();
                 $db->doOpen($path, $readOnly);
                 break;
                 
