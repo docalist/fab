@@ -1651,7 +1651,10 @@ private function dumpQuery($equation)
 //                '<strong>Result : ', $round, '</strong><br />', 
 //                '<br />'        
 //                ;
-        
+
+            if ($unit===0.1)
+                return '~&#160;' . $round; //  ou '±&#160;'
+                
             return 
                 (strpos($countType, '%')===false) 
                 ? 
