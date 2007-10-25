@@ -117,8 +117,7 @@ abstract class Database implements ArrayAccess, Iterator
      * 
      * @param string $database alias ou path de la base de données à créer.
      * 
-     * @param array $structure tableau contenant la définition de la structure de la
-     * base
+     * @param DatabaseStructure $structure tableau structure de la base
      * 
      * @param string $type type de la base de données à créer. Ignoré si
      * $database désigne un alias (dans ce cas, c'est le type indiqué dans la
@@ -128,7 +127,7 @@ abstract class Database implements ArrayAccess, Iterator
      * options disponibles dépendent du backend utilisée. Chaque backend ignore
      * silencieusement les options qu'il ne reconnait pas ou ne sait pas gérer.
      */
-    final public static function create($database, $structure, $type=null, $options=null)
+    final public static function create($database, DatabaseStructure $structure, $type=null, $options=null)
     {
         /*
             DatabaseInterface
@@ -183,30 +182,22 @@ abstract class Database implements ArrayAccess, Iterator
      * 
      * @param string $database alias ou path de la base de données à créer.
      * 
-     * @param array $def tableau contenant la définition de la structure de la
-     * base
+     * @param DatabaseStructure $structure définition de la structure de la base.
      * 
      * @param array $options tableau contenant des options supplémentaires. Les
      * options disponibles dépendent du backend utilisée. Chaque backend ignore
      * silencieusement les options qu'il ne reconnait pas ou ne sait pas gérer.
      */
-    abstract protected function doCreate($database, $def, $options=null);
+    abstract protected function doCreate($database, DatabaseStructure $structure, $options=null);
     
-    public function compareDef($def)
-    {
-        
-    }
-    
+
     /**
      * Modifie la structure d'une base de données en lui appliquant une nouvelle
-     * définition.
+     * structure.
      * 
-     * @param array $newDef le tableau contenant la définition de la nouvelle
-     * structure de la base.
-     * 
-     * @param $mappings ????
+     * @param DatabaseStructure $newStructure la nouvelle structure de la base.
      */
-    public function changeDef($newDef, $mappings=null)
+    public function changeStructure($newStructure)
     {
         
     }
