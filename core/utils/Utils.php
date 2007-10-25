@@ -1426,7 +1426,7 @@ final class Utils
         if (is_string($var)) return utf8_encode($var);
         
         // Autre type simple : retourne tel quel
-        if (is_scalar($var)) return $var;
+        if (is_scalar($var) || is_null($var)) return $var;
         
         // Tableau ou objet
         $t = array();
@@ -1460,7 +1460,7 @@ final class Utils
         if (is_string($var)) return utf8_decode($var);
         
         // Autre type simple : retourne tel quel
-        if (is_scalar($var)) return $var;
+        if (is_scalar($var) || is_null($var)) return $var;
         
         // Tableau ou objet
         $t = array();
