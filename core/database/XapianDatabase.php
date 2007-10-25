@@ -564,8 +564,10 @@ class XapianDatabaseDriver extends Database
 
 //************************************
     
-    protected function doCreate($path, $xml, $options=null)
+    protected function doCreate($path, DatabaseStructure $structure, $options=null)
     {
+        throw new Exception('doCreate : non implémenté, attendre XapianDatabase2');
+    
         // Convertit la structure xml en tableau php
         $def=self::xmlToDef($xml);
 
@@ -1571,6 +1573,9 @@ private function dumpQuery($equation)
     private function unserializeFields($buffer)
     {
         //$this->fields=array();
+        foreach ($this->fields as &$field)
+            $field=null;
+
         $length=strlen($buffer);
         $i=0;
         while ($i<$length) 
@@ -1602,15 +1607,58 @@ private function dumpQuery($equation)
             }
             // else : le champ n'a plus de nom = champ supprimé, on l'ignore. Sera supprimé lors du prochain save.
         }
-        foreach ($this->structure['field'] as $name=>$field)
-        {
-            if (! isset($this->fields[$name])) $this->fields[$name]=null;
-        }
+//        foreach ($this->structure['field'] as $name=>$field)
+//        {
+//            if (! isset($this->fields[$name])) $this->fields[$name]=null;
+//        }
     }
 
 
     public function count($countType=0)
     {
+        // Si l'argument est une chaine, on considère que l'utilisateur veut
+        // une évaluation (arrondie) du nombre de réponses et cette chaine
+        // est le libellé à utiliser (par exemple : 'environ %d ')
+        if (is_string($countType))
+        {
+            $count=$this->mset->get_matches_estimated();
+            if ($count===0) return 0;
+            
+            $min=$this->mset->get_matches_lower_bound();
+            $max=$this->mset->get_matches_upper_bound();
+            
+//            echo 
+//                'Etapes du calcul : <br />',
+//                'min : ', $min, '<br />',
+//                'max : ', $max, '<br />',
+//                'count : ', $count, '<br />';
+            
+            // Si min==max, c'est qu'on a le nombre exact de réponses, pas d'évaluation
+            if ($min === $max) return $min;
+        
+            $unit = pow(10, floor(log10($max-$min))-1);
+            $round=max(1,round($count / $unit)) * $unit;
+            
+//            echo 
+//                'diff=', $max-$min, '<br />', 
+//                'log10(diff)=', log10($max-$min), '<br />', 
+//                'floor(log10(diff))=', floor(log10($max-$min)), '<br />',
+//                'unit -1 =pow(10, floor(log10($max-$min))-1)', $unit, '<br />',
+//                'unit=pow(10,floor(log10(diff)))=', pow(10,floor(log10($max-$min))), '<br />',
+//                'count/puissance=', $count/$unit, '<br />', 
+//                'round(count/puissance)=', round($count/$unit), '<br />', 
+//                'round(count/puissance)* puissance=', $round, '<br />',
+//                '<strong>Result : ', $round, '</strong><br />', 
+//                '<br />'        
+//                ;
+        
+            return 
+                (strpos($countType, '%')===false) 
+                ? 
+                $countType . $round
+                :
+                sprintf($countType, $round);
+        }
         return $this->count;
     }
 
@@ -2061,6 +2109,19 @@ private function dumpQuery($equation)
             $begin->next();
         }
         echo '<strong>', $count, ' termes</strong>';
+    }
+    
+    public function totalCount()
+    {
+        return $this->xapianDatabase->get_doccount();
+    }
+    public function lastDocId()
+    {
+        return $this->xapianDatabase->get_lastdocid();
+    }
+    public function averageLength()
+    {
+        return $this->xapianDatabase->get_avlength();
     }
 }
 
