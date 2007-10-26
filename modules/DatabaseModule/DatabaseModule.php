@@ -330,7 +330,8 @@ class DatabaseModule extends Module
         $this->module=strtolower($this->module); // BUG : this->module devrait être tel que recherché par les routes
         $url='/'.$this->module.'/'.$this->action.'?'.$query;
 
-        $h='Résultats ' . $start.' à '.min($start+$max-1,$count) . ' sur environ '.$count. ' ';
+        $h='Résultats ' . $start.' à '.min($start+$max-1,$count) . ' sur '.$this->selection->count('environ %d'). ' ';
+        
         if ($start > 1)
         {
             $newStart=max(1,$start-$max);
@@ -338,8 +339,7 @@ class DatabaseModule extends Module
             $h.='<a href="'.$prevUrl.'">'.$prevLabel.'</a>';
         }
         
-        
-        if ( ($newStart=$start+$max) < $count)
+        if ( ($newStart=$start+$max) <= $count)
         {
             $nextUrl=Routing::linkFor($url.'&_start='.$newStart);
             if ($h) $h.=' ';
@@ -1526,13 +1526,15 @@ class DatabaseModule extends Module
             return true;
             
         // Charge les fichiers Swift
-		require_once Runtime::$fabRoot . 'lib/Swift/Swift.php';
-		require_once Runtime::$fabRoot . 'lib/Swift/Swift/Connection/SMTP.php';
+		require_once Runtime::$fabRoot . 'lib/SwiftMailer/Swift.php';
+		require_once Runtime::$fabRoot . 'lib/SwiftMailer/Swift/Connection/SMTP.php';
 
  		// Crée une nouvelle connexion Swift
         $swift = new Swift(new Swift_Connection_SMTP(ini_get('SMTP'))); // TODO: mettre dans la config de fab pour ne pas être obligé de changer php.ini
-        $swift->log->enable();
 
+        $log = Swift_LogContainer::getLog();
+        $log->setLogLevel(4); // 4 = tout est loggé, 0 = pas de log
+        
         // Force swift à utiliser un cache disque pour minimiser la mémoire utilisée
         Swift_CacheFactory::setClassName("Swift_Cache_Disk");
         Swift_Cache_Disk::setSavePath(Utils::getTempDirectory());        
@@ -1608,7 +1610,7 @@ class DatabaseModule extends Module
             if ($error)
                 echo "<p>Erreur retournée par le serveur : <strong><code>$error</code></strong></p>";
             echo "<fieldset><legend>Log de la transaction</legend> <pre>";
-            $swift->log->dump();
+            echo $log->dump(true);
             echo "</pre></fieldset>";
         }
         return true;
