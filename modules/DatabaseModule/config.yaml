@@ -44,7 +44,7 @@ export:
   allowmail: true		# autoriser l'envoi par mail
 #  forcemail: true		# toujours envoyer par mail, ne pas demander à l'utilisateur
   admin:				# cooordonnées de "qui" envoie le mail (écrase les valeurs de general.yaml)
-    name: moimoimoi
+    name: Site Ascodocpsy
     email: Daniel.Menard@bdsp.tm.fr
 
 RSS:
