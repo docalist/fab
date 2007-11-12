@@ -7,7 +7,7 @@
  */
 
 /**
- * Classe permettant de manipuler la structure d'une base de données.
+ * La structure d'une base de données fab.
  * 
  * Cette classe offre des fonctions permettant de charger, de valider et de 
  * sauvegarder la structure d'une base de données en format XML et JSON.
@@ -17,6 +17,16 @@
  */
 class DatabaseStructure
 {
+    /**
+     * Les types de champ autorisés
+     *
+     */
+    const
+        FIELD_INT    = 1,
+        FIELD_AUTONUMBER=2,
+        FIELD_TEXT=3,
+        FIELD_BOOL=4;
+
     /**
      * Ce tableau décrit les propriétés d'une structure de base de données.
      * 
@@ -31,36 +41,70 @@ class DatabaseStructure
             'label'=>'',                // Un libellé court décrivant la base
             'version'=>'1.0',           // NUPLM Version de fab qui a créé la base
             'description'=>'',          // Description, notes, historique des modifs...
-            'sep'=>'',                  // NUPLM, à virer
             'stopwords'=>'',            // Liste par défaut des mots-vides à ignorer lors de l'indexation
-    
+            'indexstopwords'=>false,    // faut-il indexer les mots vides ?
+            'creation'=>'',           // Date de création de la structure
+            'lastupdate'=>'',         // Date de dernière modification de la structure
+            '_lastid'=>array
+            (
+                'field'=>0,
+                'index'=>0,
+                'alias'=>0,
+                'lookuptable'=>0,
+                'sortkey'=>0
+            ),
+            
             'fields'=>array             // FIELDS : LISTE DES CHAMPS DE LA BASE
             (
                 'field'=>array          
                 (
+                    '_id'=>0,            // Identifiant (numéro unique) du champ
                     'name'=>'',             // Nom du champ, d'autres noms peuvent être définis via des alias
                     'type'=>'text',         // Type du champ (juste à titre d'information, non utilisé pour l'instant)
+                    '_type'=>0,          // Traduction de la propriété type en entier
                     'label'=>'',            // Libellé du champ
                     'description'=>'',      // Description
+                    'defaultstopwords'=>true, // Utiliser les mots-vides de la base
                     'stopwords'=>'',        // Liste spécifique de mots-vides à appliquer à ce champ
                 )
             ),
+            
+            /*
+                Combinatoire stopwords/defaultstopwords : 
+                - lorsque defaultstopwords est à true, les mots indiqués dans 
+                  stopwords viennent en plus de ceux indiqués dans db.stopwords.
+                - lorsque defaultstopwords est à false, les mots indiqués
+                  dans stopwords remplacent ceux de la base
+
+                Liste finale des mots vides pour un champ =
+                    - stopwords=""
+                        - defaultstopwords=false    => ""
+                        - defaultstopwords=true     => db.stopwords 
+                    - stopwords="x y z"
+                        - defaultstopwords=false    => "x y z"
+                        - defaultstopwords=true     => db.stopwords . "x y z"
+             */
             
             'indices'=>array            // INDICES : LISTE DES INDEX  
             (
                 'index'=>array
                 (
+                    '_id'=>0,            // Identifiant (numéro unique) de l'index
                     'name'=>'',             // Nom de l'index
+                    'label'=>'',            // Libellé de l'index
+                    'description'=>'',      // Description de l'index
                     'fields'=>array         // La liste des champs qui alimentent cet index
                     (
                         'field'=> array
                         (               
                             'name'=>'',         // Nom du champ
-                            'type'=>'none',     // Type d'indexation (none, words, phrases, values)
-                            'count'=>false,     // Ajouter un token spécial représentant le nombre de valeurs (has0, has1...)
+                            'words'=>false,     // Indexer les mots
+                            'phrases'=>false,   // Indexer les phrases
+                            'values'=>false,    // Indexer les valeurs
+                            'count'=>false,     // Compter le nombre de valeurs (empty, has1, has2...)
                             'global'=>false,    // Prendre en compte cet index dans l'index 'tous champs'
-                            'start'=>'',        // Position ou chaine indiquant le début du texte à indexer
-                            'end'=>'',          // Position ou chain indquant la fin du texte à indexer
+                            'start'=>'',      // Position ou chaine indiquant le début du texte à indexer
+                            'end'=>'',        // Position ou chain indquant la fin du texte à indexer
                             'weight'=>1         // Poids des tokens ajoutés à cet index
                         )
                     )
@@ -71,14 +115,15 @@ class DatabaseStructure
             (
                 'lookuptable'=>array
                 (
+                    '_id'=>0,            // Identifiant (numéro unique) de la table
                     'name'=>'',             // Nom de la table
                     'fields'=>array         // La liste des champs qui alimentent cette table
                     (
                         'field'=>array
                         (
                             'name'=>'',         // Nom du champ
-                            'start'=>'',        // Position de début ou chaine délimitant le début de la valeur à ajouter à la table
-                            'end'=>''           // Longueur ou chaine délimitant la fin de la valeur à ajouter à la table
+                            'start'=>'',      // Position de début ou chaine délimitant le début de la valeur à ajouter à la table
+                            'end'=>''         // Longueur ou chaine délimitant la fin de la valeur à ajouter à la table
                         )
                     )
                 )
@@ -88,6 +133,7 @@ class DatabaseStructure
             (
                 'alias'=>array
                 (
+                    '_id'=>0,            // Identifiant (numéro unique) de l'alias (non utilisé)
                     'name'=>'',             // Nom de l'alias
                     'indices'=>array        // La liste des index qui composent cet alias
                     (
@@ -103,14 +149,16 @@ class DatabaseStructure
             (
                 'sortkey'=>array
                 (
+                    '_id'=>0,            // Identifiant (numéro unique) de la clé de tri
                     'name'=>'',             // Nom de la clé de tri
                     'fields'=>array         // La liste des champs qui composent cette clé de tri
                     (
                         'field'=>array
                         (
                             'name'=>'',         // Nom du champ
-                            'start'=>'',        // Position de début ou chaine délimitant le début de la valeur à ajouter à la clé
-                            'end'=>''           // Longueur ou chaine délimitant la fin de la valeur à ajouter à la clé
+                            'start'=>'',      // Position de début ou chaine délimitant le début de la valeur à ajouter à la clé
+                            'end'=>'',        // Longueur ou chaine délimitant la fin de la valeur à ajouter à la clé
+                            'length'=>0      // Longueur totale de la partie de clé (tronquée ou paddée à cette taille)
                         )
                     )
                 )
@@ -119,15 +167,6 @@ class DatabaseStructure
     );
     
 
-    /**
-     * Objet représentant la structure de la base
-     *
-     * @var StdClass
-     * @access private
-     */
-    private $def=null;
-
-    
     /**
      * Constructeur. Crée une nouvelle structure de base de données à partir 
      * de l'argument passé en paramètre.
@@ -148,119 +187,67 @@ class DatabaseStructure
      */
     public function __construct($def=null)
     {
-        // faut-il ajouter les propriétés par défaut (oui pour tous sauf xml qui le fait déjà)
-        $defaults=true;
+        // Faut-il ajouter les propriétés par défaut ? (oui pour tous sauf xml qui le fait déjà)
+        $addDefaultsProps=true;
         
         // Une structure vide
         if (is_null($def))
         {
-            $this->def=new StdClass();
-            $this->def->label='Nouveau modèle de structure de base de données créé le '.date('d/m/y à H:i:s');
+            $this->label='Nouvelle structure de base de données';
+            $this->creation=date('Y/m/d H:i:s');
         }
         
-        // Un objet représentant la structure de la base
-        elseif (is_object($def))
-            $this->def=$def;
-        
-        // Un tableau dont les éléments représentent la structure de la base
-        elseif (is_array($def))
-            $this->def=(object)$def;
-            
         // Une chaine de caractères contenant du xml ou du JSON
         elseif (is_string($def))
         {
             switch (substr(ltrim($def), 0, 1))
             {
                 case '<': // du xml
-                    $this->def=$this->fromXml($def);
-                    $defaults=false;
+                    $this->fromXml($def);
+                    $addDefaultsProps=false;
                     break;
                     
                 case '{': // du json
-                    $this->def=$this->fromJson($def);
+                    $this->fromJson($def);
                     break;
                     
                 default:
                     throw new Exception('Impossible de déterminer le type de la structure passée en paramètre');
             }
         }
-        
-        // Ajoute toutes les propriétés qui ne sont pas définies avec leur valeur par défaut
-        if ($defaults) $this->def=self::defaults($this->def, self::$dtd['database']);
-/*        
- BENCHMARK SERIALIZE/VAR_EXPORT/JSON : 
-        set_time_limit(0);
-        $max=1;
-        echo 'Répétition ', $max, ' fois de chaque opération<br />';
-        
-        $start=microtime(true);
-        for ($i=0; $i<$max; $i++)
-            json_encode(Utils::utf8Encode($this->def));
-        echo 'Encodage en json : ', microtime(true)-$start, '<br />';
-        
-        $json=json_encode(Utils::utf8Encode($this->def));
-        
-        $start=microtime(true);
-        for ($i=0; $i<$max; $i++)
-            Utils::utf8Decode(json_decode($json, false));
-        echo 'Décodage json : ', microtime(true)-$start, '<br />';
-        if (Utils::utf8Decode(json_decode($json, false)) !== $this->def)
-            echo 'json_decode(def) != def <br />';
-        
-        
-        $start=microtime(true);
-        for ($i=0; $i<$max; $i++)
-            serialize($this->def);
-        echo 'serialize : ', microtime(true)-$start, '<br />';
 
-        $serial=serialize($this->def);
-        echo '<pre>', $serial, '</pre>';
-        
-        $start=microtime(true);
-        for ($i=0; $i<$max; $i++)
-            unserialize($serial);
-        echo 'unserialize : ', microtime(true)-$start, '<br />';
-        if (unserialize($serial) !== $this->def)
+        // Ajoute toutes les propriétés qui ne sont pas définies avec leur valeur par défaut
+        if ($addDefaultsProps) 
         {
-            echo '<pre>';
-            echo 'unserailize(def) != def <br />';
-            echo 'Def : ';
-            file_put_contents('c:/def.txt', var_export($this->def, true));
-            echo '<hr />';
-            echo 'unserialize:';
-            file_put_contents('c:/def2.txt', var_export(unserialize($serial), true));
+            $this->addDefaultProperties();
         }
-        
-        $start=microtime(true);
-        for ($i=0; $i<$max; $i++)
-            var_export($this->def, true);
-        echo 'var_export : ', microtime(true)-$start, '<br />';
-//
-//        $php='$t='. var_export($this->def, true).';';
-//        echo $php;
-//        
-//        $start=microtime(true);
-//        for ($i=0; $i<$max; $i++)
-//            eval($php);
-//        echo 'var_export : ', microtime(true)-$start, '<br />';
-        
-        die('Terminé');
-*/
     }
 
 
     /**
-     * Retourne la structure de la base de données sous la forme d'un objet
-     * contenant toutes les propriétés de la base, des champs, des index, etc.
+     * Ajoute les propriétés par défaut à tous les objets de la hiérarchie
      *
-     * @return StdClass
      */
-    public function getStructure()
+    public function addDefaultProperties()
     {
-        return $this->def;    
+        self::defaults($this, self::$dtd['database']);
     }
     
     
+    /**
+     * Met à jour la date de dernière modification (lastupdate) de la structure
+     *
+     * @param unknown_type $timestamp
+     */
+    public function setLastUpdate($timestamp=null)
+    {
+        if (is_null($timestamp))
+            $this->lastupdate=date('Y/m/d H:i:s');
+        else
+            $this->lastupdate=date('Y/m/d H:i:s', $timestamp);
+    }
+
+
     /**
      * Crée la structure de la base de données à partir d'un source xml
      *
@@ -283,12 +270,18 @@ class DatabaseStructure
             $h="Structure de base incorrecte, ce n'est pas un fichier xml valide :<br />\n"; 
             foreach (libxml_get_errors() as $error)
                 $h.= "- ligne $error->line : $error->message<br />\n";
-    
+            libxml_clear_errors(); // libère la mémoire utilisée par les erreurs
             throw new Exception($h);
         }
 
-        // Convertit la structure xml en tableau php
-        return self::xmlToObject($xml->documentElement, self::$dtd);
+        // Convertit la structure xml en objet
+        $o=self::xmlToObject($xml->documentElement, self::$dtd);
+        
+        // Initialise nos propriétés à partir de l'objet obtenu
+        foreach(get_object_vars($o) as $prop=>$value)
+        {
+            $this->$prop=$value;
+        }
     }
 
     
@@ -333,7 +326,7 @@ class DatabaseStructure
                     throw new Exception("La propriété $node->tagName.$name doit être indiquée comme élément, pas comme attribut");
                     
                 // Définit la propriété
-                $result->$name=utf8_decode(trim($attribute->nodeValue));
+                $result->$name=self::xmlToValue(utf8_decode($attribute->nodeValue), $name, $dtd[$name]);
             }
         }
         
@@ -356,11 +349,25 @@ class DatabaseStructure
 
                     // Cas d'une propriété simple (scalaire)
                     if (! is_array($dtd[$name]))
-                        $result->$name=utf8_decode($child->nodeValue); // si plusieurs fois le même tag, c'est le dernier qui gagne
+                    {
+                        $result->$name=self::xmlToValue(utf8_decode($child->nodeValue), $name, $dtd[$name]); // si plusieurs fois le même tag, c'est le dernier qui gagne
+                    }
+                    
+                    // Cas d'un tableau
                     else
                     {
-                        foreach($child->childNodes as $child)
-                            array_push($result->$name, self::xmlToObject($child, $dtd[$name]));
+                        // Une collection : le tableau a un seul élément qui est lui même un tableau décrivant les noeuds
+                        if (count($dtd[$name])===1 && is_array(reset($dtd[$name])))
+                        {
+                            foreach($child->childNodes as $child)
+                                array_push($result->$name, self::xmlToObject($child, $dtd[$name]));
+                        }
+                        
+                        // Un objet (exemple : _lastid) : plusieurs propriétés ou une seule mais pas un tableau 
+                        else
+                        {
+                            $result->$name=self::xmlToObject($child, array($name=>$dtd[$name]));
+                        }
                     }
                     break;
 
@@ -378,6 +385,36 @@ class DatabaseStructure
 
 
     /**
+     * Fonction utilitaire utilisée par {@link xmlToObject()} pour convertir la
+     * valeur d'un attribut ou le contenu d'un tag.
+     * 
+     * Pour les booléens, la fonction reconnait les valeurs 'true' ou 'false'.
+     * Pour les autres types scalaires, la fonction encode les caractères '<', 
+     * '>', '&' et '"' par l'entité xml correspondante.
+     *
+     * @param scalar $value
+     * @return string
+     */
+    private static function xmlToValue($xml, $name, $dtdValue)
+    {
+        if (is_bool($dtdValue)) 
+        {
+            if($xml==='true') return true;
+            if($xml==='false') return false;
+            throw new Exception("Valeur incorrecte pour la propriété $name : $xml, booléen attendu");
+        }
+        
+        if (is_int($dtdValue))
+        {
+            if (! ctype_digit($xml))
+                throw new Exception("Valeur incorrecte pour la propriété $name : $xml, entier attendu");
+            return (int) $xml;
+        }
+        return $xml;
+    }
+    
+
+    /**
      * Retourne la version xml de la structure de base de données en cours.
      * 
      * @return string
@@ -385,12 +422,8 @@ class DatabaseStructure
     public function toXml()
     {
         ob_start();
-        echo 
-            '<?xml version="1.0" encoding="iso-8859-1"?>' .
-            "\n" .
-            '<!-- Dernière modification : ' . date('d/m/y H:i:s') . ' -->' .
-            "\n" ;
-        self::nodeToXml(self::$dtd, $this->def);
+        echo '<?xml version="1.0" encoding="iso-8859-1"?>', "\n";
+        self::nodeToXml(self::$dtd, $this);
         return ob_get_clean();
     }
 
@@ -417,6 +450,7 @@ class DatabaseStructure
         $attr=array();
         $simpleNodes=array();
         $complexNodes=array();
+        $objects=array();
         
         // Parcourt toutes les propriétés pour les classer
         foreach($object as $prop=>$value)
@@ -426,7 +460,7 @@ class DatabaseStructure
                 continue;
             
             // Valeurs scalaires (entiers, chaines, booléens...)
-            if (is_scalar($value))
+            if (is_scalar($value) || is_null($value))
             {
                 $value=(string)$value;
                 
@@ -442,11 +476,21 @@ class DatabaseStructure
             // Tableau
             else
             {
-                // Ignore les tableaux vides
-                if (count($value)) $complexNodes[]=$prop;
+                if (count($dtd[$prop])===1 && is_array(reset($dtd[$prop])))
+                {
+                    if (count($value))  // Ignore les tableaux vides
+                        $complexNodes[]=$prop;
+                }
+                else
+                {
+                    $objects[]=$prop;
+                }
             }
         }
         
+        if (count($attr)===0 && count($simpleNodes)===0 && count($complexNodes)===0 & count($objects)===0)
+            return;
+            
         // Ecrit le début du tag et ses attributs
         echo $indent, '<', $tag;
         foreach($attr as $prop)
@@ -466,6 +510,12 @@ class DatabaseStructure
         foreach($simpleNodes as $prop)
             echo $indent, '    <', $prop, '>', self::valueToXml($object->$prop), '</', $prop, '>', "\n";
 
+        // Puis toutes les propriétés 'objet'
+        foreach($objects as $prop)
+        {
+            self::nodeToXml(array($prop=>$dtd[$prop]), $object->$prop, $indent.'    ');
+        } 
+            
         // Puis tous les nouds qui ont des fils
         foreach($complexNodes as $prop)
         {
@@ -481,7 +531,7 @@ class DatabaseStructure
         echo $indent, '</', $tag, ">\n";
     }
 
-
+    
     /**
      * Fonction utilitaire utilisée par {@link nodeToXml()} pour écrire la
      * valeur d'un attribut ou le contenu d'un tag.
@@ -495,6 +545,7 @@ class DatabaseStructure
      */
     private static function valueToXml($value)
     {
+
         if (is_bool($value)) 
             return $value ? 'true' : 'false';
         return htmlspecialchars($value, ENT_COMPAT);
@@ -502,7 +553,7 @@ class DatabaseStructure
 
 
     /**
-     * Crée la structure de la base de données à partir d'un source JSON.
+     * Initialise la structure de la base de données à partir d'un source JSON.
      * 
      * La chaine passée en paramètre doit être encodée en UTF8. Elle est 
      * décodée de manière à ce que la structure de base de données obtenue
@@ -513,7 +564,14 @@ class DatabaseStructure
      */
     private function fromJson($json)
     {
-        return Utils::utf8Decode(json_decode($json, false));
+        // Crée un objet à partir de la chaine JSON
+        $o=Utils::utf8Decode(json_decode($json, false));
+        
+        // Initialise nos propriétés à partir de l'objet obtenu
+        foreach(get_object_vars($o) as $prop=>$value)
+        {
+            $this->$prop=$value;
+        }
     }
     
 
@@ -526,10 +584,81 @@ class DatabaseStructure
      */    
     public function toJson()
     {
-        return json_encode(Utils::utf8Encode($this->def));
+        // Si notre structure est compilée, les clés de tous les tableaux
+        // sont des chaines et non plus des entiers. Or, la fonction json_encode
+        // de php traite ce cas en générant alors un objet et non plus un 
+        // tableau (je pense que c'est conforme à la spécification JSON dans la
+        // mesure où on ne peut pas, en json, spécifier les clés du tableau).
+        // Le problème, c'est que l'éditeur de structure ne sait pas gérer ça :
+        // il veut absolument un tableau.
+        // Pour contourner le problème, on utilise notre propre version de 
+        // json_encode qui ignore les clés des tableaux (ie fait l'inverse de
+        // compileArrays)
+        
+        ob_start();
+        self::jsonEncode($this);
+        return ob_get_clean();
+        
+        // version json originale
+        // return json_encode(Utils::utf8Encode($this));
+    }
+    
+    /**
+     * Fonction utilitaire utilisée par {@link toJson()}
+     *
+     * @param mixed $o
+     */
+    private static function jsonEncode($o)
+    {
+        if (is_null($o) || is_scalar($o)) 
+        {
+            echo json_encode(is_string($o) ? utf8_encode($o) : $o);
+            return;
+        }
+        if (is_object($o))
+        {
+            echo '{';
+            $comma=null;
+            foreach($o as $prop=>$value)
+            {
+                echo $comma, json_encode(utf8_encode($prop)), ':';
+                self::jsonEncode($value);
+                $comma=',';
+            }    
+            echo '}';
+            return;
+        }
+        if (is_array($o))
+        {
+            echo '[';
+            $comma=null;
+            foreach($o as $value) // ignore les clés
+            {
+                echo $comma;
+                self::jsonEncode($value);
+                $comma=',';
+            }    
+            echo ']';
+            return;
+        }
+        throw new Exception(__CLASS__ . '::'.__METHOD__.' : type non géré : '.var_export($o,true));
     }
 
-
+    private static function boolean($x)
+    {
+        if (is_string($x))
+        { 
+            switch(strtolower(trim($x)))
+            {
+                case 'true':
+                    return true; 
+                default:
+                    return false;
+            }
+        }
+        return (bool) $x;
+    }
+    
     /**
      * Redresse et valide la structure de la base de données, détecte les 
      * éventuelles erreurs.
@@ -542,15 +671,13 @@ class DatabaseStructure
     {
         $errors=array();
         
-        // Evite de répêter $this->def à chaque fois
-        $def= & $this->def;
-        
         // Tri et nettoyage des mots-vides
-        self::stopwords($def->stopwords);
+        self::stopwords($this->stopwords);
+        $this->indexstopwords=self::boolean($this->indexstopwords);
         
         // Vérifie qu'on a au moins un champ
-        if (count($def->fields)===0)
-            $errors[]="Structure de base incorrecte, aucun champ n'a été défini";
+//        if (count($this->fields)===0)
+//            $errors[]="Structure de base incorrecte, aucun champ n'a été défini";
     
         // Tableau utilisé pour dresser la liste des champs/index/alias utilisés
         $fields=array();
@@ -560,12 +687,24 @@ class DatabaseStructure
         $sortkeys=array();
         
         // Vérifie la liste des champs
-        foreach($def->fields as $i=>&$field)
+        foreach($this->fields as $i=>&$field)
         {
             // Vérifie que le champ a un nom correct, sans caractères interdits
             $name=trim(Utils::ConvertString($field->name, 'alphanum'));
             if ($name==='' || strpos($name, ' ')!==false)
                 $errors[]="Nom incorrect pour le champ #$i : '$field->name'";
+            
+            // Vérifie le type du champ
+            switch($field->type=strtolower(trim($field->type)))
+            {
+                case 'autonumber':    
+                case 'bool': 
+                case 'int':   
+                case 'text':  
+                    break;
+                default:
+                    $errors[]="Type incorrect pour le champ #$i";
+            }
             
             // Vérifie que le nom du champ est unique
             if (isset($fields[$name]))
@@ -574,12 +713,16 @@ class DatabaseStructure
             
             // Tri et nettoie les mots-vides
             self::stopwords($field->stopwords);
+            
+            // Vérifie la propriété defaultstopwords
+            $field->defaultstopwords=self::boolean($field->defaultstopwords);
+            
         }
         unset($field);
         
 
         // Vérifie la liste des index
-        foreach($def->indices as $i=>&$index)
+        foreach($this->indices as $i=>&$index)
         {
             // Vérifie que l'index a un nom
             $name=trim(Utils::ConvertString($index->name, 'alphanum'));
@@ -601,41 +744,26 @@ class DatabaseStructure
                 if (!isset($fields[$name]))
                     $errors[]="Champ inconnu dans l'index #$i : '$name'";
                     
-                // Vérifie le type de l'index
-                $field->type=strtolower(trim($field->type));
-                if (! in_array($field->type, array('none', 'words', 'phrases', 'values')))
-                    $errors[]="Type d'indexation incorrect pour le champ #$j de l'index #$i";
-                
-                // Vérifie les propriétés count et global
-                foreach(array('count','global') as $prop)
-                {
-                    if (is_string($field->$prop)) 
-                        $field->$prop=strtolower(trim($field->$prop));
-    
-                    switch($field->$prop)
-                    {
-                        case true:
-                        case 'true': 
-                            $field->$prop=true;
-                            break;
-                        case false:
-                        case 'false': 
-                            $field->$prop=false;
-                            break;
-                        default:
-                            $errors[]="Propriété $prop incorrecte pour le champ #$j de l'index #$i (booléen attendu)";
-                    }
-                }
-                
-                // Pour un index de type 'none', count doit être à true
-                if ($field->type==='none' && !$field->count)
-                    $errors[]="Le champ #$j ne sert à rien dans l'index #$i : type='none' et count='false'";
+                // Vérifie les propriétés booléenne words/phrases/values/count et global
+                $field->words=self::boolean($field->words);
+                $field->phrases=self::boolean($field->phrases);
+                if ($field->phrases) $field->words=true;
+                $field->values=self::boolean($field->values);
+                $field->count=self::boolean($field->count);
+                $field->global=self::boolean($field->global);
+                    
+                // Vérifie qu'au moins un des types d'indexation est sélectionné
+                if (! ($field->words || $field->phrases || $field->values || $field->count))
+                    $errors[]="Le champ #$j ne sert à rien dans l'index #$i : aucun type d'indexation indiqué";
                     
                 // Poids du champ
                 $field->weight=trim($field->weight);
                 if ($field->weight==='') $field->weight=1;
                 if ((! is_int($field->weight) && !ctype_digit($field->weight)) || (1>$field->weight=(int)$field->weight))
                     $errors[]="Propriété weight incorrecte pour le champ #$j de l'index #$i (entier supérieur à zéro attendu)";
+                    
+                // Ajuste start et end
+                $this->startEnd($field, $errors, "Champ #$j de l'index #$i : ");
             }
             unset($field);
         }
@@ -643,7 +771,7 @@ class DatabaseStructure
 
 
         // Vérifie la liste des tables des entrées
-        foreach($def->lookuptables as $i=>&$lookuptable)
+        foreach($this->lookuptables as $i=>&$lookuptable)
         {
             // Vérifie que la table a un nom
             $name=trim(Utils::ConvertString($lookuptable->name, 'alphanum'));
@@ -664,6 +792,9 @@ class DatabaseStructure
                 $name=trim(Utils::ConvertString($field->name, 'alphanum'));
                 if (!isset($fields[$name]))
                     $errors[]="Champ inconnu dans la table des entrées #$i : '$name'";
+
+                // Ajuste start et end
+                $this->startEnd($field, $errors, "Champ #$j de la table des entrées #$i : ");
             }
             unset($field);
         }
@@ -671,7 +802,7 @@ class DatabaseStructure
 
         
         // Vérifie la liste des alias
-        foreach($def->aliases as $i=>& $alias)
+        foreach($this->aliases as $i=>& $alias)
         {
             // Vérifie que l'alias a un nom
             $name=trim(Utils::ConvertString($alias->name, 'alphanum'));
@@ -698,9 +829,10 @@ class DatabaseStructure
             unset($index);
         }
         unset($alias);
+
         
         // Vérifie la liste des clés de tri
-        foreach($def->sortkeys as $i=>& $sortkey)
+        foreach($this->sortkeys as $i=>& $sortkey)
         {
             // Vérifie que la clé a un nom
             $name=trim(Utils::ConvertString($sortkey->name, 'alphanum'));
@@ -718,9 +850,25 @@ class DatabaseStructure
             else foreach ($sortkey->fields as $j=>&$field)
             {
                 // Vérifie que le champ indiqué existe
-                $name=trim(Utils::ConvertString($field->name, 'alphanum'));
-                if (!isset($fields[$name]))
-                    $errors[]="Nom de champ inconnu dans la clé de tri #$i : '$name'";
+                $fieldnames=str_word_count(Utils::ConvertString($field->name, 'alphanum'), 1);
+                if (count($fieldnames)===0)
+                    $errors[]="Aucun champ indiqué dans la clé de tri #$i : '$name'";
+                else
+                {
+                    foreach($fieldnames as $fieldname)
+                    {
+                        if (!isset($fields[$fieldname]))
+                            $errors[]="Nom de champ inconnu dans la clé de tri #$i : '$fieldname'";
+                        
+                    }
+                }
+                
+                // Ajuste start et end
+                $this->startEnd($field, $errors, "Champ #$j de la clé de tri #$i : ");
+                $field->length=(int)$field->length;
+                if ($field->length === 0) $field->length=null;
+                if (count($sortkey->fields)>1 && $j<count($sortkey->fields)-1 && empty($field->length))
+                    $errors[]="Vous devez indiquer une longueur pour le champ #$i : '$fieldname' de la clé de tri '$name'";
             }
             unset($field);
         }
@@ -740,15 +888,51 @@ class DatabaseStructure
      * @param string & $stopwords
      * @return void
      */
-    private function stopwords(& $stopwords)
+    private static function stopwords(& $stopwords)
     {
-        // todo: convertir en caractères minuscules non accentués
         $t=preg_split('~\s~', $stopwords, -1, PREG_SPLIT_NO_EMPTY);
         sort($t);
         $stopwords=implode(' ', $t);    
     }
     
-
+    /**
+     * Fonction utilitaire utilisée par {@link validate()} pour ajuster les 
+     * propriétés start et end d'un objet
+     *
+     * @param StdClass $object
+     */
+    private function startEnd($object, & $errors, $label)
+    {
+        // Convertit en entier les chaines qui représentent des entiers, en null les chaines vides
+        foreach (array('start','end') as $prop)
+        {
+            if (is_string($object->$prop))
+            {
+                if ($object->$prop==='') // pas de trim, on peut vouloir dire "à l'espace"
+                    $object->$prop=null;
+                elseif (ctype_digit(trim($object->$prop))) // entier sous forme de chaine
+                    $object->$prop=(int)$object->$prop;
+            }
+        }
+        
+        // Si start et end sont des indices, vérifie que end > start
+        if (
+            is_int($object->start) && 
+            is_int($object->end) && 
+            (($object->start>0 && $object->end>0) || ($object->start<0 && $object->end<0)) &&  
+            ($object->start > $object->end))
+            $errors[]=$label . 'end doit être strictement supérieur à start';
+            
+        // Si start vaut 0, met null
+        if (is_int($object->start))
+            $object->start=null;
+            
+        // End ne peut pas être à zéro 
+        if ($object->end===0)
+            $errors[]=$label . 'end ne peut pas être à zéro';
+                    
+    }
+    
     /**
      * Fusionne des objets ou des tableaux ensembles.
      * 
@@ -790,8 +974,8 @@ class DatabaseStructure
      * @param mixed $b
      * @return mixed
      */
-    // TODO : not used here, à transférer dans Utils ?
-    public static function merge($a, $b /* ... */)
+    /*
+    public static function merge($a, $b) // $c, $d, etc.
     {
         $asObject=is_object($a);
         
@@ -813,110 +997,149 @@ class DatabaseStructure
         }
         return $asObject ? (object)$a : $a;
     }
-
-
-    // TODO: doc à faire
+    */
+    
+    /**
+     * Crée toutes les propriétés qui existent dans le dtd mais qui n'existe
+     * pas encore dans l'obet. 
+     *
+     * @param objetc $object
+     * @param array $dtd
+     * @return $object
+     */
     public static function defaults($object, $dtd)
     {
         foreach ($dtd as $prop=>$value)
         {
-            if (! property_exists($object, $prop)) 
-                $object->$prop=(is_array($value) ? array() : $value);
+            if (! property_exists($object, $prop))
+            { 
+                if (is_array($value))
+                {
+                    if (count($value)===1 && is_array(reset($value)))
+                        $object->$prop= array();
+                    else
+                    {
+                        $object->$prop= self::defaults(new StdClass(), $dtd[$prop]);
+                    }
+                }
+                else
+                {
+                    $object->$prop=$value;
+                }
+            }
             elseif (is_array($object->$prop))
             {
                 foreach ($object->$prop as $i=>&$item)
-                    $item=self::defaults($item, $value);
+                    $item=self::defaults($item, $value[key($value)]);
                 unset($item);
             }
         }
         return $object;
     }
-    
+
     /**
-     * Complète la structure en cours pour
+     * Compile la structure de base de données en cours.
      * 
-     * Pour chaque champ :
-     * - attribue un identifiant unique (field->id) pour les champs qui n'en 
-     * ont pas encore. Actuellement, cet identifiant est un simple numéro, mais
-     * c'est susceptible de changer. Remarque : les numéros ne sont pas 
-     * obligatoirement consécutifs (par exemple si on a supprimé un champ, son 
-     * ID ne sera pas réutilisé). 
+     * - Indexation des objets de la base par nom :
+     * Dans une structure non compilée, les clés de tous les tableaux 
+     * (db.fields, db.indices, db.indices[x].fields, etc.) sont de simples
+     * numéros. Dans une structure compilée, les clés sont la version 
+     * minusculisée et sans accents du nom de l'item (la propriété name de 
+     * l'objet)
      * 
-     * Pour chaque index :
-     * - attribue un identifiant unique (index->id) si l'index n'en a pas encore.
-     * Cet identifiant correspond au préfixe qui sera ajouté aux tokens lors de 
-     * l'indexation du champ. Actuellement, il s'agit d'un numéro entier suivi
-     * du caractère ':', mais c'est susceptible de changer. 
-     * - traduit les propriétés 'type' et 'count' de l'index (string) en entier
-     * (typeAsInt)
-     *  
-     * Pour chaque table des entrées :
-     * - attribue un identifiant unique (entry->id) si la table n'en a pas encore.
-     * Cet identifiant correspond au préfixe qui sera ajouté aux entrées 
-     * composant la table lors de l'indexation du champ. Actuellement, il s'agit
-     * de la lettre 'T' suivie d'un numéro entier puis du caractère ':'.
+     * - Attribution d'un ID unique à chacun des objets de la base :
+     * Pour chaque objet (champ, index, alias, table de lookup, clé de tri), 
+     * attribution d'un numéro unique qui n'ait jamais été utilisé auparavant
+     * (utilisation de db.lastId, coir ci-dessous).
+     * Remarque : actuellement, un ID est un simple numéro commencant à 1, quel 
+     * que soit le type d'objet. Les numéros sont attribués de manière consécutive,
+     * mais rien ne garantit que la structure finale a des numéros consécutifs
+     * (par exemple, si on a supprimé un champ, il y aura un "trou" dans les
+     * id des champs, et l'ID du champ supprimé ne sera jamais réutilisé).   
      * 
-     * La fonction crée également les propriétés suivantes :
+     * - Création/mise à jour de db._lastid
+     * Création si elle n'existe pas encore ou mise à jour dans le cas 
+     * contraire de la propriété db.lastId. Il s'agit d'un objet ajouté comme
+     * propriété de la base elle même. Chacune des propriétés de cet objet 
+     * est un entier qui indique le dernier ID attribué pour un type d'objet 
+     * particulier. Actuellement, les propriétés de cet objet sont : lastId.field, 
+     * lastId.index, lastId.alias, lastId.lookuptable et lastId.sortkey'.
      * 
-     * - fieldById : un tableau qui pour un champ dont on connaît l'identifiant
-     * donne le nom du champ tel que défini par l'utilisateur. Ce tableau garde
-     * la trace de tous les identifiants qui ont un jour été utilisés. Si on
-     * supprime un champ de la base, le champ est supprimé mais son identifiant 
-     * reste dans le tableau. Si on crée ensuite un nouveau champ on utilisera 
-     * le tableau pour attribuer un identifiant dont on est certain qu'il n'a 
-     * jamais été utilisé. Dans le tableau, la valeur associée à un identifiant
-     * qui n'est plus utilisé est une chaine vide.
+     * - Création d'une propriété de type entier pour les propriétés ayant une
+     * valeur exprimée sous forme de chaine de caractères :
+     * field.type ('text', 'int'...) -> field._type (1, 2...)
+     * index.type ('none', 'word'...) -> index._type
      * 
-     * fieldByName ?
+     * - Conversion en entier si possible des propriétés 'start' et 'end'
+     * objets concernés : index.field, lookuptable.field, sortkey.field
+     * Si la chaine de caractères représente un entier, conversion sous forme
+     * d'entier, sinon on conserve sous forme de chaine (permet des tests 
+     * rapides du style is_int() ou is_string())
      * 
-     * - indexByName : un tableau qui pour un index ou un alias dont on connaît
-     * le nom tel que défini par l'utilisateur indique l'identifiant du ou des
-     * index correspondant. Pour chaque élément du tableau, s'il s'agit d'un 
-     * index simple, la valeur contient directement l'identifiant, dans le cas 
-     * contraire (un alias), la valeur est un tableau listant les identifiants 
-     * de chacun des index de cet alias.
-     * Ce tableau est notamment utilisé lors d'une recherche pour traduire les 
-     * noms d'index indiqués par l'utilisateur en préfixes (aut=ménard -> 8:menard) 
-     * 
-     * indexById ?
-     * 
-     * - entryByName : un tableau qui pour une table des entrées dont on connaît
-     * le nom tel que définit par l'utilisateur indique l'identifiant 
-     * correspondant.
-     * 
-     * entryById ?
+     * - Indexation pour accès rapide des mots-vides
+     * db.stopwords, field.stopwords : _stopwords[] = tableau indexé par mot
+     * (permet de faire isset(stopwords[mot]))
      */
     public function compile()
     {
-
-/*
-champs à ajouter dans la structure :
-db.lastFieldId  
-db.lastIndexId
-
-field.id
-*/        
-        // Raccourci pour éviter de taper $this->def à chaque fois 
-        $def=& $this->def;
-
-        // Réinitialise les valeurs de fieldById (mais garde les clés) pour éliminer les champ supprimés
-        $def->fieldById=array_fill_keys(array_keys($def->fieldById), null);
-        
-        foreach($def->field as & $field)
+        // Indexe tous les tableaux par nom
+        self::compileArrays($this);
+     
+        // Attribue un ID à tous les éléments des tableaux de premier niveau
+        foreach($this as $prop=>$value)
         {
-            // Si le champ n'a pas encore d'identifiant, on lui en attribue un
-            if (! $field->id)    
-                $field->id=$def->lastFieldId++;
-            
-            // S'il s'agit d'un nouveau champ ou si son nom a changé, met à jour fieldById
-            $def->fieldById[$id]=$field->name;
-            
-            foreach($field->index as $index)
+            if (is_array($value) && count($value))
             {
-                // Si l'index n'a pas encore d'identifiant, on lui en attribue un
-                if (! $index->id)
-                    $index->id=$def->lastIndexId++;
-                    
+                foreach($value as $item)
+                {
+                    if (empty($item->_id))
+                    {
+                        $type=key(self::$dtd['database'][$prop]);
+                        $item->_id = ++$this->_lastid->$type;
+                    }
+                }
+            }
+        }
+        
+        // Types des champs
+        foreach($this->fields as $field)
+        {
+            switch(strtolower(trim($field->type)))
+            {
+                case 'autonumber': $field->_type=self::FIELD_AUTONUMBER;    break;
+                case 'bool':       $field->_type=self::FIELD_BOOL;          break;
+                case 'int':        $field->_type=self::FIELD_INT;           break;
+                case 'text':       $field->_type=self::FIELD_TEXT;          break;
+                default:
+                    throw new Exception('Type de champ incorrect, aurait dû être détecté avant : ' . $field->type);
+            }
+        }
+    }
+
+
+    /**
+     * Fonction utilitaire utilisée par {@link compile()}.
+     * 
+     * Compile les propriétés de type tableaux présentes dans l'objet passé en 
+     * paramètre (remplace les clés du tableau par la version minu du nom de 
+     * l'élément)
+     *
+     * @param StdClass $object
+     */
+    private static function compileArrays($object)
+    {
+        foreach($object as $prop=>& $value)
+        {
+            if (is_array($value) && count($value))
+            {
+                $result=array();
+                foreach($value as $item)
+                {
+                    $name=trim(Utils::ConvertString($item->name, 'alphanum'));
+                    self::compileArrays($item);
+                    $result[$name]=$item;
+                }
+                $value=$result;
             }
         }
     }
