@@ -817,7 +817,7 @@ class XapianDatabaseDriver2 extends Database
         echo 'Equation originale : ', var_export($equation,true), '<br />';
         $equation=preg_replace_callback('~(?:[a-z0-9]\.){2,9}~i', array($this, 'AcronymToTerm'), $equation); // sigles à traiter, xapian ne le fait pas s'ils sont en minu (a.e.d.)
         $equation=Utils::convertString($equation, 'queryparser');
-        $equation=preg_replace(array('~\bet\b~','~\bou\b~','~\bsauf\b~',), array('AND', 'OR', 'AND NOT'), $equation);
+        $equation=preg_replace(array('~\bet\b~','~\bou\b~','~\bsauf\b~','~\bbut\b~'), array('AND', 'OR', 'NOT', 'NOT'), $equation);
         //$equation=str_replace(array('[', ']'), array('"_','_"'), $equation);
         
         $equation=preg_replace_callback('~\[(.*?)\]~', array($this,'searchByValueCallback'), $equation);
