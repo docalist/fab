@@ -866,7 +866,6 @@ class DatabaseStructure
                 // Ajuste start et end
                 $this->startEnd($field, $errors, "Champ #$j de la clé de tri #$i : ");
                 $field->length=(int)$field->length;
-                if ($field->length === 0) $field->length=null;
                 if (count($sortkey->fields)>1 && $j<count($sortkey->fields)-1 && empty($field->length))
                     $errors[]="Vous devez indiquer une longueur pour le champ #$i : '$fieldname' de la clé de tri '$name'";
             }
