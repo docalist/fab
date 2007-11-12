@@ -173,6 +173,7 @@ class XapianDatabaseDriver2 extends Database
         $this->xapianDatabase->set_metadata('fab_structure_php', serialize($structure));
 
         // Initialise les propriétés de l'objet
+        $this->structure=$structure;
         $this->initDatabase(true);
     }
 
@@ -1518,7 +1519,7 @@ class XapianDatabaseRecord2 extends DatabaseRecord
      * 
      * @param Array $fields la liste des champs de la base
      */
-    public function __construct(& $fields, StdClass $structure)
+    public function __construct(& $fields, DatabaseStructure $structure)
     {
         $this->fields= & $fields;
         $this->structure= $structure;
