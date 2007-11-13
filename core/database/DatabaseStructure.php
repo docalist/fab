@@ -850,7 +850,7 @@ class DatabaseStructure
             else foreach ($sortkey->fields as $j=>&$field)
             {
                 // Vérifie que le champ indiqué existe
-                $fieldnames=str_word_count(Utils::ConvertString($field->name, 'alphanum'), 1);
+                $fieldnames=str_word_count(Utils::ConvertString($field->name, 'alphanum'), 1, '0123456789');
                 if (count($fieldnames)===0)
                     $errors[]="Aucun champ indiqué dans la clé de tri #$i : '$name'";
                 else
@@ -1187,4 +1187,13 @@ class DatabaseStructureXmlNodeException extends DatabaseStructureXmlException
         parent::__construct(sprintf('Erreur dans le fichier xml pour ' . $path . ' : %s', $message));
     }
 }
+
+//$dbs=new DatabaseStructure();
+//$dbs->indexstopwords='fhdsjkhfdsk';
+//$dbs->fields[]=new stdClass();
+//
+//var_export($dbs->validate());
+//die();
+
+
 ?>
