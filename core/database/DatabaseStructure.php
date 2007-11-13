@@ -181,9 +181,9 @@ class DatabaseStructure
      * <li>d'une chaine de caractères contenant le source JSON décrivant la base</li>
      *
      * @param mixed $def 
-     * @throws Exception si le type de l'argument passé en paramètre ne peut pas
-     * être déterminé ou si la définition a des erreurs fatales (par exemple un
-     * fichier xml mal formé)
+     * @throws DatabaseStructureException si le type de l'argument passé en 
+     * paramètre ne peut pas être déterminé ou si la définition a des erreurs 
+     * fatales (par exemple un fichier xml mal formé)
      */
     public function __construct($def=null)
     {
@@ -212,7 +212,7 @@ class DatabaseStructure
                     break;
                     
                 default:
-                    throw new Exception('Impossible de déterminer le type de la structure passée en paramètre');
+                    throw new DatabaseStructureException('Impossible de déterminer le type de la structure de base de données passée en paramètre');
             }
         }
 
@@ -271,7 +271,7 @@ class DatabaseStructure
             foreach (libxml_get_errors() as $error)
                 $h.= "- ligne $error->line : $error->message<br />\n";
             libxml_clear_errors(); // libère la mémoire utilisée par les erreurs
-            throw new Exception($h);
+            throw new DatabaseStructureXmlException($h);
         }
 
         // Convertit la structure xml en objet
@@ -292,18 +292,18 @@ class DatabaseStructure
      * @param DOMNode $node le noeud xml à convertir
      * @param array $dtd un tableau indiquant les noeuds et attributs autorisés
      * @return StdClass
-     * @throws Exception si le source xml contient des attributs ou des tags
-     * non autorisés
+     * @throws DatabaseStructureXmlNodeException si le source xml contient des 
+     * attributs ou des tags non autorisés
      */
     private static function xmlToObject(DOMNode $node, array $dtd)
     {
         // Vérifie que le nom du noeud correspond au tag attendu tel qu'indiqué par le dtd
         if (count($dtd)>1)
-            throw new Exception('DTD invalide : le tableau doit contenir un seul élément');
+            throw new LogicException('DTD invalide : le tableau doit contenir un seul élément');
         reset($dtd);
         $tag=key($dtd);
         if ($node->tagName !== $tag)
-            throw new Exception("Elément '$tag' attendu (trouvé : '$node->tagName')");
+            throw new DatabaseStructureXmlNodeException($node, "élément non autorisé, '$tag' attendu");
         $dtd=array_pop($dtd);
                     
         // Crée un nouvel objet contenant les propriétés par défaut indiquées dans le dtd
@@ -319,14 +319,14 @@ class DatabaseStructure
                 
                 // Vérifie que c'est un élément autorisé
                 if (! array_key_exists($name, $dtd))
-                    throw new Exception("La propriété $node->tagName.$name n'existe pas");
+                    throw new DatabaseStructureXmlNodeException($node, "l'attribut '$name' n'est pas autorisé");
                     
                 // Si la propriété est un objet, elle ne peut pas être définie sous forme d'attribut
                 if (is_array($dtd[$name]))
-                    throw new Exception("La propriété $node->tagName.$name doit être indiquée comme élément, pas comme attribut");
+                    throw new DatabaseStructureXmlNodeException($node, "'$name' n'est pas autorisé comme attribut, seulement comme élément fils");
                     
                 // Définit la propriété
-                $result->$name=self::xmlToValue(utf8_decode($attribute->nodeValue), $name, $dtd[$name]);
+                $result->$name=self::xmlToValue(utf8_decode($attribute->nodeValue), $attribute, $dtd[$name]);
             }
         }
         
@@ -341,16 +341,16 @@ class DatabaseStructure
                     
                     // Vérifie que c'est un élément autorisé
                     if (! array_key_exists($name, $dtd))
-                        throw new Exception("La propriété $node->tagName.$name n'existe pas");
+                        throw new DatabaseStructureXmlNodeException($node, "l'élément '$name' n'est pas autorisé");
                         
                     // Vérifie qu'on n'a pas à la fois un attribut et un élément de même nom (<database label="xxx"><label>yyy...)
                     if ($node->hasAttribute($name))
-                        throw new Exception("La propriété $node->tagName.$name est définie à la fois comme attribut et comme tag");
+                        throw new DatabaseStructureXmlNodeException($node, "'$name' apparaît à la fois comme attribut et comme élément");
 
                     // Cas d'une propriété simple (scalaire)
                     if (! is_array($dtd[$name]))
                     {
-                        $result->$name=self::xmlToValue(utf8_decode($child->nodeValue), $name, $dtd[$name]); // si plusieurs fois le même tag, c'est le dernier qui gagne
+                        $result->$name=self::xmlToValue(utf8_decode($child->nodeValue), $child, $dtd[$name]); // si plusieurs fois le même tag, c'est le dernier qui gagne
                     }
                     
                     // Cas d'un tableau
@@ -377,7 +377,7 @@ class DatabaseStructure
                     
                 // Types de noeud interdits
                 default:
-                    throw new Exception('Type de noeud interdit dans un tag '.$node->tagName);
+                    throw new DatabaseStructureXmlNodeException($node, "les noeuds de type '".$child->nodeName . "' ne sont pas autorisés");
             }
         }
         return $result;
@@ -395,19 +395,19 @@ class DatabaseStructure
      * @param scalar $value
      * @return string
      */
-    private static function xmlToValue($xml, $name, $dtdValue)
+    private static function xmlToValue($xml, DOMNode $node, $dtdValue)
     {
         if (is_bool($dtdValue)) 
         {
             if($xml==='true') return true;
             if($xml==='false') return false;
-            throw new Exception("Valeur incorrecte pour la propriété $name : $xml, booléen attendu");
+            throw new DatabaseStructureXmlNodeException($node, 'booléen attendu');
         }
         
         if (is_int($dtdValue))
         {
             if (! ctype_digit($xml))
-                throw new Exception("Valeur incorrecte pour la propriété $name : $xml, entier attendu");
+                throw new DatabaseStructureXmlNodeException($node, 'entier attendu');
             return (int) $xml;
         }
         return $xml;
@@ -442,7 +442,7 @@ class DatabaseStructure
     {
         // Extrait du DTD le nom du tag à générer
         if (count($dtd)>1)
-            throw new Exception('DTD invalide : le tableau doit contenir un seul élément');
+            throw new LogicException('DTD invalide : le tableau doit contenir un seul élément');
         reset($dtd);
         $tag=key($dtd);
         $dtd=array_pop($dtd);
@@ -641,7 +641,7 @@ class DatabaseStructure
             echo ']';
             return;
         }
-        throw new Exception(__CLASS__ . '::'.__METHOD__.' : type non géré : '.var_export($o,true));
+        throw new LogicException(__CLASS__ . '::'.__METHOD__.' : type non géré : '.var_export($o,true));
     }
 
     private static function boolean($x)
@@ -1110,7 +1110,7 @@ class DatabaseStructure
                 case 'int':        $field->_type=self::FIELD_INT;           break;
                 case 'text':       $field->_type=self::FIELD_TEXT;          break;
                 default:
-                    throw new Exception('Type de champ incorrect, aurait dû être détecté avant : ' . $field->type);
+                    throw new LogicException('Type de champ incorrect, aurait dû être détecté avant : ' . $field->type);
             }
         }
     }
@@ -1141,6 +1141,50 @@ class DatabaseStructure
                 $value=$result;
             }
         }
+    }
+}
+
+/**
+ * Exception générique générée par {@link DatabaseStructure}
+ * 
+ * @package     fab
+ * @subpackage  database
+ */
+class DatabaseStructureException extends RuntimeException { };
+
+/**
+ * Exception générée lorsqu'un fichier xml représentant une structure de base
+ * de données contient des erreurs
+ * 
+ * @package     fab
+ * @subpackage  database
+ */
+class DatabaseStructureXmlException extends DatabaseStructureException { };
+
+/**
+ * Exception générée lorsqu'un fichier xml représentant une structure de base
+ * de données contient un noeud incorrect
+ * 
+ * @package     fab
+ * @subpackage  database
+ */
+class DatabaseStructureXmlNodeException extends DatabaseStructureXmlException
+{
+    public function __construct(DOMNode $node, $message)
+    {
+        $path='';
+            
+        while ($node)
+        {
+            if ($node instanceof DOMDocument) break;
+            if ($node->hasAttributes() && $node->hasAttribute('name')) 
+                $name='("'.$node->getAttribute('name').'")';
+            else
+                $name='';
+            $path='/' . $node->nodeName . $name . $path;
+            $node = $node->parentNode;
+        }
+        parent::__construct(sprintf('Erreur dans le fichier xml pour ' . $path . ' : %s', $message));
     }
 }
 ?>
