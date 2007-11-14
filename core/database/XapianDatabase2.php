@@ -132,6 +132,10 @@ class XapianDatabaseDriver2 extends Database
      */
     public $xapianMSet=null; // la sélection
 
+    public function getStructure()
+    {
+        return $this->structure;
+    }
     
     /**
      * L'objet XapianMSetIterator permettant de parcourir les réponses obtenues
@@ -573,11 +577,11 @@ class XapianDatabaseDriver2 extends Database
             $prefix=$index->_id.':';
             
             // Pour chaque champ de l'index, on ajoute les tokens du champ dans l'index
-            foreach ($index->fields as $field)
+            foreach ($index->fields as $name=>$field)
             {
                 // Traite tous les champs comme des champs articles
                 $data=(array) $this->fields[$name];
-                
+
                 // Initialise la liste des mots-vides à utiliser
                 $stopwords=$this->structure->fields[$name]->_stopwords;
 
@@ -587,12 +591,12 @@ class XapianDatabaseDriver2 extends Database
                 {
                     // start et end
                     if ($value==='') continue;
-                    if (!is_null($field->start) || ! is_null($field->end))
+                    if ($field->start || $field->end)
                         if ('' === $value=$this->startEnd($value, $field->start, $field->end)) continue;
                     
                     // Compte le nombre de valeurs non nulles
                     $count++;
-                        
+
                     // Si c'est juste un index de type "count", on n'a rien d'autre à faire
                     if (! $field->words && ! $field->values) continue;
 
