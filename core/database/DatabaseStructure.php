@@ -117,6 +117,8 @@ class DatabaseStructure
                 (
                     '_id'=>0,            // Identifiant (numéro unique) de la table
                     'name'=>'',             // Nom de la table
+                    'label'=>'',            // Libellé de l'index
+                    'description'=>'',      // Description de l'index
                     'fields'=>array         // La liste des champs qui alimentent cette table
                     (
                         'field'=>array
@@ -135,6 +137,8 @@ class DatabaseStructure
                 (
                     '_id'=>0,            // Identifiant (numéro unique) de l'alias (non utilisé)
                     'name'=>'',             // Nom de l'alias
+                    'label'=>'',            // Libellé de l'index
+                    'description'=>'',      // Description de l'index
                     'indices'=>array        // La liste des index qui composent cet alias
                     (
                         'index'=>array
@@ -151,6 +155,8 @@ class DatabaseStructure
                 (
                     '_id'=>0,            // Identifiant (numéro unique) de la clé de tri
                     'name'=>'',             // Nom de la clé de tri
+                    'label'=>'',            // Libellé de l'index
+                    'description'=>'',      // Description de l'index
                     'fields'=>array         // La liste des champs qui composent cette clé de tri
                     (
                         'field'=>array
@@ -907,11 +913,11 @@ class DatabaseStructure
         {
             if (is_string($object->$prop))
             {
-                if ($object->$prop==='') // pas de trim, on peut vouloir dire "à l'espace"
-                    $object->$prop=null;
-                elseif (ctype_digit(trim($object->$prop))) // entier sous forme de chaine
+                if (ctype_digit(trim($object->$prop))) // entier sous forme de chaine
                     $object->$prop=(int)$object->$prop;
             }
+            elseif(is_null($object->$prop))
+                $object->$prop='';
         }
         
         // Si start et end sont des indices, vérifie que end > start
