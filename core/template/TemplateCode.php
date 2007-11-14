@@ -603,7 +603,7 @@ class TemplateCode
                 'strpos',
                 'urlencode',
                 'addslashes',
-                'var_export', 'print_r',
+                'var_export', 'print_r', 'var_dump',
                 'file_get_contents',
                 'count',
                 'is_null',
