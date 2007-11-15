@@ -1,0 +1,19 @@
+theme: default
+layout: default.htm
+
+title: Inspecteur de base de données
+
+CSS:
+JS:
+
+searchform:
+  template: searchform.html
+
+search:
+  template: search.html
+  max: 1
+  JS: 
+    - /fabweb/js/lib/jquery/jquery-1.2.1.min.js
+  CSS:
+    - /fabweb/styles/databaseinspector.css
+  

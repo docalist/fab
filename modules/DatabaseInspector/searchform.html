@@ -1,0 +1,24 @@
+<h1>{Config::get('title')} - Formulaire de recherche</h1>
+<form action="search" method="GET">
+    <hidden name="database" value="{config::get('database')}" />
+    
+    /* Liste des alias */
+    <loop on="{$this->selection->getStructure()->aliases}" as="$alias">
+        <div>
+            <label for="{$alias->name}" style="width: 10em; text-align: right; float: left;">{$alias->label:$alias->name}&#160;:&#160;</label>
+            <input type="text" class="text" name="{$alias->name}" id="{$alias->name}" size="40" title="{$alias->description}" />
+            <small>={implode('+', array_keys($alias->indices))}</small>
+        </div>
+    </loop>
+    <br />
+    /* Liste des index de base */
+
+    <loop on="{$this->selection->getStructure()->indices}" as="$index">
+        <div>
+            <label for="{$index->name}" style="width: 10em; text-align: right; float: left;">{$index->label:$index->name}&#160;:&#160;</label>
+            <input type="text" class="text" name="{$index->name}" id="{$index->name}" size="40" title="{$index->description}" />
+            <small>{implode(', ', array_keys($index->fields))}</small>
+        </div>
+    </loop>
+    <submit label="Rechercher..." />
+</form>
