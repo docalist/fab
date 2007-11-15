@@ -564,9 +564,9 @@ class XapianDatabaseDriver extends Database
 
 //************************************
     
-    protected function doCreate($path, DatabaseStructure $structure, $options=null)
+    protected function doCreate($path, /* DS DatabaseStructure */$xml, $options=null)
     {
-        throw new Exception('doCreate : non implémenté, attendre XapianDatabase2');
+//        throw new Exception('doCreate : non implémenté, attendre XapianDatabase2');
     
         // Convertit la structure xml en tableau php
         $def=self::xmlToDef($xml);
