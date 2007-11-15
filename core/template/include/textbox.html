@@ -7,7 +7,7 @@
         class="textarea{rtrim(' '.$class)}"
         rows="{$rows:3}"
         cols="$cols"
-        id="{$label ? lastId() : ''}">{select('string(@value)')}{select('./node()')}{select('@*')}</textarea>
+        id="{$label ? lastId() : $id}">{select('string(@value)')}{select('./node()')}{select('@*')}</textarea>
 </template>
 
 <!--textbox simple (input text)-->
@@ -19,5 +19,5 @@
         title="$label"
         value="{select('@value')}{select('.//node()')}"
         class="text{rtrim(' '.$class)}" 
-        id="{$label ? lastId() : ''}">{select('@*')}</input>
+        id="{$label ? lastId() : $id}">{select('@*')}</input>
 </template>
