@@ -1,9 +1,29 @@
 <h1>Gestion des bases de données</h1>
-<table>
+<loop on="$databases" as="$db">
+    <ul>
+        <li><strong>Nom : </strong>{$db->name}</li>
+        <opt><li><strong>Erreur : </strong>{$db->error}</li></opt>
+        <li><strong>Type : </strong>{$db->type}</li>
+        <li><strong>Path : </strong>{$db->path}</li>
+        <li><strong>Size formatté : </strong><span title="{number_format($db->size, 0, '', ' ')} octets">{Utils::formatSize($db->size)}</span></li>
+        <li><strong>Nombre total d'enregistrements : </strong>{number_format($db->count, 0, '', ' ')}</li>
+        <li><strong>Dernier numéro d'enregistrement utilisé : </strong>{number_format($db->lastDocId, 0, '', ' ')}</li>
+        <li><strong>Nombre moyen de tokens par enregistrement : </strong>{number_format($db->averageLength, 2, '.', ' ')}</li>
+        <li>+ has_positions() ?</li>
+        <li>+ has_spellings() ?</li>
+        <li>+ has_synonyms() ?</li>
+    </ul>
+    <hr />
+</loop>
+
+<hr />
+<table border="1" style="border-collapse: collapse">
     <tr>
         <th scope="col">Nom</th>
         <th scope="col">Type</th>
         <th scope="col">Path</th>
+        <th scope="col"></th>
+        <th scope="col"></th>
     </tr>
     
     <loop on="{Config::get('db')}" as="$name,$db">
@@ -11,9 +31,49 @@
             <td>$name</td>
             <td>{$db['type']}</td>
             <td>{$db['path']}</td>
+            <td><button title="Modifier la structure..."><img src="/fabweb/images/dblist/database_edit.png" alt="Modifier" /></button></td>
+            <td><button title="Enregistrer la structure comme modèle..."><img src="/fabweb/images/dblist/database_save.png" alt="Modèle" /></button></td>
+            <td><button title="Supprimer la base..."><img src="/fabweb/images/dblist/cancel.png" alt="-" /></button></td>
+            <td><button>Renommer la base...</button></td>
         </tr>    
     </loop>
 </table>
+<pre>
++consulter les index
++backup &amp; restore
++copier la base (structure uniquement, structure+documents, structure+documents+spelling+synonyms...)
+
+</pre>
 <form action="/DatabaseAdmin/newdatabase" method="get">
     <submit label="Créer une nouvelle base" />
+</form>
+
+<p style="margin: 3em;"><a href="EditStructure">Editeur de structure</a></p>
+
+<hr />
+<form action="/DatabaseAdmin/newdatabase" method="get" style="width: 30em;">
+    <fieldset label="Bases de données existantes">
+        <loop on="{Config::get('db')}" as="$name,$db">
+            <div>
+                <input type="radio" name="db" value="$name" id="$name" />
+                <label for="$name" title="{$db['path']}">$name</label>
+            </div>
+        </loop>
+    </fieldset>
+    <div class="buttons">
+    <submit label="Modifier la structure..." />
+    <submit label="Enregistrer comme modèle..." />
+    <submit label="Supprimer la base..." />
+    <submit label="Renommer la base..." />
+    </div>
+</form>
+
+<form action="NEWDB" style="margin-top: 3em;">
+    <fieldset label="Créer une nouvelle base">
+        <textbox name="name" label="Nom :"/>
+        <br />
+        <select label="à partir du modèle : " src="{array()}"/>
+        <br />
+        <submit label="Créer..." />
+    </fieldset>
 </form>
