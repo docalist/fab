@@ -405,6 +405,182 @@ class Module
     	Config::set('title', $title);
     }
     
+    private function formatDoc($doc)
+    {
+        $tag='description';
+        $data='';
+        $result=array();
+        foreach(explode("\n", $doc."\n@end end") as $line)
+        {
+            // Supprime les espaces, les slash et les '*' de début
+            $line=ltrim(rtrim($line), " /*\t");
+
+            // nouveau tag = fin de la description en cours
+            if (substr($line, 0, 1)==='@')
+            {
+                // Enregistre la description en cours
+                if ($data)
+                { 
+                        $result[$tag][]=$data;
+//                    if (!isset($result[$tag]))
+//                        $result[$tag]=$data;
+//                    elseif(is_array($result[$tag]))
+//                        $result[$tag][]=$data;
+//                    else
+//                        $result[$tag]=array($result[$tag], $data);
+                    $data='';
+                }
+
+                list($tag, $data)=explode(' ', substr($line,1), 2);
+                $data=ltrim($data);
+                switch($tag)
+                {
+                    case 'param':
+                        list($type, $param, $data)=explode(' ', $data,3);
+                        $data='<strong>'.$param.'</strong> ('.$type.') : ' . $data;
+                        $tag='Paramètres';
+                        break;
+                    case 'throws':
+                        list($type, $data)=explode(' ', $data,2);
+                        $data='<strong>Exception de type '.$type.'</strong> : ' . $data;
+                        $tag='Exceptions générées';
+                        break;
+                }
+            }
+            else
+            {
+                if ($data==='')
+                    $data=$line;
+                elseif ($line==='')
+                    $data .= "\n";
+                elseif (substr($data, -1)==="\n")
+                    $data .= $line;
+                else
+                    $data .= ' ' . $line;
+            }
+        }
+        
+        foreach(array('internal') as $tag)
+            if (isset($result[$tag])) unset($result['internal']);
+            
+        $h='';
+        foreach($result as $tag=>$description)
+        {
+//            if (count($description)===1)
+//                $h.='<p><strong>' . $tag . '</strong> : ' . str_replace("\n", '<br />', $description[0]) . '</p>';
+//            else
+            {
+                $h.='<p><strong>' . $tag . '</strong> :<ul>';
+                foreach($description as $item)
+                {
+                    $h.='<li>'. '<p>'.str_replace("\n", '</p><p>', $item).'</p>' . '</li>';
+                    
+                }
+                $h.='</ul></p>';
+            }
+        }
+        return $h;
+    }
+    
+    private function getRoutes($module, $action)
+    {
+        $t=array();
+        foreach(Config::get('routes') as $route)
+        {
+            if (! isset($route['args'])) continue;
+            
+            if (isset($route['args']['module']) && strcasecmp($route['args']['module'],$module)!==0) continue;
+            if (isset($route['args']['action']) && strcasecmp($route['args']['action'],$action)!==0) continue;
+            $t[]=$route['url'];
+        }
+        return $t;
+    }
+    
+    /**
+     * Affiche la documentation d'un module
+     * 
+     * Cette action construit la liste des actions disponibles au sein du 
+     * module (qu'il s'agisse d'actions spécifiques définies dans ce module ou
+     * d'actions héritées des modules ancêtres) et affiche pour chacune la
+     * documentation indiquée dans le code source du module sous forme de
+     * commentaires phpdoc.
+     * 
+     * @package fab
+     * @subpackage Modules
+     * 
+     * @param int ref numéro de la notice à afficher
+     * 
+     * Vous devez indiquer un numéro de notice existante
+     * 
+     * @param string title titre de la page
+     * 
+     * 
+     * peut être utile pour
+     * bla
+     * bla
+     * 
+     * @internal remarque technique n'intéressant que les développeurs.
+     * 
+     * @throws exception si ref est invalide ou non spécifié
+     * 
+     *
+     */
+    public function actionDoc()
+    {
+//        $className=get_class($this); // __CLASS__ ne marche pas : on obtient toujours 'module', pas la classe héritée
+//        $class=new ReflectionClass($className);
+        $class=new ReflectionObject($this);
+        echo '<h1>Documentation du module ', $class->getName(), '</h1>';
+        echo $this->formatDoc($class->getDocComment());
+        
+        //$aDocCommentLines = explode("\n", $sDocComment);
+
+        $parentClass=$class->getParentClass()->getName();
+        echo '<p>Hérite de <a href="../'.$parentClass.'/doc">', $parentClass, '</a></p>';
+        
+        echo '<h2>Liste des actions de ce module</h2>';
+        foreach($class->getMethods() as $method)
+        {
+            $name=$method->getName();
+            // Elimine les méthodes qui ne sont pas des actions
+            if (substr($name, 0, 6) !=='action') continue;
+            $name=substr($name, 6);
+//            if ($name!=='Doc') continue;
+            // Elimine les méthodes héritées
+//            if ($method->getDeclaringClass()->getName() !== $class->getName()) continue;
+            
+            echo '<hr /><h3>Action : ', $name, ' (module '.$method->getDeclaringClass()->getName().')</h3>';
+//            echo '<p>classe ', $method->getDeclaringClass()->getName(), '</p>';
+            echo $this->formatDoc($method->getDocComment()); 
+
+            if ($routes=$this->getRoutes($class->getName(), $name))
+                echo '<p><strong>Routes possibles</strong> : ', implode(', ', $routes);
+                
+            echo "<p><strong>Droits d'accès requis</strong> : ", Config::get(strtolower($name).'.access', Config::get('access', 'aucun')), '</p>';
+            
+            echo '<p><strong>config</strong> :</p>';
+            
+            $this->printConfig(Config::get(strtolower($name)));
+        }
+    }
+    
+    private function printConfig($config)
+    {
+        if (is_null($config)) return;
+        if (is_scalar($config))
+            echo $config;
+        else
+        {
+            echo '<ul>';
+            foreach($config as $key=>$config)
+            {
+                 echo '<li><strong>', $key, '</strong> : ';
+                 $this->printConfig($config);
+                 echo '</li>';
+            }
+            echo '</ul>';
+        }
+    }
 }
 
 ?>
