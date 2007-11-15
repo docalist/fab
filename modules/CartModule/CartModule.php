@@ -24,20 +24,33 @@ class CartModule extends Module
     public $hasCategory=null;
     
     /**
+     * @var boolean Indique si le panier a besoin ou non des quantités
+     */
+    public $hasQuantity=null;
+    
+    /**
      * Crée, ou charge s'il existe déjà, le panier indiqué dans la configuration.
      * Si aucun nom, le panier s'appelle cart.
      * Le panier sera automatiquement enregistré à la fin de la requête en cours.
      */
 	public function preExecute()
     {
+        //parent::preExecute();
         // Récupère le nom du panier
         $name=Config::get('name', 'cart');
+        
+        // Fab ouvre la session juste avant d'appeller l'action et donc à ce
+        // stade (preExecute), la session n'a pas encore été chargée. Comme
+        // On utilise des alias pour gérer le panier, il faut absolument qu'elle
+        // soit chargée, donc on le fait maintenant. 
+        Runtime::startSession();
         
         // Crée le panier s'il n'existe pas déjà dans la session
         if (!isset($_SESSION[$name])) 
         {
             $_SESSION[$name]=array();
             $_SESSION[$name.'hascategory']=null;
+            $_SESSION[$name.'hasquantity']=Config::get('quantity',false);            
         }
         
         // Crée une référence entre notre tableau cart et le tableau stocké 
@@ -45,6 +58,7 @@ class CartModule extends Module
         // et enregistré 
         $this->cart =& $_SESSION[$name];        
         $this->hasCategory=& $_SESSION[$name.'hascategory'];
+        $this->hasQuantity=& $_SESSION[$name.'hasquantity'];
 
 //        if (Utils::isAjax())
 //        {
@@ -110,6 +124,7 @@ class CartModule extends Module
 			$this->add($item, $quantity, $category);
 			$nb=1;
 		}
+		
 		if (Utils::isAjax())
         {
         	if ($nb===1)
@@ -119,6 +134,7 @@ class CartModule extends Module
             
             return;
         }
+        
 		// Détermine le callback à utiliser
 		// TODO : Vérifier que le callback existe
 		$callback=Config::get('callback');
@@ -227,7 +243,7 @@ class CartModule extends Module
 	 */
 	public function actionShow()
 	{
-		// Vérifie que la catégorie existe
+	    // Vérifie que la catégorie existe
         if ($category=Utils::get($_REQUEST['category']))
         {
         	if ($this->hasCategory)
@@ -286,18 +302,34 @@ class CartModule extends Module
 		// Ajoute l'item dans le panier
 		if (is_null($category))
         {
-            if (isset($this->cart[$item])) 
-                $this->cart[$item]+=$quantity; 
-            else      
-                $this->cart[$item]=$quantity; 
+            if ($this->hasQuantity)
+            {
+                if (isset($this->cart[$item])) 
+                    $this->cart[$item]+=$quantity; 
+                else      
+                    $this->cart[$item]=$quantity;
+            }
+            else
+            {
+                // On met la quantité à 1 quand le panier n'a pas besoin de quantité
+                $this->cart[$item]=1;
+            }
         }
         else
         {        
-            if (! isset($this->cart[$category]) || ! isset($this->cart[$category][$item]))
-                $this->cart[$category][$item]=$quantity;
+            if ($this->hasQuantity)
+            {
+                if (! isset($this->cart[$category]) || ! isset($this->cart[$category][$item]))
+                    $this->cart[$category][$item]=$quantity;
+                else
+                    $this->cart[$category][$item]+=$quantity;
+            }
             else
-                $this->cart[$category][$item]+=$quantity;
-        } 
+            {
+                // On met la quantité à 1 quand le panier n'a pas besoin de quantité
+                $this->cart[$category][$item]=1;
+            }
+        }
     }
     
      

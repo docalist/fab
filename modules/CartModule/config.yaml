@@ -3,14 +3,14 @@
 # Nom du panier
 #name:
 
-sessions:
-  use: true
-
 add:
   template: added.html
 
 remove:
   template: removed.html
 
+clear:
+  template: cleared.html
+
 show:
-  template: show.html 
+  template: show.html
