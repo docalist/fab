@@ -342,7 +342,8 @@ class DatabaseModule extends Module
         if ( ($newStart=$start+$max) <= $count)
         {
             $nextUrl=Routing::linkFor($url.'&_start='.$newStart);
-            if ($h) $h.=' ';
+            //if ($h) $h.=' ';
+            if ($start > 1 && $h) $h.='&nbsp;|&nbsp;';
             $h.='<a href="'.$nextUrl.'">'.$nextLabel.'</a>';
         }
 
@@ -1341,7 +1342,7 @@ class DatabaseModule extends Module
         {
             $zip=true;
             if (! class_exists('ZipArchive'))                   // zip demandé mais l'extension php_zip n'est pas chargée dans php.ini
-                throw new Exception("dmdmLa création de fichiers ZIP n'est pas possible sur ce serveur");
+                throw new Exception("La création de fichiers ZIP n'est pas possible sur ce serveur");
         }
     
         if ($showForm)
