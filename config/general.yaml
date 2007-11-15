@@ -61,7 +61,7 @@ templates:
   
   # liste des fichiers à inclure dans le source lors de la compilation d'un template
   autoinclude:
-     button: include/button.html
+#     button: include/button.html
      checkbox: include/checkbox.html
      checklist: include/checklist.html
      fieldset: include/fieldset.html
