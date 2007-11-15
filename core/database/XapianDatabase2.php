@@ -202,6 +202,8 @@ class XapianDatabaseDriver2 extends Database
             
         // Charge la structure de la base
         $this->structure=unserialize($this->xapianDatabase->get_metadata('fab_structure_php'));
+        if (! $this->structure instanceof DatabaseStructure)
+            throw new Exception("Impossible d'ouvrir la base, structure non gérée'");
         
         // Initialise les propriétés de l'objet
         $this->initDatabase($readOnly);
@@ -224,6 +226,12 @@ class XapianDatabaseDriver2 extends Database
         foreach($this->structure->fields as $name=>$field)
             $this->fieldById[$field->_id]=& $this->fields[$name];
 
+        foreach($this->structure->indices as $name=>&$index) // fixme:
+            $this->indexById[$index->_id]=& $index;
+
+        foreach($this->structure->lookuptables as $name=>&$lookuptable) // fixme:
+            $this->lookuptableById[$lookuptable->_id]=& $lookuptable;
+            
         // Les propriétés qui suivent ne sont initialisées que pour une base en lecture/écriture
 //        if ($readOnly) return;
         
@@ -526,15 +534,18 @@ class XapianDatabaseDriver2 extends Database
      */
     private function tokenize($text)
     {
-        static $charFroms = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZÀÁÂÃÄÅÆÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖØÙÚÛÜÝßàáâãäåæçèéêëìíîïðñòóôõöùúûüýþÿ';        
-        static $charTo    = '0123456789abcdefghijklmnopqrstuvwxyzaaaaaaaceeeeiiiidnooooo0uuuuysaaaaaaaceeeeiiiidnooooouuuuyby';
+        static $charFroms = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZÀÁÂÃÄÅŒÆÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖØÙÚÛÜÝßàáâãäåœæçèéêëìíîïðñòóôõöùúûüýþÿ-Þ\'';        
+        static $charTo    = '0123456789abcdefghijklmnopqrstuvwxyzaaaaaaœæceeeeiiiidnooooo0uuuuysaaaaaaœæceeeeiiiidnooooouuuuyby e ';
          
         // Convertit les sigles en mots
         $text=preg_replace_callback('~(?:[a-z0-9]\.){2,9}~i', array($this, 'AcronymToTerm'), $text);
         
-        // convertit le texte
+        // Convertit les caractères 
         $text=strtr($text, $charFroms, $charTo);
         
+        // Gère les lettres doubles
+        $text=strtr($text, array('æ'=>'ae', 'œ'=>'oe'));
+
         // Retourne un tableau contenant tous les mots présents
         return str_word_count($text, 1, '0123456789@');
     }
@@ -571,7 +582,7 @@ class XapianDatabaseDriver2 extends Database
 
         // Met à jour chacun des index
         $position=0;
-        foreach ($this->structure->indices as $name=>$index)
+        foreach ($this->structure->indices as $index)
         {
             // Détermine le préfixe à utiliser pour cet index
             $prefix=$index->_id.':';
@@ -603,7 +614,7 @@ class XapianDatabaseDriver2 extends Database
                     // Indexation au mot et à la phrase
                     $tokens=$this->tokenize($value);
                     foreach($tokens as $term)
-                    {
+                    { 
                         // Vérifie que la longueur du terme est dans les limites autorisées
                         if (strlen($term)<self::MIN_TERM or strlen($term)>self::MAX_TERM) continue;
                         
@@ -638,7 +649,7 @@ class XapianDatabaseDriver2 extends Database
                 
                 // Indexation empty/notempty
                 if ($field->count)
-                    $this->addTerm($count ? '@has'.$count : '@isempty', $prefix, false);
+                    $this->addTerm($count ? '__has'.$count : '__empty', $prefix, false);
             }                
         }
 
@@ -663,7 +674,7 @@ class XapianDatabaseDriver2 extends Database
                 {
                     // start et end
                     if ($value==='') continue;
-                    if (!is_null($field->start) || ! is_null($field->end))
+                    if ($field->start || $field->end)
                         if ('' === $value=$this->startEnd($value, $field->start, $field->end)) continue;
                     
                     // Si la valeur est trop longue, on l'ignore
@@ -701,13 +712,13 @@ class XapianDatabaseDriver2 extends Database
                 }
 
                 // start et end
-                if (!is_null($field->start) || ! is_null($field->end))
+                if ($field->start || $field->end)
                     $value=$this->startEnd($value, $field->start, $field->end);
                 
                 $value=implode(' ', $this->tokenize($value));
                 
                 // Ne prend que les length premiers caractères
-                if (! is_null($field->length))
+                if ($field->length)
                 {
                     if (strlen($value) > $field->length)
                         $value=substr($value, 0, $field->length);
@@ -801,6 +812,24 @@ class XapianDatabaseDriver2 extends Database
     }
     
     /**
+     * Traduit les opérateurs booléens français (et, ou, sauf) en opérateurs
+     * reconnus par xapian. 
+     *
+     * @param string $equation
+     * @return string
+     */
+    private static function frenchOperators($equation)
+    {
+        $t=explode('"', $equation);
+        foreach($t as $i=>&$h)
+        {
+            if ($i%2==1) continue;
+            $h=preg_replace(array('~\bet\b~','~\bou\b~','~\bsauf\b~','~\bbut\b~'), array('AND', 'OR', 'NOT', 'NOT'), $h);
+        }
+        return implode('"', $t);
+    }
+        
+    /**
      * Construit une requête xapian à partir d'une équation de recherche saisie
      * par l'utilisateur.
      * 
@@ -820,11 +849,11 @@ class XapianDatabaseDriver2 extends Database
         // Pré-traitement de la requête pour que xapian l'interprête comme on souhaite
         echo 'Equation originale : ', var_export($equation,true), '<br />';
         $equation=preg_replace_callback('~(?:[a-z0-9]\.){2,9}~i', array($this, 'AcronymToTerm'), $equation); // sigles à traiter, xapian ne le fait pas s'ils sont en minu (a.e.d.)
-        $equation=Utils::convertString($equation, 'queryparser');
-        $equation=preg_replace(array('~\bet\b~','~\bou\b~','~\bsauf\b~','~\bbut\b~'), array('AND', 'OR', 'NOT', 'NOT'), $equation);
+        $equation=Utils::convertString($equation, 'queryparser'); // FIXME: utiliser la même table que tokenize()
+        $equation=preg_replace_callback('~\[(.*?)\]~', array($this,'searchByValueCallback'), $equation);
+        $equation=self::frenchOperators($equation);
         //$equation=str_replace(array('[', ']'), array('"_','_"'), $equation);
         
-        $equation=preg_replace_callback('~\[(.*?)\]~', array($this,'searchByValueCallback'), $equation);
         echo 'Equation passée à xapian : ', var_export($equation,true), '<br />';
     
         // Construit la requête
@@ -1106,8 +1135,8 @@ class XapianDatabaseDriver2 extends Database
         if (is_null($this->xapianDocument))
             throw new Exception('Pas de document courant');
           
-        $indexName=array_flip($this->structure['index']);
-        $entryName=array_flip($this->structure['entries']);
+//        $indexName=array_flip($this->structure['index']);
+//        $entryName=array_flip($this->structure['entries']);
           
         $result=array();
         
@@ -1123,16 +1152,20 @@ class XapianDatabaseDriver2 extends Database
             }
             else
             {
-                $prefix=substr($term,0,$pt+1);
+                //print_r($this->lookuptableById);
+                //die();
+                $prefix=substr($term,0,$pt);
                 if($prefix[0]==='T')
                 {
-                    $kind='entries';
-                    $index=$entryName[$prefix];
+                    $kind='lookup';
+                    $prefix=substr($prefix, 1);
+                    $index=$this->lookuptableById[$prefix]->name; //$entryName[$prefix];
                 }
                 else
                 {
                     $kind='index';
-                    $index=$indexName[$prefix];
+//                    $index=$prefix; //$indexName[$prefix];
+                    $index=$this->indexById[$prefix]->name;
                 }
                 $term=substr($term,$pt+1);
             }
@@ -1145,7 +1178,7 @@ class XapianDatabaseDriver2 extends Database
                 $pos[]=$posBegin->get_termpos();
                 $posBegin->next();
             }
-            
+//            echo "kind=$kind, index=$index, term=$term<br />";
             $result[$kind][$index][$term]=array
             (
                 'freq'=>$begin->get_termfreq(),
@@ -1158,6 +1191,8 @@ class XapianDatabaseDriver2 extends Database
             //'freq='.$begin->get_termfreq(). ', wdf='. $begin->get_wdf();                
             $begin->next();
         }
+        foreach($result as &$t)
+            ksort($t);
         return $result;
     }
 
@@ -1372,8 +1407,11 @@ class XapianDatabaseDriver2 extends Database
             if ($count >= $max) break;
             $term=$begin->get_term();
             if (substr($term, 0, strlen($start))!=$start) break;
-            echo '<li>[', $term, '], freq=', $begin->get_termfreq(), '</li>', "\n";
-            $count++;            
+//            if(strlen($term)=='' || $term[0]!=='T' && trim(strtr($term, 'abcdefghijklmnopqrstuvwxyz0123456789_:', '                                      '))!=='')
+//            {
+                echo '<li>[', $term, '], len=', strlen($term), ', freq=', $begin->get_termfreq(), '</li>', "\n";
+                $count++;
+//            }            
             $begin->next();
         }
         echo '<strong>', $count, ' termes</strong>';
@@ -1490,7 +1528,6 @@ class XapianDatabaseDriver2 extends Database
         }
         return $equation;
     }
-    
     
 }
 
