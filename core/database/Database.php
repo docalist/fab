@@ -127,20 +127,16 @@ abstract class Database implements ArrayAccess, Iterator
      * options disponibles dépendent du backend utilisée. Chaque backend ignore
      * silencieusement les options qu'il ne reconnait pas ou ne sait pas gérer.
      */
-    final public static function create($database, DatabaseStructure $structure, $type=null, $options=null)
+    final public static function create($database, /* DS DatabaseStructure */ $structure, $type=null, $options=null)
     {
-        /*
-            DatabaseInterface
-            	|-> BisDatabase
-                |-> XapianDatabase
-                
-            DatabaseModule
-            	|-> Base
- 
-			$selection=Database::Create('ascodoc', $def);
-            
-         */
+/* DS
+        // Vérifie que la structure de la base de données est correcte
+        if (true !== $t=$structure->validate())
+            throw new Exception('La structure de base passée en paramètre contient des erreurs : ' . implode('<br />', $t));
 
+        // Compile la structure
+        $structure->compile();
+*/        
         // Utilise /config/db.yaml pour convertir l'alias en chemin et déterminer le type de base
 //        $type=Config::get("db.$database.type", $type);
 //        $database=Config::get("db.$database.path", $database);
@@ -183,12 +179,14 @@ abstract class Database implements ArrayAccess, Iterator
      * @param string $database alias ou path de la base de données à créer.
      * 
      * @param DatabaseStructure $structure définition de la structure de la base.
+     * Lorsque cette méthode est appellée, la structure a d'ores et déjà été 
+     * validée et compilée.
      * 
      * @param array $options tableau contenant des options supplémentaires. Les
      * options disponibles dépendent du backend utilisée. Chaque backend ignore
      * silencieusement les options qu'il ne reconnait pas ou ne sait pas gérer.
      */
-    abstract protected function doCreate($database, DatabaseStructure $structure, $options=null);
+    abstract protected function doCreate($database, /* DS DatabaseStructure */ $structure, $options=null);
     
 
     /**
@@ -197,7 +195,7 @@ abstract class Database implements ArrayAccess, Iterator
      * 
      * @param DatabaseStructure $newStructure la nouvelle structure de la base.
      */
-    public function changeStructure($newStructure)
+    public function changeStructure(DatabaseStructure $newStructure)
     {
         
     }
