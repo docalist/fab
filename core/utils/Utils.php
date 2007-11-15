@@ -395,15 +395,15 @@ final class Utils
                     /* D0 */    'dnooooo 0uuuuy s'.
                     /* E0 */    'aaaaaaaceeeeiiii'.
                     /* F0 */    'dnooooo  uuuuyby',
-
+     
                 'queryparser'=>
                     /*           0123456789ABCDEF*/
                     /* 00 */    '                '.
                     /* 10 */    '     §          '.
-                    /* 20 */    '  "     ()*+ -  '.
-                    /* 30 */    '0123456789:  =  '.
+                    /* 20 */    '  "     ()*+ -. '.
+                    /* 30 */    '0123456789:  :  '.
                     /* 40 */    '@abcdefghijklmno'.
-                    /* 50 */    'pqrstuvwxyz[ ]  '.
+                    /* 50 */    'pqrstuvwxyz[ ] _'.
                     /* 60 */    ' abcdefghijklmno'.
                     /* 70 */    'pqrstuvwxyz     '.
                     /* 80 */    '                '.
