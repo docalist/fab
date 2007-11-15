@@ -5,7 +5,7 @@
     /* S'il s'agit d'un panier ayant des catégories, on affiche la liste, puis les items */
     <if test="{$this->hasCategory}">
     
-        /* Aucune catégorie indiquée : affiche la liste des categories sous forme de lien */
+        /* Aucune catégorie indiquée : affiche la liste des catégories sous forme de lien */
         <if test="{is_null($category)}">
             <h1>Catégories présentes dans votre panier</h1>
             <ul>
@@ -24,7 +24,7 @@
                     <li>$item ($quantity) <a href="remove?category=$category&amp;item=$item">supprimer</a></li>
                 </loop>
             </ul>
-            <a href="show">Retour à la liste des categories</a>
+            <a href="show">Retour à la liste des catégories</a>
             <a href="clear?category=$category">Vider cette partie du panier (tous les items de cette catégorie et la catégorie elle même)</a>
         </else>
     </if>
