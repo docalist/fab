@@ -600,7 +600,7 @@ class TemplateCode
                 'substr','str_replace','str_repeat','strtr',
                 'strtoupper',
                 'implode','explode',
-                'strpos',
+                'strpos', 'strlen', 'gettype',
                 'urlencode',
                 'addslashes',
                 'var_export', 'print_r', 'var_dump',
