@@ -1,0 +1,296 @@
+<template match="//select[@src]" name="" label="" src="" class="" size="" sep="" id="">
+    <label test="$label" class="select{$size ? rtrim(' multiline '.$class) : rtrim(' '.$class)}" for="{autoId($id:$name:'select')}">$label</label>
+        <select
+            name="$name"
+            size="$size"
+            class="select{$size ? rtrim(' multiline '.$class) : rtrim(' '.$class)}"
+            id="{$label ? lastId() : $id}">{select('@*')}{select('./node()')}
+            <loop on="$src" as="$line, $record">
+                <if test="{is_array($record)}">
+                    <option value="{$record['code'] === $record['label'] ? '' : $record['code']}">{$record['label']}</option>
+                </if>
+                <else>
+                    <option>$record</option>
+                </else>
+            </loop>
+        </select>
+</template>
+<h1 style="font-size: 1.1em; text-align: center;">$title</h1>
+<div id="DbEditor">
+    <ul style="display: none">
+        <li><a href="#tab_db"><span>Propriétés de la base</span></a></li>
+        <li><a href="#tab_fields"><span>Liste des champs</span></a></li>
+        <li><a href="#tab_alias"><span>Alias</span></a></li>
+        <li><a href="dbedit.js"><span>Aide</span></a></li>
+    </ul>
+    
+    <fieldset id="tab_db">
+        <legend>Propriétés de la base</legend>
+        
+        <textbox id="db_label" size="80" class="fullwidth" label="Libellé :" /><br />
+        <textbox id="db_description" class="fullwidth" rows="2" cols="80" label="Description :" /><br />
+        <textbox id="db_stopwords" class="fullwidth" rows="5" cols="80" label="Mots vides :" /><br />
+        <checkbox id="db_indexstopwords" label="Indexer les mots vides" style="margin-left: 7em" />
+    </fieldset>
+    
+    <fieldset id="tab_fields">
+        <legend>Liste des champs</legend>
+
+        <div style="width: 14em; float: left;">
+            <select id="db_fields" size="11" style="width: 100%;" />
+            <div id="buttons" style="text-align: center;">
+                <button class="addoption" title="Ajouter un champ"><img src="/fabweb/images/dbedit/application_form_add.png" alt="+" /></button>
+                <button class="deleteoption" title="Supprimer le champ sélectionné"><img src="/fabweb/images/dbedit/application_form_delete.png" alt="-" /></button>
+                <button class="moveup" title="Monter le champ"><img src="/fabweb/images/dbedit/arrow_up.png" alt="&#8593;" /></button>
+                <button class="movedown" title="Descendre le champ"><img src="/fabweb/images/dbedit/arrow_down.png" alt="&#8595;" /></button>
+            </div>
+        </div>
+
+        <div style="margin-left: 15em;">
+            <div id="db_fields_rightpanel">
+                <fieldset>
+                    <legend>Propriétés du champ</legend>
+
+                    <textbox id="db_fields_name" size="50" class="fullwidth" onkeyup="Editor.updateFieldName()" label="Nom :" /><br />
+                    <select id="db_fields_type" src="array('autonumber', 'bool', 'int', 'text')" label="Type :" /><br />
+                    <textbox id="db_fields_label" size="60" class="fullwidth" label="Libellé :" /><br />
+                    <textbox id="db_fields_description" class="fullwidth" rows="3" cols="60" label="Description :" /><br />
+                    
+                    <label class="text" for="db_fields_stopwords">Mots vides :</label>
+                    <div style="float: left;">
+                        <checkbox id="db_fields_defaultstopwords" label="Utiliser les mots vides définis pour la base" /><br />
+                        <textbox id="db_fields_stopwords" class="fullwidth" rows="3" cols="60" />
+                    </div>
+                </fieldset>
+            </div>
+            <p id="db_fields_empty" style="display: none">Aucun champ n'a été défini.</p>
+        </div>
+    </fieldset>
+
+    <fieldset id="tab_indices">
+        <legend>Liste des index</legend>
+        
+        <div style="width: 14em; float: left;">
+            <select id="db_indices" size="10" style="width: 100%;" />
+            <div id="buttons" style="text-align: center;">
+                <button class="addoption" title="Ajouter un index"><img src="/fabweb/images/dbedit/application_form_add.png" alt="+" /></button>
+                <button class="deleteoption" title="Supprimer l'index sélectionné"><img src="/fabweb/images/dbedit/application_form_delete.png" alt="-" /></button>
+                <button class="moveup" title="Monter l'index"><img src="/fabweb/images/dbedit/arrow_up.png" alt="&#8593;" /></button>
+                <button class="movedown" title="Descendre l'index"><img src="/fabweb/images/dbedit/arrow_down.png" alt="&#8595;" /></button>
+            </div>
+        </div>
+        
+        <div style="margin-left: 15em;">
+            <div id="db_indices_rightpanel">
+                <fieldset>
+                    <legend>Propriétés de l'index</legend>
+                    <textbox id="db_indices_name" class="fullwidth" size="80" label="Nom :" />
+                    <textbox id="db_indices_label" size="60" class="fullwidth" label="Libellé :" /><br />
+                    <textbox id="db_indices_description" class="fullwidth" rows="3" cols="60" label="Description :" /><br />
+                </fieldset>
+                <fieldset>
+                    <legend>Liste des champs à indexer</legend>
+                    <button class="addtr" style="float: right" title="Ajouter un champ"><img src="/fabweb/images/dbedit/key_add.png" alt="+" /></button>
+                    <table id="db_indices_fields" nustyle="display: none">
+                        <tr>
+                            <th>Nom</th>
+<!--                        <th>Type</th> -->
+
+                            <th>Mots</th>
+                            <th>Phrases</th>
+                            <th>Valeurs</th>
+
+                            <th>Count</th>
+                            <th>Global</th>
+                            <th>Poids</th>
+                            <th>Début</th>
+                            <th>Fin</th>
+                            <th></th>
+                        </tr>
+                        <tr>
+                            <td><textbox id="db_indices_fields_name" size="15" /></td><!--26-->
+<!--                         <td><select id="db_indices_fields_type" src="array('none','words','phrases','values')" /></td> -->
+
+                            <td><checkbox id="db_indices_fields_words" /></td>
+                            <td><checkbox id="db_indices_fields_phrases" /></td>
+                            <td><checkbox id="db_indices_fields_values" /></td>
+
+                            <td><checkbox id="db_indices_fields_count" /></td>
+                            <td><checkbox id="db_indices_fields_global" /></td>
+                            <td><textbox id="db_indices_fields_weight" size="3" /></td>
+                            <td><textbox id="db_indices_fields_start" size="3" /></td>
+                            <td><textbox id="db_indices_fields_end" size="3" /></td>
+                            <td>
+                                <button class="deletetr" title="Supprimer ce champ"><img src="/fabweb/images/dbedit/key_delete.png" alt="X" /></button>
+                            </td>
+                        </tr>
+                    </table>
+                    <p id="db_indices_fields_empty" style="display: none">Aucun champ n'a été défini pour cet index.</p>
+                </fieldset>
+            </div>
+            <p id="db_indices_empty" style="display: none">Aucun index n'a été défini.</p>
+        </div>
+    </fieldset>
+            
+    <fieldset id="tab_alias">
+        <legend>Liste des alias</legend>
+        
+        <div style="width: 14em; float: left;">
+            <select id="db_aliases" size="10" style="width: 100%;" />
+            <div id="buttons" style="text-align: center;">
+                <button class="addoption" title="Ajouter un alias"><img src="/fabweb/images/dbedit/application_form_add.png" alt="+" /></button>
+                <button class="deleteoption" title="Supprimer l'alias sélectionné"><img src="/fabweb/images/dbedit/application_form_delete.png" alt="-" /></button>
+                <button class="moveup" title="Monter l'alias"><img src="/fabweb/images/dbedit/arrow_up.png" alt="&#8593;" /></button>
+                <button class="movedown" title="Descendre l'alias"><img src="/fabweb/images/dbedit/arrow_down.png" alt="&#8595;" /></button>
+            </div>
+        </div>
+        
+        <div style="margin-left: 15em;">
+            <div id="db_aliases_rightpanel">
+                <fieldset>
+                    <legend>Propriétés de l'alias</legend>
+                    <textbox id="db_aliases_name" class="fullwidth" size="80" label="Nom :"/>
+                    <textbox id="db_aliases_label" size="60" class="fullwidth" label="Libellé :" /><br />
+                    <textbox id="db_aliases_description" class="fullwidth" rows="3" cols="60" label="Description :" /><br />
+                </fieldset>
+                <fieldset>
+                    <legend>Liste des index de cet alias</legend>
+                    <button class="addtr" style="float: right" title="Ajouter un index"><img src="/fabweb/images/dbedit/textfield_add.png" alt="+" /></button>
+                    <table id="db_aliases_indices" nustyle="display: none">
+                        <tr>
+                            <th>Champ</th>
+                            <th></th>
+                        </tr>
+                        <tr>
+                            <td><textbox id="db_aliases_indices_name" size="83" /></td>
+                            <td>
+                                <button class="deletetr" title="Supprimer cet index"><img src="/fabweb/images/dbedit/textfield_delete.png" alt="X" /></button>
+                            </td>
+                        </tr>
+                    </table>
+                    <p id="db_aliases_indices_empty" style="display: none">Aucun index n'a été défini pour cet alias.</p>
+                </fieldset>
+            </div>
+            <p id="db_aliases_empty" style="display: none">Aucun alias n'a été défini.</p>
+        </div>
+    </fieldset>
+
+    <fieldset id="tab_lookuptables">
+        <legend>Tables de lookup</legend>
+        
+        <div style="width: 14em; float: left;">
+            <select id="db_lookuptables" size="11" style="width: 100%;" />
+            <div id="buttons" style="text-align: center;">
+                <button class="addoption" title="Ajouter une table"><img src="/fabweb/images/dbedit/application_form_add.png" alt="+" /></button>
+                <button class="deleteoption" title="Supprimer la table sélectionnée"><img src="/fabweb/images/dbedit/application_form_delete.png" alt="-" /></button>
+                <button class="moveup" title="Monter la table"><img src="/fabweb/images/dbedit/arrow_up.png" alt="&#8593;" /></button>
+                <button class="movedown" title="Descendre la table"><img src="/fabweb/images/dbedit/arrow_down.png" alt="&#8595;" /></button>
+            </div>
+        </div>
+        
+        <div style="margin-left: 15em;">
+            <div id="db_lookuptables_rightpanel">
+                <fieldset>
+                    <legend>Propriétés de la table de lookup</legend>
+                    <textbox id="db_lookuptables_name" size="80" label="Nom :"/>
+                    <textbox id="db_lookuptables_label" size="60" class="fullwidth" label="Libellé :" /><br />
+                    <textbox id="db_lookuptables_description" class="fullwidth" rows="3" cols="60" label="Description :" /><br />
+                </fieldset>
+                <fieldset>
+                    <legend>Liste des champs qui alimentent cette table</legend>
+                    <button class="addtr" style="float: right" title="Ajouter un champ"><img src="/fabweb/images/dbedit/table_add.png" alt="+" /></button>
+                    <table id="db_lookuptables_fields" style="display: none">
+                        <tr>
+                            <th>Nom</th>
+                            <th>Start</th>
+                            <th>End</th>
+                            <th></th>
+                        </tr>
+                        <tr>
+                            <td><textbox id="db_lookuptables_fields_name" size="68" /></td>
+                            <td><textbox id="db_lookuptables_fields_start" size="3" /></td>
+                            <td><textbox id="db_lookuptables_fields_end" size="3" /></td>
+                            <td>
+                                <button class="deletetr" title="Supprimer ce champ"><img src="/fabweb/images/dbedit/table_delete.png" alt="X" /></button>
+                            </td>
+                        </tr>
+                    </table>
+                    <p id="db_lookuptables_fields_empty" style="display: none">Aucun champ n'a été défini pour cette table de lookup.</p>
+                </fieldset>
+            </div>
+            <p id="db_lookuptables_empty" style="display: none">Aucune table de lookup n'a été définie.</p>
+        </div>
+    </fieldset>
+    
+    <fieldset id="tab_sortkeys">
+        <legend>Clés de tri</legend>
+        
+        <div style="width: 14em; float: left;">
+            <select id="db_sortkeys" size="11" style="width: 100%;" />
+            <div id="buttons" style="text-align: center;">
+                <button class="addoption" title="Ajouter une clé de tri"><img src="/fabweb/images/dbedit/application_form_add.png" alt="+" /></button>
+                <button class="deleteoption" title="Supprimer la clé de tri sélectionnée"><img src="/fabweb/images/dbedit/application_form_delete.png" alt="-" /></button>
+                <button class="moveup" title="Monter la clé de tri"><img src="/fabweb/images/dbedit/arrow_up.png" alt="&#8593;" /></button>
+                <button class="movedown" title="Descendre la clé de tri"><img src="/fabweb/images/dbedit/arrow_down.png" alt="&#8595;" /></button>
+            </div>
+        </div>
+        <div style="margin-left: 15em;">
+            <div id="db_sortkeys_rightpanel">
+                <fieldset>
+                    <legend>Propriétés de la clé de tri</legend>
+                    <textbox id="db_sortkeys_name" size="80" label="Nom :"/>
+                    <textbox id="db_sortkeys_label" size="60" class="fullwidth" label="Libellé :" /><br />
+                    <textbox id="db_sortkeys_description" class="fullwidth" rows="3" cols="60" label="Description :" /><br />
+                </fieldset>
+                <fieldset>
+                    <legend>Liste des champs composant cette clé</legend>
+                    <button class="addtr" style="float: right" title="Ajouter un champ"><img src="/fabweb/images/dbedit/table_add.png" alt="+" /></button>
+                    <table id="db_sortkeys_fields" NUstyle="display: none">
+                        <tr>
+                            <th>Champ</th>
+                            <th>Start</th>
+                            <th>End</th>
+                            <th>Length</th>
+                            <th></th>
+                        </tr>
+                        <tr>
+                            <td><textbox id="db_sortkeys_fields_name" size="59" /></td>
+                            <td><textbox id="db_sortkeys_fields_start" size="3" /></td>
+                            <td><textbox id="db_sortkeys_fields_end" size="3" /></td>
+                            <td><textbox id="db_sortkeys_fields_length" size="3" /></td>
+                            <td>
+                                <button class="deletetr" title="Supprimer ce champ"><img src="/fabweb/images/dbedit/table_delete.png" alt="X" /></button>
+                            </td>
+                        </tr>
+                    </table>
+                    <p id="db_sortkeys_fields_empty" style="display: none">Aucun champ n'a été défini pour cette clé de tri.</p>
+                </fieldset>
+            </div>
+            <p id="db_sortkeys_empty" style="display: none">Aucune clé de tri n'a été définie.</p>
+        </div>
+    </fieldset>
+    
+    <div class="buttons">
+        <button id="save" onclick="Editor.save()"><img src="/fabweb/images/dbedit/database_save.png" alt="" /> Enregistrer...</button>
+    </div>
+    
+    <div id="errors" class="jqmWindow">
+        <h1 class="title jqDrag" >Des erreurs on été détectées</h1>
+        <ul></ul>
+        <div class="buttons">
+            <button class="jqmClose"><img src="/fabweb/images/dbedit/cancel.png" alt="" /> Fermer</button>
+        </div>
+        <div class="jqResize"></div>
+    </div>
+</div>
+
+<script>
+jQuery
+(
+    function()
+    \{
+        Editor.load($structure);
+        Editor.saveTo('$saveUrl', $saveParams);
+    \}
+);
+</script>

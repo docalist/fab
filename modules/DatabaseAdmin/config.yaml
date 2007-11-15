@@ -1,4 +1,28 @@
 #access: Admin
-#layout: none
+theme: default
+layout: default.htm
 ascoload:
   layout: none
+
+EditStructure:
+  theme: default
+  layout: default.htm
+  JS:
+    - /fabweb/js/lib/jquery/jquery-1.2.1.min.js
+#    - /fabweb/js/lib/jquery/jquery.blockUI.min.js
+    - /fabweb/js/lib/jquery/jqModal.min.js
+    - /fabweb/js/lib/jquery/json.min.js
+    - /fabweb/js/dbedit.js
+#    - /fabweb/js/lib/firebug.js
+    - /fabweb/js/lib/jquery/tabs/ui.tabs.min.js
+
+  CSS: 
+    - /fabweb/js/lib/jquery/jqModal.css
+    - /fabweb/styles/dbedit.css
+#    - /fabweb/js/lib/jquery/tabs/ui.tabs.css
+
+GetStructure:
+  layout: none
+CheckStructure:
+  layout: none
+  
