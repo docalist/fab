@@ -363,7 +363,7 @@ class Runtime
 //        session_set_cookie_params(Config::get('sessions.lifetime'), self::$home);
 ////        session_set_cookie_params(Config::get('sessions.lifetime'));
 //        session_cache_limiter('none');
-        Runtime::startSession();
+        //Runtime::startSession();
 
         // Initialise le gestionnaire d'exceptions
         debug && Debug::log("Initialisation du gestionnaire d'exceptions");
@@ -420,7 +420,7 @@ $fab_init_time=microtime(true);
     private static function setupBaseConfig()
     {
         Debug::log('Chargement de la configuration initiale');
-        //require_once(self::$fabRoot . 'config' . DIRECTORY_SEPARATOR . 'config.php');
+        require_once(self::$fabRoot . 'config' . DIRECTORY_SEPARATOR . 'config.php');
         if (file_exists($path=self::$root . 'config' . DIRECTORY_SEPARATOR . 'config.php'))
         {
             Debug::log('Chargement de %s', $path);
@@ -574,21 +574,19 @@ $fab_init_time=microtime(true);
     // on la prends.
     
     
-    // TODO: faire doc
+    /**
+     * Démare la session si ce n'est pas déjà fait
+     */
     public static function startSession()
     {
-//    echo "<li>appel de startSes</li>";
-        // TODO: à revoir, startSession est appellé par Module::execute et peut donc être appellé plusieurs fois si on chaine des modules.
-        // Démare la session si ce n'est pas déjà fait
         if (session_id()=='') // TODO : utiliser un objet global 'Session' pour le paramétrage
         {
-        session_name(Config::get('sessions.id'));
-        session_set_cookie_params(Config::get('sessions.lifetime'), self::$home);
-//        session_set_cookie_params(Config::get('sessions.lifetime'));
-        session_cache_limiter('none');
+            session_name(Config::get('sessions.id'));
+            session_set_cookie_params(Config::get('sessions.lifetime'), self::$home);
+            //session_set_cookie_params(Config::get('sessions.lifetime'));
+            session_cache_limiter('none');
 
             session_start();
-            //echo "session démarrée. Path=" . session_save_path() . '/' . session_id();
         }
             
     }
@@ -667,6 +665,7 @@ $fab_init_time=microtime(true);
         static $dir=array
         (
             'Utils'=>'core/utils/Utils.php',
+            'Cache'=>'core/cache/Cache.php',
             'Debug'=>'core/debug/Debug.php',
             'Config'=>'core/config/Config.php',
             'Routing'=>'core/routing/Routing.php',
@@ -678,12 +677,14 @@ $fab_init_time=microtime(true);
             'Database'=>'core/database/Database.php',
             'DatabaseModule'=>'modules/DatabaseModule/DatabaseModule.php',
             'TextTable'=>'core/helpers/TextTable/TextTable.php',
+            'BisDatabase'=>'core/database/BisDatabase.php',
             'XapianDatabaseDriver'=>'core/database/XapianDatabase.php',
             'XapianDatabaseDriver2'=>'core/database/XapianDatabase2.php',
             'DatabaseStructure'=>'core/database/DatabaseStructure.php',
             'TemplateCompiler'=>'core/template/TemplateCompiler.php',
             'TemplateCode'=>'core/template/TemplateCode.php',
             'TemplateEnvironment'=>'core/template/TemplateEnvironment.php',
+            'TaskManager'=>'modules/TaskManager/TaskManager.php',
         
         );
         if (!isset($dir[$class])) return;
