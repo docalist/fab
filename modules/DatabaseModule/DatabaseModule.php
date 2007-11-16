@@ -330,7 +330,10 @@ class DatabaseModule extends Module
         $this->module=strtolower($this->module); // BUG : this->module devrait être tel que recherché par les routes
         $url='/'.$this->module.'/'.$this->action.'?'.$query;
 
-        $h='Résultats ' . $start.' à '.min($start+$max-1,$count) . ' sur '.$this->selection->count('environ %d'). ' ';
+        if ($start==min($start+$max-1,$count))
+            $h='Résultat ' . $start . ' sur '.$this->selection->count('environ %d'). ' ';
+        else
+            $h='Résultats ' . $start.' à '.min($start+$max-1,$count) . ' sur '.$this->selection->count('environ %d'). ' ';
         
         if ($start > 1)
         {
