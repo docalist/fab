@@ -34,6 +34,21 @@
 class Runtime
 {
     /**
+     * La version en cours de fab, sous forme de chaine de caractères.
+     * 
+     * Cette constante doit être mise à jour chaque fois qu'une nouvelle 
+     * release de fab est faite.
+     * 
+     * Vous pouvez utiliser la fonction php version_compare() pour vérifier
+     * que la version installée de fab est au moins celle que vous attendez :
+     * <code>
+     *      if (version_compare(Runtime::version, '0.5.0', '<=')
+     *          die('La version version 0.5.0 ou supérieure de fab est requise');
+     * </code>
+     */
+    const Version='0.5.0';
+    
+    /**
      * @var string Path du répertoire racine du site web contenant la page
      * demandée par l'utilisateur (le front controler). webRoot est forcément un
      * sous- répertoire de {@link $root}. webRoot contient toujours un slash
