@@ -239,6 +239,28 @@ remarques : non implémenté, réfléchir à un meilleur nom.
 Tags
 ----
 
+Définition de variable : ``<def>``
+..................................
+Exemple : ::
+    <def name="title" value="Titre du document" />
+    Titre : $title
+
+Le tag ``def```permet de définir une nouvelle variable qui pourra être utilisée
+dans le reste du template.
+
+Les deux attributs sont obligatoires.
+
+Si vous donnez à la variable que vous créez le même nom qu'une source de données
+existante, celle-ci n'est plus accessible.
+
+Remarques :
+
+- La variable ne peut pas être utilisée avant d'avoir été définie.
+
+- La valeur de la variable peut être redéfinie à tout moment (il suffit de 
+  répêter le tag ``def`` en gardant le même attribut ``name`` mais en changeant
+  l'attribut ``value``). 
+
 Blocs optionnels : ``<opt>``
 ............................
 Exemple : ::
