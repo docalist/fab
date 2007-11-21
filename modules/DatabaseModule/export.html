@@ -1,5 +1,13 @@
 <h1>Export {count($equations)===1 ? "d'un lot" : 'de '.count($equations).' lots'} de notices</h1>
 <form action="{$this->action}">
+/* 
+    Définit un slot qui pourra être utilisé par un module descendant pour
+    "injecter" d'autres paramètres dans le formulaire de recherche.
+    C'est par exemple le cas de DatabaseInspector qui ajoute un champ caché
+    indiquant le nom de la base utilisée.
+*/
+
+    <slot name="otherparams" />
 /*
     S'il n'y a qu'un seul format d'export disponible, inutile de demander à 
     l'utilisateur de choisir.
@@ -129,9 +137,3 @@ console.debug('here');
     \}
 );    
 </script>
-<p style="margin-top: 8em;">
-why:<br />
-<pre>{implode("\n", $why)}</pre>
-config de l'action export:<br />
-<pre>{var_export(Config::get('export'), true)}</pre>
-</p>
