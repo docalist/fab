@@ -978,7 +978,8 @@ private static $line=0, $column=0;
             'input'=>'compileFillControls',
             'option'=>'compileFillControls',
             'tag'=>'compileTag',
-            'slot'=>'compileSlot'
+            'slot'=>'compileSlot',
+            'def'=>'compileDef'
         );
         
         self::$currentNode=$node;
@@ -1982,6 +1983,21 @@ return false (ne pas afficher le contenu par défaut)
         }
     }
     
+    private static function compileDef($node)
+    {
+        $t=self::getAttributes($node, array('name','value'));
+        self::parse($t['name'],false);
+        self::parse($t['value'],true);
+        
+        // Crée un nom unique pour la variable
+        $def=self::$env->getTemp($t['name']); // pour être sur de ne pas écraser une var existante
+        self::$env->freeTemp($t['name']);       // libérée aussitôt : si le def est redéfini, la même va rsera utilisée
+        
+        self::$env->push(array($t['name']=>$def));
+        
+        echo self::PHP_START_TAG, $def,'=', $t['value'], self::PHP_END_TAG;
+        
+    }
     /* ======================== EXPRESSION PARSER ============================= */
     
     /**
