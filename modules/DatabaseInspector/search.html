@@ -42,7 +42,7 @@
                                 <a href="?_equation=$indexname:$name&amp;database={Config::get('database')}">$name</a>
                             </if>
                             <else>
-                                <a href="lookup?table=$indexname&amp;search={substr($name,0,strpos($name,'='))}&amp;max=100&amp;database={Config::get('database')}">$name</a>
+                                <a href="lookup?table=$indexname&amp;value={substr($name,0,strpos($name,'='))}&amp;max=100&amp;database={Config::get('database')}">$name</a>
                             </else>
                         </td>
                         <td>{$term['freq']}</td>

@@ -3,17 +3,20 @@ layout: default.htm
 
 title: Inspecteur de base de données
 
-CSS:
-JS:
+JS: /fabweb/js/lib/jquery/jquery-1.2.1.min.js
+CSS:/fabweb/styles/databaseinspector.css
 
 searchform:
   template: searchform.html
+  JS: 
+    - /fabweb/js/lib/jquery/jquery-1.2.1.min.js
+    - /fabweb/js/rpc.js
 
 search:
   template: search.html
   max: 1
-  JS: 
-    - /fabweb/js/lib/jquery/jquery-1.2.1.min.js
-  CSS:
-    - /fabweb/styles/databaseinspector.css
-  
+
+templates:
+  autoinclude:
+     fieldset:include/textbox.html
+#FIXME: le fieldset ne fonctionne pas dans searchform.html

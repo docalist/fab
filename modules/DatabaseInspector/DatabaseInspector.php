@@ -44,5 +44,47 @@ class DatabaseInspector extends DatabaseModule
             return '<span class="type">array('.count($value).')</span> <span class="value"><ol><li>' . implode('</li><li>', array_map(array($this,'dump'), $value)) . '</span></li></ol>';
         return 'unknown' . var_dump($value); 
     }
+    
+    public function guessLookupTable($indexOrAlias)
+    {
+        $dbs=$this->selection->getStructure();
+        $bestnb=0;
+        $besttable='';
+        
+        // Cas 1 : c'est un index de base
+        if (! isset($indexOrAlias->indices))
+        {
+            $fields=$indexOrAlias->fields;
+        }
+        
+        // Cas 2 : c'est un alias
+        else
+        {
+            $fields=array();
+            foreach($indexOrAlias->indices as $name=>$index)
+            {
+                foreach($dbs->indices[$name]->fields as $name=>$field)
+                {
+                    $fields[$name]=true;
+                }
+            }
+        }
+        
+        foreach($dbs->lookuptables as $lookupname=>$lookuptable)
+        {
+            $nb=0;
+            foreach($lookuptable->fields as $fieldname=>$field)
+            {
+                if (isset($fields[$fieldname])) ++$nb;
+            }
+            if ($nb>$bestnb)
+            {
+                $bestnb=$nb;
+                $besttable=$lookupname;
+            }
+        }
+        if ($bestnb<count($fields)) return null;      
+        return $besttable;        
+    }
 }
 ?>
