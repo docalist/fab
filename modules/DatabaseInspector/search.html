@@ -5,6 +5,9 @@
     <a href="#" onclick="jQuery('table').toggleClass('showspaces'); return false;">espaces</a>
     <a href="#" onclick="jQuery('table').toggleClass('showtype'); return false;">type</a>
 </p>
+<p>
+    <a href="export?database={Config::get('database')}&amp;_equation={urlencode($this->equation)}">Exporter...</a>
+</p>
 <loop on="{$this->selection}">
     <table style="width:49%; float: left;">
         <loop on="{$this->selection->getStructure()->fields}" as="$name,$field">

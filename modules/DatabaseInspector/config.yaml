@@ -20,3 +20,7 @@ templates:
   autoinclude:
      fieldset:include/textbox.html
 #FIXME: le fieldset ne fonctionne pas dans searchform.html
+
+export:
+  slots:
+    otherparams: export.slot.html
