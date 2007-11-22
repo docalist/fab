@@ -14,7 +14,7 @@ callback: none
 # similaire à l'action show mais affiche les données non formatées telles qu'on
 # les trouve dans la BDD
 rawDBOutput:
-# TODO : accessible qu'en admin normalement
+  access: admin
   action: show
   callback: none
   template: rawDB.html
@@ -27,8 +27,12 @@ rawDBOutput:
 # peuvent être changées dans le module descendant ou en spécifiant
 # _max et _sort dans les paramètres de l'url appellant l'action search
 search:
-    sort: "+"      # ordre de tri par défaut
-    max: 10        # nombre maximum de réponses par page par défaut
+    # ordre de tri par défaut
+    sort: "+"
+    
+    # nombre maximum de réponses par page par défaut
+    max: 10
+
 lookup:
   template: ajaxlookup3.html
   layout: none
@@ -36,19 +40,23 @@ lookup:
 export:
   list: export.yaml
   template: export.html
-#  mailtemplate: email.html
+  mailtemplate:
 
-  allowzip: true		# autoriser la création de fichier zip
-#  forcezip:true		# toujours créer un fichier zip, ne pas demander à l'utilisateur
+  # autoriser la création de fichier zip
+  allowzip: true
+  # toujours créer un fichier zip, ne pas demander à l'utilisateur
+  forcezip: false
 
-  allowmail: true		# autoriser l'envoi par mail
-#  forcemail: true		# toujours envoyer par mail, ne pas demander à l'utilisateur
-  admin:				# cooordonnées de "qui" envoie le mail (écrase les valeurs de general.yaml)
-    name: Site Ascodocpsy
-    email: Daniel.Menard@bdsp.tm.fr
+  # autoriser l'envoi par mail
+  allowmail: true
+  # toujours envoyer par mail, ne pas demander à l'utilisateur
+  forcemail: false
 
 RSS:
   action: export
   list: rss.yaml
   allowzip: false
   allowmail: false
+
+replaceForm:
+  template: replaceForm.html
