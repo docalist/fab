@@ -37,7 +37,7 @@ class CartModule extends Module
     {
         //parent::preExecute();
         // Récupère le nom du panier
-        $name=Config::get('name', 'cart');
+        $name=Config::get('name');
         
         // Fab ouvre la session juste avant d'appeller l'action et donc à ce
         // stade (preExecute), la session n'a pas encore été chargée. Comme
@@ -410,6 +410,10 @@ class CartModule extends Module
         if (count($this->cart) == 0) $this->hasCategory=null;
     }
 	
+    public function contains($item)
+    {
+        return isset($this->cart[$item]);
+    }
 } 
 
 ?>
