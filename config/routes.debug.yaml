@@ -1,4 +1,0 @@
-# Routes par défaut
-- url:      /debug
-  module:   debugmodule
-  action:   index
