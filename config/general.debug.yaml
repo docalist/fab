@@ -12,13 +12,3 @@ CSS:
   
 templates:
   forcecompile:true
-
-# similaire à l'action show mais affiche les données non formatées telles qu'on
-# les trouve dans la BDD
-rawDBOutput:
-# TODO : accessible qu'en admin normalement
-  action: show
-  callback: none
-  template: rawDB.html
-  CSS:
-    - /FabWeb/styles/default/bdsp_content_layout.css
