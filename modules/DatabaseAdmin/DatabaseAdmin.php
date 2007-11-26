@@ -27,7 +27,7 @@ class DatabaseAdmin extends Module
 {
 
     /*
-     * affiche la liste des bases de données référencées dans db.yaml
+     * affiche la liste des bases de données référencées dans db.config
      * et un bouton permettant de créer une nouvelle base
      */
     public function actionIndex()
@@ -46,7 +46,7 @@ class DatabaseAdmin extends Module
     
     /**
      * Construit la liste des bases de données connues du système (i.e. 
-     * référencées dans le fichier de configuration db.yaml)
+     * référencées dans le fichier de configuration db.config)
      * 
      * Pour chaque base de données, détermine quelques informations telles
      * que son type, son path, la taille, le nombre d'enregistrements, etc.
@@ -176,6 +176,7 @@ class DatabaseAdmin extends Module
                 $db=Database::create($path, $dbs, 'xapian2');
 
                 // Ajoute un alias dans db.yaml
+                throw new Exception('Non implementé : ajouter un alias dans le fichier xml db.config');
                 $configPath=Runtime::$root.'config' . DIRECTORY_SEPARATOR . 'db.yaml';
                 $t=Config::loadFile($configPath);
                 $t[$name]=array('type'=>'xapian2', 'path'=>$path);
@@ -387,7 +388,7 @@ class DatabaseAdmin extends Module
         echo 'Création de la base xapian dans ', DB_PATH, '<br />';
 //        $xapianDb=Database::open(DB_PATH, false);
 
-        $dbs=new DatabaseStructure(file_get_contents('d:/webapache/ascoweb/data/DatabaseTemplates/ascodocpsy-bidon.xml'));
+        $dbs=new DatabaseStructure(file_get_contents('d:/webapache/ascoweb/data/DatabaseTemplates/ascodocpsy.xml'));
         $xapianDb=Database::create(DB_PATH, $dbs, 'xapian2');
         
         

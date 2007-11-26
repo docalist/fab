@@ -1207,36 +1207,26 @@ class DatabaseModule extends Module
      */
     private function loadExportFormats()
     {
-        // Détermine le nom du fichier contenant la liste des formats d'export disponibles
-        $name=Config::get('list', 'export.yaml');
-        
-        // Recherche le fichier indiqué, dans le répertoire du module, puis dans celui de son ancêtre, etc.
-        if (false === $path=Utils::searchFile($name))
-            throw new Exception("Impossible de trouver le fichier $name");
-
-        // Charge la liste des formats d'export disponibles
-        $formats=Config::loadFile($path);
-        
-        // Ne garde que les formats auquel l'utilisateur a accès
-        foreach($formats as $name=>& $format)
+        // Balaye la liste des formats d'export disponibles 
+        foreach(Config::get('formats') as $name=>$format)
         {
-        	if (isset($format['access']) && ! User::hasAccess($format['access']))
-                unset($formats[$name]);
-            if (!isset($format['label'])) $format['label']=$name;
+            // Ne garde que les formats auquel l'utilisateur a accès
+            if (isset($format['access']) && ! User::hasAccess($format['access']))
+        	{
+                Config::clear("formats.$name");
+        	}
+        	
+        	// Initialise label et max
+        	else
+            {
+                if (!isset($format['label']))
+                    Config::set("formats.$name.label", $name);
+                Config::set("formats.$name.max", $this->configUserGet("formats.$name.max",300));
+            }
         }
         
-        // Ajoute les formats dans la config
-        Config::addArray($formats, 'formats');
-
-        // Initialise format['max'] pour permettre un accès simple depuis le template
-        // idéalement, devrait être fait dans la boucle au dessus, mais configUserGet()
-        // ne sait travailler que sur la config, pas sur un tableau donc on charge le tableau
-        // on l'ajoute à la config, puis on modifie la config... 
-        foreach($formats as $name=>& $format)
-            Config::set("formats.$name.max", $this->configUserGet("formats.$name.max",300));
-
         // Retourne le nombre de formats chargés
-        return count($formats);
+        return count(Config::get('formats'));
     }
     
     /** 

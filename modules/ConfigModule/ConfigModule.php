@@ -9,7 +9,8 @@ class ConfigModule extends Module
 {
     public function preExecute()
     {
-    	User::checkAccess('Admin');
+        throw new Exception('Ne peut pas fonctionner avec la nouvelle config xml');	
+        User::checkAccess('Admin');
     }
     
     // liste les fichiers de config disponibles

@@ -137,7 +137,7 @@ abstract class Database implements ArrayAccess, Iterator
         // Compile la structure
         $structure->compile();
 */        
-        // Utilise /config/db.yaml pour convertir l'alias en chemin et déterminer le type de base
+        // Utilise /config/db.config pour convertir l'alias en chemin et déterminer le type de base
 //        $type=Config::get("db.$database.type", $type);
 //        $database=Config::get("db.$database.path", $database);
         
@@ -228,7 +228,7 @@ abstract class Database implements ArrayAccess, Iterator
      */
     final public static function open($database, $readOnly=true, $type=null)
     {
-        // Utilise /config/db.yaml pour convertir l'alias en chemin et déterminer le type de base
+        // Utilise /config/db.config pour convertir l'alias en chemin et déterminer le type de base
         $type=Config::get("db.$database.type", $type);
         $database=Config::get("db.$database.path", $database);
         

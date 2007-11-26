@@ -22,7 +22,7 @@ class Config
     private static $config = array
     (
         'config' => array('checktime'=>true)
-        // config.checktime est définit dans le fichier 'general.yaml'
+        // config.checktime est définit dans le fichier 'general.config'
         // si on ne pré-initialise pas 'config.checktime' a true, il ne sera jamais
         // vérifié. On force donc la vérif pour celui-là, pour les autres, c'est ce
         // qu'il y a dans la config qui sera pris en compte.
@@ -33,26 +33,62 @@ class Config
      * Charge un fichier de configuration, mais sans le fusionner avec la
      * configuration en cours. Retourne le tableau obtenu
      */
-    public static function loadFile($yamlPath, $transformer='')
+    public static function loadFile($configPath, $transformer='')
     {
+if (strpos($configPath, 'yaml')!==false)
+{
+    echo 'Fichier de config yaml : ', $configPath, '<br /><pre>';
+    debug_print_backtrace();
+    die();
+}
         // Vérifie que le fichier demandé existe
-        if (!$path=realpath($yamlPath))
-            throw new Exception("Impossible de trouver le fichier de configuration '$yamlPath'");
+        if (false === $path=realpath($configPath))
+            throw new Exception("Impossible de trouver le fichier de configuration '$configPath'");
         
         // Retourne le fichier depuis le cache s'il existe et est à jour
         $cache=Config::get('cache.enabled');
         if ( $cache && Cache::has($path, Config::get('config.checktime')?filemtime($path):0) )
         {
-            Debug::log("Chargement de '%s' à partir du cache", $yamlPath);
+            Debug::log("Chargement de '%s' à partir du cache", $configPath);
             return require(Cache::getPath($path));
         }
         
         // Sinon, charge le fichier réel et le stocke en cache
-        Debug::log("Chargement de '%s' : compilation", $yamlPath);
+        Debug::log("Chargement de '%s' : compilation", $configPath);
 
         // Charge le fichier
-        $data=Utils::loadYaml($path);
-                
+//        $data=Utils::loadYaml($path);
+        $data=self::loadXmlFile($path);
+        if (is_null($data)) $data=array(); // fixme: juste pour que la comparaison xml/yaml fonctionne, voir si c'est nécessaire pour le arraymerge
+    
+//        $xmlPath=self::yamlPathToXmlPath($yamlPath, Runtime::$fabRoot.'config/', Runtime::$root.'config/');
+//        if (file_exists($xmlPath))
+//        {
+//            $xmldata=self::loadXmlFile($xmlPath);
+//            if (is_null($xmldata)) $xmldata=array(); // fixme: juste pour que la comparaison xml/yaml fonctionne, voir si c'est nécessaire pour le arraymerge
+//            if ($xmldata !== $data)
+//            {
+//                echo '<span style="color:red; font-weight: bold">Xml != Yaml : <code>', $xmlPath, '</code></span><br />';
+////                echo'
+////                <div style="width: 48%; float: left;">YAML<br /><pre>',var_export($data,true),'</pre></div>
+////                <div style="width: 48%; float: left;">XML<br /><pre>',var_export($xmldata,true),'</pre></div>
+////                <hr style="clear: both;"/>
+////                ';
+//                file_put_contents('c:/yaml.txt', var_export($data,true));
+//                file_put_contents('c:/xml.txt', var_export($xmldata,true));
+//            }
+//            else
+//            {
+//                echo '<span style="color: green">Xml OK : <code>', $xmlPath, '</code></span><br />';
+//            }
+//            $data=$xmldata;
+//        }
+//        else
+//        {    
+//            echo '<span style="color: red">Yaml only : <code>', $path, '</code>xmlpath=',$xmlPath,'</span><br />';
+//            self::yamlToXml(self::yamlPathToXmlPath($yamlPath,'c:/temp/xmlconfig/fab/', 'c:/temp/xmlconfig/app/'), $data);
+//        }
+        
         // Applique le transformer
         if ($transformer)
             $data=call_user_func(explode('::', $transformer), $data);
@@ -78,17 +114,265 @@ class Config
                 )
             );
         }
+        
         return $data;
     }
+public static function convert($yamlPath)
+{
+echo 'Conversion de ', $yamlPath, '<br />';
+$data=Utils::loadYaml($yamlPath);
+$xmlPath=self::yamlPathToXmlPath($yamlPath,'c:/temp/xmlconfig/fab/', 'c:/temp/xmlconfig/app/');
+self::yamlToXml($xmlPath, $data);
+die('done : ' . $xmlPath);
+}
+    /**
+     * Détermine le path d'un fichier de conf xml à partir du path d'un fichier
+     * de config yaml
+     *
+     * @param unknown_type $yamlPath
+     * @param unknown_type $fabdir
+     * @param unknown_type $appdir
+     * @return unknown
+     */
+    private static function yamlPathToXmlPath($yamlPath, $fabdir, $appdir)
+    {
+        $path=basename($yamlPath, '.yaml');
+        if ($path==='config')
+            $path=basename(dirname($yamlPath));
+            
+        if (strpos($yamlPath, Runtime::$fabRoot)===0)
+            $path=$fabdir.$path;
+        else 
+            $path=$appdir.$path;
+        return $path . '.config';
+    }
+    
+    /**
+     * Convertit un tableau de config en fichier xml
+     * fonction provisoire utilisée pour convertir les fichiers config.yaml
+     *
+     * @param unknown_type $yamlPath
+     * @param unknown_type $data
+     */
+    private static function yamlToXml($path, $data)
+    {
+        ob_start();
+        echo '<'.'?'.'xml version="1.0" encoding="UTF-8" standalone="yes"'.'?'.'>', "\n";
+        self::toXml('config', $data);
+        file_put_contents($path, ob_get_clean());
+    }
+    
+    private static function toXml($name, $data, $indent='')
+    {
+        // Encode la clé en UTF8 une bonne fois pour toute
+        $name=utf8_encode($name);
+        
+        if (is_null($data) || $data==='' || (is_array($data) && count($data)===0))
+        {
+            echo $indent, "<$name />\n";
+        }
+        elseif (is_bool($data))
+        {
+            echo $indent, "<$name>", ($data?'true':'false'), "</$name>\n";
+        }
+        elseif (is_string($data))
+        {
+            echo $indent, "<$name>", utf8_encode(htmlspecialchars($data, ENT_NOQUOTES)), "</$name>\n";
+        }
+        elseif (is_scalar($data))
+        {
+            echo $indent, "<$name>", $data, "</$name>\n";
+        }
+        elseif (is_array($data))
+        {
+            // Tableau avec des clés numériques : on répête le tag
+            if (key($data)===0)
+            {
+                echo $indent, "<$name>\n";
+                foreach($data as $item)
+                {
+                    self::toXml('item', $item, $indent.'    ');
+                }
+                echo $indent, "</$name>\n";
+            }
+            
+            // Tableau avec des clés alpha : enumère les propriétés
+            else
+            {
+                echo $indent, "<$name>\n";
+                foreach($data as $childName=>$child)
+                {
+                    self::toXml($childName, $child, $indent.'    ');
+                }
+                echo $indent, "</$name>\n";
+            }
+        }
+    }
+    
+    public static function loadXmlFile($path) /* fixme: */ 
+    {
+        return self::loadXml(file_get_contents($path));
+    }
+    
+    public static function loadXml($source) 
+    {
+        // Crée un document XML
+        $xml=new domDocument();
+        $xml->preserveWhiteSpace=false;
+    
+        // gestion des erreurs : voir comment 1 à http://fr.php.net/manual/en/function.dom-domdocument-loadxml.php
+        libxml_clear_errors(); // >PHP5.1
+        libxml_use_internal_errors(true);// >PHP5.1
+    
+        // Charge le document
+        if (! $xml->loadXml($source))
+        {
+            $h="Fichier de configuration incorrect, ce n'est pas un fichier xml valide :<br />\n"; 
+            foreach (libxml_get_errors() as $error)
+                $h.= "- ligne $error->line : $error->message<br />\n";
+            libxml_clear_errors(); // libère la mémoire utilisée par les erreurs
+            throw new Exception($h);
+        }
 
-   
+        // Convertit la structure xml en objet
+        $data=self::fromXml($xml->documentElement);
+        return is_null($data) ? array() : $data;
+    }
+    
+    /**
+     * Convertit un noeud XML en valeur
+     *
+     * @param DOMElement $node
+     * @return unknown
+     */
+    private static function fromXml(DOMElement $node)
+    {
+        // Balaye les noeuds fils pour déterminer la valeur de la propriété
+        $value=null;
+        $arrayType=0;
+        foreach($node->childNodes as $child)
+        {
+            switch ($child->nodeType)
+            {
+                // Texte ou section cdata
+                case XML_TEXT_NODE:
+                case XML_CDATA_SECTION_NODE:
+                    // Vérifie que la config ne mélange pas à la fois des noeuds et du texte
+                    if (is_array($value))
+                        throw new Exception('Le noeud '.$node->tagName.' contient à la fois des noeuds et du texte');
+                        
+                    // Stocke la valeur de la clé
+                    $value.=$child->data;
+                    break;
+                    
+                // Un tag
+                case XML_ELEMENT_NODE:
+                    // Vérifie que la config ne mélange pas à la fois des noeuds et du texte
+                    if (is_string($value))
+                        throw new Exception('Le noeud '.$node->tagName.' contient à la fois du texte et des noeuds');
+                        
+                    // Récupère la valeur de l'option
+                    $item=self::fromXml($child);
+                    
+                    // Cas particulier : la valeur de la clé est un tableau d'items
+                    if ($child->tagName==='item')
+                    {
+                        // Vérifie qu'on ne mélange pas options et items
+                        if ($arrayType===2)
+                            throw new Exception($node->tagName . ' contient à la fois des options et des items');
+                            
+                        // Aucun attribut pour un item
+                        if ($child->hasAttributes())
+                            throw new Exception("Un item ne peut pas avoir d'attributs");
+                            
+                        $value[]=$item; // si value===null php crée un array
+                        $arrayType=1;
+                        break;
+                    }
+
+                    // Vérifie qu'on ne mélange pas options et items
+                    if ($arrayType===1)
+                        throw new Exception($node->tagName . ' contient à la fois des options et des items');
+                    $arrayType=2;
+                    
+                    // Les attributs sont interdits dans un fichier de config
+                    $name=$child->tagName;
+                    if ($child->hasAttributes())
+                    {
+                        foreach($child->attributes as $attribute)
+                        {
+                            if ($attribute->nodeName==='inherit')
+                            {
+                                switch(strtolower(trim($attribute->nodeValue)))
+                                {
+                                    case 'true':
+                                        break;
+                                    case 'false':
+                                        $name='!'.$name;
+                                        break;
+                                    default:
+                                        throw new Exception("Valeur incorrecte pour l'attribut 'inherit' de l'option '$name' : '$attribute->nodeValue'");
+                                }
+                            }
+                            else
+                                throw new Exception("L'attribut '$attribute->nodeName' n'est pas autorisé pour l'option '$name'");
+                        }
+                    }
+                                
+                    // Première fois qu'on rencontre cette clé
+                    if (! isset($value[$name]))
+                    {
+                        $value[$name]=$item;
+                    }
+                    
+                    // Clé déjà rencontrée : transforme en tableau
+                    else
+                    {
+                        if (!is_array($value[$name]))
+                            throw new Exception('Tag répété : '.$name);
+
+                        $value[$name][]=$item;
+                    }
+                    break;
+
+                // Types de noeud autorisés mais ignorés
+                case XML_COMMENT_NODE:
+                    break;
+                    
+                // Types de noeuds interdits
+                default:
+                    throw new Exception('type de noeud interdit');
+            }
+        }
+        
+        // Convertit les chaines en entiers, booléens ; décode l'utf8
+        if (is_string($value))
+        {
+            $h=trim($value);
+            if ($h==='') $value=null;
+            elseif (is_numeric($h))
+                $value=ctype_digit($h) ? (int)$h : (float)$h;
+            elseif($h==='true')
+                $value=true;
+            elseif($h==='false')
+                $value= false;
+            else
+                $value=utf8_decode($value);
+            
+        }
+
+        // Retourne le résultat
+        return $value;
+    }
+
+    
     /**
      * Charge un fichier de configuration et le fusionne dans la configuration
      * en cours
      */
-    public static function load($yamlPath, $section='', $transformer='')
+    public static function load($path, $section='', $transformer='')
     {
-        self::addArray(self::loadFile($yamlPath, $transformer), $section);
+        self::addArray(self::loadFile($path, $transformer), $section);
     }
 
 
@@ -121,11 +405,17 @@ class Config
 
 
     /**
-     * Fusionne le tableau passé en paramètre avec la configuration en cours
+     * Modifie le premier tableau passé en paramètre en ajoutant ou en modifiant
+     * les options qui figure dans le second tableau passé en paramètre.
+     *
+     * Par défaut, la modification apportée consiste à fusionner les valeurs du
+     * premier tableau avec celle du second. Mais si une clé commence par le 
+     * caractère '!' (point d'exclamation), la fusion est désactivée et la valeur
+     * associée vient purement et simplement remplacer la valeur existante. 
      * 
      * @access private
      */
-    private static function mergeConfig(&$t1,$t2)
+    public static function mergeConfig(&$t1,$t2)
     {
         foreach ($t2 as $key=>$value)
         {
@@ -133,11 +423,18 @@ class Config
                 $t1[]=$value; 
             else 
             {
-                if (array_key_exists($key,$t1) &&  
-                    is_array($value) && is_array($old=&$t1[$key]))
-                    self::mergeConfig($old,$value);
+                if ($inherit = (substr($key, 0, 1)!=='!'))
+                {
+                    if (array_key_exists($key,$t1) &&  
+                        is_array($value) && is_array($old=&$t1[$key]))
+                        self::mergeConfig($old,$value);
+                    else
+                        $t1[$key]=$value;
+                }
                 else
-                    $t1[$key]=$value;
+                {
+                    $t1[substr($key,1)]=$value;
+                }
             }
         }
     }
@@ -256,4 +553,5 @@ class Config
         // la référence, pas la variable référencée.         
     }
 }
+//Config::convert('\WebApache\ascoweb\modules\Base\templates\export\exporttype.yaml');
 ?>

@@ -814,41 +814,41 @@ final class Utils
     	return isset($_SERVER['HTTP_X_REQUESTED_WITH']) && ($_SERVER['HTTP_X_REQUESTED_WITH']==='XMLHttpRequest');
     }
     
-    /**
-     * Charge un fichier de configuration au format YAML
-     * 
-     * Par défaut, la fonction utilise la classe {@link spyc} mais si 
-     * l'extension syck, qui est beaucoup plus rapide, est installée, c'est
-     * cette extension qui sera utilisée.
-     * 
-     * @param string $path le path du fichier à charger
-     * 
-     * @return array un tableau associatif contenant la configuration lue
-     */
-    public static function loadYaml($path)
-    {
-        // utilise l'extension syck.dll si elle est disponible
-        if (function_exists('syck_load'))
-            return syck_load($path);
-
-        // utilise la classe spyc sinon
-        require_once (Runtime::$fabRoot.'lib/Spyc/spyc.php5');
-        $spyc = new Spyc();
-        return $spyc->load($path);
-    }
-    
-    public static function saveYaml($array, $path)
-    {
-        // utilise l'extension syck.dll si elle est disponible
+//    /**
+//     * Charge un fichier de configuration au format YAML
+//     * 
+//     * Par défaut, la fonction utilise la classe {@link spyc} mais si 
+//     * l'extension syck, qui est beaucoup plus rapide, est installée, c'est
+//     * cette extension qui sera utilisée.
+//     * 
+//     * @param string $path le path du fichier à charger
+//     * 
+//     * @return array un tableau associatif contenant la configuration lue
+//     */
+//    public static function loadYaml($path)
+//    {
+//        // utilise l'extension syck.dll si elle est disponible
 //        if (function_exists('syck_load'))
 //            return syck_load($path);
-
-        // utilise la classe spyc sinon
-        require_once (Runtime::$fabRoot.'lib/Spyc/spyc.php5');
-        $spyc = new Spyc;
-        file_put_contents($path, $spyc->dump($array, 2, 0));
-    }
-    
+//
+//        // utilise la classe spyc sinon
+//        require_once (Runtime::$fabRoot.'lib/Spyc/spyc.php5');
+//        $spyc = new Spyc();
+//        return $spyc->load($path);
+//    }
+//    
+//    public static function saveYaml($array, $path)
+//    {
+//        // utilise l'extension syck.dll si elle est disponible
+////        if (function_exists('syck_load'))
+////            return syck_load($path);
+//
+//        // utilise la classe spyc sinon
+//        require_once (Runtime::$fabRoot.'lib/Spyc/spyc.php5');
+//        $spyc = new Spyc;
+//        file_put_contents($path, $spyc->dump($array, 2, 0));
+//    }
+//    
     /**
      * Retourne le path du répertoire 'temp' du système.
      * Le path obtenu n'a jamais de slash final.

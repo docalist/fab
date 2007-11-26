@@ -324,7 +324,7 @@ class Runtime
         // Définit le fuseau horaire utilisé par les fonctions date de php
         self::setupTimeZone();                      // Modules requis : Config
         
-        // Charge la configuration générale (fichiers general.yaml fab/application/environnement)
+        // Charge la configuration générale (fichiers general.config fab/application/environnement)
         self::setupGeneralConfig();                 // Modules requis : Debug, Config
                                                     // variables utilisées : fabRoot, root, env
 
@@ -351,7 +351,7 @@ class Runtime
         // Répare les tableaux $_GET, $_POST et $_REQUEST
         Utils::repairGetPostRequest();
         
-        // Charge les routes - routes.yaml -
+        // Charge les routes - routes.config -
         debug && Debug::log('Initialisation du routeur');
         //require_once self::$fabRoot.'core/routing/Routing.php'; 
         self::setupRoutes();
@@ -395,30 +395,30 @@ class Runtime
 //        require_once self::$fabRoot.'core/helpers/TextTable/TextTable.php';
 
         /**
-         * Charge les fichiers de configuration de base de données (db.yaml, db.
-         * debug.yaml...) dans la configuration en cours.
+         * Charge les fichiers de configuration de base de données (db.config, db.
+         * debug.config...) dans la configuration en cours.
          * 
          * L'ordre de chargement est le suivant :
          * 
-         * - fichier db.yaml de fab (si existant)
+         * - fichier db.config de fab (si existant)
          * 
-         * - fichier db.$env.yaml de fab (si existant)
+         * - fichier db.$env.config de fab (si existant)
          * 
-         * - fichier db.yaml de l'application (si existant)
+         * - fichier db.config de l'application (si existant)
          * 
-         * - fichier db.$env.yaml de l'application (si existant)
+         * - fichier db.$env.config de l'application (si existant)
          */
         debug && Debug::log("Chargement de la configuration des bases de données");
-        if (file_exists($path=Runtime::$fabRoot.'config' . DIRECTORY_SEPARATOR . 'db.yaml'))
+        if (file_exists($path=Runtime::$fabRoot.'config' . DIRECTORY_SEPARATOR . 'db.config'))
             Config::load($path, 'db');
-        if (file_exists($path=Runtime::$root.'config' . DIRECTORY_SEPARATOR . 'db.yaml'))
+        if (file_exists($path=Runtime::$root.'config' . DIRECTORY_SEPARATOR . 'db.config'))
             Config::load($path, 'db');
         
         if (!empty(Runtime::$env))   // charge la config spécifique à l'environnement
         {
-            if (file_exists($path=Runtime::$fabRoot.'config'.DIRECTORY_SEPARATOR.'db.' . Runtime::$env . '.yaml'))
+            if (file_exists($path=Runtime::$fabRoot.'config'.DIRECTORY_SEPARATOR.'db.' . Runtime::$env . '.config'))
                 Config::load($path, 'db');
-            if (file_exists($path=Runtime::$root.'config'.DIRECTORY_SEPARATOR.'db.' . Runtime::$env . '.yaml'))
+            if (file_exists($path=Runtime::$root.'config'.DIRECTORY_SEPARATOR.'db.' . Runtime::$env . '.config'))
                 Config::load($path, 'db');
         }
         
@@ -462,15 +462,15 @@ $fab_init_time=microtime(true);
     private static function setupGeneralConfig()
     {
         Debug::log("Chargement de la configuration générale");
-        Config::load(self::$fabRoot.'config' . DIRECTORY_SEPARATOR . 'general.yaml');
-        if (file_exists($path=self::$root.'config' . DIRECTORY_SEPARATOR . 'general.yaml'))
+        Config::load(self::$fabRoot.'config' . DIRECTORY_SEPARATOR . 'general.config');
+        if (file_exists($path=self::$root.'config' . DIRECTORY_SEPARATOR . 'general.config'))
             Config::load($path);
 
         if (!empty(self::$env))   // charge la config spécifique à l'environnement
         {
-            if (file_exists($path=self::$fabRoot.'config'.DIRECTORY_SEPARATOR.'general.' . self::$env . '.yaml'))
+            if (file_exists($path=self::$fabRoot.'config'.DIRECTORY_SEPARATOR.'general.' . self::$env . '.config'))
                 Config::load($path);
-            if (file_exists($path=self::$root.'config'.DIRECTORY_SEPARATOR.'general.' . self::$env . '.yaml'))
+            if (file_exists($path=self::$root.'config'.DIRECTORY_SEPARATOR.'general.' . self::$env . '.config'))
                 Config::load($path);
         }
     }
@@ -529,29 +529,29 @@ $fab_init_time=microtime(true);
 
         if (!empty(self::$env))   // charge les routes spécifiques à l'environnement (en premier pour qu'elles soient prioritaiers)
         {
-            if (file_exists($path=self::$root.'config'.DIRECTORY_SEPARATOR.'routes.' . self::$env . '.yaml'))
+            if (file_exists($path=self::$root.'config'.DIRECTORY_SEPARATOR.'routes.' . self::$env . '.config'))
                 Config::load($path, 'routes', 'Routing::transform');
-            if ($defaultRoutes!=0 && file_exists($path=self::$fabRoot.'config'.DIRECTORY_SEPARATOR.'routes.' . self::$env . '.yaml'))
+            if ($defaultRoutes!=0 && file_exists($path=self::$fabRoot.'config'.DIRECTORY_SEPARATOR.'routes.' . self::$env . '.config'))
                 Config::load($path, 'routes', 'Routing::transform');
         }
 
-        if (file_exists($path = self::$root.'config' . DIRECTORY_SEPARATOR . 'routes.yaml'))
+        if (file_exists($path = self::$root.'config' . DIRECTORY_SEPARATOR . 'routes.config'))
             Config::load($path, 'routes', 'Routing::transform');
 
         switch ($defaultRoutes) 
         {
             case 0: break; // on ne charge rien
             case 1:        // routes minimales
-                Config::load(self::$fabRoot.'config' . DIRECTORY_SEPARATOR . 'routes.minimal.yaml', 'routes', 'Routing::transform');
+                Config::load(self::$fabRoot.'config' . DIRECTORY_SEPARATOR . 'routes.minimal.config', 'routes', 'Routing::transform');
                 break;
             case 2:        // routes étendues
-                Config::load(self::$fabRoot.'config' . DIRECTORY_SEPARATOR . 'routes.complete.yaml', 'routes', 'Routing::transform');
+                Config::load(self::$fabRoot.'config' . DIRECTORY_SEPARATOR . 'routes.complete.config', 'routes', 'Routing::transform');
                 break;
             default:
                 throw new Exception('Valeur incorrecte pour la clé defaultRoutes de votre fichier de config (0, 1 ou 2 attendus)');            
         }
 
-        // TODO : revoir la gestion des 2 fichiers routes.yaml
+        // TODO : revoir la gestion des 2 fichiers routes.config
         // chaque fichier est trié, mais l'ensemble ne l'est pas.
         // on inclut le notre en dernier, car on "sait" que nos règles sont très larges
         // mais cela relève du hack

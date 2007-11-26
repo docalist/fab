@@ -11,7 +11,7 @@
  * Gestionnaire de routes.
  * 
  * Les gestionnaire de routes permet d'avoir des urls sémantiques. Il travaille
- * à partir d'un fichier de configuration (routes.yaml) qui pour chacune des
+ * à partir d'un fichier de configuration (routes.config) qui pour chacune des
  * urls que l'utilisateur peut appeller définit le module et l'action à
  * appeller ainsi que les paramètres à passer.
  * 
@@ -28,7 +28,7 @@ class Routing
      * Transformer appellé par Config::load lorsqu'un fichier de routes est
      * compilé.
      * 
-     * @param array $config tableau yaml contenant les routes
+     * @param array $config tableau contenant les routes
      * @return array tableau contenant la version compilée des routes
      */
     public static function transform($config)

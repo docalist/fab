@@ -65,7 +65,7 @@ class CartModule extends Module
 //            $this->setLayout('none');
 //            Config::set('debug', false);
 //            Config::set('showdebug', false);
-//            header('Content-Type: text/html; charset=ISO-8859-1'); // TODO : avoir une rubrique php dans general.yaml permettant de "forcer" les options de php.ini
+//            header('Content-Type: text/html; charset=ISO-8859-1'); // TODO : avoir une rubrique php dans general.config permettant de "forcer" les options de php.ini
 //        }
          
 	}

@@ -37,7 +37,7 @@ class Module
         // 1. dans le répertoire 'modules' de l'application 
         // 2. dans le répertoire 'modules' du framework
         // 404 si on n'a pas trouvé.
-        if (! $dir=Utils::searchFileNoCase($module, Runtime::$root.'modules', Runtime::$fabRoot.'modules'))
+        if (! $moduleDir=Utils::searchFileNoCase($module, Runtime::$root.'modules', Runtime::$fabRoot.'modules'))
         {
             debug && Debug::warning("Le module %s n'existe pas", $module);
             if (debug)
@@ -47,12 +47,12 @@ class Module
         }
         
         // Le répertoire obtenu nous donne le nom exact du module si la casse est différente
-        $module=basename($dir);
+        $module=basename($moduleDir);
 
-        $dir .= DIRECTORY_SEPARATOR;
+        $moduleDir .= DIRECTORY_SEPARATOR;
         
         // Si le module a un fichier php, c'est un vrai module, on le charge 
-        if (file_exists($path=$dir.$module.'.php'))
+        if (file_exists($path=$moduleDir.$module.'.php'))
         {
             // Inclut le source du module
             require_once($path);
@@ -68,12 +68,29 @@ class Module
         // Sinon, il s'agit d'un pseudo-module : on doit avoir un fichier de config avec une clé 'module'
         else
         {
-            // Charge le fichier de configuration du module
-            $tempConfig=Config::loadFile($path=$dir.'config.yaml'); // éviter de charger 2 fois la config
+            // Charge le fichier de configuration du pseudo-module
+            $tempConfig=array();
+            foreach(array(Runtime::$fabRoot, Runtime::$root) as $dir)
+            {
+                $path=$dir.'config'.DIRECTORY_SEPARATOR.$module.'.config';
+                if (file_exists($path))
+                    Config::mergeConfig($tempConfig, Config::loadFile($path));
+                    
+                if (!empty(Runtime::$env))   // charge la config spécifique à l'environnement
+                {
+                    $path=$dir.'config'.DIRECTORY_SEPARATOR.$module.'.'.Runtime::$env.'.config';    
+                    if (file_exists($path))
+                    {
+                        Config::mergeConfig($tempConfig, Config::loadFile($path));
+                        $noConfig=false;
+                    }
+                }
+            }
+                
             if (! isset($tempConfig['module']))
                 throw new Exception("Le pseudo-module '$module' est invalide : pas de php et la clé 'module' n'est pas définie dans le fichier de configuration");
              
-            debug && Debug::log('Chargement du module %s, type: pseudo-module (hérite de %s), path: ', $module, $tempConfig['module'], $dir);
+            debug && Debug::log('Chargement du module %s, type: pseudo-module (hérite de %s), path: ', $module, $tempConfig['module'], $moduleDir);
              
             // Récursive jusqu'à ce qu'on trouve (et qu'on charge) un vrai module    
             $object=self::loadModule($tempConfig['module']);
@@ -81,12 +98,12 @@ class Module
             // Applique la config du module (le tableau temporaire) à la config en cours
             //debug && Debug::log('Application de la configuration du module %s', $module);
             Config::addArray($tempConfig);
-            Utils::addSearchPath($dir);        
+            Utils::addSearchPath($moduleDir);        
             
         }
         
         // Stocke le nom initial de l'action ou de la pseudo action
-        $object->path=$dir;
+        $object->path=$moduleDir;
         $object->action=$action;
         $object->module=$module;
 
@@ -111,7 +128,7 @@ class Module
      * <li>module C, pseudo module changeant la configuration de B
      * <li>module D, pseudo module changeant la configuration de C
      * 
-     * On va commencer par charger l'éventuel fichier config.yaml présent dans
+     * On va commencer par charger l'éventuel fichier config.config présent dans
      * le répertoire du module A, puis celui du module B, puis celui du module C
      * et ainsi de suite.
      * 
@@ -138,17 +155,23 @@ class Module
         Utils::addSearchPath($dir);        
         
         $noConfig=true;
-        if (file_exists($path=$dir.'config.yaml'))
+        foreach(array(Runtime::$fabRoot, Runtime::$root) as $dir)
         {
-            Config::load($path);
-            $noConfig=false;
-        }
-        if (!empty(Runtime::$env))   // charge la config spécifique à l'environnement
-        {
-            if (file_exists($path=$dir.'config.' . Runtime::$env . '.yaml'))
+            $path=$path=$dir.'config'.DIRECTORY_SEPARATOR.$class->getName().'.config';    
+            if (file_exists($path))
             {
                 Config::load($path);
                 $noConfig=false;
+            }
+            
+            if (!empty(Runtime::$env))   // charge la config spécifique à l'environnement
+            {
+                $path=$dir.'config'.DIRECTORY_SEPARATOR.$class->getName().'.'.Runtime::$env.'.config';    
+                if (file_exists($path))
+                {
+                    Config::load($path);
+                    $noConfig=false;
+                }
             }
         }
         if ($noConfig) debug && Debug::log('Pas de fichier de config pour le module %s', $class->getName());
@@ -217,7 +240,7 @@ class Module
             $this->setLayout('none');
             Config::set('debug', false);
             Config::set('showdebug', false);
-            header('Content-Type: text/html; charset=ISO-8859-1'); // TODO : avoir une rubrique php dans general.yaml permettant de "forcer" les options de php.ini
+            header('Content-Type: text/html; charset=ISO-8859-1'); // TODO : avoir une rubrique php dans general.config permettant de "forcer" les options de php.ini
         }
 
         // Pré-exécution   

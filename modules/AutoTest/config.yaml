@@ -1,9 +1,0 @@
-#access: cli,Admin
-
-JS: [/fabweb/js/lib/neil.fraser/diff_match_patch.js]
-CSS: [/fabweb/styles/autotest.css]
-
-run:
-  JS: [/fabweb/js/autotest.js]
-theme: default
-layout:default.htm
