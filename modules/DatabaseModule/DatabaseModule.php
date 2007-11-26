@@ -757,7 +757,7 @@ class DatabaseModule extends Module
             return $this->showError('Vous n\'avez indiqué aucun critère de recherche sur les enregistrements de la base de données.');
             
         // Aucune réponse
-        if (! $this->select($this->equation, array('_max'=>-1)) )
+        if (! $this->select($this->equation, array('_sort'=>'+')) )
             return $this->showError("Aucune réponse. Equation : $this->equation");
 
         // Construit le tableau des champs modifiables des enregistrements retournés par la recherche.
@@ -788,6 +788,7 @@ class DatabaseModule extends Module
                     $ignore[] = $fieldName;             // pour ne pas le rajouter la prochaine fois qu'on le trouve
                 }
             }
+            break;
         }
         
         // Tri le tableau des champs modifiables
@@ -1257,9 +1258,12 @@ class DatabaseModule extends Module
         $why=array();
         
         // Charge la liste des formats d'export disponibles
-        if (!$this->loadExportFormats())
-            throw new Exception("Aucun format d'export n'est disponible");
-        
+        if ($calledFromPreExecute)
+        {
+            if (!$this->loadExportFormats())
+                throw new Exception("Aucun format d'export n'est disponible");
+        }
+                
         // Choix du format d'export
         if(count(Config::get('formats'))===1)                       // Un seul format dispo : on prend celui-là
         {
