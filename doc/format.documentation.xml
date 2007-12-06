@@ -1,0 +1,289 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE sect1 PUBLIC "-//OASIS//DTD DocBook XML V4.5//EN"
+    "http://www.oasis-open.org/docbook/xml/4.5/docbookx.dtd">
+<?xml-stylesheet href="../web/styles/docbook/dm.css" type="text/css"?>
+<sect1 id="format.documentation">
+
+    <sect1info>
+        <releaseinfo>$Id$</releaseinfo>
+    </sect1info>
+
+    <title>Guidelines pour la documentation de fab</title>
+
+    <sect2>
+        <title>Format de la documentation</title>
+        <para>
+            La documentation de fab est écrite au format 
+            <ulink url="http://www.docbook.org/">DocBook</ulink>.
+            Ce format est un schéma XML qui existe depuis 1991 et qui permet de 
+            rédiger toutes sortes de documentation.
+        </para>
+        
+        <para>
+            C'est un format très large, qui comporte beaucoup d'éléments, mais
+            dans la documentation de fab, nous n'emploierons que quelques 
+            éléments.
+        </para>
+        
+        <para>
+            L'intérêt, c'est que une fois écrite en DocBook, la documentation
+            pourra être traduite vers tout un tas de formats différents (html,
+            pdf, latex, chm, etc.) en utilisant 
+            <ulink url="http://docbook.sourceforge.net/">les outils existant</ulink>.
+        </para>
+    </sect2>
+    <sect2>
+        <title>Emplacement de la doc</title>
+        
+        <para>
+            Jusque là, chaque module contenait un sous-répertoire <code>doc</code>
+            destiné à recevoir la documentation propre à ce module.
+        </para>
+        <para>
+            Désormais, toute la doc est centralisée dans le répertoire /doc
+            de fab.
+        </para>
+        <para>
+            Les fichiers doivent être nommé de façon à éviter tout conflit de
+            nom (par exemple routing.routes.format.xml pour le format des routes).
+        </para>
+        <para>
+            Le fait d'avoir tous les fichiers dans le même répertoire simplifie
+            la création de lien d'une section vers une autre et permettra plus
+            facilement de générer la doc au format html ou pdf en utilisant les
+            feuilles de style xsl.
+        </para>
+    </sect2>
+    
+    <sect2>
+        <title>Mise en route rapide</title>
+        <example>
+            <title>Un fichier de doc minimal</title>
+            <programlisting role="xml"><![CDATA[<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE sect1 PUBLIC "-//OASIS//DTD DocBook XML V4.5//EN"
+    "http://www.oasis-open.org/docbook/xml/4.5/docbookx.dtd">
+<?xml-stylesheet href="../web/styles/docbook/dm.css" type="text/css"?>
+<sect1 id="monmodule.introduction">
+
+    <sect1info><releaseinfo>$Id$</releaseinfo></sect1info>
+
+    <title>MonModule : introduction</title>
+
+    <para>Description de ce que fait le module...</para>
+
+    <sect2>
+        <title>Configuration</title>
+        <para>...</para>
+    </sect2>
+
+    <sect2>
+        <title>Utilisation avancée</title>
+        <para>...</para>
+    </sect2>
+
+</sect1>]]></programlisting>
+            <itemizedlist>
+                <listitem>
+                    <para>
+                        Déclaration xml obligatoire en première ligne.
+                        Le fichier doit être encodé en <code>UTF-8</code>/
+                    </para>
+                </listitem>
+                <listitem>
+                    <para>
+                        Le doctype DocBook doit être indiqué.
+                    </para>
+                </listitem>
+                <listitem>
+                    <para>
+                        Il est conseillé de référencer la feuille de style 
+                        <ulink url="../web/styles/docbook/dm.css">dm.css</ulink>.
+                        C'est une feuille de style que j'ai écrite et qui permet 
+                        d'afficher directement le fichier xml dans un navigateur 
+                        comme firefox ou opera (fonctionne mal avec IE6 ou 7).
+                        C'est pratique, notamment pour le développement. 
+                        La feuille de style n'est pas parfaite, et certaines 
+                        fonctionnalités manquent (par exemple les liens ne sont 
+                        pas cliquables), mais ça permet un rendu correct du fichier 
+                        xml en cours d'édition. 
+                    </para>
+                </listitem>
+                <listitem>
+                    <para>
+                        On a ensuite une section unique <code>sect1</code> qui 
+                        contient une section <code>sect1info</code> avec la 
+                        chaine d'identification de version du document injectée 
+                        par subversion, un titre (balise <code>title</code>)
+                        et tout le reste du document.
+                    </para>
+                </listitem>
+                <listitem>
+                    <para>
+                        On a ensuite autant de <code>sect2</code> que nécessaire,
+                        contenant chacune un chapitre.
+                    </para>
+                </listitem>
+            </itemizedlist>
+        </example>
+    </sect2>
+    
+    <sect2>
+        <title>Tags utilisés</title>
+        <itemizedlist>
+            <listitem>
+                <para>
+                    <command>sect1, sect2, sect3, sect4</command> : les grandes sections
+                    du document. Chaque section doit commencer par un <code>title</code>.
+                </para>
+            </listitem>
+            <listitem>
+                <para>
+                    <command>para</command> : un paragraphe
+                </para>
+            </listitem>
+            <listitem>
+                <para>
+                    <command>link, ulink</command> : un lien (cf doc de docbook
+                    pour clarifier)
+                </para>
+            </listitem>
+            <listitem>
+                <para>
+                    <command>note, tip, warning, important, example</command> : ce sont des sections 
+                    qui permettent de faire un encart. Chaque section peut
+                    contenir un titre suivi de n'importe quel contenu (des 
+                    paragraphes, un exemple de code, etc.).
+                </para>
+                <para>Voici quelques exemples :</para>
+                <note>
+                    <title>Une note</title>
+                    <para>une note, une précision, une remarque, etc...</para>
+                </note>
+                <tip>
+                    <title>Une "tip"</title>
+                    <para>une astuce, un conseil, une recommendation, une suggestion, etc...</para>
+                </tip>
+                <warning>
+                    <title>Un "warning"</title>
+                    <para>Un avertissement, une chose à laquelle l'utilisateur
+                    doit faire attention.</para>
+                </warning>
+                <caution>
+                    <title>Une mise en garde ("caution")</title>
+                    <para>En général il s'agit d'indiquer un état d'erreur.</para>
+                </caution>
+                <important>
+                    <title>Un message "important"</title>
+                    <para>Un truc important...</para>
+                </important>
+                <example>
+                    <title>Un "example"</title>
+                    <para>Un exemple de code ou d'utilisation. En général,
+                    contiendra un <code>programlisting</code></para>
+                </example>
+            </listitem>
+            <listitem>
+                <para>
+                    <command>programlisting</command> : un bout de code.
+                    Préciser le langage utilisé (php, xml...) dans l'attribut
+                    <code>role</code>.
+                </para>
+            </listitem>
+            <listitem>
+                <para>
+                    <command>screen</command> : une variante de programlisting,
+                    plutôt pour afficher le résultat obtenu.
+                </para>
+            </listitem>
+            <listitem>
+                <para>
+                    <command>itemizedlist, orderedlist, listitem</command> : 
+                    des listes, numérotées ou non.
+                </para>
+            </listitem>
+            <listitem>
+                <para>
+                    <command>emphasis, emphasis role="strong"</command> : pour
+                    "faire du gras et de l'italique"
+                </para>
+            </listitem>
+            <listitem>
+                <para>
+                    <command>code, command, filename, tag</command> : pour afficher
+                    du "code" en ligne
+                </para>
+            </listitem>
+            <listitem>
+                <para>
+                    <command>table, tgroup, row, col, colgroup, tbody, thead, tfoot, entry</command> : pour faire des tables.
+                    Exemple :
+                </para>
+                <table>
+                    <title>Exemple</title>
+                    <tgroup cols="3">
+                        <thead>
+                            <row>
+                                <entry>Utilisateur</entry>
+                                <entry>Accès</entry>
+                            </row>
+                        </thead>
+                        <tbody>
+                            <row>
+                                <entry>Invité</entry>
+                                <entry>Non</entry>
+                            </row>
+                            <row>
+                                <entry>Admin</entry>
+                                <entry>Oui</entry>
+                            </row>
+                        </tbody>
+                    </tgroup>
+                </table>
+            </listitem>
+        </itemizedlist>
+        
+        <tip>
+            <para>
+                Le zend framework utilise également DocBook pour sa documentation.
+                Il peut être utile de consulter leurs consignes :
+                <ulink url="http://framework.zend.com/wiki/display/ZFDEV/Zend+Framework+Guide+to+DocBook" />    
+            </para>
+        </tip> 
+    </sect2>
+    
+    <sect2>
+        <title>Validité du document</title>
+        
+        <itemizedlist>
+            <listitem>
+                <para>
+                    Le document xml doit être validé : cela doit être du xml valide
+                    mais aussi du docbook valide.
+                </para>
+            </listitem>
+    
+            <listitem>
+                <para>
+                    La feuille de style <code>dm.css</code> affiche en rose et rouge 
+                    les éléments qu'elle ne connaît pas.
+                </para>
+            </listitem>
+    
+            <listitem>
+                <para>
+                    La commande <command>xmllint --valid --noout file.xml</command>
+                    permet de valider la conformité du document. Pour installer xmllint
+                    sous windows (et de manière générale toute la chaine d'outils 
+                    libxml) : <ulink url="http://www.zlatkovic.com/libxml.en.html" />. 
+                </para>
+            </listitem>
+    
+            <listitem>
+                <para>
+                    <ulink url="http://www.validome.org/xml/" /> permet de vérifier la
+                    validité du document sans rien installer.
+                </para>
+            </listitem>
+        </itemizedlist>
+    </sect2>
+</sect1>
