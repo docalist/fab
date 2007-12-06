@@ -286,4 +286,39 @@
             </listitem>
         </itemizedlist>
     </sect2>
+    
+    <sect2>
+        <title>Paramétrage subversion</title>
+        
+        <para>
+            Pour que la documentation puisse être consultée directement à partir
+            du svn de fab, deux propriétés subversion doivent être appliquées
+            à chaque fichier xm composant la doc :
+        </para>
+        
+        <itemizedlist>
+            <listitem>
+                <para>
+                    <command>propset svn:mime-type "text/xml"</command>
+                    pour que google code retourne le fichier comme du xml
+                    et non pas comme du texte simple (faute de quoi on 
+                    obtient le source xml et non pas la documentation 
+                    mise en page)
+                </para>
+            </listitem>
+            <listitem>
+                <para>
+                    <command>propset svn:keywords "HeadURL Id LastChangedBy LastChangedDate LastChangedRevision"</command>
+                    pour que le numéro de révision du fichier soit créé/mis à jour 
+                    par subversion (tag releaseinfo au début des sect1)
+                </para>
+            </listitem>
+        </itemizedlist>
+        
+        <para>
+            Je sais qu'il est possible de paramétrer subversion pour que ces
+            propriétés soient appliquées automatiquement aux nouveaux fichiers
+            créés, mais je ne sais pas si c'est possible avec subclipse
+        </para>
+    </sect2>
 </sect1>
