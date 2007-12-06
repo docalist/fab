@@ -1,0 +1,105 @@
+Fichier de test unitaires pour Routing::routeFor
+(url tapée par l'utilisateur -> url comprise par fab)
+
+Ce test utilise les routes définies dans le fichier testroutes.minimal.config
+
+Dans les résultats (--expect--) vous pouvez utiliser deux variables pour
+désigner la racine du site :
+(home) : la racine du site, incluant le nom du FC (majorité des urls)
+(realhome) : idem sans FC (urls désignant un fichier de app/web)
+
+
+@version : $Id$
+
+================================================================================
+--test--
+La page d'accueil du site
+--file--
+/database/recent?_equation=*&_max=10&_sort=-
+--expect--
+(home)/
+================================================================================
+--test--
+Voir un article
+--file--
+/database/show?ref=12&permalink=feuilles-de-styles
+--expect--
+(home)/articles/12-feuilles-de-styles.html
+================================================================================
+--test--
+Editer un article
+--file--
+/database/load?ref=12
+--expect--
+(home)/articles/edit/12
+================================================================================
+--test--
+Sauvegarder un article
+--file--
+/database/save?ref=12
+--expect--
+(home)/articles/save/12
+================================================================================
+--test--
+Accès par tag
+--file--
+/database/search?motcle=php
+--expect--
+(home)/articles/tag/php
+================================================================================
+--test--
+Accès par tag (2)
+--file--
+/database/search?motcle=php&motcle=mvc
+--expect--
+(home)/articles/tag/php+mvc
+================================================================================
+--test--
+Accès par tag (3)
+--file--
+/database/search?motcle=php&motcle=mvc&motcle=framework
+--expect--
+(home)/articles/tag/php+mvc+framework
+================================================================================
+--test--
+Accès par tag (en sauf)
+--file--
+/database/search?motcle=php&motcle=mvc&op=AND_NOT
+--expect--
+(home)/articles/tag/php-mvc
+================================================================================
+================================================================================
+--test--
+Archives par date, avec des dates qui collent aux 'with'
+--file--
+/database/search?year=2006&month=06&day=10
+--expect--
+(home)/articles/archives/2006-06-10.html
+================================================================================
+--test--
+Archives par date, avec un mois qui ne respecte pas la syntaxe
+--file--
+/database/search?year=2006&month=june&day=10
+--expect--
+(home)/database/search?year=2006&month=june&day=10
+--comment--
+Aucune route ne s'applique, l'url est retournée telle quelle en ajoutant juste 
+la racine du site
+================================================================================
+--test--
+Comparer deux articles (avec des REF qui ont le bon format)
+--file--
+/database/compare?REF=4968&REF=12508
+--expect--
+(home)/articles/compare/4968-12508.html
+================================================================================
+--test--
+Comparer deux articles (un des REF n'est pas un entier)
+--file--
+/database/compare?REF=4968&REF=previous
+--expect--
+(home)/database/compare?REF=4968&REF=previous
+--comment--
+Dans ce test, linkFor échoue (aucune route ne s'applique) et retourne l'url
+telle quelle (on obtient database/compare et non pas articles/compare) 
+================================================================================

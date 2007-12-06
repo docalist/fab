@@ -25,263 +25,746 @@
 class Routing
 {
     /**
-     * Transformer appellé par Config::load lorsqu'un fichier de routes est
-     * compilé.
+     * Compile un tableau contenant des routes telles qu'elle figurent dans
+     * un fichier de configuration en tableau indexé permettant à 
+     * {@link linkFor()} et {@link routeFor()} de travailler de façon efficace.
+     * 
+     * La compilation consiste à créer deux index (un pour chacune des deux 
+     * fonctions).
+     * 
+     * todo: voir (faire) doc pour plus de détails sur le format des tableaux
      * 
      * @param array $config tableau contenant les routes
      * @return array tableau contenant la version compilée des routes
      */
-    public static function transform($config)
+    public static function transform(array $routes)
     {
-        $routes = array ();
-        // Analyse chacune des routes indiquées
-        foreach ($config as $name => $route)
+        // Les deux index qu'on va générer
+        $urls=array();
+        $modules=array();
+        
+        // Compile chaque route une par une, dans l'ordre indiqué
+        foreach($routes as $route)
         {
-
-            // Extrait l'url
-            if (!empty($route['url']))
-                $url=$route['url'];
-            else
-                $url='/';
-
-            // Détermine si l'url accepte ou non des query-strings
-            if (substr($url, -1)=='*')
+            // Récupère et vérifie l'url indiquée dans la route
+            if (!isset($route['url']) || '' === $url=trim($route['url']))
             {
-            	$queryString=true;
-                $url=rtrim($url, '*');
+                debug && Debug::warning('Route invalide, url non indiquée : %s', $route);
+                continue;
             }
-            else
-                $queryString=false;
-                
-            // Construit l'expression régulière correspondante            
-            $re='~^';
-            $names=array();
-            $pt=0;
-            $with=!empty($route['with']) ? $route['with'] : array();
-            $ignoreCase=false;
-            while ( ($i=strpos($url, '[', $pt)) !== false )
-            {
-                $h=substr($url, $pt, $i-$pt);
-                if (preg_match('~[A-Za-z]~',$h)) $ignoreCase=true;
-                $re.=preg_quote($h, '~');
-                $pt=$i+1;
-                
-                if ( ($i=strpos($url, ']', $pt)) === false)
-                    die("Syntaxe incorrecte dans la route $name : '$url', signe ']' attendu après le caractère $pt");
-                
-                $h=substr($url, $pt, $i-$pt);
-                $names[]=$h;
-    
-                if (empty($with[$h]))
-                    $mask= '.+?';
-                else
-                {
-                    $mask=$with[$h];
-                    if (preg_match('~[A-Za-z]~',$mask)) $ignoreCase=true;
-                    $with[$h]='~^' . $with[$h] . '$~';
-                }
-
-                $re.="($mask)";
-                $pt=$i+1;
-            }
-            $h=substr($url, $pt);
-            if (preg_match('~[A-Za-z]~',$h)) $ignoreCase=true;
-            $re .= preg_quote($h, '~');
-            $re .= '$~';
-            if ($ignoreCase) $re.='i';
-
-            // Stocke la route            
-            $t=array('url'=>$url, 'match'=>$re, 'querystring'=>$queryString);
-            if (count($names)) $t['names']=$names;
-            if (count($with)) $t['with']=$with;
             
-            // supprime url et with, ce qui reste=les autres paramètres à utiliser lors de l'appel au module
-            unset($route['url'], $route['with']);
-            if (count($route)) $t['args']=$route;
-            $routes[]=$t;
-            if ($queryString)
+            if($url[0] !== '/')
             {
-            	$t['querystring']=false;
-                $routes[]=$t;
+                debug && Debug::warning('Route invalide, l\'url ne commence pas par un slash : %s', $route);
+                continue;
             }
+            
+            // Découpe l'url en petits parties et complète le tableau $urls
+            $parts = & $urls;
+            foreach(self::urlParts($url) as $part)
+            {
+                // Variable à cet emplacement : ne stocke pas le nom mais juste '$'
+                if ($part[0]==='$') $part='$';
+                
+                // Ajoute cette partie dans le tableau si elle n'existe pas déjà
+                if (!isset($parts[$part])) $parts[$part]=array();
+                
+                // Continue avec le bout en cours
+                $parts=& $parts[$part];
+            }
+            
+            
+            // Crée la liste des arguments ($xx) qui figurent dans l'url
+            preg_match_all('~\$([A-Za-z0-9_]+)~', $url, $args, PREG_PATTERN_ORDER|PREG_OFFSET_CAPTURE);
+            $args=$args[1]; // un tableau index=>(arg,position)
+
+            // Vérifie et finalise les expressions régulières indiquées dans la route (with)
+            if (isset($route['with']))
+            {
+                foreach($route['with'] as $name => & $regexp)
+                {
+                    foreach($args as $arg)
+                    {
+                        if ($arg[0]===$name)
+                        {
+                            $regexp='~^'.$regexp.'$~';
+                            continue 2;
+                        }
+                    }
+                    debug && Debug::warning('Route incorrecte, la variable %s indiquée dans l\'attribut with ne figure pas dans l\'url : %s', $name, $route);
+                }
+            }
+            
+            /*
+               Crée deux versions de la route : 
+               - $urlRoute qui sera stockée dans $urls et qui sera utilisée par
+                 routeFor()
+               - $modRoute qui sera stockée dans $modules et qui sera utilisée
+                 par linkFor()
+
+               Les deux versions ne différent que par la manière dont les 
+               arguments sont stockés (propriété 'args' de la route).
+
+               Pour $urlRoute : les arguments sont stockés dans l'ordre exact où
+               ils apparaissent dans l'url. Le nom de l'argument est la clé et 
+               la valeur associée est le numéro d'ordre de la variable dans l'url.
+               Si une variable apparaît plusieurs fois dans l'url, la valeur est
+               alors un tableau contenant (en ordre croissant) les différents
+               occurences. 
+               cf. routeForRecurse().
+
+               Pour $modRoute : les arguments sont stockés dans l'ordre inverse
+               de l'ordre dans lequel ils apparaissent dans l'url (parce que 
+               linkFor fait le remplacement de la fin vers le début).
+               Le nom de l'argument est la clé est la valeur associée est la 
+               position exacte, au sein de l'url, à laquelle l'argument apparait.
+               Si une variable apparaît plusieurs fois dans l'url, la valeur est
+               alors un tableau contenant (en ordre décroissant, pour la même 
+               raison) les différents positions. 
+               Cette structure permet à linkFor() de remplacer la variable par 
+               sa valeur directement au bon endroit, sans avoir à rechercher le 
+               nom de la variable. 
+            */
+            $modRoute=$urlRoute=$route;
+            if (count($args))
+            {
+                $modRoute['args']=$urlRoute['args']=array();
+                foreach($args as $index=>$arg)
+                {
+                    $name=$arg[0];
+                    $position=$arg[1]-1;// -1 = pour pointer sur le '$' et non pas sur le début du nom
+                    self::arrayAppendKey ($urlRoute['args'], $name, $index);    // arg=>index, ordre normal 
+                    self::arrayPrependKey($modRoute['args'], $name, $position); // arg=>position, ordre inverse
+                }
+            }
+            $parts['@route']=$urlRoute;
+            
+            // Ajoute cette route dans le tableau $modules
+            if (isset($modRoute['module']))
+                $module=strtolower($modRoute['module']);
+            else
+                $module='$';
+            
+            if (isset($modRoute['action']))
+            {
+                $action=strtolower($modRoute['action']);
+                if (strncmp($action, 'action', 6)===0)
+                    $action=substr($action, 6);
+            }
+            else 
+                $action='$';
+                
+            $modules[$module.'-'.$action][]=$modRoute;
         }
 
-        // Tri les routes
-        usort($routes, array('Routing','sortRoutes'));
-
-        // Retourne le résultat            
+        // Construit le tableau résultat qui sera stocké dans la config
+        $routes=array
+        (
+            'urls'=>$urls,
+            'modules'=>$modules
+        );
+//echo '<pre>', var_export($routes,true), '</pre>';
         return $routes;
     }
     
-    /**
-     * Trie les routes
-     * 
-     * Pour déterminer le module à appeller, le gestionnaire de routes examine
-     * les règles une par une, dans l'ordre où elles apparaissent. Il faut donc
-     * que les règles soient triées de façon à ce que les règles les plus
-     * spécifiques apparaissent avant les règles les plus générales.
-     * Trier les règles par spécificité est compliqué. Pour compare deux
-     * routes $a et $b, on va comparer plusieurs paramètres :
-     * 
-     * - $na (resp. $nb) : le nombre de 'champs' présents dans la route $a
-     * (resp. $b))
-     * 
-     * - $qa (resp. $qb) : vrai si la règle $a (resp. $b) accepte des
-     * arguments supplémentaires (query string).
-     * 
-     * L'algorithme de tri utilise ces variables pour déterminer si la route $a
-     * doit être avant $b ($a &lt; $b), si elle doit être après ($a &gt; $b) ou
-     * si les deux routes ont la même priorité (==).
-     * 
-     * Quand deux routes sont de même priorité ($a==$b), on effectue un tri
-     * alphabétique décroissant sur la partie 'texte' des routes (ie les url
-     * indiquéee, débarrassées des éventuels champs présents). Ce tri n'est pas
-     * nécessaire pour le bon fonctionnement du routeur, mais permet de
-     * regrouper ensemble les actions d'un même module. (Remarque : tri
-     * décroissant pour que /base/[ref] soit après /base/[ref]/modifier, ie
-     * la route la plus longue en premier).
-     * 
-     * Au final, on obtient un tableau logique de décision (cf source) qui
-     * détermine l'ordre de tri.
-     * 
-     * Remarque : une règle * (qui accepte des query string) est gérée comme
-     * deux règles distinctes : une règle sans l'étoile (qui sera plutôt en
-     * début de liste) et une règle avec étoile qui arrivera plutôt en fin de
-     * liste.
-     * 
-     * Exemple avec les routes /base/search* et /base/[titre]
-     * todo: développer
-     */
-    /*
-
-                       +------------------------+-----------------------------------+
-                       |         $na==0         |              $na!=0               |
-                       +------------+-----------+-----------------+-----------------+
-                       | $qa==false | $qa==true |    $qa==false   |    $qa==true    |
-    +-----+------------+------------+-----------+-----------------+-----------------+
-    | $nb | $qb==false |     ==     |    a>b    |       a>b       |       a>b       |
-    |  =  +------------+------------+-----------+-----------------+-----------------+
-    |  0  | $qb==true  |    a<b     |    ==     |       a<b       |       a<b       |
-    +-----+------------+------------+-----------+-----+-----+-----+-----+-----+-----+
-    |     |            |            |           |na<nb|na=nb|na>nb|na<nb|na=nb|na>nb|
-    |     | $qb==false |    a<b     |    a>b    +-----+-----+-----+-----+-----+-----+
-    | $nb |            |            |           | a>b | ==  | a<b | a>b | a>b | a<b |
-    | !=  +------------+------------+-----------+-----+-----+-----+-----+-----+-----+
-    |  0  |            |            |           |na<nb|na=nb|na>nb|na<nb|na=nb|na>nb|
-    |     | $qb==true  |    a<b     |    a>b    +-----+-----+-----+-----+-----+-----+
-    |     |            |            |           | a>b | a<b | a<b | a>b | ==  | a<b |
-    +-----+------------+------------+-----------+-----+-----+-----+-----+-----+-----+
-
-    */
-
-    public static function sortRoutes($a,$b, &$h='')
-    {
-        $na=isset($a['names']) ? count($a['names']) : 0;
-        $nb=isset($b['names']) ? count($b['names']) : 0;
-        
-        $qa=$a['querystring'];
-        $qb=$b['querystring'];
-        
-        $h='$na=' . $na . ', $nb='.$nb.', $qa='.($qa?'true':'false').', $qb='.($qb?'true':'false');
-        
-        if (($na==$nb) && ($qa==$qb))
-        {
-            $wa=isset($a['with']) ? count($a['with']) : 0;
-            $wb=isset($b['with']) ? count($b['with']) : 0;
-            if (($wb-$wa)==0)
-                return -strcmp(preg_replace('~\[.*?\]~','',$a['url']), preg_replace('~\[.*?\]~','',$b['url']));
-            return $wb-$wa;
-        }
-        
-        if 
-        (
-                (   ($na===0) && ($qa===false)                      )
-            ||  (   ($nb===0) && ($qb===true)                       )
-            ||  (   ($na!=0) && ($nb !=0) && ($na > $nb)            )
-            ||  (   ($na===$nb) && ($qb===true) && ($qa===false)    )
-        ) return -1;
-        
-        return 1;
-    }
-    
-    /**
-     * Initialise la route à utiliser pour l'url passée en paramètre.
-     * 
-     * Si aucune route ne peut être établie pour cette url, dispatch un 'Not
-     * found'.
-     * 
-     * @param string $url l'url à examiner
-     */
-    public static function setupRouteFor($url)
-    {
-        //Debug::log("Recherche d'une route pour %s", $url);
-        $matches=array(); // supprime warning 'variable not initialized'
-        foreach (Config::get('routes') as $name=>$route)
-        {
-            if (preg_match($route['match'], $url, $matches))
-            {
-                // Ajoute les variables dans $_GET/$_REQUEST ou dans $_POST/$_REQUEST selon la méthode
-                if (Utils::isGet())$t= & $_GET; else $t = & $_POST;          
-                
-                // réinitialise le module et l'action en cours
-                unset($t['module'], $t['action']);  // sinon on obtient un tableau de modules
-                                                    // si dispatch est appellée plusieurs fois
-                
-                if (isset($route['args']))
-                {
-                    foreach ($route['args'] as $name=>$value)
-                    {
-                        if (isset($t[$name]))
-                        {
-                            if (is_array($t[$name]))
-                                $t[$name][]=$value;
-                            else
-                                $t[$name]=array($t[$name], $value);
-                        }
-                        else
-                        {
-                            $t[$name]=$value;
-                        }
-                        $_REQUEST[$name]= & $t[$name];
-                    }
-                }       
-                
-                if (isset($route['names']))
-                {
-                    foreach ($route['names'] as $index=>$name)
-                    {
-                        $matches[$index+1]=urldecode($matches[$index+1]);
-                        if (isset($t[$name]))
-                        {
-                            if (is_array($t[$name]))
-                                $t[$name][]=$matches[$index+1];
-                            else
-                                $t[$name]=array($t[$name], $matches[$index+1]);
-                        }
-                        else
-                        {
-                            $t[$name]=$matches[$index+1];
-                        }
-                        $_REQUEST[$name]= & $t[$name];
-                    }
-                }
-//                Debug::notice('Route trouvée : ' . Debug::dump($t));
-                debug && Debug::log('Recherche d\'une route pour %s : module=%s, action=%s', $url, $t['module'], $t['action']);
-                return;       
-            }
-        }
-        
-        debug && Debug::notice('Aucune route n\'a été trouvée pour %s', $url);
-        // Aucune route trouvée : 404 page non trouvée
-        self::notFound();
-    }
     
     public static function dispatch($url)
     {
+//echo '<pre>', var_export(Config::getAll(),true), '</pre>';
         //debug && Debug::log("Dispatch de l'url");
+//echo '<h1>setupRouteFor</h1>';
         self::setupRouteFor($url);
+//echo '<h1>linkForRoute</h1>';
+//var_export(self::linkForRoute('base', 'search', array('year'=>2006, 'month'=>'june', 'day'=>10)));
+//echo '<br />';
+//var_export(self::linkForRoute('base', 'show', array('REF'=>array(456,768))));
+//echo '<br />';
+//echo self::linkForRoute('base', 'search');
+//die();
+//echo self::linkFor('/Base/search?');
+//        echo self::linkFor('/Base/search?year=2006&month=june&day=10');
+//echo self::linkFor('/Base/SearchForm');
+//self::linkFor('/BASE/SEARCHFORM');
+//self::linkFor('/Base/Delete?ref=5');
+//self::linkFor('/');
+//self::linkFor('/DatabaseAdmin/EditStructure');
+//die();        
         Module::run();
     }
+    
+    
+    public static function setupRouteFor($url)
+    {
+        // Détermine une route pour cette url
+        if (! $route=self::routeFor($url))        
+            throw new Exception('Route not found');
+            
+//        echo 'Route trouvée pour <code style="color: #00A;">',$url,'</code> :<br /><pre>';
+//        print_r($route);
+//        print_r(Config::get('routes'));
+//        echo '</pre><hr />';
+        
+        // Ajoute les variables dans $_GET/$_REQUEST ou dans $_POST/$_REQUEST selon la méthode
+        if (Utils::isGet())$t= & $_GET; else $t = & $_POST;          
+        
+        // réinitialise le module et l'action en cours
+        unset($t['module'], $t['action']);  // sinon on obtient un tableau de modules
+                                            // si dispatch est appellée plusieurs fois
+        if(isset($route['module']))
+            $t['module']=$route['module'];
+        if(isset($route['action']))
+            $t['action']=$route['action'];
+            
+        if (isset($route['args']))
+        {
+            foreach ($route['args'] as $name=>$value)
+            {
+                if (isset($t[$name]))
+                {
+                    if (is_array($t[$name]))
+                        $t[$name][]=$value;
+                    else
+                        $t[$name]=array($t[$name], $value);
+                }
+                else
+                {
+                    $t[$name]=$value;
+                }
+                $_REQUEST[$name]= & $t[$name];
+            }
+        }       
+//echo 'setupRouteFor terminé :<pre>' ;
+//var_export($t);     
+foreach(array('module','action') as $name)
+    $_REQUEST[$name]= $t[$name] = $route[$name];
+//var_export($_REQUEST);     
+//echo '</pre>' ;
+
+//        if (isset($route['names']))
+//        {
+//            foreach ($route['names'] as $index=>$name)
+//            {
+//                $matches[$index+1]=urldecode($matches[$index+1]);
+//                if ($name==='action')
+//                    $matches[$index+1]='action'.$matches[$index+1];
+//                if (isset($t[$name]))
+//                {
+//                    if (is_array($t[$name]))
+//                        $t[$name][]=$matches[$index+1];
+//                    else
+//                        $t[$name]=array($t[$name], $matches[$index+1]);
+//                }
+//                else
+//                {
+//                    $t[$name]=$matches[$index+1];
+//                }
+//                $_REQUEST[$name]= & $t[$name];
+//            }
+
+//        die();
+    }
+    
+    
+    
+    /**
+     * Détermine une route pour une url donnée
+     * (l'url ne doit pas contenir de query string)
+     *
+     * @param string $url
+     * @return {array|false}
+     */
+    public static function routeFor($url)
+    {
+        return self::routeForRecurse
+        (
+            Config::get('routes.urls'), // La partie "index par morceaux" des routes 
+            self::urlParts($url)        // L'url découpée en morceaux
+        );        
+    }
+    
+    /**
+     * Fonction récursive utilisée par {@link routeFor()} pour déterminer une
+     * route à partir d'une url
+     *
+     * @param array $routes
+     * @param unknown_type $parts
+     * @param unknown_type $index
+     * @param unknown_type $vars
+     * @return unknown
+     */
+    private static function routeForRecurse(array $routes, array $parts, $index=0, $vars=array())
+    {
+        // On a étudié toutes les parties de l'url, teste les routes restantes
+        if ($index>=count($parts))
+        {
+            // Vérifie qu'il existe des routes pour ce qu'on a étudié
+            if(!isset($routes['@route'])) 
+            {
+//                echo 'pas de @route<br />';
+                return false;
+                
+            }
+
+            // Récupère la route obtenue
+            $route=$routes['@route'];
+
+//            echo 'route à instancier : ', var_export($route), '<br />';
+//            echo 'Vars : ', var_export($vars, true), '<br />';
+            
+            // Vérifie que toutes les variables respectent le masque indiqué par 'with'
+            if (isset($route['with']))
+            {
+                foreach($route['with'] as $name=>$regexp) // nécessaire si l'argument indiqué par le with est répété dans la route
+                {
+                    foreach((array) $route['args'][$name] as $i)
+                    {
+                        if (!preg_match($regexp, $vars[$i])) 
+                        {
+//                            echo 'argument ', $name, '=', $vars[$i], ' colle pas avec son with<br />';
+                            return false;
+                        }
+//                        else
+//                            echo 'argument ', $name, '=', $vars[$i], ' colle avec son with=', $regexp, '<br />';
+                    }                    
+                }
+
+//                $i=0;
+//                foreach($route['with'] as $name=>$regexp)
+//                {
+//                    if (!preg_match($regexp, $vars[$i])) 
+//                    {
+//                        echo 'argument ', $name, '=', $vars[$i], ' colle pas avec son with<br />';
+//                        return false;
+//                    }
+//                    else
+//                        echo 'argument ', $name, '=', $vars[$i], ' colle avec son with=', $regexp, '<br />';
+//                    
+//                    ++$i;
+//                }
+
+            }
+            
+            // Stocke les arguments
+            $args=array();
+            if (isset($route['args']))
+            {
+                foreach($route['args'] as $name=>$index)
+                {
+                    foreach((array)$index as $index)
+                    {
+//                        echo 'storing args, name=', $name, ', value=', $vars[$index], '<br />';
+                        
+                        if (!isset($route[$name]) && ($name==='module' || $name==='action'))
+                        {
+                            if ($name==='action')
+                                $route[$name]='action'.$vars[$index];
+                            else
+                                $route[$name]=$vars[$index];
+                        }
+                        else
+                            self::arrayAppendKey($args, $name, $vars[$index]);
+                    }
+                }
+            }
+            
+            if (isset($route['add']))
+            {
+                foreach($route['add'] as $name=>$value)
+                {
+                    self::arrayAppendKey($args, $name, $value);
+                }
+            }
+            
+            if (count($args)) 
+                $route['args']=$args;
+            else
+                unset($route['args']);
+            //                echo '<pre>', var_export($route,true), '</pre>';
+            // Trouvé !
+            return $route;
+        }
+        
+        // Ignore la casse dans les urls
+        $part=strtolower($parts[$index]);
+        
+//        var_export($routes);
+        // Recherche parmi les routes qui ont cette partie à cet endroit
+        if (isset($routes[$part]))
+        {
+//            echo 'texte. part=', $part, '<blockquote style="border: 1px solid #888;margin:0 2em">';
+            $route=self::routeForRecurse($routes[$part], $parts, $index+1, $vars);
+//            echo '</blockquote>';
+            if ($route !== false) return $route; 
+        }
+//        else echo 'routes[',$part,'] no set<br />';
+        
+        // Sinon, rechercher parmi les routes qui autorisent une variable à cet endroit
+        if (isset($routes['$']))
+        {
+            //$vars[]=$part;
+            $varIndex=count($vars);
+            $vars[$varIndex]='';
+//            echo 'index=', $index, ', var=', $vars[$varIndex], '<br />';
+            for($i=$index+1; $i<=count($parts); $i++)
+            {
+                $vars[$varIndex].=$parts[$i-1];
+//                echo 'var. part=', $part, ', var=', $vars[$varIndex], '<blockquote style="border: 1px solid #888;margin:0 2em">';
+                $route=self::routeForRecurse($routes['$'], $parts, $i, $vars);
+//                echo '</blockquote>';
+                if ($route !== false) return $route;
+            }
+        }
+//        else echo '$ not set';
+
+        // Aucune route ne convient dans cette branche
+//        echo 'ni "', $part, '" ni variable ne sont autorisés ici<br />';
+        //var_export($routes);
+        return false;
+    }
+    
+    
+    
+    
+    
+    
+    /**
+     * Génère un lien à partir d'une fab url.
+     * 
+     * Une fab url est en général de la forme "/module/action?querystring",
+     * mais vous pouvez ommettre le module, l'action ou les deux :
+     * 
+     * - /module/action?query : action "action" du module "module"
+     * - /module/?query : action par défaut (index) du module module
+     * - /module?query : todo: autorisé ou non ? redirection ou non ?
+     * - /?query : action par défaut du module par défaut (la page d'accueil du site)
+     * - action?query : action "action" du module en cours
+     * - ?query : action en cours du module en cours
+     * 
+     * La fonction utilise le module, l'action et les paramètres indiqués en 
+     * query string pour déterminer, parmi les routes, celle qui s'applique.
+     * 
+     * Si aucune route n'est trouvée, un warning est émis et l'url est retournée
+     * telle quelle. Sinon, la fonction retourne l'url indiquée dans la route 
+     * après l'avoir instancée.
+     * 
+     * Par défaut, la fonction crée des liens relatifs (qui ne mentionnent ni
+     * le protocole ni le nom de domaine). Vous pouvez indiquer absolute=true 
+     * si vous souhaitez générer des urls absolues (utile par exemple pour 
+     * générer un e-mail au format html).
+     * 
+     * todo: le sliens retournés sont de la forme /index.php/xxx/yyy, c'est-à-dire
+     * qu'ils partent toujours de la racine du site. Ce serait bien de pouvoir
+     * générer des liens relatifs au module et à l'action en cours (par exemple,
+     * si je suis dans '/base/search?xxx' et que j'appelle 'show?yyy', générer 
+     * simplement 'show?yyy' et non pas '/base/show?yyy' ; si je suis déjà
+     * dans '/base/show?yyy' et que j'appelle 'show?zzz', générer simplement
+     * '?zzz'. 
+     *
+     * @param string $url la fab url pour laquelle on souhaite créer un lien
+     * 
+     * @param boolean $absolute indique s'il faut générer un lien relatif ou non
+     * (par défaut : false)
+     * todo: est-que cela ne devrait pas plutôt être dans la config ?
+     * 
+     * @return string
+     */
+    public static function linkFor($url, $absolute=false)
+    {
+        // Si ce n'est pas une fab url, on retourne l'url telle quelle
+        if (preg_match('~^[a-z]{3,6}:~',$url))  // commence par un nom de protocole
+            return $url;
+
+        $ori=$url;
+        
+        // Analyse la query string, initialise $args()
+        $args=array();
+        $pt=strpos($url, '?');
+        if ($pt === false)
+            $query='';
+        else
+        {
+            $query=substr($url, $pt+1);
+            if (strlen(ltrim($query)))
+            {
+                foreach (explode('&', $query) as $arg)
+                {
+                    list($name,$value)=array_pad(explode('=', $arg), 2, null);
+                    self::arrayAppendKey($args, $name, $value);
+                }
+            }            
+            $url=substr($url, 0, $pt);
+        }
+
+        // Détermine le module et l'action demandés
+        
+        // Pas d'url -> on prends le module et l'action en cours
+        if ($url==='')
+        {
+            $module=$_REQUEST['module']; // module en cours
+            $action=$_REQUEST['action']; // action en cours
+            if (strncmp($action, 'action', 6)===0)
+                $action=substr($action, 6);
+        }
+        
+        // Raccourci pour la page d'accueil du site
+        elseif($url==='/')
+        {
+            // Ajoute la webroot
+            $link= Runtime::$home . self::buildQueryString($args);
+            
+            // Crée une url absolue si ça a été demandé
+            if ($absolute)
+                $link=Utils::getHost() . $link;
+            return $link;
+        }
+        
+        // Commence par un '/' -> lien vers un module
+        elseif ($url[0] === '/')
+        {
+            $url=ltrim($url, '/'); // supprime le slash initial
+            $pt=strpos($url, '/');
+            if ($pt===false)
+            {
+                $module=$url;
+                $action='index'; // action par défaut
+            }
+            else
+            {
+                $module=substr($url, 0, $pt);
+                $action=substr($url, $pt+1);
+                if ($action=='') $action='index';
+            }
+
+            // Si le "module" est un sous-répertoire existant du répertoire web
+            // de l'application on retourne un lien réel vers celui-ci.
+            // Peu-importe que le fichier existe réellement ou non (il peut y 
+            // avoir une redirection dans le .htaccess, etc...), on ne teste que
+            // l'existence du répertoire de plus haut niveau (ie $module).
+            if (file_exists(Runtime::$webRoot . $module))
+            {
+                return ($absolute ? Utils::getHost() : '') . Runtime::$realHome . $url;
+            }
+        }
+
+        // pas de slash au début -> lien vers une action du module en cours
+        else
+        {
+            $module=$_REQUEST['module']; // module en cours
+            $action=$url; // rtrim($url,'/');
+        }
+
+        // supprime le slash final de l'action
+        if (strpos($action, '/')===strlen($action)-1) // enlève le '/' de fin dans 'index/' mais pas dans '/styles/default/'
+        {
+            $action=rtrim($action,'/');
+        }
+//echo '<b>Url=', $url, ', module=', $module, ', action=', $action, '</b><br />';        
+//**********************
+//        if ($t['module']=='/')
+//        {
+//            // todo: utile de gérer ça ici ?            
+//            return ($absolute ? Utils::getHost() : '') . rtrim(Runtime::$home,'/') . $url;
+//            
+//        }
+        
+        if (false === $link=self::linkForRoute($module, $action, $args))
+        {
+//echo '<b>Lien retourné par linkForRoute(', $module, ',',$action, ') = ', var_export($link, true), '</b><br />';        
+            debug && Debug::warning('linkFor : aucune route applicable pour l\'url %s', $url);
+            $link=$ori;
+//            $link=$url;
+//            if ($query) $link.='?'.$query;
+        }
+        
+//echo '<b>Lien retourné par linkForRoute(', $module, ',',$action, ') = ', var_export($link, true), '</b><br />';        
+        // Ajoute la webroot
+        $link= rtrim(Runtime::$home,'/') . $link;
+        
+        // Crée une url absolue si ça a été demandé
+        if ($absolute)
+            $link=Utils::getHost() . $link;
+            
+        // Retourne le résultat
+//        printf ('""" /> /> /><br /><br />linkFor(%s)=%s<br /><br />', $url, $link);
+        debug && Debug::log('linkFor(%s)=%s', $url, $link);
+        return $link;
+    }
+    
+    private static function linkForRoute($module, $action, array $args=array())
+    {
+        if (!defined('trace')) define('trace',false);
+        
+        $ori=$args;
+        if(trace) echo '<h1>linkForRoute</h1>module=', $module, ', action=', $action, ', args=', var_export($args,true), '<br /><pre>';
+
+        $module=strtolower($module);
+        $action=strtolower($action);
+        
+        // Récupère la liste des routes possibles pour ce couple (module,action)
+        $routes=Config::get("routes.modules.$module-$action");
+        if (is_null($routes))
+        {
+            if(trace)echo 'Pas de routes pour ', "routes.modules.$module-$action", '<br />';
+            $routes=Config::get("routes.modules.\$-$action");
+            if (is_null($routes))
+            {
+                if(trace)echo 'Pas de routes pour ', "routes.modules.\$-$action", '<br />';
+                $routes=Config::get('routes.modules.$-$');
+                if (is_null($routes))
+                {
+                    if(trace)echo 'Pas de routes pour ', 'routes.modules.$-$', '<br />';
+                    if(trace)echo '<pre>', var_export(Config::get('routes'), true), '</pre>';
+                    if ($action==='index') $action='';
+                    $url='/'.$module.'/'.$action.self::buildQueryString($args);
+                    if (trace)echo 'Aucune route pour module=', $module, ' & action=', $action, ', reconstruction de l\'url, result=', $url, '<br /></pre>';
+                    return $url;
+                }
+                
+            }
+        }
+        
+        
+        // Ne garde que celle(s) qui convien(nen)t
+//        foreach(array_reverse($routes,true) as $route) // fixme: reverse plus nécessaire, à tester
+        foreach($routes as $route) // fixme: reverse plus nécessaire, à tester
+        {
+            $args=$ori;
+            
+            if(trace)echo 'Route étudiée : ', var_export($route,true), '<br />';
+
+            // Si la route a des arguments, il faut les vérifier
+            if (isset($route['args']))
+            {
+                // Cas particulier : module et route sont définis par l'url, il faut les considérer comme des paramètres
+                if (isset($route['args']['module']))
+                    self::arrayPrependKey($args, 'module', $module);
+                if (isset($route['args']['action']))
+                    self::arrayPrependKey($args, 'action', $action);
+                
+                // On doit avoir au moins autant d'arguments que dans la route
+                if (count($args) < count($route['args']))
+                {
+                    if(trace)echo 'nombre de args insuffisant<br />';
+                    continue;
+                }
+                
+                // Chacun des arguments de la route doit être présent
+                foreach($route['args'] as $name=>$value)
+                {
+                    if (!isset($args[$name]))
+                    {
+                        if(trace)echo'arg ', $name, ' non fourni<br />';
+                        continue 2;
+                    }
+                    if(is_array($value) && count($args[$name])<count($value))
+                    {
+                        if(trace) echo 'nb de valeurs fournies pour arg ', $name, ' insuffisant<br />';
+                        continue 2;
+                    }   
+                }
+                
+//                if(count($diff=array_diff_key($route['args'], $args)))
+//                {
+//                    echo 'les args suivants ont pas été indiqués :<br />', 
+//                        'diff=', var_export($diff,true),
+//                        '<hr />';
+//                    continue;
+//                }
+    
+                // Les arguments doivent avoir le bon type (regexp) 
+                if (isset($route['with']))
+                {
+                    foreach($route['with'] as $name=>$regexp)
+                    {
+                        foreach((array)$args[$name] as $value)
+                            if (!preg_match($regexp, $value)) 
+                            {
+                                if(trace)echo 'valeur ', $value, 'de arg ', $name, ' ne correspond pas au masque ', $regexp, '<br />';
+                                continue 3;
+                            }
+                    }
+                }
+            }
+             
+            // Si on a des 'add' dans l'url ils doivent figurer dans les arguments
+            if (isset($route['add']))
+            {
+                foreach ($route['add'] as $name=>$value)
+                {
+                    if (!isset($args[$name])) 
+                    {
+                        if(trace)echo 'ADD ', $name, ' non fourni<br />';
+                        continue 2; // le add de la route n'a pas été indiqué
+                    }
+                    
+                    if (is_array($value))
+                    {
+                        if (count($value) > count($args[$name]))
+                        {
+                            if(trace) echo 'nombre de valeurs pour ADD ', $name, ' insuffisant<br />';
+                            continue 2; // n valeurs spécifiées dans le add, moins que ça dans les args
+                        }
+                            
+                        foreach($value as $value)
+                        {
+                            if (false === $i=array_search($value, $args[$name], false)) // non-strict
+                            {
+                                if(trace) echo 'valeur ', $value, ' du ADD ', $name, ' non fournie<br />';
+                                continue 3; // la valeur indiquée dans le add n'est pas dans les args
+                            }
+                            unset($args[$name][$i]);
+                        }
+                        if (count($args[$name])===0)
+                        unset($args[$name]);
+                    }
+                    else
+                    {
+                        if ($value!=$args[$name]) // non-strict
+                        {
+                            if(trace) echo 'valeur ', $value, ' du ADD ', $name, ' non fournie<br />';
+                            continue 2; // la valeur indiquée dans le add est différente
+                        }
+                        unset($args[$name]);
+                    }
+                }
+            }
+                
+            // Tout est ok, crée le lien en instanciant l'url
+            $url=$route['url'];
+            if (isset($route['args']))
+            {
+                foreach($route['args'] as $name=>$position)
+                {
+                    foreach((array)$position as $position)
+                    {
+                        if (is_array($args[$name]))
+                        {
+                            $arg=array_pop($args[$name]);
+                        }
+                        else
+                        {
+                            $arg=$args[$name];
+                            unset($args[$name]);
+                        }
+                        $url=substr_replace($url, $arg, $position, strlen($name)+1); // +1 pour le signe $
+                    }
+                }
+            }
+                        
+            // S'il reste des arguments, on les ajoute en query-string
+            if(trace)echo 'url instanciée : ', $url, ', args restants : ', var_export($args,true), '<br />';
+            $url.=self::buildQueryString($args);
+            
+//            echo 'ROUTE RETENUE, url=<b>',$url,'</b><br />';
+//            echo '<hr />';
+return $url;
+            $result[]=$url;
+        }
+    return false;
+        if (!isset($result)) return false;
+        return count($result)===1 ? $result[0] : $result;
+    }
+    
     
     public static function notFound()
     {
@@ -293,7 +776,7 @@ class Routing
     
     /**
      * Décompose une fab url et retourne un tableau contenant les clés 'module',
-     * 'action' et chacun des paramètrs présents dans l'url.
+     * 'action' et chacun des paramètres présents dans l'url.
      * 
      * S'il s'agit d'une faburl relative, le module et éventuellement l'action
      * sont déterminés par le module et l'action en cours.
@@ -345,7 +828,7 @@ class Routing
             $action=rtrim($url,'/');
         }
 
-        $t=array('module'=>$module, 'action'=>$action);
+        $t=array('module'=>$module, 'action'=>'action'.$action);
         if($query)
         {
             foreach (explode('&', $query) as $item)
@@ -367,275 +850,198 @@ class Routing
     }
     
     /**
-     * Transforme un lien. Cette fonction est utilisée pour les templates dans
-     * lesquels les liens sont créés sous la forme
-     * 
-     * /webs/show?ref=12&titre=essai
-     * 
-     * La fonction utilise les règles de routage pour déterminer la façon dont
-     * le lien doit être affiché à l'utilisateur.
-     * 
-     * /webs/12-essai
-     * 
-     * Remarque : linkFor ne fait aucun encodage : c'est à l'appellant de s'assurer que 
-     * les caractères spéciaux présents dans l'url, et notamment dans la query string, 
-     * sont correctement encodés. Autrement dit : l'url doit être syntaxiquement correcte.
-     * 
-     * @param string $url l'url à transformer
-     * @return string l'url à afficher à l'utilisateur
+     * Découpe une url en morceaux
+     *
+     * @param string $url
+     * @return array
      */
-    public static function linkFor($url, $absolute=false)
+    public static function urlParts($url)
     {
-        // Pas touche aux liens qui précisent un protocole (http, mailto, etc)
-        if (preg_match('~^[a-z]{3,6}:~',$url)) return $url;
-
-        // Décompose l'url
-        $t=self::parseFabUrl($url);
-//        echo Debug::dump($t) . '<br />';
-
-        if ($t['module']=='/')
-            return ($absolute ? Utils::getHost() : '') . rtrim(Runtime::$home,'/') . $url;
-        
-        // Si le lien pointe vers un répertoire existant du répertoire web,
-        // il ne faut pas chercher à convertir le lien en module/action, mais juste
-        // ajouter la racine du site web.
-        // exemple: /images/logo.gif -> /apache/web/debug.php/images/logo.gif
-        // remarque : peut-importe que le fichier existe réellement ou non (ça peut être un
-        // script, il peut y avoir une redirection dans le .htaccess, etc..), on ne teste que
-        // l'existence du répertoire de plus haut niveau.
-        
-        if (file_exists(Runtime::$webRoot . $t['module']))
-            return ($absolute ? Utils::getHost() : '') . rtrim(Runtime::$realHome,'/') . $url;
-
-        // Examine toutes les routes une par une
-        foreach (Config::get('routes') as $name=>$route)
+        // Ignore le slash de début, évite un niveau d'indirection inutile
+        $url=ltrim($url,'/');
+        $parts=array();
+        for($start=0; $start<strlen($url);)
         {
-            if (isset($route['names'])) $names=&$route['names']; else $names=array(); 
-            if (isset($route['args'])) $args=&$route['args']; else $args=array(); 
-
-            // Détermine si la route accepte une querystring
-            $acceptQuery=strpos($route['url'], '*'); // * dans la route = accepte params supplémentaires
-
-            // Vérifie que le nombre de paramètres indiqués dans l'url colle avec la route
-            $nb=count($args)+count($names); // nombre total de paramètres requis par la route
-            if ($route['querystring']===false)   // pas de query string : le nb de param doit coller exactement
-                if (count($t) != $nb) continue;
-            else                        // query string possible : on doit avoir au moins les params requis 
-                if (count($t)<$nb) continue;
-            
-            // Si les arguments de la route (names+args) ne sont pas tous dans l'url, au suivant
-//            if (count(array_diff(array_keys($t), $names, array_keys($args))))
-//            {
-//                continue;
-//            }
-
-            // Tous les noms présents dans la route doivent avoir été indiqués dans la fab url
-            foreach ($names as $key)
-                if (!isset($t[$key])) continue 2;
-    
-            // Toutes les variables de la route doivent avoir été indiquées dans la fab url 
-            foreach ($args as $key => $value)
-                if (!isset($t[$key]) || $t[$key] != $value) continue 2;
-
-            // Les paramètrs de l'url doivent correspondre aux reg exp de la route
-            if (isset($route['with']))
+            if ($url[$start]==='$')
             {
-                foreach ($route['with'] as $key => $re)
-                    if (preg_match($re, $t[$key])===0) continue 2;
-            }    
-            // On a trouvé notre route !
-            $result=rtrim(Runtime::$home,'/') . $route['url'];
-            
-            // Evite de faire apparaître l'action par défaut dans les urls
-            if ($t['action']=='index') $t['action']='';
-            
-            // Remplace tous les noms présents dans l'url par leur valeur 
-            foreach($names as $field)
-            {
-                $value=$t[$field];
-                if (is_array($value)) $value=implode(',', $value);
-                $result=str_replace("[$field]", $value, $result);
-                unset($t[$field]);
+                $len=1+strspn($url, 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_', $start+1);
+                $last='cas1';
             }
-            
-            // Vide tous les arguments de la faburl qui font partie de la route
-            foreach($args as $key=>$value)
-                unset($t[$key]);
-            
-            // S'il reste quelque chose, on ajoute tout en query string
-            if (count($t))
+            else
             {
-                if (!$route['querystring']) die('big pb !');
-                $result.='?';
-                $i=0;
-                foreach ($t as $field=>$value)
-                    $result.=($i++==0?'':'&').$field.'='. (is_array($value)?implode('&' . $field.'=', $value):$value);
+                $len=strcspn($url, '-,;/$.+', $start);
+                $last='cas2';
             }
-
-            // Retourne le résultat
-            debug && Debug::log('linkFor(%s)=%s', $url, ($absolute ? Utils::getHost() : '').$result);
-            return ($absolute ? Utils::getHost() : '') . $result;
-            
-        }
-        debug && Debug::warning('linkFor : aucun lien pour %s', $url);
-        return '';
-    }
-   // TODO: traiter les 'with'
-   // TODO: '/ConfigModule/' ne marche pas, bug dans setupRoute
-    
-    public static function oldlinkFor($url, $absolute=false)
-    {
-        // TODO : mettre absolute url dans la config (tout le site passe en url absolues)
-        // peut aussi être utile pour générer un email html, exporter une liste de liens (flash-email sfsp, etc.)
-//        echo "<li>LinkFor $url</li>"; 
-        if ($url=='') return '';
-         
-        // Pas touche aux liens qui précisent un protocole (http, mailto, etc)
-        if (preg_match('~^[a-z]{3,6}:~',$url)) return $url;
-            
-        // Si l'utilisateur veut une url absolue, détermine l'adresse du serveur
-        $host=$absolute ? Utils::getHost() : '';
-        
-        // Décompose l'url en module, action, querystring
-        $nb=preg_match
-        (
-            '~
-                ^                       # url commence par 
-                (?:
-                    /
-                    (\w+)               # $1 : module
-                    /?
-                )?
-                (
-                    \w+                 # $2 : action
-                )?
-                /?
-                (?:
-                    \?
-                    (.*)                    # $3 : query string
-                )?
-            ~x',
-            $url,
-            $matches);
-
-        // Ajuste les valeurs par défaut
-        if (! empty($matches[1]))  // module en cours
-            $module=$matches[1];
-        else
-            $module=($url=='/' ? 'DefaultModule' : $_REQUEST['module']);
-            
-        if (!empty($matches[2]))
-            $action=$matches[2];
-        else
-            $action='index'; // TODO: utiliser la config
-            
-        if (!empty($matches[3]))
-            $query =$matches[3];
-        else
-            $query='';
-//        echo "\"></a><p>url: $url, Module : $module, action: $action, query: $query</p>";
-//        echo "<pre>nb=$nb - " . print_r($matches,true)."</pre>";
-//        echo "<pre>module:$module, action:$action, query:$query</pre>";
-//return;
-        // Si le lien pointe vers un répertoire qui existe dans le répertoire,
-        // il ne faut pas chercher à convertir le lien en module/action, mais juste
-        // ajouter la racine du site web.
-        // exemple: /images/logo.gif -> /apache/web/images/logo.gif
-        // et non pas module 'images', action 'logo.gif'
-        if (file_exists(Runtime::$webRoot . $module))
-        {
-//            echo 'FILEEXISTS. ' . $url . ' lien retourné : ' . $host . rtrim(Runtime::$realHome,'/') . $url . '<br />' . "\n";
-            return $host . rtrim(Runtime::$realHome,'/') . $url;
-        }
-        
-        // Construit un tableau urlName contenant le module, l'action et tous les paramêtres indiqués
-        $urlNames=array('module'=>$module, 'action'=>$action);
-        if ($query != '')
-        {
-            foreach (explode('&', $query) as $item)
-            {
-                @list($key,$value)=explode('=', $item, 2);
-                if (isset($urlNames[$key]))
-                {
-                    if (is_array($urlNames[$key]))
-                        $urlNames[$key][]=$value;
-                    else
-                        $urlNames[$key]=array($urlNames[$key], $value);
-                }
-                else
-                    $urlNames[$key]=$value;
-            }
-        }
-//        $urlArgs=array();
-
-        // Ok, maintenant essaie de trouver une route qui correspond
                 
-//        echo "<h1>Url : $url</h1><pre>urlNames=" . print_r($urlNames, true) .  "</pre>";           
-
-        // Examine toutes les routes une par une
-        foreach (Config::get('routes') as $name=>$route)
-        {
-
-            if (isset($route['names'])) $names=$route['names']; else $names=array(); 
-            if (isset($route['args'])) $args=$route['args']; else $args=array(); 
-
-//            echo "<li>Examen de la route <strong>${route['url']}</strong> <pre>Noms=" . print_r($names, true) . "\nArgs=" . print_r($args,true)."</pre>";           
-
-            // Si les arguments de la route (names+args) ne sont pas tous dans l'url, au suivant
-            if (count(array_diff(array_keys($urlNames), $names, array_keys($args))))
+            $parts[]=$part/**/=substr($url, $start, $len);
+            $start+=$len;
+            if ($start < strlen($url) && $url[$start]!=='$')
             {
-                continue;
+                // On ne stocke pas les slashs, cela enlève des niveaux d'indirection
+                if ($url[$start]!=='/')
+                    $parts[]=$part/**/=$url[$start];
+                ++$start;
             }
+        }
+        return $parts;
+    }
+    
+    /**
+     * Ajoute une clé et une valeur dans un tableau.
+     * 
+     * La fonction ajoute la clé et la valeur indiquées à la fin du tableau.
+     * Si la clé existe déjà dans le tableau, la valeur existante est convertie 
+     * en tableau et la valeur indiquée est ajoutée à la fin du tableau obtenu.
+     * 
+     * Cette fonction est utile pour gérer une liste de clés auxquelles peuvent 
+     * être associées une ou plusieurs valeurs. Le tableau obtenu contiendra
+     * toutes les clés indiquées, dans l'ordre dans lequel elles ont été 
+     * rencontrées pour la première fois, et chaque clé indiquera la ou les 
+     * valeurs associées. Pour chaque clé, count(value) indique le nombre de
+     * fois ou la clé a été rencontrée.
+     * 
+     * Remarque : la valeur doit être de type scalaire ou objet, cela ne 
+     * marchera pas si vous passez un tableau.
+     * 
+     * La fonction {@link arrayPrependKey()} est très similaire mais effectue
+     * les insertions en ordre inverse. 
+     * 
+     * @param array $array
+     * @param scalar $key
+     * @param {scalar|object} $value
+     */
+    private static function arrayAppendKey(array & $array, $key, $value)
+    {
+        // Si la clé n'existe pas déjà, on l'insère à la fin du tableau
+        if (!array_key_exists($key, $array))
+        {
+            $array[$key]=$value;
+            return;
+        }
+        
+        // La clé existe déjà
+        $item=& $array[$key];
+        
+        // Si c'est déjà un tableau, ajoute la valeur à la fin du tableau
+        if (is_array($item))
+            $item[]=$value;
             
-//            foreach ($names as $key)
-//            {
-//                if (!isset($urlNames[$key])) 
-//                {
-//            //    	echo "<p>$key pas dans urlNames";
-//                    continue 2;
-//                }
-//            }
+        // Sinon, crée un tableau contenant la valeur existante et la valeur indiquée
+        else
+            $item=array($item, $value);
+    }
     
-            // we must match all defaults with value except if present in names
-            // Toutes les valeurs par défaut indiquées dans la route doivent correspondre
-            // à celles indiquées dans l'url ? 
-            foreach ($args as $key => $value)
+    /**
+     * Ajoute une clé et une valeur dans un tableau.
+     * 
+     * La fonction ajoute la clé et la valeur indiquées au début du tableau.
+     * Si la clé existe déjà dans le tableau, la valeur existante est convertie 
+     * en tableau et la valeur indiquée est ajoutée au début du tableau obtenu.
+     * 
+     * Cette fonction est utile pour gérer une liste de clés auxquelles peuvent 
+     * être associées une ou plusieurs valeurs. Le tableau obtenu contiendra
+     * toutes les clés indiquées, en ordre inverse de l'ordre dans lequel elles 
+     * ont été rencontrées pour la première fois, et chaque clé indiquera la ou 
+     * les valeurs associées (en ordre inverse également).
+     * 
+     * Remarque : la valeur doit être de type scalaire ou objet, cela ne 
+     * marchera pas si vous passez un tableau.
+     * 
+     * La fonction {@link arrayAppendKey()} est très similaire mais effectue
+     * les insertions en ordre normal. 
+     * 
+     * @param array $array
+     * @param scalar $key
+     * @param {scalar|object} $value
+     */
+    private static function arrayPrependKey(array & $array, $key, $value)
+    {
+        // Si la clé n'existe pas déjà, on l'insère au début du tableau
+        if (!array_key_exists($key, $array))
+        {
+            $array=array($key=>$value) + $array; // y-a-t-il un autre moyen ?
+            return;
+        }
+        
+        // La clé existe déjà
+        $item=& $array[$key];
+        
+        // Si c'est déjà un tableau, ajoute la valeur au début du tableau
+        if (is_array($item))
+            array_unshift($item, $value);
+            
+        // Sinon, crée un tableau contenant la valeur indiquée et la valeur existante
+        else
+            $item=array($value, $item);
+    }
+    
+    /**
+     * Construit une query string à partir de la liste d'arguments passés en
+     * paramètre.
+     * 
+     * Contrairement à la fonction php standard http_build_query(), cette 
+     * méthode gère correctement les arguments multi-valués (ie elle ne génère 
+     * pas de crochets).
+     * 
+     * Par défaut, la fonction considère que les arguments sont déjà encodés
+     * correctement. Dans le cas contraire, vous pouvez passer 'encode=true'
+     * en paramètre. Dans ce cas, le nom et la valeur des arguments sera encodée 
+     * en utilisant la fonction php {@link http://php.net/rawurlencode rawurlencode()} 
+     * conformément à la {@link http://www.faqs.org/rfcs/rfc1738 RFC 1738}. 
+     *
+     * Exemple :
+     * <code> 
+     * $args=array('ref'=>12, 'mcl'=>array('être', 'ne pas être'));
+     * resultat : ?ref=12&mcl=%EAtre&mcl=ne%20pas%20%EAtre
+     * </code>
+     * 
+     * @param array $args les arguments à mettre en query string
+     * 
+     * @param bool $encode indique s'il faut encoder ou non les données avec
+     * la fonction php rawurlencode() (default : true)
+     * 
+     * @param null|string $separator le séparateur à utiliser entre les 
+     * paramètres. Par défaut ($separator=null), la valeur de l'option de 
+     * configuration 'arg_separator.output' de php.ini est utilisée (en général
+     * il s'agit de la chaine '&').
+     * 
+     * @return string une chaine vide si args était vide, une query string 
+     * valide commençant par '?' sinon.
+     * 
+     * @see http://www.faqs.org/rfcs/rfc1738
+     */
+    public static function buildQueryString(array $args, $encode=false, $separator=null)
+    {
+        if (is_null($separator)) $separator=ini_get('arg_separator.output');
+        
+        $query='';
+        if ($encode)
+        {
+            foreach($args as $name=>$value)
             {
-                if (isset($names[$key])) continue;
-    
-                if (!isset($urlNames[$key]) || $urlNames[$key] != $value) 
+                if (is_null($value))
+                    $query.=(strlen($query) ? $separator : '?').rawurlencode($name);
+                else
                 {
-                //  echo "<p>$key='$value' ne colle pas avec ce qu'il y a dans urlArgs"; 
-                    continue 2;
+                    foreach((array)$value as $value)
+                        $query.=(strlen($query) ? $separator : '?').rawurlencode($name).'='.rawurlencode($value);
                 }
             }
-
-            // On a trouvé notre route !
-            $result=$route['url'];
-            foreach($names as $field)
-            {
-                $value=$urlNames[$field];
-                if (is_array($value)) $value=implode(',', $value);
-            	$result=str_replace("[$field]", $value, $result);
-            }
-            //if ($result{0}='/') $result=substr($result, 1);
-//            if ($result=='')
-//            {
-//            	echo "route vide !<pre>";
-//                print_r($route);
-//                echo '</pre>';
-//            }
-            //echo "<li>LinkFor [$url]=[$result]";
-            $result=rtrim(Runtime::$home,'/') . $result;
-//            echo "<li>Result $host$result</li>"; 
-            
-            debug && Debug::log('linkFor(%s)=%s', $url, $host.$result);
-            return $host . $result;
-            //echo sprintf("<li style='color: red;font-weight:bold'>%2s : %s</li>", $name, $result);
-            
         }
-        debug && Debug::warning('linkFor : aucun lien pour %s. Retourne %s', $url, $host.$url);
-        return '';
+        else
+        {
+            foreach($args as $name=>$value)
+            {
+                if (is_null($value))
+                    $query.=(strlen($query) ? $separator : '?').$name;
+                else
+                {
+                    foreach((array)$value as $value)
+                        $query.=(strlen($query) ? $separator : '?').$name.'='.$value;
+                }
+            }
+        }
+        return $query;
     }
 }
 ?>

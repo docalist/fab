@@ -1,0 +1,80 @@
+Fichier de test unitaires pour Routing::routeFor
+(url tapée par l'utilisateur -> url comprise par fab)
+
+Ce test utilise les routes définies dans le fichier testroutes.minimal.config
+
+@version : $Id$
+
+================================================================================
+--test--
+Un module et une action
+--file--
+/database/search
+--expect--
+array
+(
+    'url' => '/$module/$action',
+    'module' => 'database',
+    'action' => 'actionsearch',
+)
+--comment--
+- Pas de clé 'args' : l'url contient des variables, mais comme c'est 'module'
+  et 'action', elles ne sont pas stockées comme argument
+- l'action est 'actionsearch' et non pas 'actionSearch' : fab se contente
+  d'ajouter le préfixe 'action' devant ce qu'a tapé l'utilisateur, il n'a aucun
+  moyen, à ce stade, de connaître la casse exacte de l'action qui sera appellée.
+  En plus, il se peut qu'en fait se soit une pseudo action (cf FabWeb), et dans
+  ce cas, ça poserait problème de "trafficoter" la casse en aveugle (par exemple
+  mettre une majuscule).
+================================================================================
+--test--
+Un module et son action par défaut (indiquée)
+--file--
+/database/index
+--expect--
+array
+(
+    'url' => '/$module/$action',
+    'module' => 'database',
+    'action' => 'actionindex',
+)
+================================================================================
+--test--
+Un module et son action par défaut (non indiquée)
+--file--
+/database/
+--expect--
+array
+(
+    'url' => '/$module/',
+    'action' => 'actionIndex',
+    'module' => 'database',
+)
+--comment--
+Ici on récupère le nom de l'action en camelCase parce qu'elle a été saisie
+comme ça dans le fichier de routes.
+================================================================================
+--test--
+Un module et son action par défaut (non indiquée, sans slash final)
+--file--
+/database
+--expect--
+array
+(
+    'url' => '/$module/',
+    'action' => 'actionIndex',
+    'module' => 'database',
+)
+================================================================================
+--test--
+Racine du site
+--file--
+/
+--expect--
+array
+(
+    'url' => '/',
+    'module' => 'DefaultModule',
+    'action' => 'actionIndex',
+)
+================================================================================
