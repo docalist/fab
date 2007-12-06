@@ -316,9 +316,36 @@
         </itemizedlist>
         
         <para>
-            Je sais qu'il est possible de paramétrer subversion pour que ces
+            Il est possible de paramétrer subversion pour que ces
             propriétés soient appliquées automatiquement aux nouveaux fichiers
-            créés, mais je ne sais pas si c'est possible avec subclipse
+            créés :
         </para>
+        <itemizedlist>
+            <listitem>
+                <para>Pour subclipse, modifier le chemin d'accès au fichier de
+                configuration de subclipse : aller dans le menu
+                <code>window/preferences/Team/SVN/Configuration location</code>
+                et changer la valeur par défaut (<code>Use default config location</code>)
+                pour pointer vers le fichier de configuration de TortoiseSVN
+                (<code>c:\documents and settings\~user\Application Data\Subversion\</code>).
+                </para>
+            </listitem>
+            <listitem>
+                <para>
+                    Dans ce répertoire, éditer le fichier <filename>config</filename> en
+                    mettant la propriété <code>enable-auto-props</code> à <code>yes</code>
+                    et en modifiant le contenu de la section <code>[auto-props]</code>
+                    comme suit :
+                    <screen>*.css = svn:mime-type=text/css;svn:keywords=HeadURL Id LastChangedBy LastChangedDate LastChangedRevision
+*.xml = svn:mime-type=text/xml;svn:keywords=HeadURL Id LastChangedBy LastChangedDate LastChangedRevision
+*.php = svn:keywords=HeadURL Id LastChangedBy LastChangedDate LastChangedRevision
+*.png = svn:mime-type=image/png
+*.jpg = svn:mime-type=image/jpeg</screen>
+                    
+                </para>
+                
+                
+            </listitem>
+        </itemizedlist>
     </sect2>
 </sect1>
