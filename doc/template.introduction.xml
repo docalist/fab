@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE sect1 PUBLIC "-//OASIS//DTD DocBook XML V4.5//EN"
+    "http://www.oasis-open.org/docbook/xml/4.5/docbookx.dtd">
+<?xml-stylesheet href="../web/styles/docbook/dm.css" type="text/css"?>
+<sect1 id="template.introduction">
+
+    <sect1info>
+        <releaseinfo>$Id$</releaseinfo>
+    </sect1info>
+
+    <title>Templates : introduction</title>
+    
+    <sect2 id="template.introduction.goals">
+        <title>Objectifs</title>
+    
+        <para>
+            Fab dispose d'un système de templates qui permettent d'avoir une 
+            séparation nette entre la présentation et le code. Les templates peuvent
+            être utilisés pour générer n'importe quelle sortie au format texte 
+            (texte brut, xml, html, rtf, etc.)
+        </para>        
+    
+        <para>
+            Le système de templates mis en oeuvre vise plusieurs objectifs :
+        </para>
+        <itemizedlist>
+            <listitem>
+                <para>
+                    avoir une syntaxe très simple, facile à comprendre
+                </para>
+            </listitem>
+            <listitem>
+                <para>
+                    permettre de gagner du temps : écrire un template doit prendre 
+                    beaucoup moins de temps que de générer à la main la sortie 
+                    attendue
+                </para>
+            </listitem>
+            <listitem>
+                <para>
+                    permettre, au moins en théorie, que les templates soient édités 
+                    avec un outil standard (par exemple un éditeur html, 
+                    éventuellement wysiswyg)
+                </para>
+            </listitem>
+            <listitem>
+                <para>
+                    avoir un système rapide (dans l'idéal, aussi rapide que si on 
+                    avait codé à la main tous les <code>echo xxx</code> requis)    
+                </para>
+            </listitem>
+            <listitem>
+                <para>
+                    offrir des fonctions de haut niveau : afficher facilement les 
+                    résultats d'une recherche (<code>loop</code>), générer une table 
+                    des matières, etc.    
+                </para>
+            </listitem>
+        </itemizedlist>        
+    </sect2>
+    
+    <sect2 id="template.introduction.history">
+        <title>Historique</title>
+        <itemizedlist>
+            <listitem>
+                <para>
+                    La version 1 du système de template reprends ce qu'on avait 
+                    dans BisWeb et Bis 4.0 (champs entre crochets, bloc 
+                    optionnels entre parenthèses et rien d'autre).    
+                </para>
+            </listitem>
+            <listitem>
+                <para>
+                    La version 2 améliore les choses en greffant plus de 
+                    possibilités : blocs <code>if</code> et <code>loop</code>, 
+                    balise <code>opt</code> pour les blocs optionnels, etc. 
+                    La mise en oeuvre est faite à base d'expressions régulières, 
+                    ce qui devient assez vite difficile à gérer.
+                </para>
+            </listitem>
+            <listitem>
+                <para>
+                    La version 3 est une réécriture complète basée sur un parser 
+                    xml. Les templates doivent désormais être des fichiers xml 
+                    valides. La syntaxe des champs utilise maintenant le signe 
+                    <code>$</code> et les accolades <code>{ }</code>. Ajout de 
+                    plusieurs tags 
+                    (<code>if</code>/<code>else</code>/<code>elseif</code>, 
+                    <code>switch</code>/<code>case</code>/<code>default</code>, 
+                    etc.) et d'attributs utilisables dans tous les tags 
+                    (<code>if="xx"</code>, <code>test="xxx"</code>, ...). 
+                    Système de templates match.
+                </para>
+            </listitem>
+        </itemizedlist>        
+    </sect2>
+</sect1>

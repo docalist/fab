@@ -1,0 +1,861 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE sect1 PUBLIC "-//OASIS//DTD DocBook XML V4.5//EN"
+    "http://www.oasis-open.org/docbook/xml/4.5/docbookx.dtd">
+<?xml-stylesheet href="../web/styles/docbook/dm.css" type="text/css"?>
+<sect1 id="templates.matchtemplates">
+
+    <sect1info>
+        <releaseinfo>$Id$</releaseinfo>
+    </sect1info>
+
+    <title>Templates : templates match</title>
+    
+    <sect2 id="templates.matchtemplates.introduction">
+    
+        <title>Introduction</title>
+        
+        <para>
+            Le tag <code><![CDATA[<template>]]></code> permet de mettre en 
+            oeuvre, au sein des fichiers templates, l'équivalent d'une 
+            fonction dans un langage de programmation.
+        </para>
+        
+        <para>
+            Il permet de définir un modèle, identifié par un nom unique, qui 
+            sera exécuté à chaque fois qu'un tag portant le nom indiqué sera
+            rencontré dans le source du template.
+        </para>
+        
+        <tip>
+            <title>Vocabulaire</title>
+            <para>
+                Pour simplifier le langage dans la documentation, 
+                les termes "<code>attribut</code>",  "<code>élément</code>" et 
+                "<code>texte</code>" sont utilisés pour désigner :
+                
+                <itemizedlist>
+                    <listitem>
+                        <para>
+                            un noeud xml de type attribut (un attribut composé
+                            d'un nom et d'une valeur)
+                        </para>
+                    </listitem>
+                    <listitem>
+                        <para>
+                            un noeud xml de type élément, identifié par un tag
+                        </para>
+                    </listitem>
+                    <listitem>
+                        <para>
+                            un noeud de type texte
+                        </para>
+                    </listitem>
+                </itemizedlist>        
+            </para>
+        </tip>
+    </sect2>
+    
+    <sect2 id="templates.matchtemplates.creating">
+        
+        <title>Définition d'un template</title>
+        
+        <para>
+            Comme indiqué plus haut, le tag <code><![CDATA[<template>]]></code> 
+            permet de définir un modèle qui pourra ensuite être réutilisé autant
+            de fois que nécessaire.
+        </para>
+        
+        <para>    
+            Ce modèle spécifie un masque (indiqué par un attribut match contenant 
+            une expression xpath valide) qui définit l'ensemble des éléments du 
+            fichier template auxquels ce modèle sera automatiquement appliqué.
+        </para>
+        
+        <para>    
+            Le modèle peut également avoir des arguments (ce sont les attributs 
+            supplémentaires indiqués dans le tag 
+            <code><![CDATA[<template>]]></code>) et chaque argument a une valeur 
+            par défaut (la valeur indiquée dans chacun des attributs), 
+            éventuellement vide.
+        </para>
+        
+        <para>    
+            Exemple de template :
+        </para>
+        
+        <programlisting role="xml"><![CDATA[<template match="//copyright" year="2006">
+    <hr />
+    Copyright $year BDSP.
+</template>]]></programlisting>        
+
+        <para>    
+            Dans cet exemple, nous définissons un template qui sélectionne 
+            automatiquement tous les éléments dont le nom de tag est égal à 
+            <code>copyright</code> (c'est ce qu'indique l'expression xpath 
+            indiquée dans l'attribut match).
+        </para>
+        
+        <para>
+            Ce template spécifie un paramètre nommé <code>year</code> dont la 
+            valeur par défaut est <code>2006</code>.
+        </para>
+        
+        <para>    
+            Le corps du template (ce qui figure entre les balises 
+            <code><![CDATA[<template>]]></code> et 
+            <code><![CDATA[</template>]]></code>) spécifie le code XML qui sera 
+            généré lorsque ce template sera utilisé.
+        </para>
+        
+        <para>    
+            On voit que le paramètre <code>year</code> qui figure dans les 
+            attributs du template s'utilise comme une variable standard 
+            (<code>$year</code>).
+        </para>
+        
+        <para>    
+            Le corps du template peut contenir n'importe quoi : du texte, 
+            d'autres tags, des instructions du système de template 
+            (<code>if</code>, <code>loop</code>, <code>switch</code>...) et peut 
+            également inclure tout ou partie du contenu des noeuds auxquels il 
+            sera appliqué en utilisant la fonction <code>select()</code> (voir 
+            plus bas).
+        </para>
+        
+        <tip>
+            <title>Pour plus d'informations sur le language <code>xpath</code> :</title>
+            
+            <para>
+                Références :
+                <itemizedlist>
+                    <listitem>
+                        <para>
+                            en anglais : <ulink url="http://www.w3.org/TR/xpath" />
+                        </para>
+                    </listitem>
+                    <listitem>
+                        <para>
+                            en français : <ulink url="http://xmlfr.org/w3c/TR/xpath" />
+                        </para>
+                    </listitem>
+                </itemizedlist>        
+            </para>
+        
+            <para>
+                Tutoriels :
+                <itemizedlist>
+                    <listitem>
+                        <para>
+                            en anglais : <ulink url="http://www.zvon.org/xxl/XPathTutorial/General_fre/examples.html" />
+                        </para>
+                    </listitem>
+                    <listitem>
+                        <para>
+                            en français : <ulink url="http://jerome.developpez.com/xmlxsl/xpath/" />
+                        </para>
+                    </listitem>
+                </itemizedlist>        
+            </para>
+        
+            <para>
+                Outils en ligne permettant de tester des expressions xpath :
+                <itemizedlist>
+                    <listitem>
+                        <para>
+                            <ulink url="http://www.whitebeam.org/library/guide/TechNotes/xpathtestbed.rhtm" />
+                        </para>
+                    </listitem>
+                    <listitem>
+                        <para>
+                            <ulink url="http://www.activsoftware.com/xml/xpath/" />
+                        </para>
+                    </listitem>
+                </itemizedlist>        
+            </para>
+        </tip>        
+    </sect2>
+    
+    <sect2 id="templates.matchtemplates.using">
+        <title>Utilisation d'un template</title>
+        
+        <para>
+            Pour utiliser un modèle, il suffit d'écrire un noeud qui réponde aux 
+            critères spécifiés dans l'attribut match du modèle. Ce noeud sera 
+            alors automatiquement remplacé par le contenu du template.
+        </para>
+        
+        <para>
+            Lorsqu'on appelle un template, on peut choisir d'utiliser les 
+            valeurs par défaut des arguments du template, ou au contraire 
+            spécifier des valeurs.
+        </para>
+        
+        <para>    
+            Exemple 1 :
+        </para>
+        <programlisting role="xml"><![CDATA[<copyright />]]></programlisting>
+        
+        <para>    
+            Ici, on a écrit le minimum nécessaire pour que le modèle donné en 
+            exemple un peu plus haut soit instancié. Aucun paramètre n'a été 
+            indiqué, et donc le modèle va être instancié tel quel, en utilisant 
+            les valeurs par défaut de ses paramètres. On obtiendra donc la 
+            sortie suivante :
+        </para>
+        
+        <programlisting role="xml"><![CDATA[<hr />
+Copyright 2006 BDSP.]]></programlisting>
+        
+        <para>    
+            Exemple 2 :
+        </para>
+        
+        <programlisting role="xml"><![CDATA[<copyright year="1993-2007" />]]></programlisting>
+            
+        <para>
+            Ici, on a spécifié une valeur pour l'argument year. Cette valeur va 
+            "écraser" la valeur par défaut du template, et on obtiendra donc la 
+            sortie suivante :
+        </para>
+        
+        <programlisting role="xml"><![CDATA[<hr />
+Copyright 1993-2007 BDSP.]]></programlisting>
+    </sect2>
+
+    <sect2 id="templates.matchtemplates.matchattribute">
+
+        <title>L'attribut match du tag <![CDATA[<template>]]></title>
+    
+        <para>
+            Le tag template doit obligatoirement contenir l'attribut match : une 
+            exception est générée si cet attribut est absent, s'il est vide, ou 
+            s'il contient une expression xpath non valide.
+        </para>
+        
+        <para>    
+            Par contre, presque toutes les expression xpath valides sont 
+            autorisées. Il est ainsi possible de sélectionner des noeuds en 
+            fonction de leur tag, de leur position dans l'arbre XML du document, 
+            des attributs qu'ils contiennent, de la  valeur de ces attributs ou 
+            même de faire des calculs plus complexes en utilisant les fonctions
+            et les opérateurs disponibles dans le langage xpath.
+        </para>
+        
+        <para>    
+            Néanmoins, certaines expressions xpath, bien que valides, ne peuvent 
+            pas être utilisées. Par exemple sélectionner le document dans son 
+            entier, sélection récursive (un template qui se sélectionne 
+            lui-même), etc.
+            
+            TODO : à analyser, mieux définir les expressions qui généreront un 
+            exception.
+        </para>
+    
+        <example>
+            <title>Exemples d'attributs match valides</title>
+            <itemizedlist>
+                <listitem>
+                    <para>
+                        <code>match="//div"</code> (qui est un raccourci de 
+                        <code>match="/*/div"</code>) : tous les tags 
+                        <code><![CDATA[<div>]]></code>, quel que soit leur 
+                        emplacement dans l'arbre xml du document
+                    </para>
+                </listitem>
+                <listitem>
+                    <para>
+                        <code>match="//form/fieldset/div"</code> : tous les 
+                        éléments <code><![CDATA[<div>]]></code> qui sont des 
+                        descendants directs d'un élément 
+                        <code><![CDATA[<fieldset>]]></code> 
+                        lui-même descendant direct d'un élément 
+                        <code><![CDATA[<form>]]></code> présent n'importe où 
+                        dans l'arbre xml
+                    </para>
+                </listitem>
+                <listitem>
+                    <para>
+                        <code>match="//ul/li[1]"</code> (qui est un raccourci de 
+                        <code>match="/*/ul/li[position()=1]"</code> : le premier 
+                        élément <code><![CDATA[<li>]]></code> présent dans un  
+                        élément <code><![CDATA[<ul>]]></code>
+                    </para>
+                </listitem>
+                <listitem>
+                    <para>
+                        <code>match="//a[@title]"</code> : tous les liens (tags 
+                        <code><![CDATA[<a>]]></code>) qui ont un attribut 
+                        <code>title</code>
+                    </para>
+                </listitem>
+                <listitem>
+                    <para>
+                        <code>match="//a[starts-with(@href, 'mailto:')]"</code> : 
+                        tous les liens (tags <code><![CDATA[<a>]]></code>) dont 
+                        l'attribut <code>href</code> commence par 
+                        <code>mailto:</code>
+                    </para>
+                </listitem>
+                <listitem>
+                    <para>
+                        <code>match="//form[(input[@type="checkbox"] or input[@type="radio"] and not(textarea)]"</code> : 
+                        tous les formulaires qui contiennent au moins une case à 
+                        cocher ou un bouton radio mais qui ne contiennent pas de 
+                        textearea.
+                    </para>
+                </listitem>
+                <listitem>
+                    <para>
+                        <code>match="//h1|//h2|//h3|//h4|//h5|//h6"</code> : 
+                        tous les éléments titres
+                    </para>
+                </listitem>
+                <listitem>
+                    <para>
+                        <code>match="//h1[text()]"</code> : le 
+                        <emphasis>texte</emphasis> des titres de niveau 1
+                    </para>
+                </listitem>
+                <listitem>
+                    <para>
+                        <code>match="//a/@href"</code> : sélectionne les 
+                        <emphasis>attributs</emphasis> <code>href</code> de tous 
+                        les liens
+                    </para>
+                </listitem>
+                <listitem>
+                    <para>
+                        <code>match="//*/@*"</code> : sélectionne tous les 
+                        <emphasis>attributs</emphasis> de tous les noeuds de 
+                        l'arbre xml (ça risque de faire du monde ...)
+                    </para>
+                </listitem>
+            </itemizedlist>        
+    
+            <para>
+                TODO : aucun des exemples ci-dessus n'a été testé pour de 
+                vrai... à faire
+            </para>    
+        </example>
+
+        <para>Remarques</para>
+    
+        <itemizedlist>
+            <listitem>
+                <para>
+                    Les <code>//</code> du match sont nécessaires pour 
+                    sélectionner tous les descendants quel que soit le niveau 
+                    de descendance. Sans les <code>//</code>, on ne sélectionne
+                    que les descendants directs de l'élément racine.
+                </para>
+            </listitem>
+            <listitem>
+                <para>
+                    lorsque l'expression xpath contenue dans l'attribut match 
+                    d'un template est exécutée, le contexte courant de xpath 
+                    est la racine de l'arbre xml du document.
+                </para>
+                <para>
+                    TODO : probablement buggé pour le moment, à tester
+                </para>
+            </listitem>
+            <listitem>
+                <para>
+                    utiliser dans un attribut match une expression xpath qui 
+                    sélectionne des <emphasis>attributs</emphasis> et non pas 
+                    des <emphasis>éléments</emphasis> de l'arbre xml 
+                    <emphasis role="strong">est</emphasis> une opération 
+                    valide.
+                </para>
+                
+                <para>
+                    TODO : expliquer que dans ce cas, lors de l'instanciation, 
+                    on fait un traitement spécial. En fait, on a sélectionné un 
+                    attribut. La valeur de cet attribut va être remplacé par le
+                    corps du template. Mais le corps du template peut contenir 
+                    n'importe quoi, par exemple toute une hiérarchie de tags. 
+                    Or, on ne peut pas mettre des tags dans la valeur d'un 
+                    attribut (<code><![CDATA[<a href="<b>...</b>"]]></code>),
+                    c'est interdit en xml. Le traitement spécial effectué, 
+                    c'est que dans ce cas on obtiendra uniquement la version 
+                    "texte seulement" du corps du template,  c'est-à-dire ce 
+                    qu'on obtient si on enlève tous les tags.
+                </para>
+            </listitem>
+        </itemizedlist>        
+    </sect2>
+
+    <sect2 id="templates.matchtemplates.parameters">
+
+        <title>Les paramètres du template</title>
+
+        <para>
+            Le template peut spécifier des paramètres. Pour cela il suffit 
+            d'ajouter des attributs au tag <code><![CDATA[<template>]]></code> 
+            utilisé.
+        </para>
+        
+        <para>    
+            Remarque : le nom d'attribut <code>match</code> est réservé, il 
+            n'est pas possible de l'utiliser comme nom de paramètre.
+        </para>
+        
+        <para>    
+            Dans le corps du template, les paramètres deviennent automatiquement 
+            de nouvelles sources de données. Elles sont du coup utilisables 
+            comme n'importe quelle autre variable : <code>$arg</code>, 
+            <code>{$arg}</code>, etc.
+        </para>
+        
+        <para>    
+            Les autres sources de données utilisées dans le corps du template 
+            sont instanciées telles quelles.
+        </para>
+        
+        <para>    
+            Exemple :
+        </para>
+        
+        <programlisting role="xml"><![CDATA[<template match="//copyright" year="2005">
+    Copyright $year $name
+</template>]]></programlisting>
+        
+        <para>    
+            Dans cet exemple, <code>year</code> est un paramètre du template. 
+            Lors de l'instanciation, <code>$year</code> sera donc remplacée par 
+            la valeur de ce paramètre, que ce soit la valeur par défaut indiquée 
+            dans le template ou la valeur spécifiée par l'appellant.
+        </para>
+        
+        <para>    
+            Par-contre, <code>name</code> n'est pas un argument du template, 
+            donc lors de l'instanciation, il sera transmis tel quel.
+        </para>
+        
+        <para>    
+            On obtient donc la sortie suivante :
+        </para>
+        
+        <programlisting role="xml"><![CDATA[Copyright 2005 $name]]></programlisting>
+        
+        <warning>
+            <title>Remarques</title>
+            <para>
+                si un template a un attribut portant le même nom qu'une source 
+                de données existante passée à <code>Template::run()</code>, 
+                l'attribut du template match est prioritaire. Dans ce cas, de 
+                la même façon que pour une fonction dans un langage de 
+                programmation, le paramètre a une portée locale.
+            </para>
+        </warning>
+    </sect2>
+
+    <sect2 id="templates.matchtemplates.select">
+    
+        <title>
+            Récupérer le contenu de l'élément instancié : 
+            fonction <code>select()</code>
+        </title>
+        
+        <sect3 id="templates.matchtemplates.select.introduction">
+        
+            <title>Introduction</title>
+            
+            <para>
+                Il existe une pseudo-fonction nommée <code>select()</code>, qui 
+                peut être utilisée dans le corps d'un template, et qui prends en
+                argument une expression xpath.
+            </para>
+            
+            <para>    
+                Cette fonction permet de récupérer tout ou partie du contenu du 
+                noeud instancié :
+            </para>
+            
+            <itemizedlist>
+                <listitem>
+                    <para>
+                        le texte : <code>{select('text()')}</code>
+                    </para>
+                </listitem>
+                <listitem>
+                    <para>
+                        les éléments : <code>{select('*')}</code>
+                    </para>
+                </listitem>
+                <listitem>
+                    <para>
+                        la valeur d'un ou de tous les attributs par exemple
+                        <code>{select('@nomAttribut')}</code> ou 
+                        <code>{select('@*')}</code>
+                    </para>
+                </listitem>
+                <listitem>
+                    <para>
+                        une combinaison de plusieurs de ces différents types de 
+                        contenu en les séparant au moyen de l'opérateur 
+                        <code>|</code> (barre verticale) 
+                    </para>
+                </listitem>
+            </itemizedlist>        
+            
+                
+            <para>
+                Lorsque cette fonction est exécutée, le contexte courant de 
+                xpath est le noeud en cours d'instanciation.
+            </para>
+        </sect3>
+    
+        <sect3 id="templates.matchtemplates.intext">
+        
+            <title>Utiliser <code>select()</code> dans du texte</title>
+    
+            <example>
+                <title>
+                    convertir les tags <![CDATA[<b>...</b>]]> en 
+                    tags <![CDATA[<strong>...</strong>]]>
+                </title>
+    
+                <programlisting role="xml"><![CDATA[<template match="//b">
+        <strong>{select('text()')}</strong>
+    </template>]]></programlisting>
+    
+                <para>
+                    Ici, on a utilisé la fonction <code>select()</code> pour 
+                    récupérer le texte présent dans les tags 
+                    <code><![CDATA[<b>]]></code> sélectionnés par le template 
+                    (remarque : pour rester simple, l'exemple donné ne récupère 
+                    que le texte présent dans le tag 
+                    <code><![CDATA[<b>]]></code>, pas les éventuels éléments 
+                    présents).
+                </para>
+            </example>
+            
+            <example>
+            
+                <title>
+                    transformer une liste <code><![CDATA[<ul>...</ul>]]></code> 
+                    en liste <code><![CDATA[<ol>...</ol>]]></code>
+                </title>
+
+                <programlisting role="xml"><![CDATA[<template match="//ul">
+    <ol>{select('*')}</ol>
+</template>]]></programlisting>
+
+                <para>
+                    Remarque : ici, on ne récupère que les éléments (les tags) 
+                    présents dans le tag <code><![CDATA[<ul>]]></code>,
+                    pas le texte évenuel. Cela dis, un tag 
+                    <code><![CDATA[<ul>]]></code> n'est pas censé contenir du 
+                    texte (contrairement à un tag 
+                    <code><![CDATA[<li>]]></code>).
+                </para>
+            </example>
+        </sect3>
+        
+        <sect3 id="templates.matchtemplates.select.inattribute">
+        
+            <title>Utiliser select() dans un attribut</title>
+
+            <para>
+                La fonction <code>select()</code> peut également être utilisée dans les attributs des 
+                éléments qui figurent dans le corps du template.
+            </para>    
+
+            <para>
+                Exemple :
+            </para>
+            
+            <programlisting role="xml"><![CDATA[<template match="//a">
+    <a href="{select('@href')}">{select('*|text()')}</a>
+</template>]]></programlisting>
+
+            <para>
+                Dans cet exemple, on réécrit les liens en ne conservant que 
+                l'attribut href, à l'exclusion de tous les autres.
+            </para>
+            
+            <para>    
+                Remarque : dans un tel cas, on obtiendra une erreur si 
+                l'expression xpath sélectionne des éléments ou plusieurs 
+                attributs. 
+                TODO : à discuter. Pourquoi générer une exception ? On pourrait 
+                récupérer la version texte des éléments.
+            </para>
+            
+            <para>
+                En fait, on a le droit de sélectionner soit un attribut unique 
+                (dans ce cas, c'est la valeur de l'attribut sélectionné qui 
+                sera utilisée), soit un élément de type texte qui est utilisé 
+                tel quel :
+                <itemizedlist>
+                    <listitem>
+                        <para>
+                            <code>class="{select('@class')}"</code> : correct
+                        </para>
+                    </listitem>
+                    <listitem>
+                        <para>
+                            <code>class="{select('@*')}"</code> : erreur si le 
+                            noeud instancié contenait plusieurs attributs
+                        </para>
+                    </listitem>
+                    <listitem>
+                        <para>
+                            <code>class="{select('*')}</code> : illlégal, on 
+                            essaie de mettre des éléments dans la valeur d'un 
+                            attribut
+                        </para>
+                    </listitem>
+                    <listitem>
+                        <para>
+                            <code>class="{select('text()')}</code> : légal 
+                            (bien que probablement peu utile), puisqu'on ne 
+                            sélectionne que du texte
+                        </para>
+                    </listitem>
+                </itemizedlist>        
+            </para>
+        </sect3>
+
+        <sect3 id="templates.matchtemplates.select.allattributes">
+        
+            <title>Récupérer tous les attributs de l'élément instancié</title>
+
+            <para>
+                Il est possible d'utiliser dans le texte d'un élément une 
+                instruction <code>select()</code> qui va sélectionner un ou 
+                plusieurs attributs (c'est-à-dire non pas des éléments ou du 
+                texte, mais bien un ou plusieurs attributs présents dans des 
+                éléments).
+                Dans ce cas, les attributs sélectionnés vont être ajoutés à 
+                l'élément parent du texte et non pas dans le texte : ça 
+                n'aurait pas de sens.
+            </para>
+            
+            <para>
+                Ici, on utilise <code>{select('@*')}</code> dans le texte de 
+                l'élément <code><![CDATA[<a>]]></code> présent dans le corps 
+                du template pour récupérer tous les attributs du noeud 
+                instancié.
+                Les attributs obtenus ne seront pas "collé" dans le texte 
+                (<code><![CDATA[<a href="xxx"...]]></code>) mais ajoutés au 
+                parent du texte qui contient l'appel à select (donc le tag 
+                <code><![CDATA[<a>]]></code>) :
+            </para>
+            
+            <programlisting role="xml"><![CDATA[<a href="xxx" style="yyy" onclick="zzz">...</a>]]></programlisting>   
+            
+            <para>    
+                En fait l'insertion des attributs se fait de manière 
+                "intelligente" : d'une part, seuls les attributs qui ne figurent 
+                pas déjà dans la parent sont insérés, d'autre part, les 
+                attributs du noeud instancié qui correspondent à des paramètres 
+                passés au template sont ignorés.
+            </para>
+            
+            <para>    
+                TODO: compliqué à expliquer, mais dans la pratique, c'est le 
+                comportement qu'on attend...
+            </para>
+
+            <example>
+                <title>ajouter la classe "external" aux liens sortants</title>
+
+                <programlisting role="xml"><![CDATA[<a href="http://www.bdsp.tm.fr" style="color: blue" onclick="alert('à bientôt')">
+    Bdsp
+</a>
+
+<template match="//a[starts-with(href, 'http://')]">
+    <a class="{select('@class')} external" style="color: red">
+        {select('@*')}         /* récupère les attributs du noeud */
+        {select('*|text()')}   /* récupére le contenu du noeud */
+    </a>
+</template>]]></programlisting>
+
+                <para>
+                    Sortie générée :
+                </para>
+
+                <programlisting role="xml"><![CDATA[<a class="external" href="http://www.bdsp.tm.fr" style="color: red" onclick="alert('à bientôt')">
+    Bdsp
+</a>]]></programlisting>
+
+                <para>
+                    Voila comment sont traités les attributs lorsque le 
+                    <code>{select('@*')}</code> est exécuté :
+                </para>
+                
+                <itemizedlist>
+                    <listitem>
+                        <para>
+                            <code>name</code> est un paramètre de template, il 
+                            n'est pas repris
+                        </para>
+                    </listitem>
+                    <listitem>
+                        <para>
+                            <code>href</code> est repris (n'existe pas déjà dans 
+                            le tag <code><![CDATA[<a>]]></code> et n'est pas un 
+                            paramètre)
+                        </para>
+                    </listitem>
+                    <listitem>
+                        <para>
+                            <code>style</code> existe déjà dans le tag 
+                            <code><![CDATA[<a>]]></code> 
+                            (<code>color : "red"</code>), le style existant 
+                            dans le noeud d'origine est ignoré
+                        </para>
+                    </listitem>
+                    <listitem>
+                        <para>
+                            <code>href</code> est repris (il n'existe pas déjà 
+                            dans le tag <code><![CDATA[<a>]]></code> et n'est 
+                            pas un paramètre)
+                        </para>
+                    </listitem>
+                </itemizedlist>        
+
+            </example>
+            
+            <note>
+                <para>
+                    Dans le template précédent, la ligne 
+                    <code><![CDATA[<a class="{select('@class')] external"...]]></code> 
+                    génère, pour notre lien, <code>class="external"</code> 
+                    (sans espace) : les espaces inutiles sont supprimés
+                    automatiquement.
+                </para>
+            </note>
+        </sect3>
+        
+        <sect3 id="templates.matchtemplates.select.algorithm">
+
+            <title>Algorithme utilisé pour exécuter les select()</title>
+
+            <para>
+                On a un noeud en cours de type DOMText qui contient des 
+                expressions select :
+            </para>
+                
+            <programlisting role="xml"><![CDATA[[avant{select('xpath')}après...]]]></programlisting>        
+            
+            <para>    
+                On repère l'expression, et on coupe le noeud texte en deux 
+                (splitText) :
+            </para>    
+            
+            <programlisting role="xml"><![CDATA[[avant][après...]]]></programlisting>        
+            
+            <para>     
+                On exécute l'expression xpath qui retourne une liste de noeuds :
+            </para>
+                
+            <programlisting role="xml"><![CDATA[<N1 /><N2 />...<Nn />]]></programlisting>        
+                
+            <para>    
+                On clone ces noeuds et on les insère entre les deux noeuds texte :
+            </para>
+                
+            <programlisting role="xml"><![CDATA[[avant]<N1 /><N2 />...<Nn />[après...]]]></programlisting>        
+                
+            <para>    
+                Le second noeud texte (<code>[après...]</code>) devient le noeud 
+                en cours et on recommence jusqu'à ce qu'on ne trouve plus de 
+                <code>select()</code>
+            </para>    
+            
+            <para>
+                Cas particulier : l'expression xpath retourne des noeuds de type 
+                DOMAttr. Dans ce cas, chaque attribut est ajouté au noeud parent
+                du noeud texte en cours, sauf s'il s'agit d'un attribut qui 
+                existe déjà dans le parent ou s'il s'agit d'un des paramètres 
+                du template. 
+            </para>
+            
+            <para>    
+                Cas d'erreurs, génèrent une exception : expression xpath vide, 
+                expression xpath erronée, expression xpath qui retourne des 
+                types de noeuds incorrects (par exemple tout le document)
+            </para>
+        </sect3>
+
+        <sect3 id="templates.matchtemplates.select.moreinfo">
+
+            <title>Complément d'information sur le select</title>
+            
+            <caution><para>Le texte ci-dessous est-il encore utile ?</para></caution>
+            
+            <para>
+                Select est une pseudo-function, elle n'a de sens et n'existe qu'au moment ou 
+                un template match est instancié.
+            </para>
+            
+            <para>    
+                Select prend un seul argument : une expression xpath qui sélectionne tout ou 
+                partie du noeud instancié (l'appellant).
+            </para>
+            
+            <para>    
+                Lorsque l'expression xpath est evaluée, c'est l'appellant qui est le noeud en 
+                cours (select('.')=appellant)
+            </para>
+            
+            <para>    
+                syntaxe complète : {select('xpath')}
+            </para>
+                
+            <para>
+                Actuellement: syntaxe rigide (si on met des espaces après les { ou avant les } 
+                ou si on combine l'expression avec autre chose, ça ne marche pas (dû au regexp 
+                utilisées).
+            </para>
+            
+            <para>    
+                exemple : {'avant ' . select('@title')} { trim(select('.'))}
+            </para>    
+            
+            <para>    
+                On peut utiliser des select à deux endroits différents : 
+            </para>
+            
+            <programlisting role="xml"><![CDATA[- dans la valeur d'un attribut
+              exemple : <div class="{select('@class')}"></div>
+            - dans la valeur d'un noeud
+              exemple : <div>{select('node()')}</div>
+            ]]></programlisting>
+            
+            <para>
+                Lorque select est utilisée dans la valeur d'un attribut, seule les expressions 
+                xpath retournant du texte ou un attribut sont autorisées.
+            </para>
+            
+            <programlisting role="xml"><![CDATA[- scalaire (un entier, du texte, ...) : vient remplacer l'appel à select
+            - noeud de type attribut : on prend la valeur de l'attribut
+            - noeud de type texte : on prend la valeur du noeud
+            - tout autre type de noeud (élément, commentaire, PI...) : génère une exception
+            - liste de plsuieurs éléments : chaque élément est étudié en appliquant les 
+              règles ci dessus et les valeurs obtenues sont concaténées avec des espaces 
+              entre deux]]></programlisting>
+            
+            <para>
+                Lorque select est utilisée dans la valeur d'un noeud, n'importe quelle 
+                expression xpath peut être utilisée :
+            </para>
+            
+            <programlisting role="xml"><![CDATA[- scalaire : un noeud de type texte contenant le scalaire est inséré
+            - noeud de type attribut : l'attribut est ajouté au noeud parent sauf s'il 
+              existe déjà ou s'il s'agit d'un des paramètres du template match (ie il existe 
+              un attribut portant ce nom dans le tag template)
+            - tout autre type de noeud : le noeud est cloné puis inséré, avec tous ses fils
+            - liste de plusieurs éléments : on applique les règles ci-dessus pour chaque 
+              noeud. (chaque noeud est inséré après le dernier noeud inséré).]]></programlisting>
+        </sect3>
+    </sect2>
+    
+    <sect2 id="templates.matchtemplates.fabdefaults">
+        <title>templates match par défaut de fab, auto-includes</title>
+        <para>todo</para>
+    </sect2>
+</sect1>

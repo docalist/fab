@@ -1,0 +1,797 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE sect1 PUBLIC "-//OASIS//DTD DocBook XML V4.5//EN"
+    "http://www.oasis-open.org/docbook/xml/4.5/docbookx.dtd">
+<?xml-stylesheet href="../web/styles/docbook/dm.css" type="text/css"?>
+<sect1 id="template.syntax">
+
+    <sect1info>
+        <releaseinfo>$Id$</releaseinfo>
+    </sect1info>
+
+    <title>Syntaxe des templates</title>
+    
+    <sect2 id="template.syntax.introduction">
+        <title>Introduction</title>
+        
+        <para>        
+            Un template doit être un fichier ou un fragment xml bien formé. Fab 
+            ajoute automatiquent un tag racine au fichier s'il s'agit d'un 
+            fragment xml. Cela permet d'avoir le même système de templates pour 
+            des documents xhtml et, par exemple, des templates générant une 
+            sortie au format csv.
+        </para>
+        
+        <tip>
+            <title>Blocs CDATA</title>
+            
+            <para>        
+                Même si un template doit être au format xml, on peut vouloir 
+                écrire du texte contenant des caractères qui ne soient pas 
+                interprétés par le parser xml : il suffit pour cela de les 
+                inclure dans un bloc CDATA :
+            </para>        
+            <programlisting role="xml">&lt;![CDATA[
+    Ce bloc peut contenir des caractères comme $, &lt; et &gt;.
+    Ils ne seront pas interprétés par le parser xml
+]]&gt;</programlisting>
+        </tip>        
+        
+        <para>        
+            Le système se compose de trois grands groupes d'éléments :
+        </para>
+        <itemizedlist>
+            <listitem>
+                <para>
+                    Des <emphasis role="strong">zones de données</emphasis> : 
+                    il s'agit de balises représentant une variable ou une 
+                    expression qui, lors de l'instanciation du template, sera 
+                    remplacée par une valeur :
+                </para>
+                <programlisting role="xml"><![CDATA[<h1>$titre</h1>
+<h1 class="$class">{$TitFre:$TitEng:"sans titre"}</h1>]]></programlisting>        
+            </listitem>
+            <listitem>
+                <para>
+                    des <emphasis role="strong">attributs</emphasis> qui peuvent 
+                    être ajoutés à n'importe quel tag :
+                </para>
+                <programlisting role="xml"><![CDATA[<div id="adminBar" test="{User::isAdmin()}">
+    <a href="#">Créer une nouvelle base de données</a>
+    ...
+</div>]]></programlisting>        
+            </listitem>
+            <listitem>
+                <para>
+                    des <emphasis role="strong">tags spécifiques</emphasis> :
+                </para>
+                <programlisting role="xml"><![CDATA[<loop on="$selection">
+    <!-- cette partie sera répêtée pour chacun des éléments présent dans $selection -->
+</loop>
+
+<if test="{User::isAdmin()}">
+    <-- ne s'affichera que si la condition indiquée dans test est validée -->
+<if>
+
+<switch test="$year">
+    <case test="2007">
+        ...
+    </case>
+    <default>
+        ...
+    </default>
+</switch>]]></programlisting>    
+            </listitem>
+        </itemizedlist>        
+    </sect2>
+                
+    <sect2 id="template.syntax.comments">
+
+        <title>Commentaires</title>
+
+        <sect3 id="template.syntax.comments.xml">
+        
+            <title>Commentaires xml</title>
+            
+            <para>
+                Les commentaires doivent être indiqués en utilisant la syntaxe 
+                xhtml :
+            </para>
+            
+            <programlisting role="xml"><![CDATA[<!-- commentaire -->]]></programlisting>                
+                
+            <para>        
+                Ces commentaires sont supprimés de la sortie si l'option de 
+                configuration <code>templates.removehtmlcomments</code> est 
+                activée.
+            </para>
+        </sect3>
+        <sect3 id="template.syntax.comments.php">
+            <title>Commentaires de code</title>
+            
+            <para>
+                Fab introduit un second type de commentaires utilisant la même 
+                syntaxe qu'en C ou en PHP :
+                <programlisting role="php"><![CDATA[/* commentaire */]]></programlisting>
+            </para>
+    
+            <para>
+                todo: quelle option pour activer ou désactiver ?            
+            </para>
+
+            <para>        
+                Ces commentaires sont toujours supprimés de la sortie.
+            </para>
+        </sect3>    
+    </sect2>
+    
+    <sect2 id="template.syntax.data">
+        
+        <title>Zones de données</title>
+
+        <para>    
+            Lors de l'instanciation du template, toutes les zones de données 
+            sont évaluées et remplacées par les données correspondantes fournies 
+            lors de l'appel à <code>Template::Run</code>.
+        </para>
+        
+        <para>            
+            Il existe deux façons d'écrire une zone de données :
+            <itemizedlist>
+                <listitem>
+                    <para>
+                        soit sous la forme d'une variable (syntaxe simple) 
+                    </para>
+                </listitem>
+                <listitem>
+                    <para>
+                        soit sous la forme d'une expression entre accolades
+                        (syntaxe étendue)
+                    </para>
+                </listitem>
+            </itemizedlist>        
+        </para>
+    
+        <sect3 id="template.syntax.data.var">
+            <title>Syntaxe simple</title>
+
+            <para>
+                Exemple :
+            </para>
+            
+            <programlisting role="php"><![CDATA[$title]]></programlisting>
+            
+            <para>
+                Il s'agit d'une simple variable qui s'écrit, comme en php, 
+                sous la forme d'un signe dollar suivi d'un identifiant.
+            </para>
+
+            <para>
+                Lors de l'instanciation du template, fab parcourt les sources de données 
+                passées en paramètre lors de l'appel à <code>Template::Run</code>
+                et remplace la variable par la valeur correspondante.
+            </para>             
+
+            <warning><para>L'identifiant est sensible à la casse</para></warning>
+        </sect3>        
+    
+        <sect3 id="template.syntax.data.expression">    
+            <title>Syntaxe étendue</title>
+            
+            <para>
+                Il s'agit d'une expression saisie entre accolades.
+                Cette expression peut comporter des valeurs, des constantes, 
+                des variables, des opérateurs et des appels de fonctions ou de
+                méthodes comme vous l'écririez en PHP :
+            </para>
+
+            <programlisting role="php"><![CDATA[/* valeurs et opérateurs */ 
+{3.14 * 5^2}
+{"hello" . 'world'}
+
+/* constantes */
+{PHP_SELF}
+{PHP_INT_MAX}
+
+/* Variables */
+{$titre} /* fait la même chose que $titre */
+{$TitFre:$TitEng}
+
+/* Des appels de fonctions */
+{trim(strtolower($titre))}
+{implode('-', array('a','b','c')}
+{trim($title:'pas de titre')}
+
+/* Des méthodes */
+{Config::get('env')}
+]]></programlisting>                
+            
+            <para>    
+                En fait il est possible de saisir n'importe quelle expression 
+                (c'est-à-dire quelque chose qui retourne une valeur). La syntaxe 
+                est très intuitive puisqu'elle ressemble fortement à la syntaxe 
+                utilisée en php).
+            </para>
+            
+            <tip>
+                <title>Expressions sécurisées</title>
+                <para>
+                    Dans Fab, une expression ne peut pas modifier son 
+                    environnement. Cela signifie que Fab examine soigneusement
+                    les expressions indiquées et n'autorise que les opérateurs
+                    et les fonctions qui ne modifient ni les variables ni le
+                    reste de l'environnement d'exécution du script.  
+                </para>
+                
+                <para>
+                    Concrètement, cela signifie que les opérateurs d'affectation
+                    (<code>=</code>, <code>+=</code>, <code>*=</code>...) sont
+                    interdits et que seules certaines fonctions PHP sont
+                    autorisées :  
+                </para>
+                
+                <itemizedlist>
+                    <listitem>
+                        <para>
+                            Des fonctions comme <code>trim()</code>, 
+                            <code>isset()</code>, <code>strpos()</code>, 
+                            <code>urlencode()</code>, <code>sprintf()</code> ou 
+                            même <code>file_get_contents()</code> sont 
+                            autorisées parce qu'elles ne modifient pas 
+                            l'environnement
+                        </para>
+                    </listitem>
+                    <listitem>
+                        <para>
+                            Des fonctions comme <code>print()</code>, 
+                            <code>vprint()</code>, <code>ob_start()</code> ou 
+                            <code>readfile()</code> par contre ne sont pas 
+                            autorisées parce qu'elles modifient la sortie qui
+                            sera envoyée au navigateur.
+                        </para>
+                    </listitem>
+                    <listitem>
+                        <para>
+                            De même, des fonctions comme <code>strok()</code> 
+                            qui stocke dans une variable statique la chaine 
+                            qu'on lui passe en paramêtre ou 
+                            <code>parse_str()</code> qui modifie des variables 
+                            existantes ne sont pas autorisées.
+                        </para>
+                    </listitem>
+                    <listitem>
+                        <para>
+                            Pareil pour les fonctions qui agissent sur des 
+                            ressources telles que <code>fopen()</code>, 
+                            <code>file_put_contents()</code>, 
+                            <code>move_uploaded_file()</code>, etc. 
+                        </para>
+                    </listitem>
+                    <listitem>
+                        <para>
+                            Enfin, les instructions du langage telles que 
+                            <code>die()</code>, <code>echo</code>, 
+                            <code>__halt_compiler()</code> ou 
+                            <code>require()</code> sont bien sur interdites.  
+                        </para>
+                    </listitem>
+                </itemizedlist>
+                
+                <para>
+                    Ces sécurités permettent de garantir le respect du modèle
+                    MVC : les actions préparent les données, les templates se
+                    contentent de les présenter et de les afficher, elles ne
+                    doivent pas pouvoir les modifier.
+                </para>
+            </tip>
+            
+            <tip>
+                <title>Optimisations</title>
+                <para>
+                    Fab optimise automatiquement les expressions.
+                </para>
+                <para>
+                    si votre template contient :
+                    <programlisting role="php"><![CDATA[{4*3*2*1}
+
+{strtolower(trim('   hello WORLD   '))
+
+<if test="{false}">
+    never
+</if>
+
+<switch test="2">
+    <case "1">un</case>
+    <case "2">deux</case>
+    <case "3">trois</case>
+</switch>
+]]></programlisting>
+                    votre template compilé contiendra uniquement
+<programlisting role="php"><![CDATA[echo 24;
+
+echo 'hello world';
+
+echo 'deux';
+]]></programlisting>                                        
+                </para>
+            </tip>
+        </sect3>
+        
+        <sect3 id="template.syntax.data.collar"><!-- quel nom donner ? -->
+        
+            <title>Colliers d'expressions</title>
+            
+            <para>    
+                Fab ajoute aux opérateurs standard de PHP un nouvel opérateur, 
+                le signe <code>":"</code> (deux points) qui permet de créer un 
+                "collier" d'expressions.
+            </para>
+
+            <para>
+                C'est un opérateur très pratique qui prend comme opérandes une
+                suite d'expressions et retourne le résultat de la première 
+                expression ayant une valeur non vide
+            </para>
+             
+            <para>    
+                Exemple :
+            </para>
+            
+            <programlisting role="php"><![CDATA[{$titoriga:$titorigm:"pas de titre"}]]></programlisting>                
+
+            <para>    
+                Dans ce cas, la première expression (<code>$titoriga</code>) 
+                sera évaluée. Si elle retourne quelque chose (i.e pas une chaine 
+                vide), on s'arrête là et on retourne cette valeur. Sinon, on 
+                passe à la seconde, et ainsi de suite.
+            </para>
+            
+            <para>    
+                Si aucune des expressions ne retourne une valeur, rien ne sera 
+                affiché (tout ce qu'il y a entre les accolades disparaît de la 
+                sortie générée par le template).
+            </para>        
+        </sect3>
+        
+        <sect3 id="template.syntax.data.remarks">
+            
+            <title>Remarques</title>
+                        
+            <itemizedlist>
+                <listitem>
+                    <para>
+                        les zones de données sont utilisables dans du texte et 
+                        dans la valeur d'un attribut d'un tag mais ne peuvent 
+                        pas constituer un nom de tag ou un nom d'attribut 
+                        (sinon, le template ne serait plus du xml bien formé).
+                        
+                        Vous pouvez donc écrire :
+                        <programlisting role="xml"><![CDATA[<h1>$titre</h1>]]></programlisting>
+                        ou
+                        <programlisting role="xml"><![CDATA[<h1 class="$titre" id="$id>...</h1>]]></programlisting>
+                                        
+                        mais pas
+                        <programlisting role="xml"><![CDATA[<h1 $attr="un">...</h1>]]></programlisting>            
+                        ou 
+                        <programlisting role="xml"><![CDATA[<$tag>xxx</$tag>]]></programlisting>                
+                    </para>
+                </listitem>
+                
+                <listitem>
+                    <para>
+                        Lorsqu'une zones de données est utilisée comme valeur d'un attribut, et que la 
+                        zone de données ne retourne pas de valeur, l'attribut devient automatiquement
+                        optionnel.
+                                
+                        Par exemple, si <code>$class</code> n'est pas définit, le template 
+                        suivant : 
+                    
+                        <programlisting role="xml"><![CDATA[<h1 class="$class">...</h1>]]></programlisting>
+                    
+                        générera
+                    
+                        <programlisting role="xml"><![CDATA[<h1>...</h1>]]></programlisting>
+                    
+                        et non pas
+                    
+                        <programlisting role="xml"><![CDATA[<h1 class="">...</h1>]]></programlisting>
+                    </para>
+                </listitem>
+            </itemizedlist>
+        </sect3>
+    </sect2>
+
+    <sect2 id="template.syntax.attributes">
+
+        <title>Attributs</title>
+        
+        <para>        
+            Fab reconnaît un certains nombres d'attributs qui sont utilisables 
+            dans n'importe quel tag xml du template.
+        </para>
+                
+        <sect3 id="template.syntax.attributes.test">
+            <title>Bloc optionnel : <code>test="condition"</code></title>
+
+            <para>            
+                L'attribut "<code>test</code>" peut être ajouté à n'importe quel tag html. Il représente 
+                une condition qui peut éventuellement contenir des zones de données. Lors de 
+                l'exécution la condition est évaluée et **l'ensemble du bloc, tag compris, sera 
+                supprimé si la condition n'est pas remplie**.
+            </para>
+
+            <para>
+                Exemple :
+            </para>
+            
+            <programlisting role="xml"><![CDATA[<div test="User::isAdmin($user)" id="adminBar" >...</div>]]></programlisting>                        
+        </sect3>
+
+        <sect3 id="template.syntax.attributes.if">
+        
+            <title>Tag optionnel : <code>if="condition"</code></title>
+
+            <para>            
+                L'attribut "<code>if</code>" peut être ajouté à n'importe quel tag html. Il représente 
+                une  condition qui peut éventuellement contenir des zones de données. Lors de 
+                l'exécution la condition est évaluée et le tag ne sera affiché que si la 
+                condition est remplie. **Les éléments contenus dans le bloc, eux, sont toujours 
+                affichés**, que la condition soit remplie ou non.
+            </para>
+            
+            <para>    
+                Exemple :
+            </para>
+            
+            <programlisting role="xml"><![CDATA[<a href="$link" if="$link">$titre</a>]]></programlisting>
+            
+            <para>            
+                Si on a un lien, générera :
+            </para>
+                
+            <programlisting role="xml"><![CDATA[<a href="http://xxx">Titre du doc</a>]]></programlisting>
+            
+            <para>            
+                Sinon, générera :
+            </para>
+            
+            <programlisting role="xml"><![CDATA[Titre du doc]]></programlisting>        
+                        
+            <para>
+                Remarques :
+            </para>
+            
+                <itemizedlist>
+                    <listitem>
+                        <para>
+                            on peut combiner, dans un même tag, les attributs 
+                            <code>test</code> et <code>if</code>.
+                        </para>
+                    </listitem>
+                    <listitem>
+                        <para>
+                            le choix des noms (test et if) ne me plait toujours pas.... 
+                            chercher encore...
+                        </para>
+                    </listitem>
+                </itemizedlist>        
+            
+            <para>    
+                Remarque de Youenn : opt à la place de if. if est court mais en lisant if='$param', on n'a pas 
+                directement à l'esprit (en tout cas moi) que si $param est vide, le mot if va disparaître
+                de la sortie, alors qu'en lisant opt='$param' à la place, ça me semble plus évident.
+            </para>
+</sect3>
+
+        <sect3 id="template.syntax.attributes.ignore">
+            
+            <title>Bloc ignoré : <code>ignore="true"</code></title>
+            
+            <para>
+                (implémenté)
+            </para>    
+            
+            <para>    
+                Le bloc est complètement ignoré dans la sortie généré par le 
+                template (ie : ol n'apparaîtra pas).
+            </para>            
+        </sect3>
+
+        <sect3 id="template.syntax.attributes.collapse">
+        
+            <title>Bloc collapsé : <code>collapse="true"</code></title>
+            
+            <para>            
+                (implémenté)
+            </para>    
+                
+            <para>    
+                Le bloc est remplacé par son contenu
+            </para>            
+        </sect3>
+
+        <sect3 id="template.syntax.attributes.noparse">
+            <title>Bloc non parsé : <code>noparse="true"</code></title>
+
+            <programlisting role="xml"><![CDATA[<style noparse="true">
+    a
+    {
+        color:red
+    }
+</style>]]></programlisting>
+
+            <para>            
+                peut-être qu'un tag serait plus utile qu'un attribut (ou peut-être qu'il faut
+                les deux ?) :
+            </para>
+                
+            <programlisting role="xml"><![CDATA[<noparse>
+    <style>
+        a{color: red}
+    </style>
+</noparse>]]></programlisting>
+            
+            <para>            
+                remarques : non implémenté, réfléchir à un meilleur nom.
+            </para>            
+        </sect3>
+
+    </sect2>
+    
+    <sect2 id="template.syntax.tags">    
+        <title>Tags</title>
+
+        <sect3 id="template.syntax.tags.def">
+            <title>Définition de variable : <code><![CDATA[<def>]]></code></title>
+            
+            <para>
+                Exemple :
+            </para>
+                
+            <programlisting role="xml"><![CDATA[<def name="title" value="Titre du document" />
+            <h1>Titre : $title</h1>]]></programlisting>    
+            
+            <para>
+                Le tag <code>def</code>`permet de définir une nouvelle variable qui pourra être 
+                utilisée dans le reste du template.
+            </para>
+            
+            <para>    
+                Les deux attributs sont obligatoires.
+            </para>
+            
+            <para>    
+                Si vous donnez à la variable que vous créez le même nom qu'une source de données
+                existante, celle-ci n'est plus accessible.
+            </para>
+            
+            <para>    
+                Remarques :
+            </para>
+
+            <itemizedlist>
+                <listitem>
+                    <para>
+                        La variable ne peut pas être utilisée avant d'avoir été définie.
+                    </para>
+                </listitem>
+                <listitem>
+                    <para>
+                        La valeur de la variable peut être redéfinie à tout moment (il 
+                        suffit de répêter le tag <code>def</code> en gardant le même 
+                        attribut <code>name</code> mais en changeant l'attribut 
+                        <code>value</code>). 
+                    </para>
+                </listitem>
+            </itemizedlist>        
+        </sect3>
+        
+        <sect3 id="template.syntax.tags.opt">
+            <title>Blocs optionnels : <code><![CDATA[<opt>]]></code></title>
+
+            <para>Exemple :</para>
+                
+            <programlisting role="xml"><![CDATA[<opt>Le titre est $titre<br /></opt><opt>L'auteur est $auteur<br /></opt>]]></programlisting>                
+        </sect3>
+        
+        <sect3 id="template.syntax.tags.if">
+            <title>Conditions : <code><![CDATA[<if>, <elseif>, <else>]]></code></title>
+
+            <para>Exemple :</para>
+                
+            <programlisting role="xml"><![CDATA[<if test="xxx">
+    ...
+</if>
+<elseif test="xxx">
+    ...
+</elseif>
+<else>
+    ...
+</else>]]></programlisting>
+            
+        </sect3>
+        
+        <sect3 id="template.syntax.tags.switch">
+        
+            <title>Aiguillages : <code><![CDATA[<switch>, <case>, <default>]]></code></title>
+        
+            <para>Exemple :</para>
+                
+            <programlisting role="xml"><![CDATA[<switch test="xxx">     <!-- l'attribut 'test' optionnel -->
+    <case test="xxx">   <!-- où "xxx" est une valeur possible pour l'expression du switch -->
+        ...
+    </case>
+    <case test="yyy">
+        ...
+    </case>
+    <default>
+        ...
+    </default>
+</switch>]]></programlisting>
+                
+        </sect3>
+        
+        <sect3 id="template.syntax.tags.loop">
+
+            <title>Boucles <code><![CDATA[<loop />]]></code></title>
+
+            <para>Exemple :</para>
+                
+            <programlisting role="xml"><![CDATA[<loop on="$selection" as="$i,$j">
+    ...
+</loop>]]></programlisting>
+
+            <para>                
+                Si l'attribut <code>as</code> ne spécifie qu'une seule variable 
+                <code>$var</code>, alors, dans le corps du <code>loop</code>,
+                <code>$var</code> donnera accès à la valeur et non à l'index 
+                en cours : équivalent à <code>$j</code> dans l'exemple précédent.
+            </para>            
+            
+        </sect3>
+        
+        <sect3 id="template.syntax.tags.template">
+        
+            <title>Templates match : <![CDATA[<template>]]></title>
+            
+            <para>            
+                Le tag template fait l'object d'une documentation séparée dans le fichier template.txt
+            </para>
+                        
+            <para>Exemple :</para>
+                
+            <programlisting role="xml"><![CDATA[<template match="//copyright" year="">
+    <hr />
+    Copyright $year BDSP
+</template>
+
+<copyright year="2007"/>]]></programlisting>
+
+            <para>            
+                Il s'agit en fait de pouvoir définir des templates "internes" qui sont instanciés par un "pré-processeur"
+                quand il rencontre un tag dont le nom est équivalent à la valeur du tag 'match' du template ('copyright' dans l'exemple).
+            </para>
+            
+            <para>    
+                Cf documentation séparée : template.txt
+            </para>
+        </sect3>
+
+        <sect3 id="template.syntax.tags.slot">
+        
+            <title>Slots : <code><![CDATA[<slot>]]></code></title>
+            
+            <para>todo: décrire comment ça marche</para>
+            
+            <programlisting role="xml"><![CDATA[<slot name="header">
+    <div id="defaultheader">
+        ...
+    </div>            
+</slot>]]></programlisting>
+        </sect3>
+
+        <sect3 id="template.syntax.tags.include">        
+            <title>Inclusion de fichier : <code><![CDATA[<include>]]></code> (Prévu, non implémenté)</title>
+            <programlisting role="xml"><![CDATA[<include file="xxx" />]]></programlisting>
+        </sect3>
+                
+        <sect3 id="template.syntax.tags.tableofcontents">        
+            <title>Table des matières : <code><![CDATA[<tableofcontents>]]></code> (Prévu, non implémenté)</title>
+            
+            <programlisting role="xml"><![CDATA[<tableofcontents ...options...>...</tableofcontens>]]></programlisting>
+                            
+            <para>            
+                options envisageables :
+            </para>
+            
+            <itemizedlist>
+                <listitem>
+                    <para>
+                        insérer avant/après le texte
+                    </para>
+                </listitem>
+                <listitem>
+                    <para>
+                        niveau max de titre à prendre en compte (h1..h3 par exemple)
+                    </para>
+                </listitem>
+                <listitem>
+                    <para>
+                        ajouter des liens oui/non
+                    </para>
+                </listitem>
+                <listitem>
+                    <para>
+                        créer un lien "retour au sommaire" pour les titres
+                    </para>
+                </listitem>
+                <listitem>
+                    <para>
+                        ...
+                    </para>
+                </listitem>
+            </itemizedlist>        
+        </sect3>
+    </sect2>
+    
+    <sect2 id="template.syntax.functions">
+        <title>Fonctions</title>
+        
+        <sect3 id="template.syntax.functions.autoid">        
+            <title><code>autoId()</code></title>
+            
+            <para>            
+                Génère automatiquement un ID pour l'élément auquel il est appliqué.
+            </para>
+            
+            <para>    
+                Fonctionnement : 
+            </para>
+
+            <itemizedlist>
+                <listitem>
+                    <para>
+                        prends l'id ou le 'name' du noeud en cours et remonte l'arbre 
+                        comme ça jusqu'à la racine. 
+                    </para>
+                </listitem>
+                <listitem>
+                    <para>
+                        Si on ne trouve rien, on prends le nom du tag du noeud en cours.
+                    </para>
+                </listitem>
+                <listitem>
+                    <para>
+                        Si cet id a déjà été utilisé, on numérote (typdoc, typdoc2, 
+                        typdoc3...)
+                    </para>
+                </listitem>
+            </itemizedlist>        
+        </sect3>
+                
+        <sect3 id="template.syntax.functions.lastid">
+                
+            <title><code>lastId()</code></title>
+            
+            <para>            
+                Retourne le dernier id généré par autoId() ou vide si autoId() n'a pas été 
+                appellé avant.
+            </para>
+                        
+        </sect3>
+    </sect2>
+                
+    <sect2 id="template.syntax.compilation">            
+        <title>Compilation</title>
+        
+        <para>
+            todo: faire doc pour les auto-include, mécanisme de compilation,
+            mise en cache, etc.
+        </para>
+    </sect2>            
+
+    <sect2 id="template.syntax.config">            
+        <title>Configuration</title>
+        
+        <para>todo: décrire les options de configuration</para>
+    </sect2>            
+</sect1>
