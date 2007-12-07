@@ -82,5 +82,27 @@
             </para>
         </example>
         
+        <table>
+            <title>Exemple de table</title>
+            <tgroup cols="3">
+                <thead>
+                    <row>
+                        <entry>Utilisateur</entry>
+                        <entry>Accès</entry>
+                    </row>
+                </thead>
+                <tbody>
+                    <row>
+                        <entry>Invité</entry>
+                        <entry>Non</entry>
+                    </row>
+                    <row>
+                        <entry>Admin</entry>
+                        <entry>Oui</entry>
+                    </row>
+                </tbody>
+            </tgroup>
+        </table>
+        
     </sect2>
 </sect1>
