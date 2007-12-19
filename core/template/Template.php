@@ -88,10 +88,6 @@ class Template
     const PHP_START_TAG='<?php ';
     const PHP_END_TAG=" ?>";
     
-    public static function setup()
-    {
-    }
-    
     public static function getLevel()
     {
     	return count(self::$stateStack);

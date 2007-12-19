@@ -299,8 +299,8 @@ class TemplateCompiler
         foreach((array)$files as $file)
         {
             if (false === $path=Utils::searchFile($file))
-                throw new Exception("Impossible de trouver le fichier include $file spécifié dans la config");
-            debug && Debug::log('Concaténation du fichier include %s au source du template.file=%s, searchpath=%s', $path, $file, print_r(Utils::$searchPath, true));
+                throw new Exception("Impossible de trouver le fichier include $file spécifié dans la config, searchPath=".var_export(Utils::$searchPath));
+//            debug && Debug::log('Concaténation du fichier include %s au source du template.file=%s, searchpath=%s', $path, $file, print_r(Utils::$searchPath, true));
         	$h.=file_get_contents($path);
         }
         if ($h) $source=str_replace('</root>', '<div test="{false}">'.$h.'</div></root>', $source);
@@ -1185,7 +1185,8 @@ private static $line=0, $column=0;
                 $attr=$attribute->nodeName;
                 
                 // Teste si ce tag contient des attributs qu'il faut router
-                if (isset($attrToRoute[$name]) && isset($attrToRoute[$name][$attr]) && (substr($value, 0, 1) === '/'))
+                if (isset($attrToRoute[$name]) && isset($attrToRoute[$name][$attr]))
+//                if (isset($attrToRoute[$name]) && isset($attrToRoute[$name][$attr]) && (substr($value, 0, 1) === '/'))
                 {
                     $value=self::route($value);
                     echo ' ', $attr, '="', $value, '"';
