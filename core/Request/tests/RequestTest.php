@@ -368,24 +368,24 @@ class RequestTest extends AutoTestCase
         }
     }
 
-    public function testSingleMultipleCount()
+    public function testUniqueMultipleCount()
     {
         $request=new Request(array('item'=>'un', 'item2'=>array('un'), 'item3'=>array(), 'items'=>array('un','deux')));
-        $this->assertSame('un', $request->single('item')->ok());
-        $this->assertSame('un', $request->single('item2')->ok());
-        $this->assertSame(null, $request->single('item3')->ok());
-        $this->assertSame(array('un'), $request->multiple('item')->ok());
-        $this->assertSame(array('un'), $request->multiple('item2')->ok());
-        $this->assertSame(array('un'), $request->multiple('item')->count(1)->ok());
+        $this->assertSame('un', $request->unique('item')->ok());
+        $this->assertSame('un', $request->unique('item2')->ok());
+        $this->assertSame(null, $request->unique('item3')->ok());
+        $this->assertSame(array('un'), $request->asArray('item')->ok());
+        $this->assertSame(array('un'), $request->asArray('item2')->ok());
+        $this->assertSame(array('un'), $request->asArray('item')->count(1)->ok());
         $this->assertSame(array('un'), $request->count('item',1)->ok());
         $this->assertSame(array('un'), $request->count('item',1,10)->ok());
-        $this->assertSame(array('un','deux'), $request->multiple('items')->ok());
-        $this->assertSame(array('un','deux'), $request->multiple('items')->count(2)->ok());
-        $this->assertSame(array('un','deux'), $request->multiple('items')->count(2,10)->ok());
+        $this->assertSame(array('un','deux'), $request->asArray('items')->ok());
+        $this->assertSame(array('un','deux'), $request->asArray('items')->count(2)->ok());
+        $this->assertSame(array('un','deux'), $request->asArray('items')->count(2,10)->ok());
         
         $bad=array
         (
-            '$request->single("items");'=>'RequestParameterSingleValueExpected',
+            '$request->unique("items");'=>'RequestParameterUniqueValueExpected',
             '$request->count("item",0);'=>'RequestParameterCountException',
             '$request->count("items",5,6);'=>'RequestParameterCountException',
         );

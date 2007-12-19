@@ -26,7 +26,7 @@
  * $request
  *     ->required('ref')
  *     ->int()
- *     ->single()
+ *     ->unique()
  *     ->min(1);
  *  
  * @package     fab
@@ -71,22 +71,73 @@ class Request
      */
     private $_check;
 
-    
+
     /**
      * Construit un nouvel objet Request avec les paramètres indiqués.
      * 
      * Des paramètres supplémentaires peuvent être ajoutés à la requête
      * en utilisant {@link set()} et {@link add()}
      * 
-     * @param array $parameters un tableau optionnel contenant les paramètres 
+     * @param array $parameters,... des tableaux contenant les paramètres 
      * initiaux de la requête.
      */
-    public function __construct(array $parameters=null)
+    public function __construct(array $parameters=array())
     {
-        if (!is_null($parameters))
-            $this->_parameters=$parameters;
+        $this->_parameters=$parameters;
+    
+        $args=func_get_args();
+        array_shift($args);
+        foreach($args as $arg)
+        {
+            $this->addParams($arg);
+        }
     }
     
+    /**
+     * Ajoute un tableau de paramètres à la requête
+     *
+     * @param array $parameters
+     * @return Request $this pour permettre le chainage des appels de méthodes
+     */
+    public function addParams(array $parameters)
+    {
+        foreach($parameters as $key=>$value)
+        {
+            // Si la clé n'existe pas déjà, on l'insère à la fin du tableau
+            if (!array_key_exists($key, $this->_parameters))
+            {
+                $this->_parameters[$key]=$value;
+                continue;
+            }
+            
+            // Existe déjà, c'est un tableau, ajoute la valeur à la fin
+            if (is_array($value))
+            {
+                if (is_array($value))   // tableau + tableau
+                {
+                    $this->_parameters[$key]=array_merge($this->_parameters[$key], $value);
+                }
+                else                    // tableau + valeur
+                {
+                    $this->_parameters[$key][]=$value;
+                }
+            }    
+
+            // Existe déjà, simple valeur, crée un tableau contenant la valeur existante et la valeur indiquée
+            else
+            {
+                if (is_array($value))   // valeur + tableau
+                {
+                    $this->_parameters[$key]=array_merge(array($this->_parameters[$key]), $value);
+                }
+                else                    // valeur + valeur
+                {
+                    $this->_parameters[$key]=array($this->_parameters[$key], $value);
+                }
+            }
+        }
+        return $this;
+    }
     
     /**
      * Retourne le nom exact du module auquel est destiné la requête ou null
@@ -274,6 +325,23 @@ class Request
     
     
     /**
+     * Détermine si le paramètre indiqué est défini dans la requête
+     * 
+     * __isset() est une méthode magique de php qui permet de tester l'existence
+     * d'un paramètre comme s'il s'agissait d'une propriété de l'objet Request.
+     * 
+     * La fonction {@link has()} fait la même chose mais prend le nom de 
+     * l'argument en paramètre.
+     * 
+     * @param string $key
+     * @return bool
+     */
+    public function __isset($key)
+    {
+        return isset($this->_parameters[$key]);
+    }
+    
+    /**
      * Détermine si le paramètre indiqué existe dans la requête
      * 
      * La fonction retourne true même si le paramètre à la valeur null
@@ -429,8 +497,6 @@ class Request
             {
                 $stack=debug_backtrace();
                 throw new BadMethodCallException(sprintf('Appel de %s::%s("%s") alors que "%s" est déjà en cours de validation. Oubli de ok() au dernier appel ?' , __CLASS__, $stack[1]['function'], $key, $this->_checkName));
-                
-                //throw new Exception('Appel incorrect, check appelé avec une clé et clé déjà présente. oubli de ok() au dernier appel?'.var_export($stack[0],true));
             }
             $this->_check=$this->get($key);
             $this->_checkName=$key;
@@ -476,6 +542,23 @@ class Request
             }
         }
                 
+        return $this;
+    }
+    
+    public function defaults($key, $default=null)
+    {
+        if (is_null($default))
+        {
+            $default=$key;
+            $key=null;
+        }
+        $value=$this->check($key);
+        
+        if (is_null($value))
+        {
+            $this->_check=$default;
+        }
+            
         return $this;
     }
     
@@ -779,15 +862,15 @@ class Request
      * scalaire. Dans tous les autres cas, le test échoue.
      * 
      * Exemples d'utilisation :
-     * - $request->single('nb')->ok();
-     * - $request->required('ref')->single()->ok();
+     * - $request->unique('nb')->ok();
+     * - $request->required('ref')->unique()->ok();
      * 
      * @param string|null $key
      * @return Request pour permettre le chainage des appels de méthodes
-     * @throws RequestParameterSingleValueExpected si le paramètre est un tableau
+     * @throws RequestParameterUniqueValueExpected si le paramètre est un tableau
      * contenant plusieurs éléments
      */
-    public function single($key=null)
+    public function unique($key=null)
     {
         $value=$this->check($key);
         if (is_scalar($value))
@@ -807,7 +890,7 @@ class Request
                 $this->_check=array_shift($this->_check);
                 return $this;
             }
-            throw new RequestParameterSingleValueExpected($this->_checkName, $this->_check);
+            throw new RequestParameterUniqueValueExpected($this->_checkName, $this->_check);
         }
 
         return $this;
@@ -823,13 +906,13 @@ class Request
      * toujours un tableau.
      * 
      * Exemples d'utilisation :
-     * - $request->multiple('refs')->ok();
-     * - $request->required('refs')->multiple()->ok();
+     * - $request->asArray('refs')->ok();
+     * - $request->required('refs')->asArray()->ok();
      * 
      * @param string|null $key
      * @return Request pour permettre le chainage des appels de méthodes
      */
-    public function multiple($key=null)
+    public function asArray($key=null)
     {
         $this->_check=(array)$this->check($key);
         return $this;
@@ -852,7 +935,7 @@ class Request
      *  
      * Exemples d'utilisation :
      * - $request->count('refs',2)->ok(); // ok si exactement 2 éléments
-     * - $request->count('refs')->multiple(2,3)->ok(); // ok si 2 ou 3 éléments
+     * - $request->required('refs')->count(2,3)->ok(); // ok si 2 ou 3 éléments
      *  
      * @param string|null $key
      * @return Request pour permettre le chainage des appels de méthodes
@@ -966,19 +1049,19 @@ class RequestParameterBadValue extends RequestParameterException
 {
     public function __construct($param, $value, $message='valeur incorrecte')
     {
-        parent::__construct(sprintf('paramètre %s=%s, %s', $param, var_export($value,true), $message));
+        parent::__construct(sprintf('%s=%s, %s', $param, Utils::varExport($value,true), $message));
     }
 };
 
 
 /**
- * Exception générée par {@link Request::single()} lorsqu'un paramètre
+ * Exception générée par {@link Request::unique()} lorsqu'un paramètre
  * a plusieurs valeurs
  *  
  * @package     fab
  * @subpackage  module
  */
-class RequestParameterSingleValueExpected extends RequestParameterBadValue 
+class RequestParameterUniqueValueExpected extends RequestParameterBadValue 
 {
     public function __construct($param, $value)
     {
