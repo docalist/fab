@@ -120,7 +120,7 @@ class XapianDatabaseDriver2 extends Database
      * 
      * @var XapianQueryParser
      */
-    private $xapianQueryParser=null; // l'analyseur d'équations
+    private $xapianQueryParser=null;
 
     
     /**
@@ -130,13 +130,8 @@ class XapianDatabaseDriver2 extends Database
      * 
      * @var XapianMSet
      */
-    public $xapianMSet=null; // la sélection
+    public $xapianMSet=null;
 
-    public function getStructure()
-    {
-        return $this->structure;
-    }
-    
     /**
      * L'objet XapianMSetIterator permettant de parcourir les réponses obtenues
      * 
@@ -144,8 +139,26 @@ class XapianDatabaseDriver2 extends Database
      * 
      * @var XapianMSetIterator
      */
-    public $xapianMSetIterator=null; // le msetiterator
+    public $xapianMSetIterator=null;
     
+    /**
+     * L'objet XapianQuery contenant l'équation de recherche indiquée par 
+     * l'utilisateur (sans les filtres éventuels appliqués).
+     *
+     * Vaut null tant que {@link search()} n'a pas été appellée.
+     * 
+     * Utilisé par {@link getQueryTerms()} pour retourner la liste des termes 
+     * composant la requête
+     * 
+     * @var XapianQuery
+     */
+    public $xapianQuery=null; 
+    
+    
+    public function getStructure()
+    {
+        return $this->structure;
+    }
     
     // *************************************************************************
     // ***************** Création et ouverture de la base **********************
@@ -193,12 +206,10 @@ class XapianDatabaseDriver2 extends Database
     protected function doOpen($path, $readOnly=true)
     {
         // Ouvre la base xapian
-        $startTime=microtime(true);
         if ($readOnly)
             $this->xapianDatabase=new XapianDatabase($path);
         else
             $this->xapianDatabase=new XapianWritableDatabase($path, Xapian::DB_OPEN);
-        echo 'Ouverture de la base xapian : ', 1000*(microtime(true)-$startTime), ' ms<br />';
             
         // Charge la structure de la base
         $this->structure=unserialize($this->xapianDatabase->get_metadata('fab_structure_php'));
@@ -847,17 +858,16 @@ class XapianDatabaseDriver2 extends Database
             return new XapianQuery('');
             
         // Pré-traitement de la requête pour que xapian l'interprête comme on souhaite
-        echo 'Equation originale : ', var_export($equation,true), '<br />';
+        if (debug) echo 'Equation originale : ', var_export($equation,true), '<br />';
         $equation=preg_replace_callback('~(?:[a-z0-9]\.){2,9}~i', array($this, 'AcronymToTerm'), $equation); // sigles à traiter, xapian ne le fait pas s'ils sont en minu (a.e.d.)
         $equation=Utils::convertString($equation, 'queryparser'); // FIXME: utiliser la même table que tokenize()
         $equation=preg_replace_callback('~\[(.*?)\]~', array($this,'searchByValueCallback'), $equation);
         $equation=self::frenchOperators($equation);
         //$equation=str_replace(array('[', ']'), array('"_','_"'), $equation);
         
-        echo 'Equation passée à xapian : ', var_export($equation,true), '<br />';
+        if (debug) echo 'Equation passée à xapian : ', var_export($equation,true), '<br />';
     
         // Construit la requête
-        $startTime=microtime(true);
         $query=$this->xapianQueryParser->parse_Query
         (
             utf8_encode($equation),         // à partir de la version 1.0.0, les composants "texte" de xapian attendent de l'utf8 
@@ -869,29 +879,17 @@ class XapianDatabaseDriver2 extends Database
             XapianQueryParser::FLAG_SPELLING_CORRECTION |
             XapianQueryParser::FLAG_PURE_NOT
         );
-        echo 'Analyse de la requête : ', 1000*(microtime(true)-$startTime), ' ms<br />';
 
         $h=utf8_decode($query->get_description());
         $h=substr($h, 14, -1);
         $h=preg_replace('~:\(pos=\d+?\)~', '', $h);
-        echo "Equation xapian... : ", $h, "<br />"; 
+        if (debug) echo "Equation comprise par xapian... : ", $h, "<br />"; 
         $h=preg_replace_callback('~(\d+):~',array($this,'idToName'),$h);
-        echo "Equation xapian après idtoname... : ", $h, "<br />"; 
+        if (debug) echo "Equation xapian après idtoname... : ", $h, "<br />"; 
 
         // Correcteur orhtographique
         if ($correctedEquation=$this->xapianQueryParser->get_corrected_query_string())
             echo '<strong>Essayez avec l\'orthographe suivante : </strong><a href="?_equation='.urlencode($correctedEquation).'">', $correctedEquation, '</a><br />';
-        
-        // Liste des mots vides ignorés
-        $stopwords=array();
-        $iterator=$this->xapianQueryParser->stoplist_begin();
-        while(! $iterator->equals($this->xapianQueryParser->stoplist_end()))
-        {
-            $stopwords[]=$iterator->get_term();
-            $iterator->next();    
-        }
-        if ($stopwords)
-            echo 'Les mots suivants ont été ignorés : <strong>', implode(', ', $stopwords), '</strong><br />';
         
         return $query;        
     }
@@ -938,12 +936,18 @@ class XapianDatabaseDriver2 extends Database
             }
             else
                 $max=10;
+                
+            if (isset($options['_filter']))
+                $filter=(array)$options['_filter'];
+            else
+                $filter=null;
         }
         else
         {
             $sort=null;
             $start=0;
             $max=-1;
+            $filter=null;
         }
         $this->start=$start+1;
         $this->max=$max;
@@ -952,8 +956,26 @@ class XapianDatabaseDriver2 extends Database
         // Met en place l'environnement de recherche lors de la première recherche
         if (is_null($this->xapianEnquire)) $this->setupSearch();
 
-        // Analyse la requête
-        $query=$this->parseQuery($equation);
+        // Analyse les filtres éventuels à appliquer à la recherche
+        if ($filter)
+        {
+            $xapianFilter=null;
+            foreach($filter as $filter)
+            {
+                $filter=$this->parseQuery($filter);
+                if (is_null($xapianFilter))
+                    $xapianFilter=$filter;
+                else
+                    $xapianFilter=new XapianQuery(XapianQuery::OP_FILTER, $xapianFilter, $filter);
+            }
+        }
+        
+        // Analyse l'équation de recherche de l'utilisateur
+        $query=$this->xapianQuery=$this->parseQuery($equation);
+
+        // Combine l'équation et le filtre pour constituer la requête finale
+        if ($filter)
+            $query=new XapianQuery(XapianQuery::OP_FILTER, $query, $filter);
         
         // Exécute la requête
         $this->xapianEnquire->set_query($query);
@@ -962,14 +984,15 @@ class XapianDatabaseDriver2 extends Database
         $this->setSortOrder($sort);
         
         // Lance la recherche
-        $startTime=microtime(true);
         $this->xapianMSet=$this->xapianEnquire->get_MSet($start, $max, $max+1);
-        echo 'get_MSet : ', 1000*(microtime(true)-$startTime), ' ms<br />';
         $this->count=$this->xapianMSet->get_matches_estimated();
 
         // Teste si la requête a retourné des réponses
         $this->xapianMSetIterator=$this->xapianMSet->begin();
-        if ($this->eof=$this->xapianMSetIterator->equals($this->xapianMSet->end())) { echo 'eof atteint dès le début<br />'; return false;} 
+        if ($this->eof=$this->xapianMSetIterator->equals($this->xapianMSet->end())) 
+        {
+            return false;
+        } 
         $this->loadDocument();
         $this->eof=false;
         
@@ -999,25 +1022,25 @@ class XapianDatabaseDriver2 extends Database
      */
     private function setSortOrder($sort=null)
     {
-        echo '<strong>';
+        if (debug) echo '<strong>';
         
         // Définit l'ordre de tri
         switch ($sort)
         {
             case '%':
-                echo 'Tri : par pertinence<br />';
+                if (debug) echo 'Tri : par pertinence<br />';
                 $this->xapianEnquire->set_Sort_By_Relevance();
                 break;
                 
             case '+':
-                echo 'Tri : par docid croissants<br />';
+                if (debug) echo 'Tri : par docid croissants<br />';
                 $this->xapianEnquire->set_weighting_scheme(new XapianBoolWeight());
                 $this->xapianEnquire->set_DocId_Order(XapianEnquire::ASCENDING);
                 break;
 
             case '-':
             case null:
-                echo 'Tri : par docid décroissants<br />';
+                if (debug) echo 'Tri : par docid décroissants<br />';
                 $this->xapianEnquire->set_weighting_scheme(new XapianBoolWeight());
                 $this->xapianEnquire->set_DocId_Order(XapianEnquire::DESCENDING);
                 break;
@@ -1048,23 +1071,23 @@ class XapianDatabaseDriver2 extends Database
                 $order = ((($matches[2]==='-') || ($matches[4]) === '-')) ? true:false; //XapianEnquire::DESCENDING : XapianEnquire::ASCENDING;
                 if ($matches[1])        // trier par pertinence puis par champ
                 {
-                    echo 'Tri : par pertinence puis par ', $sortkey, ($order ? ' croissants': ' décroissants'),'<br />';
+                    if (debug) echo 'Tri : par pertinence puis par ', $sortkey, ($order ? ' croissants': ' décroissants'),'<br />';
                     $this->xapianEnquire->set_sort_by_relevance_then_value($id, $order);
                 }
                 elseif ($matches[5])    // trier par champ puis par pertinence
                 { 
-                    echo 'Tri : par ', $sortkey, ($order ? ' croissants': ' décroissants'),' puis par pertinence.<br />';
+                    if (debug) echo 'Tri : par ', $sortkey, ($order ? ' croissants': ' décroissants'),' puis par pertinence.<br />';
                     $this->xapianEnquire->set_sort_by_value_then_relevance($id, $order);
                 }
                 else                    // trier par champ uniquement
                 {                        
-                    echo 'Tri : par ', $sortkey, ($order ? ' croissants': ' décroissants'),'<br />';
+                    if (debug) echo 'Tri : par ', $sortkey, ($order ? ' croissants': ' décroissants'),'<br />';
                     $this->xapianEnquire->set_sort_by_value($id, $order);
                 }
                 
         }
         
-        echo '</strong>';
+        if (debug) echo '</strong>';
     }
 
     public function suggestTerms($table)
@@ -1255,14 +1278,54 @@ class XapianDatabaseDriver2 extends Database
             case 'rank': return $this->rank;
             case 'start': return $this->start;
             case 'max': return $this->max;
+            
+            // Liste des mots-vides ignorés dans l'équation de recherche
+            case 'stopwords': return $this->getRequestStopwords();
+            
+            // Liste des termes présents dans l'équation + termes correspondants au troncatures
+            case 'terms': return $this->getRequestTerms();
+                
             default: return null;
         }
+    }
+    
+    private function getRequestStopWords()
+    {
+        // Liste des mots vides ignorés
+        $stopwords=array();
+        $iterator=$this->xapianQueryParser->stoplist_begin();
+        while(! $iterator->equals($this->xapianQueryParser->stoplist_end()))
+        {
+            $stopwords[$iterator->get_term()]=true; // dédoublonne en même temps
+            $iterator->next();    
+        }
+        return array_keys($stopwords);
+    }
+    
+    private function getRequestTerms()
+    {
+        $terms=array();
+        $it=$this->xapianQuery->get_terms_begin();
+        while (!$it->equals($this->xapianQuery->get_terms_end()))
+        {
+            $term=$it->get_term();
+            
+            // Supprime le préfixe éventuel
+            if (false !== $pt=strpos($term, ':')) $term=substr($term,$pt+1);
+            
+            // Pour les articles, supprime les underscores
+            $term=strtr(trim($term, '_'), '_', ' ');
+            
+            $terms[$term]=true;
+            $it->next();
+        }
+        return array_keys($terms);
     }
     
     public function moveNext()
     {
         if (is_null($this->xapianMSet)) return;
-        if (isset($this->sort))
+        if (debug && isset($this->sort))
             echo 'Valeur de la clé pour le tri en cours : <strong><tt style="background-color: #FFFFBB; border: 1px solid yellow;">', var_export($this->xapianDocument->get_value($this->sort), true), '</tt></strong>, docid=', $this->xapianMSetIterator->get_docid(), '<hr />';
         $this->xapianMSetIterator->next();
         $this->loadDocument();
@@ -1289,7 +1352,7 @@ class XapianDatabaseDriver2 extends Database
      * 
      * @param string $term le terme recherché
      * 
-     * @param int $max le nombre maximum de valeurs à retourner
+     * @param int $max le nombre maximum de valeurs à retourner (0=pas de limite)
      * 
      * @param int $sort l'ordre de tri souhaité pour les réponses :
      *   - 0 : trie les réponses par nombre décroissant d'occurences dans la base (valeur par défaut)
@@ -1313,7 +1376,7 @@ class XapianDatabaseDriver2 extends Database
      * 
      * @return array
      */
-    public function lookup($table, $term, $max=100000, $sort=0, $splitTerms=false)
+    public function lookup($table, $term, $max=0, $sort=0, $splitTerms=false)
     {
         static $charFroms=
             "\x00\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f\x10\x11\x12\x13\x14\x15\x16\x17\x18\x19\x1a\x1b\x1c\x1d\x1e\x1f\x20\x21\x22\x23\x24\x25\x26\x27\x28\x29\x2a\x2b\x2c\x2d\x2e\x2f\x30\x31\x32\x33\x34\x35\x36\x37\x38\x39\x3a\x3b\x3c\x3d\x3e\x3f\x40\x41\x42\x43\x44\x45\x46\x47\x48\x49\x4a\x4b\x4c\x4d\x4e\x4f\x50\x51\x52\x53\x54\x55\x56\x57\x58\x59\x5a\x5b\x5c\x5d\x5e\x5f\x60\x61\x62\x63\x64\x65\x66\x67\x68\x69\x6a\x6b\x6c\x6d\x6e\x6f\x70\x71\x72\x73\x74\x75\x76\x77\x78\x79\x7a\x7b\x7c\x7d\x7e\x7f\x80\x81\x82\x83\x84\x85\x86\x87\x88\x89\x8a\x8b\x8c\x8d\x8e\x8f\x90\x91\x92\x93\x94\x95\x96\x97\x98\x99\x9a\x9b\x9c\x9d\x9e\x9f\xa0\xa1\xa2\xa3\xa4\xa5\xa6\xa7\xa8\xa9\xaa\xab\xac\xad\xae\xaf\xb0\xb1\xb2\xb3\xb4\xb5\xb6\xb7\xb8\xb9\xba\xbb\xbc\xbd\xbe\xbf\xc0\xc1\xc2\xc3\xc4\xc5\xc6\xc7\xc8\xc9\xca\xcb\xcc\xcd\xce\xcf\xd0\xd1\xd2\xd3\xd4\xd5\xd6\xd7\xd8\xd9\xda\xdb\xdc\xdd\xde\xdf\xe0\xe1\xe2\xe3\xe4\xe5\xe6\xe7\xe8\xe9\xea\xeb\xec\xed\xee\xef\xf0\xf1\xf2\xf3\xf4\xf5\xf6\xf7\xf8\xf9\xfa\xfb\xfc\xfd\xfe\xff";
@@ -1444,7 +1507,7 @@ class XapianDatabaseDriver2 extends Database
         {
             $id=$iterator->get_docid();
             $this->xapianDatabase->delete_document($iterator->get_docid());
-            echo ++$i, ': doc ', $id, ' supprimé<br />';
+            if (debug) echo ++$i, ': doc ', $id, ' supprimé<br />';
             $iterator->next();
         }
     }
@@ -1484,50 +1547,7 @@ class XapianDatabaseDriver2 extends Database
         echo sprintf('%.2f', microtime(true)-$start), ', terminé !<br />';
         flush();
     }
-
-    public function makeEquation($params)
-    {
-        // si '_equation' a été transmis, on prend tel quel
-        if (isset($params['_equation']))
-        {
-            $equation=trim($params['_equation']);
-            if ($equation !=='') return $equation;
-        }
-        
-        $equation='';
-        foreach($params as $name=>$value)
-        {
-            if ($value==='') continue;
-            if (isset($this->structure->indices[strtolower($name)]) || isset($this->structure->aliases[strtolower($name)]))
-            {
-                $h='';
-                $addBrackets=false;
-                foreach((array)$value as $value)
-                {
-                    if ('' !== trim($value))
-                    {
-                        if ($h) 
-                        {
-                           $h.=' OR ';
-                           $addBrackets=true;
-                        }
-                        $h.=$value;
-                    }
-                }
-                if ($h)
-                {
-                    if ($equation) $equation .= ' AND ';
-                    if (true or $addBrackets) // todo: à revoir, génère des parenthèses inutiles
-                        $equation.= $name.':('.$h.')';
-                    else
-                        $equation.= $name.':'.$h;
-                }
-            }
-            else
-                echo 'param ', $name, ' ignoré <br />';
-        }
-        return $equation;
-    }
+    
     
 }
 
