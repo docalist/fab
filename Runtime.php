@@ -6,6 +6,16 @@
  * @version     SVN: $Id: Runtime.php 235 2006-12-20 09:02:07Z dmenard $
  */
 
+function pre($x)
+{
+    $t=func_get_args();
+    echo '<pre>';
+    foreach($t as $var)
+    {
+        print_r($var);    
+    }
+    echo '</pre>';
+}
 
 /**
  * Le coeur de fab
@@ -154,7 +164,12 @@ class Runtime
         else
             die("Impossible d'initialiser l'application, SCRIPT_FILENAME non disponible");
         
-        // Nom du front controler = le nom du script qui traite la requête (index.php, debug.php...)
+        // Apparemment sous windows+apache+sapi, le path peut être parfois retourné avec des / et non pas des \
+        // Du coup, le cache dis que ce n'est pas la bonne root.
+        // On corrige
+        $path=strtr($path, '/', DIRECTORY_SEPARATOR);
+        
+            // Nom du front controler = le nom du script qui traite la requête (index.php, debug.php...)
         self::$fcName=basename($path);
         
         // Path du répertoire web de l'application = le répertoire qui contient le front controler
@@ -357,16 +372,16 @@ class Runtime
         self::setupRoutes();
         
         // Initialise le gestionnaire de templates
-        debug && Debug::log('Initialisation du gestionnaire de templates');
+//        debug && Debug::log('Initialisation du gestionnaire de templates');
         //require_once self::$fabRoot.'core/template/Template.php';
-        Template::setup();
+//        Template::setup();
         
         // Initialise le gestionnaire de modules
-        debug && Debug::log('Initialisation du gestionnaire de modules');
+//        debug && Debug::log('Initialisation du gestionnaire de modules');
         //require_once self::$fabRoot.'core/module/Module.php'; 
         
         // Initialise le gestionnaire de sécurité
-        debug && Debug::log('Initialisation du gestionnaire de sécurité');
+//        debug && Debug::log('Initialisation du gestionnaire de sécurité');
         //require_once self::$fabRoot.'modules/NoSecurity/NoSecurity.php'; // uniquement pour les classes qui implémentent 
         //require_once self::$fabRoot.'core/user/User.php'; 
 
@@ -526,36 +541,34 @@ $fab_init_time=microtime(true);
     private static function setupRoutes()
     {
         $defaultRoutes=Config::get('defaultroutes'); // indique s'il faut charger ou non les routes de fab
-
-        if (!empty(self::$env))   // charge les routes spécifiques à l'environnement (en premier pour qu'elles soient prioritaiers)
-        {
-            if (file_exists($path=self::$root.'config'.DIRECTORY_SEPARATOR.'routes.' . self::$env . '.config'))
-                Config::load($path, 'routes', 'Routing::transform');
-            if ($defaultRoutes!=0 && file_exists($path=self::$fabRoot.'config'.DIRECTORY_SEPARATOR.'routes.' . self::$env . '.config'))
-                Config::load($path, 'routes', 'Routing::transform');
-        }
-
-        if (file_exists($path = self::$root.'config' . DIRECTORY_SEPARATOR . 'routes.config'))
-            Config::load($path, 'routes', 'Routing::transform');
-
+        
+        // Charge d'abord les routes de fab
         switch ($defaultRoutes) 
         {
             case 0: break; // on ne charge rien
             case 1:        // routes minimales
-                Config::load(self::$fabRoot.'config' . DIRECTORY_SEPARATOR . 'routes.minimal.config', 'routes', 'Routing::transform');
+                Config::load(self::$fabRoot.'config' . DIRECTORY_SEPARATOR . 'routes.minimal.config', 'routes', array('Routing','transform'));
                 break;
             case 2:        // routes étendues
-                Config::load(self::$fabRoot.'config' . DIRECTORY_SEPARATOR . 'routes.complete.config', 'routes', 'Routing::transform');
+                Config::load(self::$fabRoot.'config' . DIRECTORY_SEPARATOR . 'routes.complete.config', 'routes', array('Routing','transform'));
                 break;
             default:
                 throw new Exception('Valeur incorrecte pour la clé defaultRoutes de votre fichier de config (0, 1 ou 2 attendus)');            
         }
+        
+        // Les routes de l'application
+        if (file_exists($path = self::$root.'config' . DIRECTORY_SEPARATOR . 'routes.config'))
+            Config::load($path, 'routes', array('Routing','transform'));
 
-        // TODO : revoir la gestion des 2 fichiers routes.config
-        // chaque fichier est trié, mais l'ensemble ne l'est pas.
-        // on inclut le notre en dernier, car on "sait" que nos règles sont très larges
-        // mais cela relève du hack
-    	
+        // Les routes spécifiques à l'environnement (dans l'application)
+        if (!empty(self::$env))   // charge les routes spécifiques à l'environnement (en premier pour qu'elles soient prioritaiers)
+        {
+            if (file_exists($path=self::$root.'config'.DIRECTORY_SEPARATOR.'routes.' . self::$env . '.config'))
+                Config::load($path, 'routes', array('Routing','transform'));
+            if ($defaultRoutes!=0 && file_exists($path=self::$fabRoot.'config'.DIRECTORY_SEPARATOR.'routes.' . self::$env . '.config'))
+                Config::load($path, 'routes', array('Routing','transform'));
+        }
+
     }
     
     private static function setupExceptions()
@@ -686,7 +699,7 @@ $fab_init_time=microtime(true);
             'Routing'=>'core/routing/Routing.php',
             'Template'=>'core/template/Template.php',
             'User'=>'core/user/User.php',
-            'Module'=>'core/module/Module.php',
+            'Module'=>'modules/Module/Module.php',
             'NoSecurity'=>'modules/NoSecurity/NoSecurity.php',
             'ExceptionManager'=>'core/exception/ExceptionManager.php',
             'Database'=>'core/database/Database.php',
@@ -700,6 +713,7 @@ $fab_init_time=microtime(true);
             'TemplateCode'=>'core/template/TemplateCode.php',
             'TemplateEnvironment'=>'core/template/TemplateEnvironment.php',
             'TaskManager'=>'modules/TaskManager/TaskManager.php',
+            'Request'=>'core/Request/Request.php',
         
         );
         if (!isset($dir[$class])) return;
@@ -709,6 +723,4 @@ $fab_init_time=microtime(true);
     }
     
 }
-
-
 ?>
