@@ -1,0 +1,135 @@
+<template match="//groupname" group="" prefix="Méthodes">
+    <switch test="$group">
+        <case test="action">Actions de ce module</case>
+        <case test="private">$prefix privées</case>
+        <case test="protected">$prefix protégées</case>
+        <case test="public">$prefix publiques</case>
+        <default>$group ???</default>
+    </switch>
+</template>
+
+<div class="sect1">
+    <h1>Documentation {$class->isModule() ? 'du module' : 'de la classe'} {$class->name}</h1>
+
+    <opt><p><strong>{$class->summary}</strong></p></opt>
+    
+    <if test="{$class->ancestors}">
+        <div class="hierarchy">
+            <span style="border: double #444; background: yellow; padding: 0.5em; font-weight: bold;">{$class->name}</span>
+            <loop on="{$class->ancestors}" as="$ancestor">
+                <code>&lt;---</code>
+                <span style="border: 1px solid #444; background: #eee; padding: 0.5em;">
+                    <a href="?class=$ancestor">$ancestor</a>
+                </span>
+            </loop>
+        </div>
+    </if>
+    
+    {$class->description}
+    
+    <p>
+        <if test="{Config::get('show.inherited')}">
+            <a href="?class={$class->name}&amp;inherited=false">Masquer les propriétés et les méthodes héritées</a>
+        </if>
+        <else>
+            <a href="?class={$class->name}&amp;inherited=true">Afficher les propriétés et les méthodes héritées</a>
+        </else>
+    </p>
+         
+    <div class="sect2" test="{$class->properties}">
+        <h2>Propriétés</h2>
+        <loop on="{$class->properties}" as="$group,$properties">
+            <div class="sect3">
+                <h3><groupname group="$group" prefix="Propriétés" /></h3>
+                <dl>
+                    <loop on="{$properties}" as="$property">
+                        <dt>
+                            <a href="#{$property->name}">{$property->name}</a>
+                        </dt>
+                        <dd test="{$property->summary}">
+                            {$property->summary}
+                        </dd>
+                    </loop>
+                </dl>
+            </div>
+        </loop>
+    </div>
+    
+    <div class="sect2" test="{$class->methods}">
+        <h2>Méthodes</h2>
+        <loop on="{$class->methods}" as="$group,$methods">
+            <div class="sect3">
+                <h3><groupname group="$group" /></h3>
+                <dl>
+                    <loop on="{$methods}" as="$method">
+                        <dt>
+                            <a href="#{$method->name}">{$method->name}()</a>
+                        </dt>
+                        <dd test="{$method->summary}">
+                            {$method->summary}
+                        </dd>
+                    </loop>
+                </dl>
+            </div>
+        </loop>
+    </div>
+    
+    <if test="{$class->properties}">
+        <loop on="{$class->properties}" as="$group,$properties">
+            <hr />
+            <groupname group="$group" prefix="Détail des propriétés" />
+            <hr />
+            <loop on="{$properties}" as="$property">
+                <div class="sect2">
+                    <h2><a name="{$property->name}" />{$property->name}</h2>
+                    <opt><p><strong>{$property->summary}</strong></p></opt>
+                    {$property->description}
+                </div>
+            </loop>
+        </loop>
+    </if>
+
+    <if test="{$class->methods}">
+        <loop on="{$class->methods}" as="$group,$methods">
+            <hr />
+            <groupname group="$group" prefix="Détail des méthodes" />
+            <hr />
+            <loop on="{$methods}" as="$method">
+                <div class="sect2">
+                    <h2><a name="{$method->name}" />{$method->name}()</h2>
+                    <div class="programlisting">{$method->signature}</div>
+                    <opt><p><strong>{$method->summary}</strong></p></opt>
+                    {$method->description}
+                    
+                    
+                    <if test="{$method->parameters}">
+                        <h4>Paramètres : </h4>
+                        <ul>
+                            <loop on="{$method->parameters}" as="$parameter">
+                                <li>
+                                    <p>
+                                        <span class="type">({$parameter->type})</span>
+                                        <span class="var">{$parameter->name}</span>
+                                        <opt> : {$parameter->summary}</opt>
+                                    </p> 
+                                    {$parameter->description}
+                                </li>
+                            </loop>
+                        </ul>
+                    </if>
+                    
+                    <if test="{$method->return}">
+                        <h4>Valeur de retour: </h4>
+                        <ul><li>
+                        <p>
+                            <span class="type">({$method->return->type})</span>
+                            <opt>: {$method->return->summary}</opt>
+                             </p>
+                        {$method->return->description}
+                        </li></ul>
+                    </if>
+                </div>
+            </loop>
+        </loop>
+    </if>
+</div>
