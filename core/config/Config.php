@@ -17,7 +17,6 @@ class Config
     /**
      * @var array le tableau qui contient les paramètres de la configuration
      * en cours
-     * @access private 
      */
     private static $config = array
     (
@@ -30,17 +29,32 @@ class Config
     
 
     /**
-     * Charge un fichier de configuration, mais sans le fusionner avec la
-     * configuration en cours. Retourne le tableau obtenu
+     * Charge un fichier de configuration XML.
+     * 
+     * loadFile charge le fichier indiqué, sans le fusionner avec la 
+     * configuration en cours.
+     * 
+     * Il est possible d'indiquer un callback chargé de valider ou de modifier 
+     * le tableau.
+     * 
+     * Si le cache est disponible, le tableau obtenu est mis en cache. Lors du
+     * prochain appel, le fichier de configuration sera chargé directement à
+     * partir du cache.
+     * 
+     * Le tableau final est retourné.
+     *  
+     * @param string $configPath le path du fichier de configuration à charger
+     * 
+     * @param callback $transformer une fonction callback optionnelle chargée 
+     * de valider ou de modifier le tableau de configuration.
+     * 
+     * Si vous indiquez un callback, celui-ci doit prendre en paramètre un 
+     * tableau et retourner un tableau.
+     * 
+     * @return array le tableau final
      */
-    public static function loadFile($configPath, $transformer='')
+    public static function loadFile($configPath, array $transformer=null)
     {
-if (strpos($configPath, 'yaml')!==false)
-{
-    echo 'Fichier de config yaml : ', $configPath, '<br /><pre>';
-    debug_print_backtrace();
-    die();
-}
         // Vérifie que le fichier demandé existe
         if (false === $path=realpath($configPath))
             throw new Exception("Impossible de trouver le fichier de configuration '$configPath'");
@@ -57,41 +71,11 @@ if (strpos($configPath, 'yaml')!==false)
         Debug::log("Chargement de '%s' : compilation", $configPath);
 
         // Charge le fichier
-//        $data=Utils::loadYaml($path);
-        $data=self::loadXmlFile($path);
-        if (is_null($data)) $data=array(); // fixme: juste pour que la comparaison xml/yaml fonctionne, voir si c'est nécessaire pour le arraymerge
+        $data=self::loadXml(file_get_contents($path));
     
-//        $xmlPath=self::yamlPathToXmlPath($yamlPath, Runtime::$fabRoot.'config/', Runtime::$root.'config/');
-//        if (file_exists($xmlPath))
-//        {
-//            $xmldata=self::loadXmlFile($xmlPath);
-//            if (is_null($xmldata)) $xmldata=array(); // fixme: juste pour que la comparaison xml/yaml fonctionne, voir si c'est nécessaire pour le arraymerge
-//            if ($xmldata !== $data)
-//            {
-//                echo '<span style="color:red; font-weight: bold">Xml != Yaml : <code>', $xmlPath, '</code></span><br />';
-////                echo'
-////                <div style="width: 48%; float: left;">YAML<br /><pre>',var_export($data,true),'</pre></div>
-////                <div style="width: 48%; float: left;">XML<br /><pre>',var_export($xmldata,true),'</pre></div>
-////                <hr style="clear: both;"/>
-////                ';
-//                file_put_contents('c:/yaml.txt', var_export($data,true));
-//                file_put_contents('c:/xml.txt', var_export($xmldata,true));
-//            }
-//            else
-//            {
-//                echo '<span style="color: green">Xml OK : <code>', $xmlPath, '</code></span><br />';
-//            }
-//            $data=$xmldata;
-//        }
-//        else
-//        {    
-//            echo '<span style="color: red">Yaml only : <code>', $path, '</code>xmlpath=',$xmlPath,'</span><br />';
-//            self::yamlToXml(self::yamlPathToXmlPath($yamlPath,'c:/temp/xmlconfig/fab/', 'c:/temp/xmlconfig/app/'), $data);
-//        }
-        
         // Applique le transformer
         if ($transformer)
-            $data=call_user_func(explode('::', $transformer), $data);
+            $data=call_user_func($transformer, $data);
 
         // Stocke le fichier en cache
         if ($cache)
@@ -115,53 +99,17 @@ if (strpos($configPath, 'yaml')!==false)
             );
         }
         
+        // Retourne le tableau final
         return $data;
     }
-public static function convert($yamlPath)
-{
-echo 'Conversion de ', $yamlPath, '<br />';
-$data=Utils::loadYaml($yamlPath);
-$xmlPath=self::yamlPathToXmlPath($yamlPath,'c:/temp/xmlconfig/fab/', 'c:/temp/xmlconfig/app/');
-self::yamlToXml($xmlPath, $data);
-die('done : ' . $xmlPath);
-}
+
     /**
-     * Détermine le path d'un fichier de conf xml à partir du path d'un fichier
-     * de config yaml
+     * Génère un fichier Xml à partir de la configuration en cours
      *
-     * @param unknown_type $yamlPath
-     * @param unknown_type $fabdir
-     * @param unknown_type $appdir
-     * @return unknown
+     * @param string $name nom du tag en cours
+     * @param mixed $data données du tag en cours
+     * @param string $indent indentation en cours
      */
-    private static function yamlPathToXmlPath($yamlPath, $fabdir, $appdir)
-    {
-        $path=basename($yamlPath, '.yaml');
-        if ($path==='config')
-            $path=basename(dirname($yamlPath));
-            
-        if (strpos($yamlPath, Runtime::$fabRoot)===0)
-            $path=$fabdir.$path;
-        else 
-            $path=$appdir.$path;
-        return $path . '.config';
-    }
-    
-    /**
-     * Convertit un tableau de config en fichier xml
-     * fonction provisoire utilisée pour convertir les fichiers config.yaml
-     *
-     * @param unknown_type $yamlPath
-     * @param unknown_type $data
-     */
-    private static function yamlToXml($path, $data)
-    {
-        ob_start();
-        echo '<'.'?'.'xml version="1.0" encoding="UTF-8" standalone="yes"'.'?'.'>', "\n";
-        self::toXml('config', $data);
-        file_put_contents($path, ob_get_clean());
-    }
-    
     private static function toXml($name, $data, $indent='')
     {
         // Encode la clé en UTF8 une bonne fois pour toute
@@ -209,12 +157,14 @@ die('done : ' . $xmlPath);
         }
     }
     
-    public static function loadXmlFile($path) /* fixme: */ 
-    {
-        return self::loadXml(file_get_contents($path));
-    }
-    
-    public static function loadXml($source) 
+    /**
+     * Charge un tableau de configuration à partir du source xml passé en
+     * paramètre
+     *
+     * @param string $source
+     * @return array
+     */
+    private static function loadXml($source) 
     {
         // Crée un document XML
         $xml=new domDocument();
@@ -236,14 +186,16 @@ die('done : ' . $xmlPath);
 
         // Convertit la structure xml en objet
         $data=self::fromXml($xml->documentElement);
+
         return is_null($data) ? array() : $data;
     }
     
     /**
-     * Convertit un noeud XML en valeur
+     * Fonction utilitaire récursive utilisée par {@link loadXml()} pour
+     * convertit un noeud XML en valeur
      *
      * @param DOMElement $node
-     * @return unknown
+     * @return mixed
      */
     private static function fromXml(DOMElement $node)
     {
@@ -295,15 +247,15 @@ die('done : ' . $xmlPath);
                         throw new Exception($node->tagName . ' contient à la fois des options et des items');
                     $arrayType=2;
                     
-                    // Les attributs sont interdits dans un fichier de config
-                    $name=$child->tagName;
+                    // Les attributs sont interdits dans un fichier de config (sauf inherit)
+                    $name=utf8_decode($child->tagName);
                     if ($child->hasAttributes())
                     {
                         foreach($child->attributes as $attribute)
                         {
                             if ($attribute->nodeName==='inherit')
                             {
-                                switch(strtolower(trim($attribute->nodeValue)))
+                                switch(trim($attribute->nodeValue))
                                 {
                                     case 'true':
                                         break;
@@ -367,10 +319,14 @@ die('done : ' . $xmlPath);
 
     
     /**
-     * Charge un fichier de configuration et le fusionne dans la configuration
+     * Charge un fichier de configuration et le fusionne avec la configuration
      * en cours
+     * 
+     * @param string $path le fichier de configuration à charger
+     * @param string section la section dans laquelle le fichier sera chargé
+     * @param callback fonction de callback à appliquer au tableau de configuration
      */
-    public static function load($path, $section='', $transformer='')
+    public static function load($path, $section='', array $transformer=null)
     {
         self::addArray(self::loadFile($path, $transformer), $section);
     }
@@ -553,5 +509,4 @@ die('done : ' . $xmlPath);
         // la référence, pas la variable référencée.         
     }
 }
-//Config::convert('\WebApache\ascoweb\modules\Base\templates\export\exporttype.yaml');
 ?>
