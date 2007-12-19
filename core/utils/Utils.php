@@ -1032,7 +1032,7 @@ final class Utils
         $index=0;
         foreach ($var as $key => $value)
         {
-            if ($key<>$index)
+            if ($key!==$index)
             {
                 $t[] = var_export($key, true).'=>'.self::varExport($value, true);
                 if (is_int($key)) $index=$key+1;
