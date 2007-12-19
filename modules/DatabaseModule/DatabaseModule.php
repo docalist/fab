@@ -7,36 +7,6 @@
  * @version     SVN: $Id: Database.php 105 2006-09-21 16:30:25Z dmenard $
  */
 
-class Optional implements ArrayAccess
-{
-    private $data=null;
-    
-	public function __construct($data)
-    {
-    	if (! is_array($data))
-            throw new Exception('Vous devez passer un tableau pour créer un objet '.get_class());
-        $this->data=$data;
-    }
-    
-    public function offsetExists($offset)
-    {
-    	return true;
-    }
-    public function offsetGet($offset)
-    {
-    	if (isset($this->data[$offset])) return $this->data[$offset];else return '';
-    }   
-    public function offsetSet($offset, $value)
-    {
-        throw new exception('Un objet ' . get_class() . ' n\'est pas modifiable');
-    }   
-    public function offsetUnset($offset)
-    {
-        throw new exception('Un objet ' . get_class() . ' n\'est pas modifiable');
-    }   
-}
-
-
 /**
  * Ce module permet de publier une base de données sur le web
  * 
@@ -78,7 +48,7 @@ class DatabaseModule extends Module
         // 6. lazy layout manuel : le layout n'est jamais envoyé automatiquement. L'action doit appeller startLayout() 
         // quand elle commmence à envoyer des données. Dans Template::Run, un test if (!layoutSent) startLayout(), ce qui fait
         // que ce serait transparent pour toutes les actions qui se contente d'afficher un template.
-        if ($this->realAction==='export')
+        if ($this->method==='actionExport')
         {
             $defaultLayout=Config::get('layout');
             $this->setLayout('none');               // essaie de faire l'export, pour ça on met layout à none
@@ -88,6 +58,579 @@ class DatabaseModule extends Module
         }
     }
 
+    
+    // *************************************************************************
+    //                            ACTIONS DU MODULE
+    // *************************************************************************
+    
+    /**
+     * Affiche le formulaire de recherche permettant d'interroger la base
+     * 
+     * L'action searchForm affiche le template retourné par la fonction
+     * {@link getTemplate()} en utilisant le callback retourné par la fonction
+     * {@link getCallback()}.
+     */
+    public function actionSearchForm()
+    {        
+        // Détermine le template à utiliser
+        if (! $template=$this->getTemplate())
+            throw new Exception('Le template à utiliser n\'a pas été indiqué');
+        
+        // Détermine le callback à utiliser
+        $callback=$this->getCallback();
+                
+        // Exécute le template
+        Template::run
+        (
+            $template,  
+            array($this, $callback)
+        );
+    }
+
+    /**
+     * Lance une recherche dans la base et affiche les réponses obtenues
+     * 
+     * L'action search construit une équation de recherche en appellant la
+     * fonction {@link getEquation()}. L'équation obtenue est ensuite combinée
+     * avec les filtres éventuels retournés par la fonction {@link getFilter()}.
+     * 
+     * Si aucun critère de recherche n'a été indiqué, un message d'erreur est
+     * affiché.
+     * 
+     * Dans le cas contraire, la recherche est lancée et les résultats sont 
+     * affichés en utilisant le template retourné par la fonction 
+     * {@link getTemplate()} et la callback indiqué par la fonction 
+     * {@link getCallback()}.
+     */
+    public function actionSearch()
+    {
+        // Ouvre la base de données
+        $this->openDatabase();
+
+        // Détermine la recherche à exécuter        
+        $this->equation=$this->getEquation();
+
+        // Affiche le formulaire de recherche si on n'a aucun paramètre
+        if (is_null($this->equation))
+        {
+            if (! $this->request->hasParams())
+                Runtime::redirect('searchform'); // c'est la seule différence avec ActionShow. Si on avait dans la config 'redirectToSearchForm yes/no', show pourrait être une pseudo action
+            $this->showError('Vous n\'avez indiqué aucun critère de recherche.');
+            return;
+        }
+
+        // Aucune réponse
+        if (! $this->select($this->equation))
+            return $this->showNoAnswer("La requête $this->equation n'a donné aucune réponse.");
+        
+        // Détermine le template à utiliser
+        if (! $template=$this->getTemplate())
+            throw new Exception('Le template à utiliser n\'a pas été indiqué');
+        
+        // Détermine le callback à utiliser
+        $callback=$this->getCallback();
+
+        // Exécute le template
+        Template::run
+        (
+            $template,
+            array($this, $callback),
+            $this->selection->record  
+        );                
+    }   
+    
+    /**
+     * Affiche une ou plusieurs notices en "format long"
+     * Le(s) notice(s) à afficher sont donnés par une equation de recherche
+     * Génère une erreur si aucune équation n'est accessible ou si elle ne retourne aucune notice
+     * 
+     * Le template instancié peut ensuite boucler sur {$this->selection} pour afficher les résultats
+     */
+    public function actionShow()
+    {
+        // Ouvre la base de données
+        $this->openDatabase();
+
+        // Détermine la recherche à exécuter        
+        $this->equation=$this->getEquation();
+
+        // Si aucun paramètre de recherche n'a été passé, erreur
+        if (is_null($this->equation))
+            return $this->showError('Vous n\'avez indiqué aucun critère permettant de sélectionner les notices à afficher.');
+
+        // Aucune réponse
+        if (! $this->select($this->equation))
+            return $this->showNoAnswer("La requête $this->equation n'a donné aucune réponse.");
+
+        // Détermine le template à utiliser
+        if (! $template=$this->getTemplate())
+            throw new Exception('Le template à utiliser n\'a pas été indiqué');
+        
+        // Détermine le callback à utiliser
+        $callback=$this->getCallback();
+
+        // Exécute le template         
+        Template::run
+        (
+            $template,  
+            array($this, $callback),
+            $this->selection->record
+        );  
+    }
+    
+    /**
+     * Création d'une notice
+     * Affiche le formulaire indiqué dans la clé 'template' de la configuration.
+     * 
+     * Lui passe la source de donnée 'REF' = 0 pour indiquer à l'action save qu'on créé une nouvelle notice
+     *
+     */
+    public function actionNew()
+    {    
+        // Détermine le template à utiliser
+        if (! $template=$this->getTemplate())
+            throw new Exception('Le template à utiliser n\'a pas été indiqué');
+            
+        $callback = $this->getCallback();
+        
+        // On exécute le template correspondant
+        Template::run
+        (
+            $template,
+            array('REF'=>'0'),        // indique qu'on veut créer une nouvelle notice 
+            array($this, $callback)
+        );      
+    } 
+    
+    /**
+     * Edition d'une notice
+     * Affiche le formulaire indiqué dans la clé 'template' de la configuration.
+     * 
+     * La notice correspondant à l'équation donnée est chargée dans le formulaire : l'équation ne doit
+     * retourner qu'un seul enregistrement sinon erreur.
+     */
+    public function actionLoad()
+    {
+        // Ouvre la base de données
+        $this->openDatabase();
+
+        // Détermine la recherche à exécuter        
+        $this->equation=$this->getEquation();
+
+        // Erreur, si aucun paramètre de recherche n'a été passé
+        // Erreur, si des paramètres ont été passés, mais tous sont vides et l'équation obtenue est vide
+        if (is_null($this->equation))
+            return $this->showError('Vous n\'avez indiqué aucun critère permettant de sélectionner la notice à modifier.');
+
+        // Si un numéro de référence a été indiqué, on charge cette notice         
+        // Vérifie qu'elle existe
+        if (! $this->select($this->equation))
+            return $this->showNoAnswer("La requête $this->equation n'a donné aucune réponse.");
+        
+        // Si sélection contient plusieurs enreg, erreur
+        if ($this->selection->count() > 1)
+            return $this->showError('Vous ne pouvez pas éditer plusieurs enregistrements à la fois.');     
+
+        // Détermine le template à utiliser
+        if (! $template=$this->getTemplate())
+            throw new Exception('Le template à utiliser n\'a pas été indiqué');
+        
+        // Détermine le callback à utiliser
+        $callback=$this->getCallback();
+        
+        Template::run
+        (
+            $template,
+            array($this, $callback),
+            $this->selection->record  
+        );             
+    }
+    
+    /**
+     * Sauvegarde la notice désignée par 'REF' avec les champs passés en
+     * paramètre.
+     * Redirige ensuite l'utilisateur vers l'action 'show'
+     * 
+     * REF doit toujours être indiqué. Si REF==0, une nouvelle notice sera
+     * créée. Si REF>0, la notice correspondante sera écrasée. Si REF est absent
+     * ou invalide, une exception est levée.
+     */
+    public function actionSave()
+    {
+        // CODE DE DEBUGGAGE : save ne sauvegarde pas la notice si Runtime::redirect ne se termine
+        // pas par exit(0) (voir plus bas)
+        
+        // TODO: dans la config, on devrait avoir, par défaut, access: admin (ie base modifiable uniquement par les admin)
+        
+        // Détermine le callback à utiliser
+        $callback=$this->getCallback();
+        
+        // Par défaut, le callback du save est à 'none'. Le module descendant DOIT définit un callback pour pouvoir modifier la base 
+        if ($callback === 'none')
+            throw new Exception("Cette base n'est pas modifiable (aucun callback définit pour le save"); 
+                
+        // Si REF n'a pas été transmis ou est invalide, erreur
+        $ref=$this->request->required('REF')->unique()->int()->min(0)->ok();
+        
+        // Ouvre la base
+        $this->openDatabase(false);
+        
+        // Si un numéro de référence a été indiqué, on charge cette notice         
+        if ($ref>0)
+        {
+            // Ouvre la sélection
+            debug && Debug::log('Chargement de la notice numéro %s', $ref);
+            
+            if (! $this->select("REF=$ref"))
+                throw new Exception('La référence demandée n\'existe pas');
+                
+            $this->selection->editRecord();     // mode édition enregistrement
+        } 
+        // Sinon (REF == 0), on en créée une nouvelle
+        else
+        {
+            debug && Debug::log('Création d\'une nouvelle notice');
+            $this->selection->addRecord();            
+        }            
+        
+        // Mise à jour de chacun des champs
+        foreach($this->selection->record as $fieldName => $fieldValue)
+        {         
+            if ($fieldName==='REF') continue;   // Pour l'instant, REF non modifiable codé en dur
+                
+            $fieldValue=$this->request->get($fieldName);
+
+            // Appelle le callback qui peut :
+            // - indiquer à l'application d'interdire la modification du champ
+            // - ou modifier sa valeur avant l'enregistrement (validation données utilisateur)
+            if ($this->$callback($fieldName, $fieldValue) === true)
+            {
+                // Met à jour le champ
+                $this->selection[$fieldName]=$fieldValue;
+            }
+        }
+        
+        // Enregistre la notice
+        $ref=$this->selection->saveRecord();   // TODO: gestion d'erreurs
+
+        // Récupère le numéro de la notice créée
+        //$ref=$this->selection['REF'];
+        debug && Debug::log('Sauvegarde de la notice %s', $ref);
+
+        // redirige vers le template s'il y en a un, vers l'action show sinon
+        if (! $template=$this->getTemplate())
+        {
+            // Redirige l'utilisateur vers l'action show
+            debug && Debug::log('Redirection pour afficher la notice enregistrée %s', $ref);
+            Runtime::redirect('show?REF='.$ref);
+        }
+        else
+        {
+            Template::run
+            (
+                $template,
+                array('equationAnswers'=>'NA'),
+                $this->selection->record,
+                array('selection',$this->selection)  
+            );
+        }
+    }
+    
+    /**
+     * Supprime la ou les notice(s) indiquée(s) par l'équation puis affiche le template
+     * indiqué dans la clé 'template' de la configuration.
+     * 
+     * Si aucun template n'est indiqué, affiche un message 'notice supprimée'.
+     */
+    public function actionDelete()
+    {
+        // Ouvre la base de données
+        $this->openDatabase(false);
+
+        // Récupère l'équation de recherche qui donne les enregistrements à supprimer
+        $this->equation=$this->getEquation();
+
+        // Paramètre equation manquant
+        if (is_null($this->equation))
+            return $this->showError('Le ou les numéros des notices à supprimer n\'ont pas été indiqués.');
+
+        // Aucune réponse
+        if (! $this->select($this->equation, -1) )
+            return $this->showError("Aucune réponse. Equation : $this->equation");
+
+        // TODO: déléguer au TaskManager
+
+        // Supprime toutes les notices de la sélection
+        foreach($this->selection as $record)
+            $this->selection->deleteRecord();
+
+        // Détermine le template à utiliser
+        if (! $template=$this->getTemplate())
+            echo '<p>Notice supprimée.</p>';
+
+        // Détermine le callback à utiliser
+        $callback=$this->getCallback();
+
+        // Exécute le template
+        Template::run
+        (
+            $template,  
+            array($this, $callback),
+            $this->selection->record  //fixme : pas de sens : on passe un record supprimé + il peut y en avoir plusieurs
+        );
+    }
+    
+    /**
+     * Affiche le formulaire de type Chercher/Remplacer indiqué dans la clé
+     * 'template' de la configuration
+     */
+     public function actionReplaceForm()
+     {        
+        // Ouvre la base de données
+        $this->openDatabase();
+
+        // Récupère l'équation de recherche qui donne les enregistrements sur lesquels travailler
+        $this->equation=$this->getEquation();
+
+        // Paramètre equation manquant
+        if (is_null($this->equation))
+            return $this->showError('Vous n\'avez indiqué aucun critère de recherche sur les enregistrements de la base de données.');
+            
+        // Aucune réponse
+        if (! $this->select($this->equation) )
+            return $this->showError("Aucune réponse. Equation : $this->equation");
+
+        // Construit le tableau des champs modifiables des enregistrements retournés par la recherche.
+        // Par compatibilité avec les générateurs de contrôles utilisateurs (fichier generators.xml)
+        // il faut un tableau de tableaux contenant chacun une clé 'code' et une clé 'label'
+        // On suppose que la sélection peut contenir des enregistrements provenants de différentes tables (pas la même structure)
+        $fieldList = array();   // le tableau global qui contient les tableaux de champs
+        
+        // Si on est certain de n'avoir que des enregistrements de même nature (même noms de champs),
+        // on peut vouloir boucler sur un seul enregistrement (au lieu de tous à l'heure actuelle)
+        // Cependant, dans le cas de nombreuses BDD relationnelles, une selection peut être composé d'enreg
+        // de nature différente (différentes tables)
+        // TODO: optimisation possible si on a un fichier structure BDD de bas niveau
+        
+        $ignore = array('REF');  // liste des champs à ignorer : REF plus ceux déjà ajoutés à $fieldList
+        
+        foreach($this->selection as $record)
+        {
+            $newField = array();    // un tableau par champ trouvé
+            
+            foreach($record as $fieldName => $fieldValue)
+            {
+                if (! in_array($fieldName, $ignore))   // REF n'est pas modifiable
+                {
+                    $newField['code'] = $fieldName;
+                    $newField['label'] = $fieldName;    // on affichera directement le code du champ tel que dans la BDD
+                    $fieldList[] = $newField;           // ajoute au tableau global
+                    $ignore[] = $fieldName;             // pour ne pas le rajouter la prochaine fois qu'on le trouve
+                }
+            }
+            break;
+        }
+        
+        // Tri le tableau des champs modifiables
+        sort($fieldList);
+
+        // Détermine le template à utiliser
+        if (! $template=$this->getTemplate())
+            throw new Exception('Le template à utiliser n\'a pas été indiqué');
+        
+        // Détermine le callback à utiliser
+        $callback=$this->getCallback();
+               
+        // Exécute le template
+        Template::run
+        (
+            $template,  
+            array($this, $callback),           // Priorité à la fonction utilisateur
+            array('fieldList'=>$fieldList)
+        );
+     }
+    
+    /**
+     * Effectue le chercher/remplacer et appelle le template indiqué dans la clé
+     * template de la configuration ensuite : feedback
+     * 
+     * La source de donnée $count est passé à Template::run et permet au template d'afficher
+     * s'il y a eu une erreur ($count === false) ou le nombre de remplacements effectués s'il n'y a pas d'erreur
+     * ($count contient alors le nombre d'occurences remplacées)
+     *  
+     */
+     public function actionReplace()
+     {       
+        // Ouvre la base de données
+        $this->openDatabase(false);
+
+        // Récupère l'équation de recherche qui donne les enregistrements sur lesquels travailler
+        $this->equation=$this->getEquation();
+        
+        // TODO : Pb avec les équations qui ont des guillemets
+        
+        $search=Utils::get($_REQUEST['search'], '');
+        $replace=Utils::get($_REQUEST['replaceStr'], '');
+        $fields = (array) Utils::get($_REQUEST['fields']);
+        
+        $wholeWord=is_null(Utils::get($_REQUEST['wholeWord'])) ? false : true;
+        $caseInsensitive=is_null(Utils::get($_REQUEST['caseInsensitive'])) ? false : true;
+        $regExp=is_null(Utils::get($_REQUEST['regExp'])) ? false : true;
+        
+        // Vérifie que les données sont renseignées
+        if ($this->equation==='')
+            return $this->showError('Vous n\'avez indiqué aucun critère de recherche sur les enregistrements de la base de données.');
+
+        // S'il n'y a rien à faire,on redirige vers replaceform
+        if (count($fields)==0 || ($search==='' && $replace===''))
+            Runtime::redirect('replaceform?_equation=' . urlencode($this->equation));
+            
+        // Lance la requête qui détermine les enregistrements sur lesquels on va opérer le chercher/remplacer 
+        if (! $this->select($this->equation, -1) )
+            return $this->showError("Aucune réponse. Equation : $this->equation");
+
+        // Eventuelle callback de validation des données passée au format array(object, nom méthode) 
+//        if (($callback = $this->getCallback()) !== 'none')
+//            $callback = array($this, $callback);
+//        else
+//            $callback = null;
+
+        $count = 0;         // nombre de remplacements effectués par enregistrement
+        $totalCount = 0;    // nombre total de remplacements effectués sur le sous-ensemble de notices
+        
+        // TODO: déléguer le boulot au TaskManager (exécution peut être longue)
+
+        // Search est vide : on injecte la valeur indiquée par replace dans les champs vides
+        if ($search==='')
+        {
+            foreach($this->selection as $record)
+            {          
+                $this->selection->editRecord(); // on passe en mode édition de l'enregistrement
+                $this->selection->replaceEmpty($fields, $replace, $count);             
+                $this->selection->saveRecord();
+                $totalCount += $count;
+            }
+        }
+        
+        // chercher/remplacer sur exp reg ou chaîne
+        else        
+        {
+            if ($regExp || $wholeWord)
+            {
+                // expr reg ou alors chaîne avec 'Mot entier' sélectionné
+                // dans ces deux-cas, on appellera pregReplace pour simplier
+
+                // échappe le '~' éventuellement entré par l'utilisateur car on l'utilise comme délimiteur
+                $search = str_replace('~', '\~', $search);
+                
+                if ($wholeWord)
+                    $search = $search = '~\b' . $search . '\b~';
+                else
+                    $search = '~' . $search . '~';  // délimiteurs de l'expression régulière
+                    
+                if ($caseInsensitive)
+                    $search = $search . 'i';
+
+                foreach($this->selection as $record)
+                {          
+                    $this->selection->editRecord(); // on passe en mode édition de l'enregistrement
+                    
+                    if (! $this->selection->pregReplace($fields, $search, $replace, $count))    // cf. Database.php
+                    {
+                        $totalCount = false;
+                        break;   
+                    }    
+                    
+                    $this->selection->saveRecord();
+                    $totalCount += $count;
+                }
+            }
+            
+            // chercher/remplacer sur une chaîne
+            else
+            {
+                foreach($this->selection as $record)
+                {
+                    $this->selection->editRecord(); // on passe en mode édition de l'enregistrement
+//                    $this->selection->strReplace($fields, $search, $replace, $caseInsensitive, $count, $callback);     // cf. Database.php
+                    $this->selection->strReplace($fields, $search, $replace, $caseInsensitive, $count);
+                    $this->selection->saveRecord();
+                    $totalCount += $count;
+                }
+            }
+        }
+        
+        // Détermine le template à utiliser
+        if (! $template=$this->getTemplate())
+            throw new Exception('Le template à utiliser n\'a pas été indiqué');
+        
+        // Détermine le callback à utiliser
+        $callback=$this->getCallback();
+
+        // Exécute le template
+        Template::run
+        (
+            $template,  
+            array($this, $callback),
+            array('count'=>$totalCount)
+        ); 
+     }
+     
+    // lookup dans une table des entrées (xapian only)
+    function actionLookup($table, $value='', $max=10)
+    {
+        header('Content-type: text/html; charset=iso-8859-1');
+
+        $max=$this->request->defaults(10)->int('max')->min(0)->ok();
+        
+        // Ouvre la base
+        $this->openDatabase();
+        
+        // Récupère le nom de la table dans laquelle il faut rechercher
+        if ('' === $table=Utils::get($_REQUEST['table'],''))
+            die('aucune table indiquée');
+        
+        // Lance la recherche
+        $terms=$this->selection->lookup($table, $value, $max, 0, true);
+
+        // Détermine le template à utiliser
+        if (! $template=$this->getTemplate())
+            throw new Exception('Le template à utiliser n\'a pas été indiqué');
+        
+        // Détermine le callback à utiliser
+        $callback=$this->getCallback();
+
+        // Exécute le template         
+        Template::run
+        (
+            $template,  
+            array($this, $callback),
+            array('search'=>$value, 'table'=>$table, 'terms'=>$terms)
+        );  
+    }
+    
+     
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
     /**
      * Ouvre la base de données du module
      * 
@@ -113,53 +656,66 @@ class DatabaseModule extends Module
         $this->selection=Database::open($database, $readOnly);
     }
 
-    protected function select($equation, $options=null)
+    protected function select($equation, $max=null, $start=null, $sort=null)
     {
-		// Valeurs par défaut des options
-	    $defaultOptions=array
-	    (
-	        '_sort'  => Utils::get($_REQUEST['_sort'], Config::get('sort','+')),
-	        '_start' => Utils::get($_REQUEST['_start'], 1),
-	        '_max'   => Utils::get($_REQUEST['_max'], Config::get('max',10)),
-	    );
+        /*
+         * Valeurs par défaut des options de recherche
+         * 
+         * Pour chaque paramètre, on prend dans l'ordre :
+         * - le paramètre transmis si non null
+         * - sinon, ce qu'il y a dans request, si non null, en vérifiant le type
+         * - la valeur indiquée dans la config sinon 
+         */
+        $options=array
+        (
+            '_start'=> isset($start) ? $start :
+                $this->request->defaults('_start', Config::get('start',1))
+                    ->unique()
+                    ->int()
+                    ->min(1)
+                    ->ok(),
+                    
+            '_max'=> isset($max) ? $max :
+                $this->request->defaults('_max', Config::get('max', 10))
+                    ->unique()
+                    ->int()
+                    ->min(0)
+                    ->ok(),
+                    
+            '_sort'=> isset($sort) ? $sort : 
+                $this->request->defaults('_sort', Config::get('sort','+'))
+                    ->unique()
+                    ->ok(),
+                    
+            '_filter'=>$this->getFilter()
+        );
+        return $this->selection->search($equation, $options);
+    }
+   
+    protected function selectOLD($equation, $options=null)
+    {
+        
+        // Valeurs par défaut des options
+        $defaultOptions=array
+        (
+            '_sort'  => Utils::get($_REQUEST['_sort'], Config::get('sort','+')),
+            '_start' => Utils::get($_REQUEST['_start'], 1),
+            '_max'   => Utils::get($_REQUEST['_max'], Config::get('max',10)),
+        );
 
         if (is_array($options))
         {
-        	// On fusionne le tableau d'options passé en paramètre et les options par défaut
-        	// On prend par défaut $defaultOptions. Si $options redéfinit la valeur d'une option,
-        	// alors c'est cette nouvelle valeur qui sera prise en compte.
-        	return $this->selection->search($equation,array_merge($defaultOptions, $options));
+            // On fusionne le tableau d'options passé en paramètre et les options par défaut
+            // On prend par défaut $defaultOptions. Si $options redéfinit la valeur d'une option,
+            // alors c'est cette nouvelle valeur qui sera prise en compte.
+            return $this->selection->search($equation,array_merge($defaultOptions, $options));
         }
         else
         {
-        	return $this->selection->search($equation, $defaultOptions);
+            return $this->selection->search($equation, $defaultOptions);
         }
     }
    
-    /**
-     * Affiche le formulaire de recherche indiqué dans la clé 'template' de la
-     * configuration, en utilisant le callback indiqué dans la clé 'callback' de
-     * la configuration. Si le callback indiqué est 'none' alors aucun callback 
-     * n'est appliqué.
-     * 
-     */
-    public function actionSearchForm()
-    {        
-        // Détermine le template à utiliser
-        if (! $template=$this->getTemplate())
-            throw new Exception('Le template à utiliser n\'a pas été indiqué');
-        
-        // Détermine le callback à utiliser
-        $callback=$this->getCallback();
-                
-        // Exécute le template
-        Template::run
-        (
-            $template,  
-            array($this, $callback)           // Priorité à la fonction utilisateur
-        );
-    }
-
     /**
      * Affiche un message si une erreur s'est produite lors de la recherche.
      * Le template à utiliser est indiqué dans la clé 'errortemplate' de la 
@@ -222,56 +778,127 @@ class DatabaseModule extends Module
     }
     
     /**
-     * Lance une recherche si une équation peut être construite à partir des 
-     * paramètres passés et affiche les notices obtenues en utilisant le template 
-     * indiqué dans la clé 'template' de la configuration.
-     * Si aucun paramètre n'a été passé, redirige vers le formulaire de recherche.
-     * Si erreur lors de la recherche, affiche l'erreur en utilisant le template
-     * indiqué dans la clé 'errortemplate' de la configuration. 
+     * Construit l'équation qui sera utilisée pour lancer la recherche dans 
+     * la base.
      * 
-     * Le template peut ensuite boucler sur {$this->selection} pour afficher les résultats
+     * getEquation() construit une équation de recherche qui sera ensuite 
+     * combinée avec les filtres retournés par {@link getFilter()} pour 
+     * lancer la recherche.
+     * 
+     * Par défaut, getEquation() combine en 'ET' les éléments suivants :
+     * 
+     * - la ou le(s) équation(s) de recherche qui figure dans l'argument 
+     *   '_equation' de la {@link $request requête en cours}
+     * 
+     * - tous les paramètres de la requête dont le nom est un index ou un 
+     *   alias de la base.
+     * 
+     * Si aucun des éléments ci-dessus ne retourne une équation de recherche,
+     * getEquation() utilise la ou les équation(s) de recherche indiquée(s) 
+     * dans la clé 'DefaultEquation' de la configuration (des équations par
+     * défaut différentes peuvent être indiquées selon les droits de 
+     * l'utilisateur, voir {@link configUserGet()}).
+     * 
+     * Si aucune équation par défaut n'a été indiquée, la fonction retourne
+     * null.
+     *
+     * Les modules qui hérite de DatabaseModule peuvent surcharger cetté  
+     * méthode pour changer le comportement par défaut.
+     * 
+     * @return null|string l'équation de recherche obtenue ou null si aucune
+     * équation ne peut être construite.
      */
-    public function actionSearch()
+    protected function getEquation()
     {
-        // Ouvre la base de données (le nouveau makeEquation en a besoin)
-        $this->openDatabase();
+        $equation='';     
 
-        // Détermine la recherche à exécuter        
-        $this->equation=$this->selection->makeEquation(Utils::isGet() ? $_GET : $_POST);
-
-        // Si aucun paramètre de recherche n'a été passé, il faut afficher le formulaire
-        // de recherche
-        if (is_null($this->equation))
-                Runtime::redirect('searchform');
-        
-        // Des paramètres ont été passés, mais tous sont vides et l'équation obtenue est vide
-        if ($this->equation==='')
+        // Combine en ET tous les '_equation=' transmis en paramètre
+        if (isset($this->request->_equation))
         {
-            // Ajout DM 18/07/07 : on peut avoir dans la config une equation par défaut
-            $this->equation=Config::get('equation');
-            if (is_null($this->equation))
-                return $this->showError('Vous n\'avez indiqué aucun critère de recherche.');
+            foreach((array)$this->request->_equation as $eq)
+            {
+                if ('' !== $eq=trim($eq)) 
+                {
+                    if ($equation) $equation .= ' AND ';
+                    $equation.= $eq;    
+                }
+            }
+        }
+        if ($equation !=='') $equation='(' . $equation . ')';
+        
+        // Combine en OU tous les paramètres qui sont des noms d'index/alias et combine en ET avec l'équation précédente
+        $structure=$this->selection->getStructure();
+        foreach($this->request->getParams() as $name=>$value)
+        {
+            if (is_null($value) || $value==='') continue;
+            if (isset($structure->indices[strtolower($name)]) || isset($structure->aliases[strtolower($name)]))
+            {
+                $h='';
+                $addBrackets=false;
+                foreach((array)$value as $value)
+                {
+                    if ('' !== trim($value))
+                    {
+                        if ($h) 
+                        {
+                           $h.=' OR ';
+                           $addBrackets=true;
+                        }
+                        $h.=$value;
+                    }
+                }
+                if ($h)
+                {
+                    if ($equation) $equation .= ' AND ';
+                    if (true or $addBrackets) // todo: à revoir, génère des parenthèses inutiles
+                        $equation.= $name.':('.$h.')';
+                    else
+                        $equation.= $name.':'.$h;
+                }
+            }
         }
         
-        // Aucune réponse
-        if (! $this->select($this->equation))
-            return $this->showNoAnswer("La requête $this->equation n'a donné aucune réponse.");
+        // Retourne l'équation obtenue si on en a une
+        if ($equation !== '') return $equation;
         
-        // Détermine le template à utiliser
-        if (! $template=$this->getTemplate('template'))
-            throw new Exception('Le template à utiliser n\'a pas été indiqué');
+        // L'équation par défaut indiquée dans la config sinon
+        return $this->configUserGet('DefaultEquation', null);
+    }
+    
+    /**
+     * Détermine le ou les filtres à appliquer à la recherche qui sera exécutée
+     * 
+     * Les filtres seront combinés à l'équation de recherche retournée par
+     * {@link getEquation()} de telle sorte que seuls les enregistrements qui 
+     * passent les filtres soient pris en compte.
+     * 
+     * La manière dont les filtres sont combinés à l'équation dépend du driver
+     * de base de données utilisé (BisDatabase combine en 'SAUF', XapianDatabase
+     * utilise l'opérateur xapian 'FILTER'). 
+     * 
+     * Par défaut, getFilter() prend en compte :
+     * 
+     * - les filtres éventuels indiqués dans la clé <code>filter</code> de la
+     *   configuration en cours (des filtres différents peuvent être indiqués
+     *   selon les droits de l'utilisateur, voir {@link configUserGet()}).
+     * 
+     * - les filtres éventuels passés dans la clé <code>_filter</code> de la
+     * {@link request requête en cours}
+     * 
+     * Les modules descendants peuvent surcharger cette méthode pour modifier
+     * ce comportement par défaut.
+     */
+    protected function getFilter()
+    {
+        // Charge les filtres indiqués dans la clé 'filter' de la configuration
+        $filters1=(array) $this->configUserGet('filter');
         
-        // Détermine le callback à utiliser
-        $callback=$this->getCallback();
+        // Charge les filtres indiqués dans les paramètres '_filter' de la requête
+        $filters2=(array) $this->request->_filter;
 
-        // Exécute le template
-        Template::run
-        (
-            $template,
-            array($this, $callback),
-            $this->selection->record  
-        );                
-    }   
+        // Fusionne les deux
+        return array_merge($filters1, $filters2);
+    }
     
     
     /**
@@ -319,16 +946,17 @@ class DatabaseModule extends Module
         unset($query['_start']);
         unset($query['module']);
         unset($query['action']);
-        $query=self::buildQuery($query);
+        $query=self::buildQuery($query); // FIXME: code dupliqué avec le buildQueryString de Routing
         
-        $actionName = $this->action;    // on adapte l'URL en fonction de l'action en cours (search, show, ...)
+//DMDM nouveau routing        $actionName = $this->action;    // on adapte l'URL en fonction de l'action en cours (search, show, ...)
 
         $start=$this->selection->searchInfo('start');
         $max= $this->selection->searchInfo('max');
         $count=$this->selection->count();
         
-        $this->module=strtolower($this->module); // BUG : this->module devrait être tel que recherché par les routes
-        $url='/'.$this->module.'/'.$this->action.'?'.$query;
+//DMDM nouveau routing        $this->module=strtolower($this->module); // BUG : this->module devrait être tel que recherché par les routes
+//DMDM nouveau routing        $url='/'.$this->module.'/'.$this->action.'?'.$query;
+        $url='?'.$query; // DMDM nouveau routing
 
         if ($start==min($start+$max-1,$count))
             $h='Résultat ' . $start . ' sur '.$this->selection->count('environ %d'). ' ';
@@ -461,215 +1089,6 @@ class DatabaseModule extends Module
     }
     
     /**
-     * Affiche une ou plusieurs notices en "format long"
-     * Le(s) notice(s) à afficher sont donnés par une equation de recherche
-     * Génère une erreur si aucune équation n'est accessible ou si elle ne retourne aucune notice
-     * 
-     * Le template instancié peut ensuite boucler sur {$this->selection} pour afficher les résultats
-     */
-    public function actionShow()
-    {
-        // Ouvre la base de données (le nouveau makeEquation en a besoin)
-        $this->openDatabase();
-
-        // Détermine la recherche à exécuter        
-        $this->equation=$this->selection->makeEquation(Utils::isGet() ? $_GET : $_POST);
-
-        // Si aucun paramètre de recherche n'a été passé, erreur
-        if (is_null($this->equation))
-            return $this->showError('Le numéro de la référence à afficher n\'a pas été indiqué.');
-
-        // Des paramètres ont été passés, mais tous sont vides et l'équation obtenue est vide
-        if ($this->equation==='')
-            return $this->showError('Vous n\'avez indiqué aucun critère permettant de sélectionner la notice à afficher.');
-
-        // Aucune réponse
-        if (! $this->select($this->equation))
-            return $this->showNoAnswer("La requête $this->equation n'a donné aucune réponse.");
-
-        // Détermine le template à utiliser
-        if (! $template=$this->getTemplate())
-            throw new Exception('Le template à utiliser n\'a pas été indiqué');
-        
-        // Détermine le callback à utiliser
-        $callback=$this->getCallback();
-
-        // Exécute le template         
-        Template::run
-        (
-            $template,  
-            array($this, $callback),
-            $this->selection->record
-        );  
-    }
-    
-    
-    /**
-     * Création d'une notice
-     * Affiche le formulaire indiqué dans la clé 'template' de la configuration.
-     * 
-     * Lui passe la source de donnée 'REF' = 0 pour indiquer à l'action save qu'on créé une nouvelle notice
-     *
-     */
-    public function actionNew()
-    {    
-        // Détermine le template à utiliser
-        if (! $template=$this->getTemplate())
-            throw new Exception('Le template à utiliser n\'a pas été indiqué');
-            
-        $callback = $this->getCallback();
-        
-        // On exécute le template correspondant
-        Template::run
-        (
-            $template,
-            array('REF'=>'0'),        // indique qu'on veut créer une nouvelle notice 
-            array($this, $callback)
-        );      
-    } 
-    
-    /**
-     * Edition d'une notice
-     * Affiche le formulaire indiqué dans la clé 'template' de la configuration.
-     * 
-     * La notice correspondant à l'équation donnée est chargée dans le formulaire : l'équation ne doit
-     * retourner qu'un seul enregistrement sinon erreur.
-     */
-    public function actionLoad()
-    {
-        // Ouvre la base de données (le nouveau makeEquation en a besoin)
-        $this->openDatabase();
-
-        // Détermine la recherche à exécuter        
-        $this->equation=$this->selection->makeEquation(Utils::isGet() ? $_GET : $_POST);
-
-        // Erreur, si aucun paramètre de recherche n'a été passé
-        // Erreur, si des paramètres ont été passés, mais tous sont vides et l'équation obtenue est vide
-        if (is_null($this->equation) || $this->equation==='')
-        	return $this->showError('Le numéro de la référence à modifier n\'a pas été indiqué.');
-
-        // Si un numéro de référence a été indiqué, on charge cette notice         
-        // Vérifie qu'elle existe
-        if (! $this->select($this->equation))
-        	return $this->showError('La référence demandée n\'existe pas.');
-
-        // Si sélection contient plusieurs enreg, erreur
-        if ($this->selection->count() > 1)
-            return $this->showError('Vous ne pouvez pas éditer plusieurs enregistrements à la fois.');     
-
-        // Détermine le template à utiliser
-        if (! $template=$this->getTemplate())
-            throw new Exception('Le template à utiliser n\'a pas été indiqué');
-        
-        // Détermine le callback à utiliser
-        $callback=$this->getCallback();
-        
-        Template::run
-        (
-            $template,
-            array($this, $callback),
-            $this->selection->record  
-        );             
-    }
-    
-    /**
-     * Sauvegarde la notice désignée par 'REF' avec les champs passés en
-     * paramètre.
-     * Redirige ensuite l'utilisateur vers l'action 'show'
-     * 
-     * REF doit toujours être indiqué. Si REF==0, une nouvelle notice sera
-     * créée. Si REF>0, la notice correspondante sera écrasée. Si REF est absent
-     * ou invalide, une exception est levée.
-     */
-    public function actionSave()
-    {
-        // CODE DE DEBUGGAGE : save ne sauvegarde pas la notice si Runtime::redirect ne se termine
-        // pas par exit(0) (voir plus bas)
-		
-		// TODO: dans la config, on devrait avoir, par défaut, access: admin (ie base modifiable uniquement par les admin)
-		
-        // Détermine le callback à utiliser
-        $callback=$this->getCallback();
-        
-        // Par défaut, le callback du save est à 'none'. Le module descendant DOIT définit un callback pour pouvoir modifier la base 
-        if ($callback === 'none')
-            throw new Exception("Cette base n'est pas modifiable (aucun callback définit pour le save"); 
-                
-        // Si REF n'a pas été transmis ou contient autre chose qu'un entier >= 0, erreur
-        if (is_null($ref=Utils::get($_REQUEST['REF'])) || (! ctype_digit($ref)))
-            throw new Exception('Appel incorrect de save : REF non transmis ou invalide');
-        
-        $ref=(int) $ref;  // TODO: dangereux, si ref n'est pas un entier, générer une exception
-        
-        // Ouvre la base
-        $this->openDatabase(false);
-        
-        // Si un numéro de référence a été indiqué, on charge cette notice         
-        if ($ref>0)
-        {
-            // Ouvre la sélection
-            debug && Debug::log('Chargement de la notice numéro %s', $ref);
-            
-            if (! $this->select("REF=$ref"))
-                throw new Exception('La référence demandée n\'existe pas');
-                
-            $this->selection->editRecord();     // mode édition enregistrement
-        } 
-        // Sinon (REF == 0), on en créée une nouvelle
-        else
-        {
-            debug && Debug::log('Création d\'une nouvelle notice');
-            $this->selection->addRecord();            
-        }            
-        
-        // Mise à jour de chacun des champs
-        foreach($this->selection->record as $fieldName => $fieldValue)
-        {         
-            if ($fieldName==='REF') continue;   // Pour l'instant, REF non modifiable codé en dur
-                
-            $fieldValue=Utils::get($_REQUEST[$fieldName], null); // TODO: ne devrait pas être là, à charge pour le callback de savoir d'où viennent les données
-
-//            // Si la valeur est un tableau, convertit en articles séparés par le séparateur 
-//            if (is_array($fieldValue))
-//                $fieldValue=implode('/', array_filter($fieldValue)); // TODO : comment accéder au séparateur ???
-                
-            // Appelle le callback qui peut :
-            // - indiquer à l'application d'interdire la modification du champ
-            // - ou modifier sa valeur avant l'enregistrement (validation données utilisateur)
-            if ($this->$callback($fieldName, $fieldValue) === true)
-            {
-                // Met à jour le champ
-                $this->selection[$fieldName]=$fieldValue;
-            }
-        }
-        
-        // Enregistre la notice
-        $ref=$this->selection->saveRecord();   // TODO: gestion d'erreurs
-
-        // Récupère le numéro de la notice créée
-        //$ref=$this->selection['REF'];
-        debug && Debug::log('Sauvegarde de la notice %s', $ref);
-
-        // redirige vers le template s'il y en a un, vers l'action show sinon
-        if (! $template=$this->getTemplate())
-        {
-            // Redirige l'utilisateur vers l'action show
-            debug && Debug::log('Redirection pour afficher la notice enregistrée %s', $ref);
-            Runtime::redirect('/base/show?REF='.$ref);
-        }
-        else
-        {
-            Template::run
-            (
-                $template,
-                array('equationAnswers'=>'NA'),
-                $this->selection->record,
-                array('selection',$this->selection)  
-            );
-        }
-    }
-    
-    /**
      * callback pour l'action save autorisant la modification de tous les champs.
      * Par défaut, le callback de actionSave est à 'none'. Cette fonction est une facilité offerte
      * à l'utilisateur pour lui éviter d'avoir à écrire un callback à chaque fois : 
@@ -681,261 +1100,6 @@ class DatabaseModule extends Module
         return true;
     }
     
-    /**
-     * Supprime la ou les notice(s) indiquée(s) par l'équation puis affiche le template
-     * indiqué dans la clé 'template' de la configuration.
-     * 
-     * Si aucun template n'est indiqué, affiche un message 'notice supprimée'.
-     */
-    public function actionDelete()
-    {
-        // Ouvre la base de données (le nouveau makeEquation en a besoin)
-        $this->openDatabase(false);
-
-        // Récupère l'équation de recherche qui donne les enregistrements à supprimer
-        $this->equation=$this->selection->makeEquation(Utils::isGet() ? $_GET : $_POST);
-
-        // Paramètre equation manquant
-        if (is_null($this->equation) || (! $this->equation))
-            return $this->showError('Le ou les numéros des notices à supprimer n\'ont pas été indiqués.');
-
-        // Aucune réponse
-        if (! $this->select($this->equation, array('_max'=>-1)) )
-            return $this->showError("Aucune réponse. Equation : $this->equation");
-
-        // TODO: déléguer au TaskManager
-
-//        echo 'Delete - Nb notices : ', $this->selection->count(),"\n";
-////        echo '<pre>';
-////        echo print_r($_GET);
-////        echo '</pre>';
-////        echo 'fin';
-//        echo 'Equation Delete :', $this->equation,"<br />";
-////        $nb=0;
-//        foreach($this->selection as $record)
-//        {
-//        	echo $record['REF'],';';
-//        }
-//        die();
-
-        // Supprime toutes les notices de la sélection
-//        while ($this->selection->count())
-//            $this->selection->deleteRecord();
-        foreach($this->selection as $record)
-            $this->selection->deleteRecord();
-
-        // Détermine le template à utiliser
-        if (! $template=$this->getTemplate())
-            echo '<p>Notice supprimée.</p>';
-
-        // Détermine le callback à utiliser
-        $callback=$this->getCallback();
-
-        // Exécute le template
-        Template::run
-        (
-            $template,  
-            array($this, $callback),
-            $this->selection->record  
-        );
-    }
-    
-    /**
-     * Affiche le formulaire de type Chercher/Remplacer indiqué dans la clé
-     * 'template' de la configuration
-     */
-     public function actionReplaceForm()
-     {        
-        // Ouvre la base de données (le nouveau makeEquation en a besoin)
-        $this->openDatabase();
-
-        // Récupère l'équation de recherche qui donne les enregistrements sur lesquels travailler
-        $this->equation=$this->selection->makeEquation(Utils::isGet() ? $_GET : $_POST);
-
-        // Paramètre equation manquant
-        if (is_null($this->equation) || (! $this->equation))
-            return $this->showError('Vous n\'avez indiqué aucun critère de recherche sur les enregistrements de la base de données.');
-            
-        // Aucune réponse
-        if (! $this->select($this->equation, array('_sort'=>'+')) )
-            return $this->showError("Aucune réponse. Equation : $this->equation");
-
-        // Construit le tableau des champs modifiables des enregistrements retournés par la recherche.
-        // Par compatibilité avec les générateurs de contrôles utilisateurs (fichier generators.xml)
-        // il faut un tableau de tableaux contenant chacun une clé 'code' et une clé 'label'
-        // On suppose que la sélection peut contenir des enregistrements provenants de différentes tables (pas la même structure)
-        $fieldList = array();   // le tableau global qui contient les tableaux de champs
-        
-        // Si on est certain de n'avoir que des enregistrements de même nature (même noms de champs),
-        // on peut vouloir boucler sur un seul enregistrement (au lieu de tous à l'heure actuelle)
-        // Cependant, dans le cas de nombreuses BDD relationnelles, une selection peut être composé d'enreg
-        // de nature différente (différentes tables)
-        // TODO: optimisation possible si on a un fichier structure BDD de bas niveau
-        
-        $ignore = array('REF');  // liste des champs à ignorer : REF plus ceux déjà ajoutés à $fieldList
-        
-        foreach($this->selection as $record)
-        {
-            $newField = array();    // un tableau par champ trouvé
-            
-            foreach($record as $fieldName => $fieldValue)
-            {
-                if (! in_array($fieldName, $ignore))   // REF n'est pas modifiable
-                {
-                    $newField['code'] = $fieldName;
-                    $newField['label'] = $fieldName;    // on affichera directement le code du champ tel que dans la BDD
-                    $fieldList[] = $newField;           // ajoute au tableau global
-                    $ignore[] = $fieldName;             // pour ne pas le rajouter la prochaine fois qu'on le trouve
-                }
-            }
-            break;
-        }
-        
-        // Tri le tableau des champs modifiables
-        sort($fieldList);
-
-        // Détermine le template à utiliser
-        if (! $template=$this->getTemplate())
-            throw new Exception('Le template à utiliser n\'a pas été indiqué');
-        
-        // Détermine le callback à utiliser
-        $callback=$this->getCallback();
-               
-        // Exécute le template
-        Template::run
-        (
-            $template,  
-            array($this, $callback),           // Priorité à la fonction utilisateur
-            array('fieldList'=>$fieldList)
-        );
-     }
-    
-    /**
-     * Effectue le chercher/remplacer et appelle le template indiqué dans la clé
-     * template de la configuration ensuite : feedback
-     * 
-     * La source de donnée $count est passé à Template::run et permet au template d'afficher
-     * s'il y a eu une erreur ($count === false) ou le nombre de remplacements effectués s'il n'y a pas d'erreur
-     * ($count contient alors le nombre d'occurences remplacées)
-     *  
-     */
-     public function actionReplace()
-     {       
-        // Ouvre la base de données (le nouveau makeEquation en a besoin)
-        $this->openDatabase(false);
-
-        // Récupère l'équation de recherche qui donne les enregistrements sur lesquels travailler
-        $this->equation=$this->selection->makeEquation(Utils::isGet() ? $_GET : $_POST);
-        
-        // TODO : Pb avec les équations qui ont des guillemets
-        
-        $search=Utils::get($_REQUEST['search'], '');
-        $replace=Utils::get($_REQUEST['replaceStr'], '');
-        $fields = (array) Utils::get($_REQUEST['fields']);
-        
-        $wholeWord=is_null(Utils::get($_REQUEST['wholeWord'])) ? false : true;
-        $caseInsensitive=is_null(Utils::get($_REQUEST['caseInsensitive'])) ? false : true;
-        $regExp=is_null(Utils::get($_REQUEST['regExp'])) ? false : true;
-        
-        // Vérifie que les données sont renseignées
-        if ($this->equation==='')
-            return $this->showError('Vous n\'avez indiqué aucun critère de recherche sur les enregistrements de la base de données.');
-
-        // S'il n'y a rien à faire,on redirige vers replaceform
-        if (count($fields)==0 || ($search==='' && $replace===''))
-            Runtime::redirect('replaceform?_equation=' . urlencode($this->equation));
-            
-        // Lance la requête qui détermine les enregistrements sur lesquels on va opérer le chercher/remplacer 
-        if (! $this->select($this->equation, array('_max'=>-1)) )
-            return $this->showError("Aucune réponse. Equation : $this->equation");
-
-        // Eventuelle callback de validation des données passée au format array(object, nom méthode) 
-//        if (($callback = $this->getCallback()) !== 'none')
-//            $callback = array($this, $callback);
-//        else
-//            $callback = null;
-
-        $count = 0;         // nombre de remplacements effectués par enregistrement
-        $totalCount = 0;    // nombre total de remplacements effectués sur le sous-ensemble de notices
-        
-        // TODO: déléguer le boulot au TaskManager (exécution peut être longue)
-
-        // Search est vide : on injecte la valeur indiquée par replace dans les champs vides
-        if ($search==='')
-        {
-            foreach($this->selection as $record)
-            {          
-                $this->selection->editRecord(); // on passe en mode édition de l'enregistrement
-                $this->selection->replaceEmpty($fields, $replace, $count);             
-                $this->selection->saveRecord();
-                $totalCount += $count;
-            }
-        }
-        
-        // chercher/remplacer sur exp reg ou chaîne
-        else        
-        {
-            if ($regExp || $wholeWord)
-            {
-                // expr reg ou alors chaîne avec 'Mot entier' sélectionné
-                // dans ces deux-cas, on appellera pregReplace pour simplier
-
-                // échappe le '~' éventuellement entré par l'utilisateur car on l'utilise comme délimiteur
-                $search = str_replace('~', '\~', $search);
-                
-                if ($wholeWord)
-                    $search = $search = '~\b' . $search . '\b~';
-                else
-                    $search = '~' . $search . '~';  // délimiteurs de l'expression régulière
-                    
-                if ($caseInsensitive)
-                    $search = $search . 'i';
-
-                foreach($this->selection as $record)
-                {          
-                    $this->selection->editRecord(); // on passe en mode édition de l'enregistrement
-                    
-                    if (! $this->selection->pregReplace($fields, $search, $replace, $count))    // cf. Database.php
-                    {
-                        $totalCount = false;
-                        break;   
-                    }    
-                    
-                    $this->selection->saveRecord();
-                    $totalCount += $count;
-                }
-            }
-            
-            // chercher/remplacer sur une chaîne
-            else
-            {
-                foreach($this->selection as $record)
-                {
-                    $this->selection->editRecord(); // on passe en mode édition de l'enregistrement
-//                    $this->selection->strReplace($fields, $search, $replace, $caseInsensitive, $count, $callback);     // cf. Database.php
-                    $this->selection->strReplace($fields, $search, $replace, $caseInsensitive, $count);
-                    $this->selection->saveRecord();
-                    $totalCount += $count;
-                }
-            }
-        }
-        
-        // Détermine le template à utiliser
-        if (! $template=$this->getTemplate('template'))
-            throw new Exception('Le template à utiliser n\'a pas été indiqué');
-        
-        // Détermine le callback à utiliser
-        $callback=$this->getCallback();
-
-        // Exécute le template
-        Template::run
-        (
-            $template,  
-            array($this, $callback),
-            array('count'=>$totalCount)
-        ); 
-     }
-     
      
      
     // ****************** fonctions surchargeables ***************
@@ -973,8 +1137,10 @@ class DatabaseModule extends Module
         if (is_array($value))
         {
             foreach($value as $right=>$value)
-                if (User::hasAccess($right)) 
+            {
+                if (User::hasAccess($right))
                     return $value;
+            }
             return $default;
         }
         
@@ -987,9 +1153,10 @@ class DatabaseModule extends Module
         if (! $template=$this->ConfigUserGet($key)) 
             return null;
             
-        if (file_exists($h=$this->path . $template)) // pb : template relatif à BisDatabase, pas au module hérité (si seulement config)
+        if (file_exists($h=$this->path . $template)) // fixme : template relatif à BisDatabase, pas au module hérité (si seulement config). Utiliser le searchPath du module en cours
+        {
             return $h;
-            
+        }    
         return $template;
     }
 
@@ -1001,12 +1168,6 @@ class DatabaseModule extends Module
     {
         debug && Debug::log('callback : %s', $this->ConfigUserGet('callback'));
         return $this->ConfigUserGet('callback'); 
-    }
-    
-    public function getFilter()
-    {
-        debug && Debug::log('Filtre de recherche : %s', $this->ConfigUserGet('filter'));
-        return $this->ConfigUserGet('filter');  
     }
     
     public function getField($name)
@@ -1158,43 +1319,6 @@ class DatabaseModule extends Module
         if ($hasFields) return $equation; else return null;
     }
     
-    // lookup dans une table des entrées (xapian only)
-    function actionLookup()
-    {
-//        header('Content-type: text/plain; charset=iso-8859-1');
-        header('Content-type: text/html; charset=iso-8859-1');
-//        var_export($_POST,true);
-        
-        // Ouvre la base
-        $this->openDatabase();
-        
-        // Récupère le nom de la table dans laquelle il faut rechercher
-        if ('' === $table=Utils::get($_REQUEST['table'],''))
-            die('aucune table indiquée');
-        
-        // Récupère le terme recherché
-        $search=Utils::get($_REQUEST['value'],'');
-        $max=Utils::get($_REQUEST['max'],10);
-        
-        // Lance la recherche
-        $terms=$this->selection->lookup($table, $search, $max, 0, true);
-
-        // Détermine le template à utiliser
-        if (! $template=$this->getTemplate())
-            throw new Exception('Le template à utiliser n\'a pas été indiqué');
-        
-        // Détermine le callback à utiliser
-        $callback=$this->getCallback();
-
-        // Exécute le template         
-        Template::run
-        (
-            $template,  
-            array($this, $callback),
-            array('search'=>$search, 'table'=>$table, 'terms'=>$terms)
-        );  
-    }
-    
     /**
      * Charge la liste des formats d'export disponibles dans la config en cours
      * 
@@ -1224,7 +1348,7 @@ class DatabaseModule extends Module
                 Config::set("formats.$name.max", $this->configUserGet("formats.$name.max",300));
             }
         }
-        
+
         // Retourne le nombre de formats chargés
         return count(Config::get('formats'));
     }
@@ -1245,7 +1369,6 @@ class DatabaseModule extends Module
     public function actionExport($calledFromPreExecute=false)
     {
         $showForm=false;
-        $why=array();
         
         // Charge la liste des formats d'export disponibles
         if ($calledFromPreExecute)
@@ -1253,7 +1376,7 @@ class DatabaseModule extends Module
             if (!$this->loadExportFormats())
                 throw new Exception("Aucun format d'export n'est disponible");
         }
-                
+
         // Choix du format d'export
         if(count(Config::get('formats'))===1)                       // Un seul format dispo : on prend celui-là
         {
@@ -1272,7 +1395,6 @@ class DatabaseModule extends Module
             else
             {
                 $showForm=true; // on ne sait pas quel format utiliser
-                $why[]='quel format faut-il utiliser ?';
             }
         }
                 
@@ -1288,21 +1410,19 @@ class DatabaseModule extends Module
                 else
                 {
                     $showForm=true;
-                    $why[]='faut-il envoyer un mail ou non ?';
                 }
             }        
-            $to=$subject=$body=null;
+            $to=$subject=$message=null;
             if($mail)                                               // s'il faut envoyer un mail, vérifie qu'on a un destinataire
             {
                 if (!$to=Utils::get($_REQUEST['_to']))              // pas de destinataire : demande à l'utilisateur
                 {
                     $showForm=true;
-                    $why[]='à qui faut-il envoyer le mail ?';
                 }
                 else                                                // récupère l'objet et le message, valeurs par défaut si absents
                 {
                     $subject=Utils::get($_REQUEST['_subject'], 'Export de notices');
-                    $body=Utils::get($_REQUEST['_body'], 'Le fichier ci-joint contient les notices sélectionnées.');
+                    $message=Utils::get($_REQUEST['_message'], '');
                 }
             }
         }
@@ -1326,7 +1446,6 @@ class DatabaseModule extends Module
                 else
                 {
                     $showForm=true;
-                    $why[]='faut-il créer une archive au format zip ?';
                 }
             }
             if ($zip && ! class_exists('ZipArchive'))                   // zip demandé mais l'extension php_zip n'est pas chargée dans php.ini
@@ -1347,7 +1466,7 @@ class DatabaseModule extends Module
             if($calledFromPreExecute) return false;
             
             // Détermine le template à utiliser
-            if (! $template=$this->getTemplate('template'))
+            if (! $template=$this->getTemplate())
                 throw new Exception('Le template à utiliser n\'a pas été indiqué');
             
             // Détermine le callback à utiliser
@@ -1361,7 +1480,6 @@ class DatabaseModule extends Module
                 array
                 (
                     'equations'=>$equations,
-                    'why'=>$why,
                 )
             );
             return true;
@@ -1419,21 +1537,24 @@ class DatabaseModule extends Module
         // Détermine le nombre maximum de notices que l'utilisateur a le droit d'exporter
         $max=$this->ConfigUserGet("formats.$format.max",10);
 
-        // Ouvre la base de données (le nouveau makeEquation en a besoin)
+        // Ouvre la base de données
         $this->openDatabase();
 
         // Exécute toutes les recherches dans l'ordre
         $files=array();
+        $counts=array();
+        $filesizes=array();
         foreach($equations as $i=>$equation)
         {        
             // Lance la recherche, si aucune réponse, erreur
-            if (! $this->select($equation, array('_sort'=>'+', '_start'=>0, '_max'=>$max)))
+            if (! $this->select($equation, $max, 0, '+'))
             {
             	echo "Aucune réponse pour l'équation $equation<br />";
                 continue;
             }
             
             //echo 'Génération fichier ',$filenames[$i],' pour équation ', $equation, '<br />';
+            $counts[$i]=$this->selection->count();
             
             // Si l'utilisateur a demandé un envoi par mail, démarre la capture
             if ($mail or $zip)
@@ -1472,13 +1593,21 @@ class DatabaseModule extends Module
                 $callback=$this->ConfigUserGet("formats.$format.callback"); 
         
                 // Exécute le template
-                Template::run
-                (
-                    $template,
-                    array($this, $callback),
-                    array('format'=>$format),
-                    $this->selection->record
-                );
+                try
+                {
+                    Template::run
+                    (
+                        $template,
+                        array($this, $callback),
+                        array('format'=>$format),
+                        $this->selection->record
+                    );
+                }
+                catch(Exception $e)
+                {
+                    if ($mail or $zip) Utils::endCapture(); // sinon on ne "verra" pas l'erreur
+                    throw $e; // re génère l'exception
+                }
             }
         
             // Pour un export classique, on a fini
@@ -1486,7 +1615,7 @@ class DatabaseModule extends Module
         
             // Termine la capture du fichier d'export généré et stocke le nom du fichier temporaire
             $files[$i]=Utils::endCapture();
-            
+            $filesizes[$i]=filesize($files[$i]);
         }
 
         // Si l'option zip est active, crée le fichier zip
@@ -1538,38 +1667,46 @@ class DatabaseModule extends Module
         Swift_Cache_Disk::setSavePath(Utils::getTempDirectory());        
  		
  		// Crée le message
-		$message = new Swift_Message($subject);
+		$email = new Swift_Message($subject);
         
         // Crée le corps du message
-        // TODO: regarder dans la config de l'action export si on a une clé 'mailTemplate' remplie
-        // $this->configUserGet()
-        /*
+        $template=$this->configUserGet('mailtemplate');
+        if (is_null($template))
+        {
+            $body=$message;
+            $mimeType='text/plain';
+        }
+        else
+        {
+            ob_start();
             Template::run
             (
-                $emailTemplate, 
+                $template, 
                 array
                 (
-                    'message'=>$body,            // le message tapé par l'utilisateur dans le formulaire
-                    'filenames'=>$filenames,
-                    'equations'=>$equations,
-                    'counts'=>$counts
-                    filesizes
+                    'subject'=>htmlentities($subject),            // Le message tapé par l'utilisateur dans le formulaire
+                    'message'=>htmlentities($message),            // Le message tapé par l'utilisateur dans le formulaire
+                    'filenames'=>$filenames,        // Les noms des fichiers joints
+                    'equations'=>$equations,        // Les équations de recherche
+                    'format'=>$fmt['label'],              // Le nom du format d'export
+                    'counts'=>$counts,              // Le nombre de notices de chacun des fichiers
+                    'filesizes'=>$filesizes,        // La taille non compressée de chacun des fichiers
+                    'zip'=>$zip                     // true si option zip
                     
                 )
-            )
-           
-           (message de l'utilisateur)
-           ci-joint n fichiers au format 'CSV public tout champs':
-             - fichier $filenames[i], xxx réponses, équation: fdsfsdfsd
-         */
-		$message->attach(new Swift_Message_Part($body, 'text/plain'));
+            );
+            $body=ob_get_clean();
+            $mimeType='text/html'; // fixme: on ne devrait pas fixer en dur le type mime. Clé de config ?
+        }
+
+        $email->attach(new Swift_Message_Part($body, $mimeType));
 
 		// Met les pièces attachées
         $swiftFiles=array(); // Grrr... Swift ne ferme pas les fichiers avant l'appel à destruct. Garde un handle dessus pour pouvoir appeller nous même $file->close();
         if ($zip)
         {
     		$swiftFiles[0]=new Swift_File($zipPath);
-            $message->attach(new Swift_Message_Attachment($swiftFiles[0], 'export.zip', 'application/zip'));
+            $email->attach(new Swift_Message_Attachment($swiftFiles[0], 'export.zip', 'application/zip'));
         }
         else
         {
@@ -1577,7 +1714,7 @@ class DatabaseModule extends Module
             {
                 $swiftFiles[$i]=new Swift_File($path);
                 $mimeType=strtok($fmt['content-type'],';');
-                $message->attach(new Swift_Message_Attachment($swiftFiles[$i], $filenames[$i], $mimeType));
+                $email->attach(new Swift_Message_Attachment($swiftFiles[$i], $filenames[$i], $mimeType));
 //                $piece->setDescription($equations[$i]);
             }
         }
@@ -1587,7 +1724,7 @@ class DatabaseModule extends Module
         $error='';
         try
         {
-    		$sent=$swift->send($message, $to, $from);
+    		$sent=$swift->send($email, $to, $from);
         }
         catch (Exception $e)
         {
@@ -1653,7 +1790,7 @@ class DatabaseModule extends Module
     
     public function actionTest()
     {
-        // Ouvre la base de données (le nouveau makeEquation en a besoin)
+        // Ouvre la base de données
         //$this->openDatabase();
         echo "test des nouvelles fonctions le version 1.0.2 de xapian";
         require_once Runtime::$fabRoot . 'lib/xapian/xapian.php';

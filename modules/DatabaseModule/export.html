@@ -1,5 +1,5 @@
 <h1>Export {count($equations)===1 ? "d'un lot" : 'de '.count($equations).' lots'} de notices</h1>
-<form action="{$this->action}">
+<form action="">
 /* 
     Définit un slot qui pourra être utilisé par un module descendant pour
     "injecter" d'autres paramètres dans le formulaire de recherche.
@@ -100,9 +100,18 @@
     <fieldset label="E-mail" id="_maildetails">
         <textbox name="_to" label="Destinataire :" size="40" />
         <br />
-        <textbox name="_subject" label="Sujet :" value="Export des notices"  size="40" />
+        <textbox 
+            name="_subject" 
+            label="Sujet :" 
+            value="{Config::get('mailsubject')}"  
+            size="40" />
         <br />
-        <textbox name="_body" rows="5" cols="40" label="Message : " value="ci-joint fichier contenant les notices exportées" />
+        <textbox 
+            name="_message" 
+            rows="5" 
+            cols="40" 
+            label="Message : " 
+            value="{Config::get('mailbody')}" />
     </fieldset>
 
 /*

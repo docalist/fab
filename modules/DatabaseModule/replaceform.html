@@ -1,0 +1,63 @@
+<slot name="header">
+    <h1>Modifications en série</h1>
+    
+    <p><strong>{$this->selection->count('environ ')} notice(s)</strong> pour l'équation <code>{$this->equation}</code></p>
+</slot>
+<form method="get" action="replace">
+    <slot name="formheader" />
+
+    <input type="hidden" name="_equation" value="{$this->equation}" />
+    
+    <fieldset label="Rechercher :">
+        <textbox name="search" style="width: 100%;" /><br />
+        <small>
+            Indiquez la chaine à rechercher ou laissez cette zone vide pour 
+            sélectionner uniquement les champs qui sont vides.
+        </small>
+    </fieldset>
+    
+    <fieldset label="Remplacer par :">
+        <textbox name="replaceStr" style="width: 100%;" /><br />
+        <small>
+            Indiquez la chaine qui viendra remplacer la chaine recherchée ou 
+            laissez cette zone vide pour supprimer la valeur recherchée.
+        </small>
+    </fieldset>
+
+    <fieldset label="Options">
+        <div>
+            <checkbox name="caseInsensitive" label="Insensible à la casse" value="true" /><br />
+            <small>
+                Par défaut, la recherche tient compte de la casse des caractères, 
+                c'est-à-dire que les majuscules et les minuscules sont considérées
+                comme des caractères différents. Lorsque cette option est cochée,
+                la chaine recherchée sera trouvée quelle que soit la casse des 
+                caractères.
+                Remarque : les accents ne sont pas gérés.
+            </small>
+        </div>
+        <div>
+            <checkbox name="regExp" label="Expression régulière" value="true" /><br />
+            <small>
+                Une expression régulière permet de définir un motif décrivant un
+                ensemble de chaines de caractères que l'on veut rechercher. Par 
+                exemple, l'expression "cha(ton|taigne)" recherchera les
+                chaines "chaton" et "chataigne" en une seule étape. 
+                <a href="http://www.regular-expressions.info/">Plus d'informations...</a>
+            </small>
+        </div>
+        <checkbox name="wholeWord" label="Mot entier (sans effet si Expression régulière est sélectionné)" value="true" /><br />
+    </fieldset>
+    
+    <fieldset label="Dans les champs suivants">
+        <checklist style="width: 12em;float: left;" name="fields" src="$fieldList" />
+    </fieldset>
+
+    <div class="buttons">
+        <submit label="Remplacer..." />
+        <reset label="Initialiser le formulaire" />
+    </div>
+    
+    <slot name="formfooter" />
+</form>
+<slot name="footer" />
