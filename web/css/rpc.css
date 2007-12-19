@@ -1,0 +1,38 @@
+#autocompletePopup
+{
+    border: 1px solid #6FBEFF;
+    background: #EFF8FF; 
+    overflow: hidden;
+    white-space: nowrap;
+/*    font-size: 0.9em;*/
+}
+
+#autocompletePopup ul
+{
+    padding: 0;
+    margin: 0;
+}
+
+#autocompletePopup .selected
+{
+    background-color: #d2fb8f;
+}
+
+#autocompletePopup li
+{
+    list-style-image:none;    
+    list-style: none;
+    border-bottom: 1px solid #ddd;
+    padding-left: 0.2em;
+}
+
+#autocompletePopup li span
+{
+    color: #888;
+    float: left;
+    border-right: 1px solid #ddd;
+    width: 3em;
+    text-align: right;
+    padding-right: 0.2em; 
+}
+
