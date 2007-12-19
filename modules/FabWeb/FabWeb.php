@@ -23,7 +23,7 @@ class FabWeb extends Module
         );
         
         // Vérifie que le fichier existe
-        $path=Runtime::$fabRoot . 'web' . DIRECTORY_SEPARATOR . $this->action;
+        $path=Runtime::$fabRoot . 'web' . DIRECTORY_SEPARATOR . strtr($this->action, '/', DIRECTORY_SEPARATOR);
         if (! is_file($path)) Routing::notFound();
         
         // Détermine le type mime du fichier
