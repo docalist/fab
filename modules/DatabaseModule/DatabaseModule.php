@@ -581,14 +581,10 @@ class DatabaseModule extends Module
     {
         header('Content-type: text/html; charset=iso-8859-1');
 
-        $max=$this->request->defaults(10)->int('max')->min(0)->ok();
+        $max=$this->request->defaults('max', 10)->int()->min(0)->ok();
         
         // Ouvre la base
         $this->openDatabase();
-        
-        // Récupère le nom de la table dans laquelle il faut rechercher
-        if ('' === $table=Utils::get($_REQUEST['table'],''))
-            die('aucune table indiquée');
         
         // Lance la recherche
         $terms=$this->selection->lookup($table, $value, $max, 0, true);
@@ -1684,6 +1680,7 @@ class DatabaseModule extends Module
                 $template, 
                 array
                 (
+                    'to'=>$to,
                     'subject'=>htmlentities($subject),            // Le message tapé par l'utilisateur dans le formulaire
                     'message'=>htmlentities($message),            // Le message tapé par l'utilisateur dans le formulaire
                     'filenames'=>$filenames,        // Les noms des fichiers joints
@@ -1737,7 +1734,31 @@ class DatabaseModule extends Module
             $file->close();
 
         if ($sent)
-            echo 'Mail envoyé'; // TODO: avoir un template (mais on n'a pas de layout) ou redir vers actionMailSent (c'est bof)
+        {
+            $template=$this->getTemplate('mailsenttemplate');
+            if ($template)
+            {
+                Template::run
+                (
+                    $template,
+                    array
+                    (
+                        'to'=>$to,
+                        'subject'=>htmlentities($subject),            // Le message tapé par l'utilisateur dans le formulaire
+                        'message'=>htmlentities($message),            // Le message tapé par l'utilisateur dans le formulaire
+                        'filenames'=>$filenames,        // Les noms des fichiers joints
+                        'equations'=>$equations,        // Les équations de recherche
+                        'format'=>$fmt['label'],              // Le nom du format d'export
+                        'counts'=>$counts,              // Le nombre de notices de chacun des fichiers
+                        'filesizes'=>$filesizes,        // La taille non compressée de chacun des fichiers
+                        'zip'=>$zip                     // true si option zip
+                        
+                    )
+                );
+            }
+            else
+                echo '<p>Vos notices ont été envoyées par courriel.';
+        }
         else
         {
             echo '<h1>Erreur</h1>';
@@ -1871,6 +1892,7 @@ développement de la BDSP.
         
         // todo : test avec les MatchSpy
     }
+    
 }
 
 
