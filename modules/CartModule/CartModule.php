@@ -50,7 +50,7 @@ class CartModule extends Module
         {
             $_SESSION[$name]=array();
             $_SESSION[$name.'hascategory']=null;
-            $_SESSION[$name.'hasquantity']=Config::get('quantity',false);            
+            $_SESSION[$name.'hasquantity']=Config::get('quantity',false);
         }
         
         // Crée une référence entre notre tableau cart et le tableau stocké 
@@ -69,34 +69,79 @@ class CartModule extends Module
 //        }
          
 	}
-     
 
-	/**
-	 * Ajoute un ou plusieurs éléments dans le panier, en précisant la quantité.
-	 * Si une catégorie est précisée, l'élément sera ajouté à cette catégorie.
-	 * 
-	 * Ajout de plusieurs éléments :
-	 * - On suppose que les navigateurs respectent l'ordre dans lequel les paramètres 
-	 * sont passés. On obtient ainsi 3 tableaux (item, category, quantity).
-	 * item[X] est à ajouter à la catégorie category[X], en quantité quantity[X].
-	 * - Si une seule catégorie et/ou une seule quantité, alors la catégorie et/ou la 
-	 * quantité s'appliquent à chaque élément à ajouter.
-	 */
-	public function actionAdd()
-	{
-		// Récupère la catégorie
-		$category=Utils::get($_REQUEST['category']);
+    /**
+     * Ajoute un ou plusieurs éléments dans le panier, en précisant la quantité.
+     * Si une catégorie est précisée, l'élément sera ajouté à cette catégorie.
+     * 
+     * Pour l'ajout de plusieurs éléments :
+     * - On suppose que les navigateurs respectent l'ordre dans lequel les paramètres 
+     * sont passés. On obtient ainsi 3 tableaux (item, category, quantity).
+     * item[X] est à ajouter à la catégorie category[X], en quantité quantity[X].
+     * - Si une seule catégorie et/ou une seule quantité, alors la catégorie et/ou la 
+     * quantité s'appliquent à chaque élément à ajouter.
+     *
+     * @param array $item l'(les) élément(s) à ajouter
+     * @param int|array $quantity la quantité de chaque élément à ajouter
+     * @param string|array $category la catégorie de chaque élément à ajouter
+     */ 
+//    public function actionAdd()
+	public function actionAdd(array $item, $quantity=1, $category=null)
+    {
+        /*
+         * Notes DM 13/12/07
+         * 
+         * Avec le nouveau ModuleLoader, les arguments de la requête sont
+         * passés directement en paramètre de l'action.
+         * 
+         * Du coup, on n'a plus besoin de les récupérer manuellement 
+         * (le code Utils::get($_REQUEST['xxx']) qui existait avant).
+         * 
+         * Par ailleurs, le type des paramètres peut être forcé. Par exemple,
+         * ici, item a été déclaré comme étant un tableau. Le ModuleLoader se
+         * charge de veiller à ce que les paramètres sient du bon type et en 
+         * l'occurence il nous passera toujours un tableau, même si l'utilisateur
+         * n'a indiqué qu'un seul item.
+         * 
+         * Cela simplifie le code parce que du coup on n'a plus à tester les deux
+         * cas (un item seul / un tableau d'items) : on a toujours un tableau,
+         * contenant éventuellement un seul élément.
+         * 
+         * Le nouvel objet Request permet également de vérifier facilement le
+         * type des aguments. Par exemple, avant, on ne vérifiait pas que le(s)
+         * quantity(s) passé(s) en paramêtre étai(en)t un(des) entier(s).
+         * Que se passait-il si on appellait add?item=&quantity=abcd ?
+         * Maintenant, item est obligatoire (parce qu'il est déclaré sans valeur
+         * par défaut dans les paramètres de l'action) et quantity est testé 
+         * (0 < entier < 100)
+         *  
+         * Pour le moment, j'ai uniquement mis le code obsolète en commentaires, 
+         * le temps de valider tout ça. 
+         * 
+         * SF : 
+         * - faire le ménage une fois qu'on sera sur que tout fonctionne bien.
+         * - faire la même chose pour les autres actions de CartModule
+         * 
+         * Remarque : les templates teste explicitement 'if(is_array(item))'. 
+         * Ils doivent être adaptés pour tester à la place 'if(count(item)>1)'
+         */
+	    
+	    // Récupère la catégorie
+		// $category=Utils::get($_REQUEST['category']);
 		
 		// Récupère l'item à ajouter
-		$item=Utils::get($_REQUEST['item']);
+		// $item=Utils::get($_REQUEST['item']);
 		
 		// Récupère la quantité
-		$quantity=Utils::get($_REQUEST['quantity'],1);
+		// $quantity=Utils::get($_REQUEST['quantity'],1);
 		
+        // Fait des vérifications sur la quantité
+        $this->request->int('quantity')->min(1)->max(100)->ok();
+        
 		// Plusieurs éléments à ajouter
 		$nb=0;
-		if (is_array($item))
-		{
+//		if (is_array($item))
+//		{
 			if (isset($category) && is_array($category) && (count($category)!= count($item)))
 				throw new Exception('Erreur : il doit y avoir autant de catégories que d\'éléments à ajouter.');
 			
@@ -115,15 +160,15 @@ class CartModule extends Module
 				$this->add($value, $quant, $cat);
 				++$nb;
 			}
-		}
+//		}
 		
 		// Un seul élément à ajouter
-		else
-		{
-			// Ajoute l'item au panier
-			$this->add($item, $quantity, $category);
-			$nb=1;
-		}
+//		else
+//		{
+//			// Ajoute l'item au panier
+//			$this->add($item, $quantity, $category);
+//			$nb=1;
+//		}
 		
 		if (Utils::isAjax())
         {
@@ -153,32 +198,39 @@ class CartModule extends Module
 	 * Supprime un ou plusieurs éléments du panier, en précisant la quantité.
 	 * Si une catégorie a été précisée, supprime l'élément, de cette catégorie.
 	 * 
-	 * Suppresion de plusieurs éléments :
+	 * Pour la suppression de plusieurs éléments :
 	 * - On suppose que les navigateurs respectent l'ordre dans lequel les paramètres 
 	 * sont passés. On obtient ainsi 3 tableaux (item, category, quantity).
 	 * item[X] est à supprimer de la catégorie category[X], en quantité quantity[X].
 	 * - Si une seule catégorie et/ou une seule quantité, alors la catégorie et/ou la 
 	 * quantité s'appliquent à chaque élément à supprimer.
+     *
+     * @param array $item l'(les) élément(s) à supprimer
+     * @param int|array $quantity la quantité de chaque élément à supprimer
+     * @param string|array $category la catégorie de chaque élément à supprimer
 	 */
-	public function actionRemove()
+	public function actionRemove(array $item, $quantity=1, $category=null)
 	{
-		// Récupère la catégorie
-		$category=Utils::get($_REQUEST['category']);
-		
-		// Récupère l'item à supprimer
-		$item=Utils::get($_REQUEST['item']);
-		
-		// Récupère la quantité
-		$quantity=Utils::get($_REQUEST['quantity'],1);
+//		// Récupère la catégorie
+//		$category=Utils::get($_REQUEST['category']);
+//		
+//		// Récupère l'item à supprimer
+//		$item=Utils::get($_REQUEST['item']);
+//		
+//		// Récupère la quantité
+//		$quantity=Utils::get($_REQUEST['quantity'],1);
 
+	    // Fait des vérifications sur la quantité
+	    $this->request->int('quantity')->min(1)->max(100)->ok();
+	    
 		// Plusieurs éléments à supprimer
-		if (is_array($item))
-		{
+//		if (is_array($item))
+//		{
 			if (isset($category) && is_array($category) && (count($category)!= count($item)))
-				throw new Exception('Erreur : il doit y avoir autant de catégories que d\'éléments à ajouter.');
+				throw new Exception('Erreur : il doit y avoir autant de catégories que d\'éléments à supprimer.');
 			
 			if (isset($quantity) && is_array($quantity) && (count($quantity)!= count($item)))
-				throw new Exception('Une quantité doit être précisée pour chaque élément à ajouter.');
+				throw new Exception('Une quantité doit être précisée pour chaque élément à supprimer.');
 		
 			foreach($item as $key=>$value)
 			{
@@ -191,13 +243,13 @@ class CartModule extends Module
 				// Supprime l'élément du panier
 				$this->remove($value, $quant, $cat);
 			}
-		}
-		
-		// Un seul élément à supprimer
-		else
-		{
-			$this->remove($item, $quantity, $category);
-		}
+//		}
+//		
+//		// Un seul élément à supprimer
+//		else
+//		{
+//			$this->remove($item, $quantity, $category);
+//		}
 
 		// Détermine le callback à utiliser
 		// TODO : Vérifier que le callback existe
@@ -214,15 +266,15 @@ class CartModule extends Module
 	}
 	
 	/**
-	 * Vide le panier ou une catégorie du panier
+	 * Vide la totalité du panier ou supprime une catégorie d'éléments du panier
 	 */
-	public function actionClear()
+	public function actionClear($category=null)
 	{
         // Récupère la catégorie
-        $category=Utils::get($_REQUEST['category']);
+//        $category=Utils::get($_REQUEST['category']);
 
-		// Vide la catégorie
-		$this->clear($category);	
+		// Vide la catégorie ou vide le panier si pas de catégorie
+		$this->clear($category);
         
 		// Détermine le callback à utiliser
 		// TODO : Vérifier que le callback existe
@@ -241,10 +293,10 @@ class CartModule extends Module
 	/**
 	 * Affiche le panier
 	 */
-	public function actionShow()
+	public function actionShow($category=null)
 	{
 	    // Vérifie que la catégorie existe
-        if ($category=Utils::get($_REQUEST['category']))
+        if ($category)
         {
         	if ($this->hasCategory)
         	{
@@ -271,7 +323,7 @@ class CartModule extends Module
 	
     
     /**
-     * Ajoute un item dans le panier.
+     * Ajoute un élément dans le panier.
      * 
      * @param mixed $item l'élément à ajouter
      * @param int $quantity la quantité d'élément $item

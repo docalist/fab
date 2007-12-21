@@ -1,6 +1,6 @@
 <h1>Panier</h1>
 /* Suppression de plusieurs éléments en une seule fois */
-<if test="{is_array($item)}">
+<if test="{count($item)>1}">
 	<p>Les éléments suivants ont été supprimés du panier :</p>
 	<loop on="{$item}" as="$key, $value">
 		<ul>
@@ -28,7 +28,7 @@
 <else>
 	<p>L'élément suivant a été supprimé<opt> de la catégorie $category</opt> :</p>
 	<ul>
-		<li>Elément : $item</li>
+		<li>Elément : {$item[0]}</li>
 		<li>Quantité : $quantity</li>
 	</ul>	
 </else>
