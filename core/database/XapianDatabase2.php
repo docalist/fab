@@ -1207,6 +1207,14 @@ class XapianDatabaseDriver2 extends Database
     
     private function loadDocument()
     {
+        // Réinitialise tous les champs à leur valeur par défaut
+        // Corrige à la fois : 
+        // bug de actionReindex() qui fusionne les notices
+        // bug trouvé par SF : search(texte officiel) -> on répête les infos
+        // Voir si on peut corriger le bug autrement qu'en bouclant.
+        foreach($this->fields as $name=>&$value)
+            $value=null;
+        
         if (is_null($this->xapianMSetIterator))
             throw new Exception('Pas de document courant');
 
