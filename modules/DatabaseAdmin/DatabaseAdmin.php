@@ -389,7 +389,7 @@ class DatabaseAdmin extends Module
         echo 'Création de la base xapian dans ', DB_PATH, '<br />';
 //        $xapianDb=Database::open(DB_PATH, false);
 
-        $dbs=new DatabaseStructure(file_get_contents(Runtime::$root . '/data/DatabaseTemplates/ascodocpsy.xml'));
+        $dbs=new DatabaseStructure(file_get_contents(Runtime::$root . 'data/DatabaseTemplates/ascodocpsy.xml'));
         $xapianDb=Database::create(DB_PATH, $dbs, 'xapian2');
         
         
