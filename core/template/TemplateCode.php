@@ -598,7 +598,7 @@ class TemplateCode
                 'empty', 'isset',
                 'trim', 'rtrim', 'ltrim',
                 'substr','str_replace','str_repeat','strtr',
-                'strtoupper',
+                'strtoupper','strtolower',
                 'implode','explode',
                 'strpos', 'strlen', 'gettype',
                 'urlencode',
