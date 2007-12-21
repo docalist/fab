@@ -313,7 +313,7 @@ class Module
         }
                     
         // Crée la configuration finale de l'action en fusionnant toutes les config otenues
-        debug && pre('Liste des configs à charger : ', $configs);
+//        debug && pre('Liste des configs à charger : ', $configs);
         foreach($configs as $config)
         {
             Config::mergeConfig($this->config, $config);
