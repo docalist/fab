@@ -72,6 +72,9 @@ class DatabaseModule extends Module
      */
     public function actionSearchForm()
     {        
+        // Ouvre la base de données : permet au formulaire de recherche de consulter la structure
+        $this->openDatabase();
+        
         // Détermine le template à utiliser
         if (! $template=$this->getTemplate())
             throw new Exception('Le template à utiliser n\'a pas été indiqué');
@@ -86,7 +89,15 @@ class DatabaseModule extends Module
             array($this, $callback)
         );
     }
-
+    public function actionReindex()
+    {
+        die('ne fonctionne pas, ne pas utiliser tant que le bug n\'aura pas été fixé');
+        set_time_limit(0);
+        $this->openDatabase(false);
+        $this->selection->reindex();
+        echo 'done';
+    }
+    
     /**
      * Lance une recherche dans la base et affiche les réponses obtenues
      * 
