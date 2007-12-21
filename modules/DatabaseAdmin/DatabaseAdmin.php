@@ -6,7 +6,7 @@
 //
 //var_export($t2);
 //die();
-define('DB_PATH', Runtime::$root.'data/db/testdm');
+define('DB_PATH', Runtime::$root.'data/db/ascodocpsy');
 define('BIS_PATH', Runtime::$root.'data/db/ascodocpsy.bed');
 
 /**
@@ -217,6 +217,7 @@ class DatabaseAdmin extends Module
      */
     public function actionEditStructure()
     {
+//        pre(Config::getAll());
         $dir='data/DatabaseTemplates/';
         $fabDir=Runtime::$fabRoot.$dir;
         $appDir=Runtime::$root.$dir;
@@ -295,7 +296,7 @@ class DatabaseAdmin extends Module
             array
             (
                 'structure'=>$dbs->toJson(), // hum.... envoie de l'utf-8 dans une page html déclarée en iso-8859-1...
-                'saveUrl'=>'saveStructure',
+                'saveUrl'=>'SaveStructure',
                 'saveParams'=>"{template:'$template'}",
                 'title'=>'Modification du modèle de structure '.$template
             )
@@ -388,7 +389,7 @@ class DatabaseAdmin extends Module
         echo 'Création de la base xapian dans ', DB_PATH, '<br />';
 //        $xapianDb=Database::open(DB_PATH, false);
 
-        $dbs=new DatabaseStructure(file_get_contents('d:/webapache/ascoweb/data/DatabaseTemplates/ascodocpsy.xml'));
+        $dbs=new DatabaseStructure(file_get_contents(Runtime::$root . '/data/DatabaseTemplates/ascodocpsy.xml'));
         $xapianDb=Database::create(DB_PATH, $dbs, 'xapian2');
         
         
@@ -397,7 +398,7 @@ class DatabaseAdmin extends Module
         $bisDb=Database::open(BIS_PATH, true, 'bis');
 
         echo 'Lancement d\'une recherche * dans la base BIS<br />';
-        if (!$bisDb->search('*', array('_sort'=>'-','_start'=>1,'_max'=>-1)))
+        if (!$bisDb->search('*', array('_sort'=>'+','_start'=>1,'_max'=>-1)))
             die('aucune réponse');
 
         echo '<hr />';
