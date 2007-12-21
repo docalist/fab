@@ -109,7 +109,7 @@ class XapianDatabaseDriver2 extends Database
      * 
      * @var XapianEnquire
      */
-    public $xapianEnquire=null;
+    private $xapianEnquire=null;
 
     
     /**
@@ -130,7 +130,7 @@ class XapianDatabaseDriver2 extends Database
      * 
      * @var XapianMSet
      */
-    public $xapianMSet=null;
+    private $xapianMSet=null;
 
     /**
      * L'objet XapianMSetIterator permettant de parcourir les réponses obtenues
@@ -139,7 +139,7 @@ class XapianDatabaseDriver2 extends Database
      * 
      * @var XapianMSetIterator
      */
-    public $xapianMSetIterator=null;
+    private $xapianMSetIterator=null;
     
     /**
      * L'objet XapianQuery contenant l'équation de recherche indiquée par 
@@ -152,8 +152,33 @@ class XapianDatabaseDriver2 extends Database
      * 
      * @var XapianQuery
      */
-    public $xapianQuery=null; 
+    private $xapianQuery=null; 
     
+    /**
+     * L'objet XapianFilter contient la requête correspondant aux filtres
+     * appliqués à la recherche
+     *
+     * Vaut null tant que {@link search()} n'a pas été appellée.
+     * Vaut null si aucun filtre n'a été spécifié.
+     * 
+     * @var XapianQuery
+     */
+    private $xapianFilter=null; 
+    
+    /**
+     * Libellé de l'ordre de tri utilisé lors de la recherche
+     *
+     * @var string
+     */
+    private $sortOrder='';
+    
+    /**
+     * Numéro du slot dans les 'values' du document qui contient la valeur
+     * de la clé de tri pour l'ordre de tri en cours
+     *
+     * @var null|int
+     */
+    private $sortKey=null;
     
     public function getStructure()
     {
@@ -368,7 +393,7 @@ class XapianDatabaseDriver2 extends Database
         
         // Indexe l'enregistrement
         $this->initializeDocument();
-
+        
         // Ajoute un nouveau document si on est en train de créer un enreg
         if ($this->editMode==1)
         {
@@ -384,7 +409,9 @@ class XapianDatabaseDriver2 extends Database
         
         // Edition terminée
         $this->editMode=0;
-        
+//        pre($this->structure);
+//        die('here');
+
         // Retourne le docid du document créé ou modifié
         return $docId;
     }
@@ -460,50 +487,44 @@ class XapianDatabaseDriver2 extends Database
         // On ignore les espaces de début : si on a "    AAAAMMJJ", (0,3) doit retourner AAAA, pas les espaces
         $value=ltrim($value);
         
-        if (!is_null($start))
+        if (is_int($start))
         {
-            if (is_int($start))
+            if ($start) // 0 = prendre tout
             {
-                if ($start) // 0 = prendre tout
-                {
-                    // start > 0 : on veut à partir du ième caractère, -1 pour php
-                    if ($start > 0)
-                    {  
-                        if (is_int($end) && $end>0 ) $end -= $start-1;
-                        if (false === $value=substr($value, $start-1)) return '';
-                    }
-                        
-                    // start < 0 : on veut les i derniers caractères 
-                    elseif (strlen($value)>-$start) 
-                        $value=substr($value, $start);
+                // start > 0 : on veut à partir du ième caractère, -1 pour php
+                if ($start > 0)
+                {  
+                    if (is_int($end) && $end>0 ) $end -= $start-1;
+                    if (false === $value=substr($value, $start-1)) return '';
                 }
-            }
-            else
-            {
-                $pt=stripos($value, $start); // insensible à la casse mais pas aux accents
-                if ($pt === false) return '';
-                $value=substr($value, $pt+strlen($start));
+                    
+                // start < 0 : on veut les i derniers caractères 
+                elseif (strlen($value)>-$start) 
+                    $value=substr($value, $start);
             }
         }
-        
-        if (!is_null($end))
+        elseif($start !=='')
         {
-            if (is_int($end))
+            $pt=stripos($value, $start); // insensible à la casse mais pas aux accents
+            if ($pt === false) return '';
+            $value=substr($value, $pt+strlen($start));
+        }
+        
+        if (is_int($end))
+        {
+            if ($end) // 0 = prendre tout
             {
-                if ($end) // 0 = prendre tout
-                {
-                    if ($end>0)
-                        $value=substr($value, 0, $end);
-                    else
-                        $value=substr($value, 0, $end);
-                }
+                if ($end>0)
+                    $value=substr($value, 0, $end);
+                else
+                    $value=substr($value, 0, $end);
             }
-            else
-            {
-                $pt=stripos($value, $end);
-                if ($pt !== false) 
-                    $value=substr($value, 0, $pt);
-            }
+        }
+        elseif($end !=='')
+        {
+            $pt=stripos($value, $end);
+            if ($pt !== false) 
+                $value=substr($value, 0, $pt);
         }
                 
         return trim($value);
@@ -711,21 +732,27 @@ class XapianDatabaseDriver2 extends Database
         // FIXME : faire un clear_value avant. Attention : peut vire autre chose que des clés de tri. à voir
         foreach($this->structure->sortkeys as $sortkeyname=>$sortkey)
         {
+//            echo 'Sortkey : ', $sortkeyname, '<br />';
             $key='';
             foreach($sortkey->fields as $name=>$field)
             {
+                
                 foreach($this->tokenize($field->name) as $fieldname) // FIXME: un peu lourd d'utiliser tokenize juste pour ça
                 {
                     // Récupère les données du champ, le premier article si c'est un champ multivalué
                     $value=$this->fields[$fieldname];
+//                    echo '...champ ', $fieldname, ', value=', var_export($value,true), '<br />';
                     if (is_array($value)) $value=reset($value);
+//                    echo '...champ ', $fieldname, ', value=', var_export($value,true), '<br />';
                     if ($value!==null && $value !== '') break;
                 }
 
                 // start et end
                 if ($field->start || $field->end)
+                {
                     $value=$this->startEnd($value, $field->start, $field->end);
-                
+//                    echo '...après startend value=', var_export($value,true), ', start=', var_export($field->start,true), ', end=', var_export($field->end, true), '<br />';
+                }
                 $value=implode(' ', $this->tokenize($value));
                 
                 // Ne prend que les length premiers caractères
@@ -740,14 +767,16 @@ class XapianDatabaseDriver2 extends Database
                 }
                                     
                 // Stocke la partie de clé
+//                echo '...valeur finale=', var_export($value,true), '<br />';
                 $key.=$value;
             }
             $key=rtrim($key);
-            if ($key !== '')
-            {
-//                echo 'sortkey ', $sortkeyname , ' : [<tt>', $key, '</tt>], len=', strlen($key), '<br />';
+            if ($key==='') $key=chr(255);
+//            if ($key !== '')
+//            {
+//                echo '...clé finale pour ', $sortkeyname , ' : [<tt>', $key, '</tt>], len=', strlen($key), '<br />';
                 $this->xapianDocument->add_value($sortkey->_id, $key);
-            }
+//            }
         }
 
     }
@@ -773,13 +802,23 @@ class XapianDatabaseDriver2 extends Database
         
         // Indique au QueryParser la liste des index de base
         foreach($this->structure->indices as $name=>$index)
-            $this->xapianQueryParser->add_prefix($name, $index->_id.':');
-        
+        {
+//            if($index->boolean)
+//                $this->xapianQueryParser->add_boolean_prefix($name, $index->_id.':');
+//            else
+                $this->xapianQueryParser->add_prefix($name, $index->_id.':');
+        }
         // Indique au QueryParser la liste des alias
         foreach($this->structure->aliases as $aliasName=>$alias)
+        {
             foreach($alias->indices as $name=>$index)
-                $this->xapianQueryParser->add_prefix($aliasName, $this->structure->indices[$name]->_id.':');
-        
+            {
+//                if(false)//($name==='date' || $name==='type')
+//                    $this->xapianQueryParser->add_boolean_prefix($aliasName, $this->structure->indices[$name]->_id.':');
+//                else
+                    $this->xapianQueryParser->add_prefix($aliasName, $this->structure->indices[$name]->_id.':');
+            }
+        }
         // Initialise le stopper (suppression des mots-vides)
         $this->stopper=new XapianSimpleStopper();
         foreach ($this->structure->_stopwords as $stopword=>$i)
@@ -858,14 +897,14 @@ class XapianDatabaseDriver2 extends Database
             return new XapianQuery('');
             
         // Pré-traitement de la requête pour que xapian l'interprête comme on souhaite
-        if (debug) echo 'Equation originale : ', var_export($equation,true), '<br />';
+//        if (debug) echo 'Equation originale : ', var_export($equation,true), '<br />';
         $equation=preg_replace_callback('~(?:[a-z0-9]\.){2,9}~i', array($this, 'AcronymToTerm'), $equation); // sigles à traiter, xapian ne le fait pas s'ils sont en minu (a.e.d.)
         $equation=Utils::convertString($equation, 'queryparser'); // FIXME: utiliser la même table que tokenize()
         $equation=preg_replace_callback('~\[(.*?)\]~', array($this,'searchByValueCallback'), $equation);
         $equation=self::frenchOperators($equation);
         //$equation=str_replace(array('[', ']'), array('"_','_"'), $equation);
         
-        if (debug) echo 'Equation passée à xapian : ', var_export($equation,true), '<br />';
+//        if (debug) echo 'Equation passée à xapian : ', var_export($equation,true), '<br />';
     
         // Construit la requête
         $query=$this->xapianQueryParser->parse_Query
@@ -880,12 +919,12 @@ class XapianDatabaseDriver2 extends Database
             XapianQueryParser::FLAG_PURE_NOT
         );
 
-        $h=utf8_decode($query->get_description());
-        $h=substr($h, 14, -1);
-        $h=preg_replace('~:\(pos=\d+?\)~', '', $h);
-        if (debug) echo "Equation comprise par xapian... : ", $h, "<br />"; 
-        $h=preg_replace_callback('~(\d+):~',array($this,'idToName'),$h);
-        if (debug) echo "Equation xapian après idtoname... : ", $h, "<br />"; 
+//        $h=utf8_decode($query->get_description());
+//        $h=substr($h, 14, -1);
+//        $h=preg_replace('~:\(pos=\d+?\)~', '', $h);
+////        if (debug) echo "Equation comprise par xapian... : ", $h, "<br />"; 
+//        $h=preg_replace_callback('~(\d+):~',array($this,'idToName'),$h);
+////        if (debug) echo "Equation xapian après idtoname... : ", $h, "<br />"; 
 
         // Correcteur orhtographique
         if ($correctedEquation=$this->xapianQueryParser->get_corrected_query_string())
@@ -910,6 +949,34 @@ class XapianDatabaseDriver2 extends Database
         return $matches[1];
     }
     
+/*
+
+  AMELIORATIONS A APPORTER AU SYSTEME DE RECHERCHE, REFLEXION 21/12/2007
+
+- Dans la structure de la base (DatabaseStructure, DbEdit) ajouter pour
+  chaque index (que ce soit un vrai index ou un alias) une propriété
+  "type d'index" qui peut prendre les valeurs "index probablistique" ou
+  "filtre".
+
+- Dans le setupSearch(), lorsqu'on ajoute la liste des index/préfixes, utiliser
+  cette propriété pour indiquer à xapian le type d'index :
+ 
+  * "index probabalistique" : utiliser add_prefix()
+  * "filtre" : utiliser add_boolean_prefix()).
+ 
+- Lors d'une recherche, ne pas chercher à combiner nous-même les différents
+  champs et les différents bouts d'équations : laisser xapian le faire.
+  Si on nous a transmis "_equation=xxx & date=yyy & type=zzz" en query string,
+  se contenter de concaténer le tout et laisser xapian utiliser le defaultOp().
+  Xapian se chargera tout seul de passer en 'filter' tous les index définis 
+  avec add_boolean_prefix().
+
+- Il faut quand même tout parenthéser au cas ou les bouts contiennent plusieurs 
+  ce qui nous donne : (xxx) date:(yyy) type:(zzz)  
+
+- voir comment on peut implémenter ça en gardant la compatibilité avec BIS
+    
+*/
     
     /**
      * @inheritdoc
@@ -959,14 +1026,14 @@ class XapianDatabaseDriver2 extends Database
         // Analyse les filtres éventuels à appliquer à la recherche
         if ($filter)
         {
-            $xapianFilter=null;
+            $this->xapianFilter=null;
             foreach($filter as $filter)
             {
                 $filter=$this->parseQuery($filter);
-                if (is_null($xapianFilter))
-                    $xapianFilter=$filter;
+                if (is_null($this->xapianFilter))
+                    $this->xapianFilter=$filter;
                 else
-                    $xapianFilter=new XapianQuery(XapianQuery::OP_FILTER, $xapianFilter, $filter);
+                    $this->xapianFilter=new XapianQuery(XapianQuery::OP_FILTER, $this->xapianFilter, $filter);
             }
         }
         
@@ -976,7 +1043,7 @@ class XapianDatabaseDriver2 extends Database
         // Combine l'équation et le filtre pour constituer la requête finale
         if ($filter)
             $query=new XapianQuery(XapianQuery::OP_FILTER, $query, $filter);
-        
+            
         // Exécute la requête
         $this->xapianEnquire->set_query($query);
         
@@ -1021,26 +1088,27 @@ class XapianDatabaseDriver2 extends Database
      * @param {string|null} $sort
      */
     private function setSortOrder($sort=null)
-    {
-        if (debug) echo '<strong>';
+    {   
+        $this->sortOrder='';
+        $this->sortKey=null;
         
         // Définit l'ordre de tri
         switch ($sort)
         {
             case '%':
-                if (debug) echo 'Tri : par pertinence<br />';
+                $this->sortOrder='par pertinence';
                 $this->xapianEnquire->set_Sort_By_Relevance();
                 break;
                 
             case '+':
-                if (debug) echo 'Tri : par docid croissants<br />';
+                $this->sortOrder='par docid croissants';
                 $this->xapianEnquire->set_weighting_scheme(new XapianBoolWeight());
                 $this->xapianEnquire->set_DocId_Order(XapianEnquire::ASCENDING);
                 break;
 
             case '-':
             case null:
-                if (debug) echo 'Tri : par docid décroissants<br />';
+                $this->sortOrder='par docid décroissants';
                 $this->xapianEnquire->set_weighting_scheme(new XapianBoolWeight());
                 $this->xapianEnquire->set_DocId_Order(XapianEnquire::DESCENDING);
                 break;
@@ -1061,33 +1129,39 @@ class XapianDatabaseDriver2 extends Database
                 $sortkey=$matches[3];
                 
                 // Vérifie que cette clé de tri existe
+                $sortkey=strtolower($sortkey);
                 if (! isset($this->structure->sortkeys[$sortkey]))
                     throw new Exception('Impossible de trier par : ' . $sortkey);
                 
                 // Récupère l'id de la clé de trie (= le value slot number à utiliser)
                 $id=$this->structure->sortkeys[$sortkey]->_id;
-                $this->sort=$id;
+
+                $label=$this->structure->sortkeys[$sortkey]->label;
+                if ($label)
+                    $label= '"'.$label . '('.$sortkey. ')"';
+                else 
+                    $label='"' . $sortkey . '"';
+                                 
+                $this->sortKey=$id;
+                
                 // Détermine l'ordre
-                $order = ((($matches[2]==='-') || ($matches[4]) === '-')) ? true:false; //XapianEnquire::DESCENDING : XapianEnquire::ASCENDING;
+                $order = ((($matches[2]==='-') || ($matches[4]) === '-')) ? 0:1; //XapianEnquire::DESCENDING : XapianEnquire::ASCENDING;
                 if ($matches[1])        // trier par pertinence puis par champ
                 {
-                    if (debug) echo 'Tri : par pertinence puis par ', $sortkey, ($order ? ' croissants': ' décroissants'),'<br />';
-                    $this->xapianEnquire->set_sort_by_relevance_then_value($id, $order);
+                    $this->sortOrder='par pertinence puis par '. $label . ($order ? ' croissants': ' décroissants');
+                    $this->xapianEnquire->set_sort_by_relevance_then_value($id, !$order);
                 }
                 elseif ($matches[5])    // trier par champ puis par pertinence
                 { 
-                    if (debug) echo 'Tri : par ', $sortkey, ($order ? ' croissants': ' décroissants'),' puis par pertinence.<br />';
-                    $this->xapianEnquire->set_sort_by_value_then_relevance($id, $order);
+                    $this->sortOrder='par ' . $label . ($order ? ' croissants': ' décroissants') . ' puis par pertinence';
+                    $this->xapianEnquire->set_sort_by_value_then_relevance($id, !$order);
                 }
                 else                    // trier par champ uniquement
                 {                        
-                    if (debug) echo 'Tri : par ', $sortkey, ($order ? ' croissants': ' décroissants'),'<br />';
-                    $this->xapianEnquire->set_sort_by_value($id, $order);
+                    $this->sortOrder='par ' . $label . ($order ? ' croissants': ' décroissants');
+                    $this->xapianEnquire->set_sort_by_value($id, !$order);
                 }
-                
         }
-        
-        if (debug) echo '</strong>';
     }
 
     public function suggestTerms($table)
@@ -1270,69 +1344,203 @@ class XapianDatabaseDriver2 extends Database
         return $this->count;
     }
 
+    // *************************************************************************
+    // *************** INFORMATIONS SUR LA RECHERCHE EN COURS ******************
+    // *************************************************************************
+    
     public function searchInfo($what)
     {        
-        switch ($what)
+        switch (strtolower($what))
         {
+            case 'docid': return $this->xapianMSetIterator->get_docid();
+            
             case 'equation': return $this->selection->equation;
             case 'rank': return $this->rank;
             case 'start': return $this->start;
             case 'max': return $this->max;
             
             // Liste des mots-vides ignorés dans l'équation de recherche
-            case 'stopwords': return $this->getRequestStopwords();
+            case 'stopwords': return $this->getRequestStopwords(false);
+            case 'internalstopwords': return $this->getRequestStopwords(true);
             
             // Liste des termes présents dans l'équation + termes correspondants au troncatures
-            case 'terms': return $this->getRequestTerms();
-                
+            case 'queryterms': return $this->getQueryTerms(false);
+            case 'internalqueryterms': return $this->getQueryTerms(true);
+            
+            // Liste des termes du document en cours qui collent à la requête
+            case 'matchingterms': return $this->getMatchingTerms(false);
+            case 'internalmatchingterms': return $this->getMatchingTerms(true);
+            
+            // Score obtenu par le document en cours
+            case 'score': return $this->xapianMSetIterator->get_percent();
+            case 'internalscore': return $this->xapianMSetIterator->get_weight();
+            
+            // Tests
+            case 'maxpossibleweight': return $this->xapianMSet->get_max_possible();
+            case 'maxattainedweight': return $this->xapianMSet->get_max_attained();
+            
+            case 'internalquery': return $this->xapianQuery->get_description();
+            case 'internalfilter': return is_null($this->xapianFilter) ? null : $this->xapianFilter->get_description();
+            case 'internalfinalquery': return $this->xapianEnquire->get_query()->get_description();
+
+            case 'sortorder': return  $this->sortOrder;
+            case 'sortkey': return  isset($this->sortKey) ? $this->xapianDocument->get_value($this->sortKey) : '';
+            
             default: return null;
         }
     }
     
-    private function getRequestStopWords()
+    /**
+     * Retourne la liste des termes de recherche générés par la requête.
+     * 
+     * getQueryTerms construit la liste des termes d'index qui ont été générés
+     * par la dernière requête analysée.
+     * 
+     * La liste comprend tous les termes présents dans la requête (mais pas les
+     * mots vides) et tous les termes générés par les troncatures.
+     * 
+     * Par exemple, la requête <code>éduc* pour la santé</code> pourrait 
+     * retourner <code>array('educateur', 'education', 'sante')</code>.
+     * 
+     * Par défaut, les termes retournés sont filtrés de manière à pouvoir être
+     * présentés à l'utilisateur (dédoublonnage des termes, suppression des
+     * préfixes internes utilisés dans les index de xapian), mais vous pouvez
+     * passer <code>false</code> en paramètre pour obtenir la liste brute.
+     *
+     * @param bool $internal flag indiquant s'il faut filtrer ou non la liste
+     * des termes.
+     * 
+     * @return array() un tableau contenant la liste des termes obtenus.
+     */
+    private function getQueryTerms($internal=false)
+    {
+        $terms=array();
+        $begin=$this->xapianQuery->get_terms_begin();
+        $end=$this->xapianQuery->get_terms_end();
+        while (!$begin->equals($end))
+        {
+            $term=$begin->get_term();
+            if ($internal)
+            {
+                $terms[]=$term;
+            }
+            else
+            {
+                // Supprime le préfixe éventuel
+                if (false !== $pt=strpos($term, ':')) $term=substr($term,$pt+1);
+                
+                // Pour les articles, supprime les underscores
+                $term=strtr(trim($term, '_'), '_', ' ');
+                
+                $terms[$term]=true;
+            }
+            
+            $begin->next();
+        }
+        return $internal ? $terms : array_keys($terms);
+    }
+    
+    /**
+     * Retourne la liste des mots-vides présents dans la la requête.
+     * 
+     * getRequestStopWords construit la liste des termes qui figuraient dans
+     * la dernière requête analysée mais qui ont été ignorés parcequ'ils 
+     * figuraient dans la liste des mots-vides déinis dans la base.
+     * 
+     * Par exemple, la requête <code>outil pour le web, pour internet</code> 
+     * pourrait retourner <code>array('pour', 'le')</code>.
+     * 
+     * Par défaut, les termes retournés sont dédoublonnés, mais vous pouvez
+     * passer <code>false</code> en paramètre pour obtenir la liste brute (dans
+     * l'exemple ci-dessus, on obtiendrait <code>array('pour', 'le', 'pour')</code>
+     *
+     * @param bool $internal flag indiquant s'il faut dédoublonner ou non la 
+     * liste des mots-vides.
+     * 
+     * @return array() un tableau contenant la liste des termes obtenus.
+     */
+    private function getRequestStopWords($internal=false)
     {
         // Liste des mots vides ignorés
         $stopwords=array();
         $iterator=$this->xapianQueryParser->stoplist_begin();
         while(! $iterator->equals($this->xapianQueryParser->stoplist_end()))
         {
-            $stopwords[$iterator->get_term()]=true; // dédoublonne en même temps
+            if ($internal)
+                $stopwords[]=$iterator->get_term(); // pas de dédoublonnage
+            else
+                $stopwords[$iterator->get_term()]=true; // dédoublonne en même temps
             $iterator->next();    
         }
-        return array_keys($stopwords);
+        return $internal ? $stopwords : array_keys($stopwords);
     }
     
-    private function getRequestTerms()
+    /**
+     * Retourne la liste des termes du document en cours qui correspondent aux
+     * terms de recherche générés par la requête.
+     * 
+     * getMatchingTerms construit l'intersection entre la liste des termes 
+     * du document en cours et la liste des termes générés par la requête.
+     * 
+     * Cela permet, entre autres, de comprendre pourquoi un document apparaît
+     * dans la liste des réponses.
+     * 
+     * Par défaut, les termes retournés sont filtrés de manière à pouvoir être
+     * présentés à l'utilisateur (dédoublonnage des termes, suppression des
+     * préfixes internes utilisés dans les index de xapian), mais vous pouvez
+     * passer <code>false</code> en paramètre pour obtenir la liste brute.
+     *
+     * @param bool $internal flag indiquant s'il faut filtrer ou non la liste
+     * des termes.
+     * 
+     * @return array() un tableau contenant la liste des termes obtenus.
+     */
+    private function getMatchingTerms($internal=false)
     {
         $terms=array();
-        $it=$this->xapianQuery->get_terms_begin();
-        while (!$it->equals($this->xapianQuery->get_terms_end()))
+        $begin=$this->xapianEnquire->get_matching_terms_begin($this->xapianMSetIterator);
+        $end=$this->xapianEnquire->get_matching_terms_end($this->xapianMSetIterator);
+        while(!$begin->equals($end))
         {
-            $term=$it->get_term();
+            $term=$begin->get_term();
+            if ($internal)
+            {
+                $terms[]=$term;
+            }
+            else
+            {
+                // Supprime le préfixe éventuel
+                if (false !== $pt=strpos($term, ':')) $term=substr($term,$pt+1);
+                
+                // Pour les articles, supprime les underscores
+                $term=strtr(trim($term, '_'), '_', ' ');
+                
+                $terms[$term]=true;
+            }
             
-            // Supprime le préfixe éventuel
-            if (false !== $pt=strpos($term, ':')) $term=substr($term,$pt+1);
-            
-            // Pour les articles, supprime les underscores
-            $term=strtr(trim($term, '_'), '_', ' ');
-            
-            $terms[$term]=true;
-            $it->next();
+            $begin->next();
         }
-        return array_keys($terms);
+        return $internal ? $terms : array_keys($terms);
     }
     
     public function moveNext()
     {
         if (is_null($this->xapianMSet)) return;
-        if (debug && isset($this->sort))
-            echo 'Valeur de la clé pour le tri en cours : <strong><tt style="background-color: #FFFFBB; border: 1px solid yellow;">', var_export($this->xapianDocument->get_value($this->sort), true), '</tt></strong>, docid=', $this->xapianMSetIterator->get_docid(), '<hr />';
+        if (debug)
+        {
+            if (true && isset($this->sort))
+                echo 'Valeur de la clé pour le tri en cours : <strong><tt style="background-color: #FFFFBB; border: 1px solid yellow;">', 
+                    var_export($this->xapianDocument->get_value($this->sort), true), 
+                    '</tt></strong>, docid=', $this->xapianMSetIterator->get_docid(), 
+                    ', Score : ',$this->xapianMSetIterator->get_percent(), ' %',
+                    '<br/>Match : ', implode(', ', $this->getMatchingTerms()),
+                    '<hr />';
+        }
         $this->xapianMSetIterator->next();
         $this->loadDocument();
         $this->eof=$this->xapianMSetIterator->equals($this->xapianMSet->end());
     }
-
-
+    
     const
         MAX_KEY=240,            // Longueur maximale d'un terme, tout compris (doit être inférieur à BTREE_MAX_KEY_LEN de xapian)
         MAX_PREFIX=4,           // longueur maxi d'un préfixe (par exemple 'T99:')
@@ -1548,7 +1756,28 @@ class XapianDatabaseDriver2 extends Database
         flush();
     }
     
-    
+    public function warmUp()
+    {
+        $begin=$this->xapianDatabase->allterms_begin();
+        $end=$this->xapianDatabase->allterms_end();
+//        echo 'Premier terme : ', $term=$begin->get_term(), '<br />';
+//        die($term);
+//        $begin->skip_to('zzzzzz');
+//        echo $begin->get_description();
+//        //echo 'Premier terme : ', $begin->get_term(), '<br />';
+//        //echo 'Dernier terme : ', $end->get_term(), '<br />';
+//        die('here');
+//         return;
+        while (!$begin->equals($end))
+        {
+            $term=$begin->get_term();
+            echo $term, '<br />';
+            $this->search($term);
+            echo $this->count(), '<br />';
+            $term[0]=chr(1+ord($term[0]));
+            $begin->skip_to($term);
+        }
+    }
 }
 
 /**
