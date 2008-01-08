@@ -56,7 +56,7 @@ class Runtime
      *          die('La version version 0.5.0 ou supérieure de fab est requise');
      * </code>
      */
-    const Version='0.5.0';
+    const Version='0.6.0';
     
     /**
      * @var string Path du répertoire racine du site web contenant la page
