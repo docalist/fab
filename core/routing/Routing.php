@@ -253,7 +253,7 @@ class Routing
      * (l'url ne doit pas contenir de query string)
      *
      * @param string $url
-     * @return {array|false}
+     * @return array|false
      */
     public static function routeFor($url)
     {
@@ -779,7 +779,7 @@ class Routing
      * 
      * @param array $array
      * @param scalar $key
-     * @param {scalar|object} $value
+     * @param scalar|object $value
      */
     private static function arrayAppendKey(array & $array, $key, $value)
     {
@@ -823,7 +823,7 @@ class Routing
      * 
      * @param array $array
      * @param scalar $key
-     * @param {scalar|object} $value
+     * @param scalar|object $value
      */
     private static function arrayPrependKey(array & $array, $key, $value)
     {

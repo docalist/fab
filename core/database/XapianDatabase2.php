@@ -475,8 +475,8 @@ class XapianDatabaseDriver2 extends Database
      * @todo complèter la doc
      *
      * @param string $value
-     * @param {int|string} $start
-     * @param {int|string} $end
+     * @param int|string $start
+     * @param int|string $end
      * @return unknown
      */
     private function startEnd($value, $start, $end=null)
@@ -538,7 +538,7 @@ class XapianDatabaseDriver2 extends Database
      * @param string $prefix le préfixe à ajouter au terme
      * @param bool $global si true, le terme est ajouté avec et sans préfixe 
      * @param int $weight le poids du terme
-     * @param {null|int} $position null : le terme est ajouté sans position, 
+     * @param null|int $position null : le terme est ajouté sans position, 
      * int : le terme est ajouté avec la position indiquée
      */
     private function addTerm($term, $prefix, $global=false, $weight=1, $position=null)
@@ -1085,7 +1085,7 @@ class XapianDatabaseDriver2 extends Database
      *     - '%xxx+'
      *     - '%xxx-'
      * 
-     * @param {string|null} $sort
+     * @param string|null $sort
      */
     private function setSortOrder($sort=null)
     {   
