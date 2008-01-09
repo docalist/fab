@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!DOCTYPE sect1 PUBLIC "-//OASIS//DTD DocBook XML V4.5//EN"
     "http://www.oasis-open.org/docbook/xml/4.5/docbookx.dtd">
-<?xml-stylesheet href="../web/styles/docbook/dm.css" type="text/css"?>
+<?xml-stylesheet href="../web/css/docbook/dm.css" type="text/css"?>
 <sect1 id="user.introduction">
 
     <sect1info>
