@@ -1,3 +1,6 @@
+<style>
+body\{background-color: #fff;font-size:100%;\}
+</style>
 <template match="//groupname" group="" prefix="Méthodes">
     <switch test="$group">
         <case test="action">Actions de ce module</case>
@@ -7,6 +10,15 @@
         <default>$group ???</default>
     </switch>
 </template>
+
+<div test="{$errors and Config::get('show.errors')}" style="color: red; border: 1px solid red; background: yellow;">
+    <p>Erreurs et problèmes rencontrés dans la documentation : </p>
+    <ul>
+        <loop on="$errors" as="$error">
+            <li>$error</li>
+        </loop>
+    </ul>
+</div>
 
 <div class="sect1">
     <h1>Documentation {$class->isModule() ? 'du module' : 'de la classe'} {$class->name}</h1>
@@ -19,23 +31,31 @@
             <loop on="{$class->ancestors}" as="$ancestor">
                 <code>&lt;---</code>
                 <span style="border: 1px solid #444; background: #eee; padding: 0.5em;">
-                    <a href="?class=$ancestor">$ancestor</a>
+                    {AutoDoc::link($ancestor)}
                 </span>
             </loop>
         </div>
     </if>
     
     {$class->description}
+
+    <ul test="{$class->annotations}">
+        <loop on="{$class->annotations}" as="$tag,$item">
+            <loop on="$item" as="$doc">
+                <li>@$tag {$doc->name} {$doc->shortDescription} {$doc->longDescription}</li>
+            </loop>
+        </loop>
+    </ul>
     
-    <p>
-        <if test="{Config::get('show.inherited')}">
-            <a href="?class={$class->name}&amp;inherited=false">Masquer les propriétés et les méthodes héritées</a>
-        </if>
-        <else>
-            <a href="?class={$class->name}&amp;inherited=true">Afficher les propriétés et les méthodes héritées</a>
-        </else>
-    </p>
-         
+    <form action="" style="border: 1px solid #008; background-color: #eee; padding: 0.5em; float: right; width: 10em;">
+        Afficher : <br />
+        <hidden name="class" value="{$class->name}" />
+        <loop on="{$this->getFlags()}" as="$flag,$defaultValue">
+            <checkbox name="$flag" value="true" label="$flag" checked="{Config::get('show.'.$flag) ? 'checked' : ''}"/> <br />
+        </loop>
+        <submit label="»»»" />
+    </form>
+             
     <div class="sect2" test="{$class->properties}">
         <h2>Propriétés</h2>
         <loop on="{$class->properties}" as="$group,$properties">
@@ -46,7 +66,7 @@
                         <dt>
                             <a href="#{$property->name}">{$property->name}</a>
                         </dt>
-                        <dd test="{$property->summary}">
+                        <dd>
                             {$property->summary}
                         </dd>
                     </loop>
@@ -63,9 +83,9 @@
                 <dl>
                     <loop on="{$methods}" as="$method">
                         <dt>
-                            <a href="#{$method->name}">{$method->name}()</a>
+                            <a href="#{$method->name}">{$method->name}</a>
                         </dt>
-                        <dd test="{$method->summary}">
+                        <dd>
                             {$method->summary}
                         </dd>
                     </loop>
@@ -82,8 +102,14 @@
             <loop on="{$properties}" as="$property">
                 <div class="sect2">
                     <h2><a name="{$property->name}" />{$property->name}</h2>
-                    <opt><p><strong>{$property->summary}</strong></p></opt>
-                    {$property->description}
+                    {$property->summary}{$property->description}
+                    <ul test="{$property->annotations}">
+                        <loop on="{$property->annotations}" as="$tag,$item">
+                            <loop on="$item" as="$doc">
+                                <li>@$tag {$doc->name} {$doc->shortDescription} {$doc->longDescription}</li>
+                            </loop>
+                        </loop>
+                    </ul>
                 </div>
             </loop>
         </loop>
@@ -96,11 +122,13 @@
             <hr />
             <loop on="{$methods}" as="$method">
                 <div class="sect2">
-                    <h2><a name="{$method->name}" />{$method->name}()</h2>
-                    <div class="programlisting">{$method->signature}</div>
-                    <opt><p><strong>{$method->summary}</strong></p></opt>
-                    {$method->description}
+                    <span test="{$method->inheritedFrom}" style="float: right">Héritée de {AutoDoc::link($method->inheritedFrom, $method->name)}</span>                    
+                    <h2>
+                        <a name="{$method->name}" />{$method->name}()
+                    </h2>
                     
+                    <div class="programlisting">{$method->signature}</div>
+                    {$method->summary}{$method->description}
                     
                     <if test="{$method->parameters}">
                         <h4>Paramètres : </h4>
@@ -108,8 +136,8 @@
                             <loop on="{$method->parameters}" as="$parameter">
                                 <li>
                                     <p>
-                                        <span class="type">({$parameter->type})</span>
                                         <span class="var">{$parameter->name}</span>
+                                        <span class="type">({$parameter->type}<if test="{!is_null($parameter->default)}">, optionnel</if>)</span>
                                         <opt> : {$parameter->summary}</opt>
                                     </p> 
                                     {$parameter->description}
@@ -122,14 +150,26 @@
                         <h4>Valeur de retour: </h4>
                         <ul><li>
                         <p>
-                            <span class="type">({$method->return->type})</span>
+                            <span class="type">{$method->return->type}</span>
                             <opt>: {$method->return->summary}</opt>
                              </p>
                         {$method->return->description}
                         </li></ul>
                     </if>
+                    
+                    <ul test="{$method->annotations}">
+                        <loop on="{$method->annotations}" as="$tag,$item">
+                            <loop on="$item" as="$doc">
+                                <li>@$tag {$doc->name} {$doc->shortDescription} {$doc->longDescription}</li>
+                            </loop>
+                        </loop>
+                    </ul>
                 </div>
             </loop>
         </loop>
     </if>
 </div>
+<p style="text-align: center; color: #888; border-top: 1px solid #888; font-size: 0.8em;">
+    Documentation générée le {date('d/m/Y à H:i:s')}.
+    Dernière modification le {date('d/m/Y à H:i:s', $class->lastModified)}.
+</p>

@@ -1,10 +1,24 @@
 <?php
 class AutoDoc extends Module
 {
+    static $errors=array();
+    
+    public static $flags=array('inherited'=>false, 'private'=>false, 'protected'=>false, 'public'=>true, 'errors'=>false, 'sort'=>false);
+    
     /**
      * Affiche la documentation interne d'une classe ou d'un module
      * 
-     * Les flags passés en paramètre permettent de 
+     * Les flags passés en paramètre permettent de choisir ce qui sera affiché.
+     * 
+     * Remarque :
+     * simple paragraphe contenant le titre de la remarque. Peut éventuellement
+     * aller sur plusieurs lignes.
+     * 
+     * Remarque : 
+     * - première remarque.
+     * - seconde remarque. peut éventuellement se poursuivre sur plusieurs
+     * lignes si c'est nécessaire
+     * - troisième remarque
      *
      * @param bool $class le nom de la classe pour laquelle il faut afficher
      * la documentation
@@ -21,9 +35,10 @@ class AutoDoc extends Module
      * @param bool $public <code>true</code> pour afficher les propriétés et 
      * les méthodes publiques, <code>false</code> sinon.
      * 
-     * Remarque : la documentation des actions est affichée même si 
-     * <code>$public=false</code>, bien qu'il s'agisse de méthodes publiques.
+     * Remarque :
      * 
+     * La documentation des actions est affichée même si 
+     * <code>$public=false</code>, bien qu'il s'agisse de méthodes publiques.
      * Cela permet, en mettant tous les flags à false, de n'afficher que la 
      * documentation des actions. 
      */
@@ -39,138 +54,54 @@ class AutoDoc extends Module
         }
         
         // Stocke dans la config les flags de visibilité passés en paramètre
-        foreach(array('inherited', 'private', 'protected', 'public') as $flag)
-            Config::set('show.'.$flag, $this->request->bool($flag)->defaults(true)->ok());
+        foreach(self::$flags as $flag=>$default)
+            Config::set('show.'.$flag, $this->request->bool($flag)->defaults($default)->ok());
 
         $class=new ClassDoc(new ReflectionClass($class));
 
         Template::Run
         (
             'classdoc.html', 
-            array('class'=>$class)
+            array
+            (
+                'class'=>$class,
+                'errors'=>self::$errors 
+            )
         );
+        return;
     }
-
-    
-    private function printConfig($config)
+    public function getFlags()
     {
-        if (is_null($config)) return;
-        if (is_scalar($config))
-            echo $config;
-        else
-        {
-            echo '<ul>';
-            foreach($config as $key=>$config)
-            {
-                 echo '<li><strong>', $key, '</strong> : ';
-                 $this->printConfig($config);
-                 echo '</li>';
-            }
-            echo '</ul>';
-        }
+        return self::$flags;
     }
-
-    private function formatDoc($doc)
+    /**
+     * Crée un lien vers une autre classe en propageant les options de 
+     * visibilité en cours
+     *
+     * @param string $class la classe dont on veut afficher la doc
+     * @param string $anchor une ancre optionnelle (nom de méthode ou de propriété)
+     * @return string
+     */
+    public static function link($class, $anchor='')
     {
-        echo '<pre>',htmlentities($doc),'<br />';
+        $link='<a href="?class='.$class;
         
-        // Eclate la documentation en lignes
-        $lines=explode("\n", $doc);
-        
-        // Ignore la première ('/**') et la dernière ('*/') ligne
-        $lines=array_slice($lines, 1, count($lines)-2);
-        
-        // Ajoute une ligne vide à la fin
-        $lines[]='';
-        
-        // Supprime les espaces et les '*' de début et de fin, reconstruit les paragraphes
-        $lines=$this->getParas($lines);        
-        
-        
-        print_r($lines);
-        
-        $doc=new DocBlock();
-
-        $i=0;
-        
-        // Description courte et description longue
-        $first=true;
-        for( ; $i<count($lines); $i++)
+        foreach(self::$flags as $flag=>$default)
         {
-            $line=$lines[$i];
-            if ($line[0]==='@') break;
-            if ($first)
-            {
-                $doc->shortDescription=$line;
-                $first=false;
-            }
-            else
-            {
-                $doc->longDescription.="<p>$line</p>\n";
-            }
+            $value=Config::get("show.$flag",$default);
+            if ($value!==$default)
+                $link.="&$flag=".var_export($value,true);
         }
         
-        // Annotations
-        while($i<count($lines))
-        {
-            $line=$lines[$i];
-            $i++;
-            if ($line[0] !== '@') die('pb');
-            $line=substr($line,1);
-
-            $tag=strtok($line, " \t");
-            echo 'TAG=', $tag, ', line=', $line, '<br />';
-            $tagDoc=new DocBlock();
-            switch($tag)
-            {
-                case 'package':
-                case 'subpackage':
-                    $tagDoc->name=strtok(' ');
-                    break;
-                case 'param':
-                    $tagDoc->type=strtok(' ');
-                    $tagDoc->name=strtok(' ');
-                    break;
-                case 'return':
-                    $tagDoc->type=strtok(' ');
-                    break;
-                default:
-                    break;
-            }
-            
-            $tagDoc->shortDescription=strtok('¤'); // tout ce qui reste
-            
-            for( ; $i<count($lines); $i++)
-            {
-                $line=$lines[$i];
-                if ($line[0]==='@') break;
-                $tagDoc->longDescription.="<p>$line</p>\n";
-            }
-            
-            if (! isset($doc->annotations[$tag]))
-                $doc->annotations[$tag]=$tagDoc;
-            elseif(is_array($doc->annotations[$tag]))
-                $doc->annotations[$tag][]=$tagDoc;
-            else
-                $doc->annotations[$tag]=array($doc->annotations[$tag],$tagDoc);
-        }
-    echo htmlspecialchars(print_r($doc,true), ENT_NOQUOTES);        
+        if ($anchor) $link.='#'.$anchor;
+        $link.='">'.$class.'</a>';
+        return $link;    
     }
     
-    private function getRoutes($module, $action)
+    public static function docError($message)
     {
-        $t=array();
-        foreach(Config::get('routes') as $route)
-        {
-            if (! isset($route['args'])) continue;
-            
-            if (isset($route['args']['module']) && strcasecmp($route['args']['module'],$module)!==0) continue;
-            if (isset($route['args']['action']) && strcasecmp($route['args']['action'],$action)!==0) continue;
-            $t[]=$route['url'];
-        }
-        return $t;
+        self::$errors[]=$message;
     }
-    
     
 }
 
@@ -179,12 +110,14 @@ class ElementDoc
     public $name;
     public $summary;
     public $description;
+    public $annotations;
     
     public function _construct($name, DocItem $doc=null)
     {
         $this->name=$name;
         $this->summary=is_null($doc) ? '' : $doc->shortDescription;
-        $this->description=is_null($doc) ? '' : $doc->longDescription;   
+        $this->description=is_null($doc) ? '' : $doc->longDescription;
+        $this->annotations=isset($doc->annotations) ? $doc->annotations : array() ;
     }
 
     protected function getGroup($element, ReflectionClass $class)
@@ -208,6 +141,71 @@ class ElementDoc
             
         return null;
     }
+
+    protected function docError($message, $method)
+    {
+        AutoDoc::docError(sprintf('<a href="#%s">%1$s</a> : %s', $method, $message));
+    }
+    
+    protected function checkType($type, $method, $arg)
+    {
+        $types=Config::get('types');
+        
+        
+        $t=explode('|', $type);
+        foreach($t as & $type)
+        {
+            for(;;) // on boucle uniquement si on tombe sur un alias
+            {
+                if (!array_key_exists($type, $types))
+                {
+                    try
+                    {
+                        $class=new ReflectionClass($type);
+                    }
+                    catch(Exception $e)
+                    {
+                        $class=null;                    
+                    }
+                    if (is_null($class))
+                    {
+                        $this->docError(sprintf('type inconnu "%s" pour %s', $type, $arg), $method);
+                    }
+                    else
+                    {
+                        if ($class->isUserDefined())
+                            $type=AutoDoc::link($class->getName());
+                        else
+                            $type=$class->getName();
+                    }
+                    
+                    break;
+                }
+                
+                $typeinfo=$types[$type];
+                if(isset($typeinfo['use'])) // alias. exemple : bool/boolean
+                {
+                    $this->docError(sprintf('utiliser "%s" plutôt que "%s" pour %s', $typeinfo['use'], $type, $arg), $method);
+                    $type=$typeinfo['use'];
+                }
+                else
+                {
+                    if(isset($typeinfo['label'])) // label à utiliser pour ce type
+                    {
+                        $type=$typeinfo['label'];
+                    }
+                    
+                    if(isset($typeinfo['link'])) // lien pour ce type
+                    {
+                        $type='<a href="'.$typeinfo['link'].'">'.$type.'</a>';
+                    }
+                    
+                    break;
+                }
+            }        
+        }
+        return implode(' ou ', $t);
+    }
 }
 
 class ClassDoc extends ElementDoc
@@ -217,6 +215,7 @@ class ClassDoc extends ElementDoc
     public $properties;
     public $methods;
     private $isModule=false;
+    public $lastModified;
     
     public function __construct(ReflectionClass $class)
     {
@@ -244,12 +243,16 @@ class ClassDoc extends ElementDoc
             if (! is_null($group))
                 $this->properties[$group][$property->getName()]=new propertyDoc($property);
         }
+        
         if($this->properties)
         {
-            ksort($this->properties);
-            foreach($this->properties as & $group)
-                ksort($group);
-            unset($group);
+            if (Config::get('show.sort'))
+            {
+                ksort($this->properties);
+                foreach($this->properties as & $group)
+                    ksort($group);
+                unset($group);
+            }
         }
                 
         // Méthodes
@@ -257,20 +260,21 @@ class ClassDoc extends ElementDoc
         {
             $group=$this->getGroup($method, $class);
             if (! is_null($group))
-                $this->methods[$group][$method->getName()]=new MethodDoc($method);
+                $this->methods[$group][$method->getName()]=new MethodDoc($class->getName(), $method);
         }
         if ($this->methods)
         {
-            ksort($this->methods);
-            foreach($this->methods as & $group)
-                ksort($group);
-            unset($group);
+            if (Config::get('show.sort'))
+            {
+                ksort($this->methods);
+                foreach($this->methods as & $group)
+                    ksort($group);
+                unset($group);
+            }
         }
-                    
-//        echo '<pre>';
-//        var_export($this->methods);
-//        die();
-        // +signature
+        
+        
+        $this->lastModified=filemtime($class->getFileName());
     }
 
     public function isModule()
@@ -292,30 +296,64 @@ class MethodDoc extends ElementDoc
 {
     public $parameters;
     public $return;
+    public $inheritedFrom;
     
-    public function __construct(ReflectionMethod $method)
+    public function __construct($class, ReflectionMethod $method)
     {
         $doc=new DocBlock($method->getDocComment());
         parent::_construct($method->getName(), $doc);
 
-//echo '<pre>';
-//var_export($doc);
-//echo '</pre>';
-
+        // Supprime les annotations qu'on gère, laisse celles qu'on ne connaît pas
+        unset($this->annotations['param']);
+        unset($this->annotations['return']);
+        
         // Paramètres
+        if (isset($doc->annotations['param']))
+            $t=$doc->annotations['param'];
+        else
+            $t=array();
+            
         foreach($method->getParameters() as $parameter)
         {
-//            echo 'Création du param ', $parameter->getName() ;
-            if (isset($doc->annotations['param']) && isset($doc->annotations['param']['$'.$parameter->getName()]))
-                $paramDoc=$doc->annotations['param']['$'.$parameter->getName()];
+            $name='$'.$parameter->getName();
+            if (isset($doc->annotations['param']) && isset($t[$name]))
+            {
+                $paramDoc=$t[$name];
+                unset($t[$name]);
+            }
             else
+            {
                 $paramDoc=null;
-            $this->parameters[$parameter->getName()]=new ParameterDoc($parameter, $paramDoc);
+                $this->docError(sprintf('@param manquant pour %s', $name), $this->name); 
+            }
+            $this->parameters[$parameter->getName()]=new ParameterDoc($method->getName(), $parameter, $paramDoc);
+        }
+        foreach($t as $parameter)
+        {
+            $this->docError(sprintf('@param pour un paramètre inexistant : %s', $parameter->name), $this->name); 
         }
         
         // Valeur de retour
         if (isset($doc->annotations['return']))
-            $this->return=new ReturnDoc($doc->annotations['return']['']);
+        {
+            $this->return=new ReturnDoc($method->getName(), $doc->annotations['return']['']);
+        }
+        else
+        {
+            // on n'a pas de @return dans la doc. Génère une erreur si on aurait dû en avoir un
+            $source=implode
+            (
+                '', 
+                array_slice
+                (
+                    file($method->getFileName()), 
+                    $method->getStartLine()-1,
+                    $method->getEndline()-$method->getStartLine()+1
+                )
+            );
+            if (preg_match('~return\b~', $source))
+                $this->docError('@return manquant', $this->name); 
+        }
             
         // Construit la signature
         $h='<span class="keyword">';
@@ -341,12 +379,15 @@ class MethodDoc extends ElementDoc
         
         $h.= '<span class="element">'.$method->getName().'</span>';
         
-        $h.=' <span class="operator">(</span> ';
+        $h.='<span class="operator">(</span>';
         $first=true;
         foreach($method->getParameters() as $i=>$parameter)
         {
             if (!$first) $h.='<span class="operator">,</span> ';
             $h.='<span class="type">'.$this->parameters[$parameter->getName()]->type .'</span> ';
+            
+            if ($parameter->isPassedByReference()) $h.='<span class="operator">&</span> ';
+            
             $h.='<span class="var">$' . $parameter->getName() .'</span>';
             if ($parameter->isDefaultValueAvailable())
             {
@@ -358,7 +399,7 @@ class MethodDoc extends ElementDoc
             $first=false;
         }
         
-        $h.=' <span class="operator">)</span>';
+        $h.='<span class="operator">)</span>';
         if ($this->return)
         {
             $h.=' <span class="operator">:</span> ' 
@@ -368,8 +409,14 @@ class MethodDoc extends ElementDoc
         }    
         //$this->signature=Utils::highlight($h);
         $this->signature=$h;
+        
+        // Méthode héritée ou non
+        $h=$method->getDeclaringClass()->getName();
+        if ($h != $class)
+            $this->inheritedFrom=$h;
+        else
+            $this->inheritedFrom='';
     }
-    
 }
 
 class ParameterDoc extends ElementDoc
@@ -377,34 +424,35 @@ class ParameterDoc extends ElementDoc
     public $type;
     public $default;
 
-    public function __construct(ReflectionParameter $parameter, DocItem $doc=null)
+    public function __construct($method, ReflectionParameter $parameter, DocItem $doc=null)
     {
         parent::_construct('$'.$parameter->getName(), $doc);
         
-        // Type
+        // Type du paramètre
+        
+        // Si on a de la doc pour ce paramètre, on prend le type indiqué par la doc
         if (!is_null($doc))
         {
             $this->type=$doc->type;
         }
+        
+        // Sinon, on utilise le type réel du paramètre
         else
         {
             if ($parameter->isArray())
             {
                 $this->type='array';
             }
-            elseif($parameter->getClass())
+            elseif($class=$parameter->getClass())
             {
-                $class=$parameter->getClass();
-                if ($class->isUserDefined())
-                    $this->type='<a href="?class='.$class->getName().'">'.$class->getName().'</a>';
-                else
-                    $this->type=$class->getName();
+                $this->type=$class->getName();
             }
             else
             {
                 $this->type='mixed';
             }
         }
+        $this->type=$this->checkType($this->type, $method, $this->name);
         
         // Valeur par défaut
         if ($parameter->isDefaultValueAvailable())
@@ -418,12 +466,15 @@ class ReturnDoc extends ElementDoc
 {
     public $type;
 
-    public function __construct(DocItem $doc)
+    public function __construct($method, DocItem $doc)
     {
         parent::_construct('', $doc);
         
         // Type
         $this->type=$doc->type;
+        
+        $this->type=$this->checkType($this->type, $method, 'return value');
+        
     }
 }
 
@@ -439,20 +490,10 @@ class DocBlock extends DocItem
     public $name='';
     public $signature='';
     public $annotations=array();
-    
+
     public function __construct($doc)
     {
-        // Eclate la documentation en lignes
-        $lines=explode("\n", $doc);
-        
-        // Ignore la première ('/**') et la dernière ('*/') ligne
-        $lines=array_slice($lines, 1, count($lines)-2);
-        
-        // Ajoute une ligne vide à la fin
-        $lines[]='';
-        
-        // Supprime les espaces et les '*' de début et de fin, reconstruit les paragraphes
-        $lines=$this->getParas($lines);        
+        $lines=$this->getParas($doc);        
         
         $i=0;
         
@@ -469,7 +510,7 @@ class DocBlock extends DocItem
             }
             else
             {
-                $this->longDescription.="<p>$line</p>\n";
+                $this->longDescription.=$line;
             }
         }
         $this->inlineTags($this->shortDescription);
@@ -510,25 +551,235 @@ class DocBlock extends DocItem
             {
                 $line=$lines[$i];
                 if ($line[0]==='@') break;
-                $tagDoc->longDescription.="<p>$line</p>\n";
+                $tagDoc->longDescription.=$line;
             }
             $this->inlineTags($tagDoc->shortDescription);
             $this->inlineTags($tagDoc->longDescription);
             
             $this->annotations[$tag][$tagDoc->name]=$tagDoc;
-//            if (! isset($this->annotations[$tag]))
-//                $this->annotations[$tag]=$tagDoc;
-//            elseif(is_array($this->annotations[$tag]))
-//                $this->annotations[$tag][]=$tagDoc;
-//            else
-//                $this->annotations[$tag]=array($this->annotations[$tag],$tagDoc);
+        }
+//        echo '<pre>', print_r($this,true), '</pre>';
+    }
+    
+    private function getParas($doc)
+    {
+        // Eclate la documentation en lignes
+        $lines=explode("\n", $doc);
+        
+        // Ignore la première ('/**') et la dernière ('*/') ligne
+        $lines=array_slice($lines, 1, count($lines)-2);
+        
+        // Ajoute une ligne vide à la fin
+        $lines[]='';
+        
+//        echo'<pre>', htmlentities(print_r($lines,true)), '</pre>';
+        $result=array();
+        $h='';
+
+        foreach($lines as & $line)
+        {
+            // Supprime les espaces de début jusqu'à la première étoile et tous les espaces de fin
+            $line=trim($line," \t\r\n");
+            
+            // Supprime l'étoile de début
+            $line=ltrim($line, '*');
+            
+            // Supprime l'espace qui suit
+            if ($line !=='' && $line[0] === ' ') $line=substr($line, 1);
         }
         
+        $doc=implode("\n", $lines);
+        
+        // Fait les remplacements de code et autres
+        $this->replacement=array();
+        $doc=$this->code($doc);
+//        echo '<pre>', var_export($doc, true), '</pre>';
+//        echo'<pre>', htmlentities(print_r($doc,true)), '</pre>';
+        
+        
+        $lines=explode("\n", $doc);
+        $inUl=$inLi=$inP=false;
+        foreach($lines as $i=>$line)
+        {
+            if ($line === '' || $line[0]==='@')
+            {
+                if ($h !== '')
+                {
+                    if ($inLi)
+                    {
+                        $h.="</p>\n    </li>\n";
+                        $inLi=false;    
+                    }
+                    if($inP)
+                    {
+                        $h.="\n</p>\n";
+                        $inP=false;    
+                    }
+                    
+                    if ($inUl)
+                    {
+                        $h.="</ul>\n";
+                        $inUl=false;
+                    }
+                    
+                    $result[]=$h;
+                    $h='';
+                }
+                $h=$line;
+            }
+            else
+            {
+                if (preg_match('~^\s*[*+-]~', $line))
+                {
+                    $line=ltrim(substr(ltrim($line),1));
+                    $line="\n    <li><p>\n        " . $line;    
+                    if (!$inUl)
+                    {
+                        if($inP)
+                        {
+                            $h.="\n</p>\n";
+                            $inP=false;    
+                        }
+                        $line="\n<ul>" . $line;    
+                        $inUl=true;
+                    }
+                    $inLi=true;
+                }
+                else
+                {
+                    if ($h==='') 
+                    {
+                        if ($inUl)
+                        {
+                            $h.="</ul>\n";
+                            $inUl=false;
+                        }
+                        $h.="\n<p>\n    ";
+                        $inP=true;
+                    }
+                }
+                
+                $h.=' '.$line;
+            }
+        }
+
+//        echo'<pre>', htmlentities(print_r($result,true)), '</pre>';
+//        die();
+        
+        // Restaure les blocs qui ont été protégés
+        $result=str_replace(array_keys($this->replacement),array_values($this->replacement), $result);
+        
+        return $result;
     }
+    private $admonitionType='';
+    private function admonitions($doc)
+    {
+        // premier cas : 
+        // <p>Remarque : suivi du texte d'un paragraphe</p>
+        
+        // Second cas : 
+        //<p>Remarque :</p>
+        //Suivi d'un tag <ul><li><p>...
+        
+        foreach(Config::get('admonitions') as $admonition)
+        {
+            $h=$admonition['match'];
+            $this->admonitionType=$admonition['type'];
+            $doc=preg_replace_callback('~<p>\s*('.$h.')(?:\s*:\s*)</p>\s*(<([a-z]+)>.*?</\3>)~ism', array($this,'admonitionCallback1'), $doc);
+            $doc=preg_replace_callback('~<p>\s*('.$h.')(?:\s*:\s*)(.*?)</p>~ism', array($this,'admonitionCallback2'), $doc);
+        }
+        return $doc;
+    }
+    
+    private function admonitionCallback1($match) // titre suivi d'un tag ul ou pre
+    {
+        // match[1] : titre
+        // match[2] : texte du paragraphe
+        $h='<div class="'.$this->admonitionType.'">'."\n";
+        $h.='<div class="title">'.$match[1].'</div>'."\n";
+        $h.=$match[2]."\n";
+        $h.='</div>'."\n";
+//        echo 'admonition : ', '<pre>', htmlentities(var_export($match,true)), '</pre>';
+//        echo 'result : <pre>', htmlentities($h), '</pre>';
+        return $h;
+    }
+    
+    private function admonitionCallback2($match) // <p>titre : corps</p>
+    {
+        // match[1] : titre
+        // match[2] : texte du paragraphe
+        $h='<div class="'.$this->admonitionType.'">'."\n";
+        $h.='<div class="title">'.$match[1].'</div>'."\n";
+        $h.='<p>'.ucfirst($match[2]).'</p>'."\n";
+        $h.='</div>'."\n";
+//        echo 'admonition : ', '<pre>', htmlentities(var_export($match,true)), '</pre>';
+//        echo 'result : <pre>', htmlentities($h), '</pre>';
+        return $h;
+    }
+    
+    
+    private function code($doc)
+    {
+        $doc=preg_replace_callback('~<code>\s?\n(.*?)\n\s?</code>~s', array($this,'codeBlockCallback'), $doc);
+        $doc=preg_replace_callback('~<code>(.*?)</code>~s', array($this,'codeInlineCallback'), $doc);
+        return $doc;
+    }
+    
+    private function codeInlineCallback($matches)
+    {
+        $code=$matches[1];
+        //$code=Utils::highlight($code);
+        $result='<code>' . $code . '</code>';
+        $md5=md5($result);
+        $this->replacement[$md5]=$result;
+        return $md5;    
+    }
+    
+    private function codeBlockCallback($matches)
+    {
+        $code=$matches[1];
+
+        // Suppime les lignes vides et les blancs de fin
+        $code=rtrim($code);
+        
+        // Réindente les lignes en supprimant de chaque ligne l'indentation de la première
+        $lines=explode("\n", $code);
+        $len=strspn($lines[0], " \t");
+        $indent=substr($lines[0], 0, $len);
+        
+        $sameindent=true;
+        foreach($lines as &$line)
+        {
+            if (trim($line)!='' && substr($line, 0, $len)!==$indent)
+            {
+                $sameindent=false;
+                break; 
+            }
+            $line=substr($line, $len);
+        }
+
+        if($sameindent)
+            $code=implode("\n", $lines);
+        // else l'indentation n'est pas homogène, on garde le code existant tel quel
+            
+        //$code=Utils::highlight($code);
+            
+        $result="\n<pre class=\"programlisting\">" . $code . "</pre>\n";
+        
+        $md5=md5($result);
+        $this->replacement[$md5]=$result;
+        return $md5;    
+    }
+    
     public function inlineTags(& $doc)
     {
         $doc=preg_replace_callback('~\{@([a-z]+)\s(.*?)}~', array($this, 'parseInlineTag'), $doc);
         //$doc=preg_replace('~\$[a-z_0-9]+~i', '<span class="var">$0</span>', $doc);
+        $doc=$this->admonitions($doc);        
+        
+//        $this->replacement=array();
+//        $doc=preg_replace_callback('~(\$[a-z0-9_]+)~is', array($this,'codeInlineCallback'), $doc);
+//        $doc=str_replace(array_keys($this->replacement),array_values($this->replacement), $doc);
     }
     
     private function parseInlineTag($match)
@@ -563,67 +814,13 @@ class DocBlock extends DocItem
                     
                 return '<a href="'.$link.'">'.$text.'</a>';
                 break;
+                
             default:
-                echo 'INLINE TAG inconnu : ', $tag;
-                var_export($match);
-                echo '<hr />';    
+                echo 'tag inconnu : ', $match[0], '<br />';
+                return $match[0];    
                 
         }
     }
     
-    private function getParas($lines)
-    {
-        $result=array();
-        $h='';
-        $lastLen=80;
-        foreach($lines as $i=>$line)
-        {
-            // Supprime les espaces de début jusqu'à la première étoile et tous les espaces de fin
-            $line=trim($line," \t\r\n");
-            
-            // Supprime l'étoile de début
-            $line=ltrim($line, '*');
-            
-            // Supprime l'espace qui suit
-            if ($line !=='' && $line[0] === ' ') $line=substr($line,1);
-            
-            //$line=htmlentities($line);
-            
-            if ($line === '')
-            {
-                if ($h !== '')
-                {
-                    $result[]=$h;
-                    $h='';
-                }
-            }
-            elseif($line[0]==='@')
-            {
-                if ($h !== '')
-                {
-                    $result[]=$h;
-                }
-                $h=$line;
-            }
-            elseif(strlen($line)<$lastLen*0.9) // Ligne courte
-            {
-                if ($h === '')
-                    $h=$line;
-                else
-                    $h.=' '.$line;
-                $result[]=$h;
-                $h='';
-            }
-            else
-            {
-                if ($h === '')
-                    $h=$line;
-                else
-                    $h.=' '.$line;
-            }
-            $lastLen=strlen($line);
-        }
-        return $result;
-    }
 }
 ?>
