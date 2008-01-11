@@ -16,21 +16,26 @@
  * Certaines fonctions retourne $this pour permettre de chainer les appels de 
  * méthode :
  * 
+ * <code>
  * $request
  *     ->setModule('thesaurus')
  *     ->setAction('search')
  *     ->set('query', 'health');
+ * </code>
  * 
  * Request propose également des fonctions (chainées) permettant de valider
  * les paramètres de la requête :
+ * 
+ * <code>
  * $request
  *     ->required('ref')
  *     ->int()
  *     ->unique()
  *     ->min(1);
+ * </code>
  *  
  * @package     fab
- * @subpackage  module
+ * @subpackage  request
  */
 class Request
 {
@@ -78,7 +83,7 @@ class Request
      * Des paramètres supplémentaires peuvent être ajoutés à la requête
      * en utilisant {@link set()} et {@link add()}
      * 
-     * @param array $parameters,... des tableaux contenant les paramètres 
+     * @param array $parameters ... des tableaux contenant les paramètres 
      * initiaux de la requête.
      */
     public function __construct(array $parameters=array())
@@ -179,7 +184,7 @@ class Request
     /**
      * Modifie le nom de l'action à laquelle est destinée la requête
      *
-     * @param string $module
+     * @param string $action la nouvelle action de la requête
      * @return Request $this pour permettre le chainage des appels de méthodes
      */
     public function setAction($action=null)
@@ -195,10 +200,12 @@ class Request
      * 
      * __get est une méthode magique de php qui permet d'accéder aux paramètres
      * de la requête comme s'il s'agissait de propriétés de l'objet Request
-     * (par exemple $request->item)
+     * (par exemple <code>$request->item</code>)
      *
+     * La méthode {@link get()} est similaire mais permet d'indiquer une valeur
+     * par défaut.
+     * 
      * @param string $key
-     * @param mixed $default
      * @return mixed
      */
     public function __get($key)
@@ -214,7 +221,7 @@ class Request
      * si le nom indiqué ne figure pas dans les paramètres de la requête.
      * 
      * get est similaire à {@link __get()} mais permet d'indiquer une valeur par
-     * défaut (par exemple $request->get('item', 'abc'))
+     * défaut (par exemple <code>$request->get('item', 'abc')</code>)
      * 
      * @param string $key
      * @param mixed $default
@@ -234,7 +241,7 @@ class Request
      * 
      * __set est une méthode magique de php qui permet de modifier les 
      * paramètres de la requête comme s'il s'agissait de propriétés de 
-     * l'objet Request (par exemple $request->item = 12)
+     * l'objet Request (par exemple <code>$request->item = 12</code>)
      * 
      * Set remplace complètement la valeur existante. Pour ajouter une valeur
      * à un paramètre existant, utiliser {@link add()}
@@ -269,9 +276,9 @@ class Request
      * 
      * __unset est une méthode magique de php qui permet de supprimer les 
      * paramètres de la requête comme s'il s'agissait de propriétés de 
-     * l'objet Request (par exemple unset($request->item))
+     * l'objet Request (par exemple <code>unset($request->item)</code>)
      * 
-     * @param unknown_type $key
+     * @param string $key
      */
     public function __unset($key)
     {
@@ -282,10 +289,9 @@ class Request
     /**
      * Alias de {@link __unset()}
      * 
-     * Exemple : $request->unset('item')
+     * Exemple : <code>$request->clear('item')</code>
      *
      * @param string $key
-     * @param mixed $value
      * @return Request $this pour permettre le chainage des appels de méthodes
      */
     public function clear($key=null)
@@ -395,7 +401,7 @@ class Request
     
     /**
      * Retourne la valeur d'un paramètre figurant dans un autre tableau
-     * que {@link _parameters) ou la valeur par défaut indiquée
+     * que {@link _parameters} ou la valeur par défaut indiquée
      *
      * @param string $key
      * @param mixed $default
@@ -452,12 +458,13 @@ class Request
      * Détermine si la requête en cours est une requête ajax ou non.
      * 
      * La détection est basée sur la présence ou non de l'entête http
-     * X_REQUESTED_WITH qui est ajouté à la requête http par les librairies
-     * ajax les plus courante (cas de prototype, jquery, YUI, mais pas 
-     * de dojo).
+     * <code>X_REQUESTED_WITH</code> qui est ajouté à la requête http par 
+     * les librairies ajax les plus courante (cas de prototype, jquery, YUI,  
+     * mais pas de dojo).
      * 
-     * @return boolean true si la requête http contient un entête 
-     * x-requested-with contenant la valeur XMLHttpRequest (sensible à la casse)
+     * @return bool true si la requête http contient un entête 
+     * <code>X_REQUESTED_WITH</code> contenant la valeur
+     * <code>XMLHttpRequest</code> (sensible à la casse)
      */
     public function isAjax()
     {
@@ -518,11 +525,14 @@ class Request
      * par le test.
      * 
      * Exemples d'utilisation :
-     * - $request->required('item')->ok();
-     * - $request->bool('item')->required()->ok();
+     * 
+     * <code>
+     * $request->required('item')->ok();
+     * $request->bool('item')->required()->ok();
+     * </code>
      * 
      * @param string|null $key
-     * @return Request pour permettre le chainage des appels de méthodes
+     * @return Request $this pour permettre le chainage des appels de méthodes
      * @throws RequestParameterRequired si le test échoue
      */
     public function required($key=null)
@@ -545,6 +555,14 @@ class Request
         return $this;
     }
     
+    /**
+     * Validation : définit la valeur par défaut d'un paramètre de la requête
+     *
+     * @param string|null $key
+     * @param scalar $default
+     * 
+     * @return Request $this pour permettre le chainage des appels de méthodes
+     */
     public function defaults($key, $default=null)
     {
         if (is_null($default))
@@ -566,9 +584,9 @@ class Request
     /**
      * Validation : vérifie un booléen
      * 
-     * bool() reconnaît les booléens mais aussi les chaines 'true','on', '1' et 
-     * 'false','off','0' (quelque soit la casse et les espaces de début ou de 
-     * fin éventuels).
+     * bool() reconnaît les booléens mais aussi les chaines 
+     * <code>'true','on', '1' </code> et <code>'false','off','0'</code>
+     * (quelque soit la casse et les espaces de début ou de fin éventuels).
      * 
      * Si la valeur du paramètre est un tableau, le test est appliqué à chacun
      * des éléments du tableau.
@@ -577,11 +595,14 @@ class Request
      * toujours un booléen ou un tableau de booléens
      *  
      * Exemples d'utilisation :
-     * - $request->bool('flag')->ok();
-     * - $request->required('flag')->bool()->ok();
+     * <code>
+     * $request->bool('flag')->ok();
+     * $request->required('flag')->bool()->ok();
+     * </code>
      * 
      * @param string|null $key
-     * @return Request pour permettre le chainage des appels de méthodes
+     * @return Request $this pour permettre le chainage des appels de méthodes
+     * 
      * @throws RequestParameterBoolExpected si le test échoue
      */
     public function bool($key=null)
@@ -640,11 +661,15 @@ class Request
      * toujours un entier ou un tableau d'entiers.
      *  
      * Exemples d'utilisation :
-     * - $request->int('nb')->ok();
-     * - $request->required('nb')->int()->ok();
+     * 
+     * <code>
+     * $request->int('nb')->ok();
+     * $request->required('nb')->int()->ok();
+     * </code>
      * 
      * @param string|null $key
-     * @return Request pour permettre le chainage des appels de méthodes
+     * @return Request $this pour permettre le chainage des appels de méthodes
+     * 
      * @throws RequestParameterIntExpected si le test échoue
      */
     public function int($key=null)
@@ -706,12 +731,17 @@ class Request
      * toujours du même type que l'argument $min indiqué.
      *  
      * Exemples d'utilisation :
-     * - $request->min('nb',5)->ok();
-     * - $request->min('author','azimov')->ok();
-     * - $request->required('nb')->min(5)->ok();
+     * 
+     * <code>
+     * $request->min('nb',5)->ok();
+     * $request->min('author','azimov')->ok();
+     * $request->required('nb')->min(5)->ok();
+     * </code>
      * 
      * @param string|null $key
-     * @return Request pour permettre le chainage des appels de méthodes
+     * @param scalar $min
+     * @return Request $this pour permettre le chainage des appels de méthodes
+     * 
      * @throws RequestParameterMinExpected si le test échoue
      */
     public function min($key, $min=null)
@@ -756,12 +786,18 @@ class Request
      * toujours du même type que l'argument $max indiqué.
      *  
      * Exemples d'utilisation :
-     * - $request->max('nb',20)->ok();
-     * - $request->max('author','bradbury')->ok();
-     * - $request->required('nb')->max(20)->ok();
+     * 
+     * <code>
+     * $request->max('nb',20)->ok();
+     * $request->max('author','bradbury')->ok();
+     * $request->required('nb')->max(20)->ok();
+     * </code>
      * 
      * @param string|null $key
-     * @return Request pour permettre le chainage des appels de méthodes
+     * @param scalar $max
+     * 
+     * @return Request $this pour permettre le chainage des appels de méthodes
+     * 
      * @throws RequestParameterMaxExpected si le test échoue
      */
     public function max($key, $max=null)
@@ -807,12 +843,16 @@ class Request
      * toujours strictement identique à l'une des valeurs autorisées.
      *  
      * Exemples d'utilisation :
-     * - $request->oneof('nb',2,4,6)->ok();
-     * - $request->oneof('author', 'azimov', 'bradbury')->ok();
-     * - $request->required('nb')->oneof(2,4,6)->ok();
+     * 
+     * <code>
+     * $request->oneof('nb',2,4,6)->ok();
+     * $request->oneof('author', 'azimov', 'bradbury')->ok();
+     * $request->required('nb')->oneof(2,4,6)->ok();
+     * </code>
      * 
      * @param string|null $key
-     * @return Request pour permettre le chainage des appels de méthodes
+     * @return Request $this pour permettre le chainage des appels de méthodes
+     * 
      * @throws RequestParameterBadValue si le test échoue
      */
     public function oneof($key)
@@ -862,11 +902,14 @@ class Request
      * scalaire. Dans tous les autres cas, le test échoue.
      * 
      * Exemples d'utilisation :
-     * - $request->unique('nb')->ok();
-     * - $request->required('ref')->unique()->ok();
+     * <code>
+     * $request->unique('nb')->ok();
+     * $request->required('ref')->unique()->ok();
+     * </code>
      * 
      * @param string|null $key
-     * @return Request pour permettre le chainage des appels de méthodes
+     * @return Request $this pour permettre le chainage des appels de méthodes
+     * 
      * @throws RequestParameterUniqueValueExpected si le paramètre est un tableau
      * contenant plusieurs éléments
      */
@@ -906,11 +949,13 @@ class Request
      * toujours un tableau.
      * 
      * Exemples d'utilisation :
-     * - $request->asArray('refs')->ok();
-     * - $request->required('refs')->asArray()->ok();
+     * <code>
+     * $request->asArray('refs')->ok();
+     * $request->required('refs')->asArray()->ok();
+     * </code>
      * 
      * @param string|null $key
-     * @return Request pour permettre le chainage des appels de méthodes
+     * @return Request $this pour permettre le chainage des appels de méthodes
      */
     public function asArray($key=null)
     {
@@ -934,11 +979,18 @@ class Request
      * 
      *  
      * Exemples d'utilisation :
-     * - $request->count('refs',2)->ok(); // ok si exactement 2 éléments
-     * - $request->required('refs')->count(2,3)->ok(); // ok si 2 ou 3 éléments
-     *  
+     * 
+     * <code>
+     * $request->count('refs',2)->ok(); // ok si exactement 2 éléments
+     * $request->required('refs')->count(2,3)->ok(); // ok si 2 ou 3 éléments
+     * </code>
+     * 
      * @param string|null $key
-     * @return Request pour permettre le chainage des appels de méthodes
+     * @param int $min
+     * @param int $max
+     * 
+     * @return Request $this pour permettre le chainage des appels de méthodes
+     * 
      * @throws RequestParameterCountException si le test échoue
      */
     public function count($key, $min=null, $max=null)
@@ -980,8 +1032,11 @@ class Request
      * Validation : termine la validation d'un paramètre et retourne la valeur
      * finale du paramètre.
      * 
-     * Exemples d'utilisation :
-     * - $request->set('flag','on')->bool()->ok(); // returns true
+     * Exemple d'utilisation :
+     * 
+     * <code>
+     * $request->set('flag','on')->bool()->ok(); // returns true
+     * </code>
      *  
      * @param string|null $key
      * @return mixed

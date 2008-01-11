@@ -91,7 +91,7 @@ class DatabaseAdmin extends Module
     /**
      * Construit la liste des modèles de structure de bases de données disponibles
      *
-     * @return {array(DatabaseStructure)} un tableau contenant la structure de
+     * @return array(DatabaseStructure) un tableau contenant la structure de
      * chacun des modèles disponibles
      */
     private static function getTemplates()

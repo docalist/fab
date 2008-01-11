@@ -777,9 +777,9 @@ class Routing
      * La fonction {@link arrayPrependKey()} est très similaire mais effectue
      * les insertions en ordre inverse. 
      * 
-     * @param array $array
-     * @param scalar $key
-     * @param scalar|object $value
+     * @param array $array le tableau à modifier
+     * @param scalar $key la clé à ajouter au tableau
+     * @param scalar|object $value la valeur associée à la clé
      */
     private static function arrayAppendKey(array & $array, $key, $value)
     {
@@ -821,9 +821,9 @@ class Routing
      * La fonction {@link arrayAppendKey()} est très similaire mais effectue
      * les insertions en ordre normal. 
      * 
-     * @param array $array
-     * @param scalar $key
-     * @param scalar|object $value
+     * @param array $array le tableau à modifier
+     * @param scalar $key la clé à ajouter au tableau
+     * @param scalar|object $value la valeur associée à la clé
      */
     private static function arrayPrependKey(array & $array, $key, $value)
     {
@@ -850,7 +850,8 @@ class Routing
      * Construit une query string à partir de la liste d'arguments passés en
      * paramètre.
      * 
-     * Contrairement à la fonction php standard http_build_query(), cette 
+     * Contrairement à la fonction php standard 
+     * {@link http://php.net/http_build_query http_build_query()}, cette 
      * méthode gère correctement les arguments multi-valués (ie elle ne génère 
      * pas de crochets).
      * 
@@ -861,7 +862,7 @@ class Routing
      * conformément à la {@link http://www.faqs.org/rfcs/rfc1738 RFC 1738}. 
      *
      * Exemple :
-     * <code> 
+     * <code>
      * $args=array('ref'=>12, 'mcl'=>array('être', 'ne pas être'));
      * resultat : ?ref=12&mcl=%EAtre&mcl=ne%20pas%20%EAtre
      * </code>
@@ -876,7 +877,7 @@ class Routing
      * configuration 'arg_separator.output' de php.ini est utilisée (en général
      * il s'agit de la chaine '&').
      * 
-     * @return string une chaine vide si args était vide, une query string 
+     * @return string une chaine vide si $args était vide, une query string 
      * valide commençant par '?' sinon.
      * 
      * @see http://www.faqs.org/rfcs/rfc1738

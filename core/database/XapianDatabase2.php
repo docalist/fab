@@ -77,12 +77,12 @@ class XapianDatabaseDriver2 extends Database
      * Un flag indiquant si on est en train de modifier l'enregistrement en
      * cours ou non  :
      * 
-     * 0 : l'enregistrement courant n'est pas en cours d'édition
+     * - 0 : l'enregistrement courant n'est pas en cours d'édition
      *  
-     * 1 : un nouvel enregistrement est en cours de création 
+     * - 1 : un nouvel enregistrement est en cours de création 
      * ({@link addRecord()} a été appellée)
      * 
-     * 2 : l'enregistrement courant est en cours de modification 
+     * - 2 : l'enregistrement courant est en cours de modification 
      * ({@link editRecord()} a été appellée)
      * 
      * @var int
@@ -116,7 +116,7 @@ class XapianDatabaseDriver2 extends Database
      * L'objet XapianQueryParser utilisé pour analyser les équations de recherche.
      * 
      * Initialisé par {@link setupSearch()} et utilisé uniquement dans 
-     * {@link serach()}
+     * {@link search()}
      * 
      * @var XapianQueryParser
      */
@@ -180,6 +180,11 @@ class XapianDatabaseDriver2 extends Database
      */
     private $sortKey=null;
     
+    /**
+     * Retourne la structure de la base de données
+     *
+     * @return DatabaseStructure
+     */
     public function getStructure()
     {
         return $this->structure;
@@ -194,8 +199,7 @@ class XapianDatabaseDriver2 extends Database
      *
      * @param string $path le path de la base à créer
      * @param DatabaseStructure $structure la structure de la base à créer
-     * @param Array $options options éventuelle, non utilisé
-     * @return void
+     * @param array $options options éventuelle, non utilisé
      */
     protected function doCreate($path, /* DS DatabaseStructure */ $structure, $options=null)
     {
@@ -226,7 +230,6 @@ class XapianDatabaseDriver2 extends Database
      * @param string $path le path de la base à ouvrir.
      * @param bool $readOnly true pour ouvrir la base en lecture seule, false
      * pour l'ouvrir en mode lexture/écriture.
-     * @return void
      */
     protected function doOpen($path, $readOnly=true)
     {
@@ -477,7 +480,7 @@ class XapianDatabaseDriver2 extends Database
      * @param string $value
      * @param int|string $start
      * @param int|string $end
-     * @return unknown
+     * @return string
      */
     private function startEnd($value, $start, $end=null)
     {
@@ -561,7 +564,7 @@ class XapianDatabaseDriver2 extends Database
     /**
      * Construit la liste des tokens pour un texte donné.
      * 
-     * @param string text
+     * @param string $text
      * @return array
      */
     private function tokenize($text)
@@ -587,7 +590,7 @@ class XapianDatabaseDriver2 extends Database
      * Fonction utilitaire utilisée par {@link tokenize()} pour convertir
      * les acronymes en mots
      *
-     * @param Array $matches
+     * @param array $matches
      * @return string
      */
     private function AcronymToTerm($matches)
@@ -1073,17 +1076,17 @@ class XapianDatabaseDriver2 extends Database
      * indiqué par la chaine $sort passée en paramètre.
      * 
      * Les options possibles pour sort sont :
-     *     - '%' : trier les notices par score (la meilleure en tête)
-     *     - '+' : trier par ordre croissant de numéro de document
-     *     - '-' : trier par ordre décroissant de numéro de document
-     *     - 'xxx+' : trier sur le champ xxx, par ordre croissant
-     *     - 'xxx-' : trier sur le champ xxx, par ordre décroissant
-     *     - 'xxx+%' : trier sur le champ xxx par ordre croissant, puis par
-     *       pertinence.
-     *     - 'xxx-%' : trier sur le champ xxx par ordre décroissant, puis par
-     *       pertinence.
-     *     - '%xxx+'
-     *     - '%xxx-'
+     * - <code>%</code> : trier les notices par score (la meilleure en tête)
+     * - <code>+</code> : trier par ordre croissant de numéro de document
+     * - <code>-</code> : trier par ordre décroissant de numéro de document
+     * - <code>xxx+</code> : trier sur le champ xxx, par ordre croissant
+     * - <code>xxx-</code> : trier sur le champ xxx, par ordre décroissant
+     * - <code>xxx+%</code> : trier sur le champ xxx par ordre croissant, puis
+     *   par pertinence.
+     * - <code>xxx-%</code> : trier sur le champ xxx par ordre décroissant, puis
+     *   par pertinence.
+     * - <code>%xxx+</code>
+     * - <code>%xxx-</code>
      * 
      * @param string|null $sort
      */
@@ -1164,6 +1167,12 @@ class XapianDatabaseDriver2 extends Database
         }
     }
 
+    /**
+     * Suggère des termes provenant de la table indiquée
+     *
+     * @param string $table
+     * @return array
+     */
     public function suggestTerms($table)
     {
         // Vérifie qu'on a un enregistrement en cours
@@ -1235,6 +1244,11 @@ class XapianDatabaseDriver2 extends Database
         }
     } 
 
+    /**
+     * Retourne la liste des termes du document en cours
+     *
+     * @return array
+     */
     public function getTerms()
     {
         if (is_null($this->xapianDocument))
@@ -1301,6 +1315,15 @@ class XapianDatabaseDriver2 extends Database
         return $result;
     }
 
+    /**
+     * Retourne une estimation du nombre de réponses obtenues lors de la
+     * dernière recherche exécutée.
+     *
+     * @param int|string $countType le type d'estimation à fournir ou le
+     * libellé à utiliser
+     
+     * @return int|string
+     */
     public function count($countType=0)
     {
         // Si l'argument est une chaine, on considère que l'utilisateur veut
@@ -1418,7 +1441,7 @@ class XapianDatabaseDriver2 extends Database
      * @param bool $internal flag indiquant s'il faut filtrer ou non la liste
      * des termes.
      * 
-     * @return array() un tableau contenant la liste des termes obtenus.
+     * @return array un tableau contenant la liste des termes obtenus.
      */
     private function getQueryTerms($internal=false)
     {
@@ -1465,7 +1488,7 @@ class XapianDatabaseDriver2 extends Database
      * @param bool $internal flag indiquant s'il faut dédoublonner ou non la 
      * liste des mots-vides.
      * 
-     * @return array() un tableau contenant la liste des termes obtenus.
+     * @return array un tableau contenant la liste des termes obtenus.
      */
     private function getRequestStopWords($internal=false)
     {
@@ -1501,7 +1524,7 @@ class XapianDatabaseDriver2 extends Database
      * @param bool $internal flag indiquant s'il faut filtrer ou non la liste
      * des termes.
      * 
-     * @return array() un tableau contenant la liste des termes obtenus.
+     * @return array un tableau contenant la liste des termes obtenus.
      */
     private function getMatchingTerms($internal=false)
     {

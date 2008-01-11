@@ -18,11 +18,13 @@
 final class Cache
 {
     /**
-     * @var array $caches Liste des caches gérés par le gestionnaire de cache.
+     * La liste des caches gérés par le gestionnaire de cache.
      * 
      * Chaque item du tableau est un tableau contenant deux éléments :
      * <li>le répertoire racine des fichiers qui seront mis en cache
      * <li>le répertoire à utiliser pour la version en cache des fichiers
+     * 
+     * @var array 
      */
     private static $caches=array();
     
@@ -46,7 +48,7 @@ final class Cache
      * @param string $cacheDir le path du répertoire dans lequel les fichiers
      * de cache seront stockés.
      * 
-     * @return boolean true si le cache a été créé, false si les droits sont 
+     * @return bool true si le cache a été créé, false si les droits sont 
      * insuffisants
      */
     public static function addCache($root, $cacheDir)
@@ -71,6 +73,8 @@ final class Cache
      * passé en paramètre
      * 
      * @param string $path le path du fichier qui sera lu ou écrit dans le cache
+     * @param int $cacheNumber une variable optionnelle permettant de récupérer
+     * le numéro interne du cache contenant le path indiqué
      * @return string le path de la version en cache de ce fichier.
      */
     public static function getPath($path, &$cacheNumber=null)
@@ -88,8 +92,8 @@ final class Cache
      * Indique si un fichier figure ou non dans le cache et s'il est à jour.
      * 
      * @param string $path le path du fichier à tester
-     * @param int date/heure minimale du fichier présent dans le cache pour
-     * qu'il soit considéré comme à jour.
+     * @param int $minTime date/heure minimale du fichier présent dans le cache 
+     * pour qu'il soit considéré comme à jour.
      * @return bool true si le fichier est dans le cache, false sinon
      */
     public static function has($path, $minTime=0)
@@ -118,7 +122,7 @@ final class Cache
      *  
      * @param string $path le path du fichier à écrire
      * @param string $data les données à écrire
-     * @return boolean true si le fichier a été mis en cache, false sinon
+     * @return bool true si le fichier a été mis en cache, false sinon
      */
     public static function set($path, $data)
     {

@@ -996,29 +996,32 @@ final class Utils
      * du contenu de la variable passée en paramètre.
      * 
      * Cette fonction fait la même chose que la fonction standard
-     * var_export() de php, mais elle génère un code plus compact,
-     * pour les tableaux (pour les autres variables, la sortie 
-     * générée est la même qu'avec var_expor())
+     * {@link http://php.net/var_export var_export()} de php, mais elle 
+     * génère un code plus compact pour les tableaux (pour les autres variables, 
+     * la sortie générée est la même qu'avec var_export())
      * 
      * - pas de retours chariots ni d'espaces inutiles dans le code généré
      * - ne génère les index de tableau que s'ils sont différents de
      * l'index qui serait automatiquement attribué s'il n'avait pas été
      * spécifié  
      * 
-     * Exemple : avec le tableau
+     * Exemple :
+     * avec le tableau
      * <code>$t=array('a', 10=>'b', 'c', 'key'=>'d', 'e');</code>
      * 
      * On génère le code :
      * <code>array('a',10=>'b','c','key'=>'d','e')</code>
      * 
      * Alors que la fonction var_export de php génère :
-     * <code>array (
+     * <code>
+     * array (
      *   0 => 'a',
      *   10 => 'b',
      *   11 => 'c',
      *   'key' => 'd',
      *   12 => 'e',
-     * )</code>
+     * )
+     * </code>
      * 
      * @param mixed $var la variable à afficher
      * @param boolean $return false : la fonction affiche le résultat, 
@@ -1273,7 +1276,7 @@ final class Utils
     /**
      * Formatte une chaine pour qu'elle puisse être écrite dans un fichier CSV.
      *
-     * Voir : http://www.rfc-editor.org/rfc/rfc4180.txt
+     * Extrait de la {@link http://www.rfc-editor.org/rfc/rfc4180.txt RFC 4180} :
      *  
      * Fields containing line breaks (CRLF), double quotes, and commas should be 
      * enclosed in double-quotes.
@@ -1330,19 +1333,25 @@ final class Utils
      * {@link getTempFile()}.
      * 
      * Exemple :
+     * <code>
      * Utils::startCapture();
+     * </code>
      * 
      * Il est possible d'indiquer la durée de vie du fichier temporaire (ttl)
      * en paramètre (en secondes).
      * 
      * Exemple :
+     * <code>
      * Utils::startCapture(3600); // crée un fichier temporaire valable pour une heure
+     * </code>
      * 
      * Si vous souhaitez faire une capture vers un fichier pérenne (non temporaire), vous
      * pouvez indiquer le path complet du fichier de capture.
      * 
      * Exemple :
-     * Utils::startCapture(dirname(__FILE__).'/static.html');
+     * <code>
+     *     Utils::startCapture(dirname(__FILE__).'/static.html');
+     * </code>
      * 
      * @param mixed $path_or_ttl path du fichier de capture ou durée de vie du fichier temporaire
      * @param int $chunkSize taille des blocs de capture (passé lors de l'appel à ob_start())
