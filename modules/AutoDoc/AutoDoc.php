@@ -10,16 +10,6 @@ class AutoDoc extends Module
      * 
      * Les flags passés en paramètre permettent de choisir ce qui sera affiché.
      * 
-     * Remarque :
-     * simple paragraphe contenant le titre de la remarque. Peut éventuellement
-     * aller sur plusieurs lignes.
-     * 
-     * Remarque : 
-     * - première remarque.
-     * - seconde remarque. peut éventuellement se poursuivre sur plusieurs
-     * lignes si c'est nécessaire
-     * - troisième remarque
-     *
      * @param bool $class le nom de la classe pour laquelle il faut afficher
      * la documentation
      * 
