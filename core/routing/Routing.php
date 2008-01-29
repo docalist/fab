@@ -444,8 +444,9 @@ class Routing
      */
     public static function linkFor($url, $absolute=false)
     {
+        $url=(string)$url; // au cas où on nous passe autre chose qu'une chaine (par exemple un objet Request)
         // Si ce n'est pas une fab url, on retourne l'url telle quelle
-        if (preg_match('~^(?:[a-z]{3,6}:|\?|#)~',$url))  // commence par un nom de protocole, une query string ou un hash (#)
+        if (preg_match('~^(?:[a-z]{3,10}:|\?|#)~',$url))  // commence par un nom de protocole, une query string ou un hash (#)
             return $url;
 
         $ori=$url;
@@ -547,7 +548,7 @@ class Routing
             $link=Utils::getHost() . $link;
             
         // Retourne le résultat
-        debug && Debug::log('linkFor(%s)=%s', $url, $link);
+//        debug && Debug::log('linkFor(%s)=%s', $url, $link);
         return $link;
     }
     
