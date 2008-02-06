@@ -609,11 +609,20 @@ class TemplateCode
                 'is_null',
                 'is_array',
                 'array_sum',
+                'in_array',
                 'date',
                 'sprintf',
                 'strpbrk',
                 'wordwrap',
-                'number_format'
+                'number_format',
+                'ucfirst',
+                'htmlspecialchars',
+                'nl2br',
+                'array_flip',
+                'array_intersect_key',
+                'array_diff_key',
+                'array_map',
+            'iterator_to_array'
                 
             ));
             $runtimeFunctions=array_flip(array
@@ -623,6 +632,8 @@ class TemplateCode
                 'extension_loaded',
                 'array_keys',
                 'class_exists',
+                'time',
+                'strftime'
             ));
         }
 
@@ -677,7 +688,7 @@ class TemplateCode
             $canEval=false;
         }
         else
-            throw new Exception($function.' : fonction inconnue ou non authorisée');
+            throw new Exception($function.' : fonction inconnue ou non autorisée');
         
         // Extrait chacun des arguments de l'appel de fonction
         $level=1;

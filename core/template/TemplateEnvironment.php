@@ -115,7 +115,7 @@ class TemplateEnvironment
      */
     public function get($var)
     {
-        debug && Debug::log('%s', $var);
+//        debug && Debug::log('%s', $var);
 
         // Parcours toutes les sources de données
         foreach ($this->env as $i=>$data)
@@ -124,7 +124,7 @@ class TemplateEnvironment
             // Clé d'un tableau de données
             if (is_array($data) && array_key_exists($var, $data)) 
             {
-                debug && Debug::log('C\'est une clé du tableau de données');
+//                debug && Debug::log('C\'est une clé du tableau de données');
                 
                 // Si c'est une variable locale introduite par un bloc, pas de binding
                 if ($i<$this->localCount) return $data[$var];
@@ -148,7 +148,7 @@ class TemplateEnvironment
  
                 if (property_exists($data,$var) || (is_callable(array($data,'__get'))&& !(is_null(call_user_func(array($data,'__get'),$var)))))
                 {
-                    debug && Debug::log('C\'est une propriété de l\'objet %s', get_class($data));
+//                    debug && Debug::log('C\'est une propriété de l\'objet %s', get_class($data));
                     return $this->addBinding($var, 'Template::$data['.$j.']->'.$var);
                 }
                 
@@ -157,7 +157,7 @@ class TemplateEnvironment
                 {
                     try // tester avec isset
                     {
-                        debug && Debug::log('Tentative d\'accès à %s[\'%s\']', get_class($data), $var);
+//                        debug && Debug::log('Tentative d\'accès à %s[\'%s\']', get_class($data), $var);
                         $value=$data[$var]; // essaie d'accéder, pas d'erreur ?
 
                         $code=$this->addBinding(get_class($data), 'Template::$data['.$j.']');
@@ -167,11 +167,11 @@ class TemplateEnvironment
                     }
                     catch(Exception $e)
                     {
-                        debug && Debug::log('Génère une erreur %s', $e->getMessage());
+//                        debug && Debug::log('Génère une erreur %s', $e->getMessage());
                     }
                 }
-                else
-                    debug && Debug::log('Ce n\'est pas une clé de l\'objet %s', get_class($data));
+//                else
+//                    debug && Debug::log('Ce n\'est pas une clé de l\'objet %s', get_class($data));
             }
 
             // Fonction de callback
