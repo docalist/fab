@@ -1,0 +1,20 @@
+<h2>Thesaurus SantéPsy</h2>
+<form action="search">
+    <fieldset>
+        <legend>Rechercher un terme</legend>
+        <textbox name="_equation" size="40" />
+        <submit label="Rechercher..." />
+    </fieldset>
+    
+    <br />
+    
+    <fieldset>
+        <legend>Liste des champs sémantiques</legend>
+        <ul>
+            <loop on="$this->selection">
+                <li><a href="show?REF=$REF">$Fre</a></li>
+            </loop>
+        </ul>
+        <p style="color:#444; font-size:0.7em;">{$this->selection->count()} réponses</p>
+    </fieldset>
+</form>

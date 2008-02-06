@@ -1,0 +1,63 @@
+nu.ul.treeview
+{
+    background-color: #FFFFDD;
+}
+
+/* Image utilisé pour indiquer le chargement ajax */
+nu.treeview li.loading a
+{
+    padding-right: 20px; /* un peu de place à droite du libellé du terme */
+    background: url('loading.gif') top right no-repeat;
+}
+nu.treeview li.loading a.toggle /* annule ci-dessus pour le lien +/- */
+{
+    background-image: none;
+    padding-right: 0;
+}
+
+/* indentation des listes */
+ul.treeview
+{
+    margin: 0;
+    padding: 0;
+}
+ul.treeview ul
+{
+    margin-left: 8px;
+    padding-left: 1em;
+    border-left: 1px solid #aaa;
+}
+
+/* ouverture/fermeture des noeuds */
+li.open
+{
+    /*background-color: pink;*/
+}
+
+ul.treeview a.toggle,
+ul.treeview li.open li a.toggle
+{
+    background: url('plus.gif') center left no-repeat;
+    padding-left: 16px;
+    font-size: 0;
+    padding-top: 12px;
+    
+}
+ul.treeview li.open a.toggle
+{
+    background: url('minus.gif') center left no-repeat;
+}
+
+/* descripteur, noeud, nondes */
+.node a
+{
+    color: red !important;
+}
+.leaf a
+{
+    color: blue !important;
+}
+.nondes a
+{
+    color: #888 !important;
+}

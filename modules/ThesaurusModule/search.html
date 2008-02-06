@@ -1,0 +1,22 @@
+<h2>Thesaurus SantéPsy</h2>
+<p>Votre recherche : {$this->equation}</p>
+    /* Affiche les mots-vides qui ont été ignorés dans l'équation */
+    <def name="stopwords" value="{$this->selection->searchInfo('stopwords')}" />
+    <switch test="{count($stopwords)}">
+        <case test="0" />
+        <case test="1"><p>Le mot "{$stopwords[0]}" a été ignoré dans votre recherche.</p></case>
+        <default><p>Les mots "{implode('", "', $stopwords)}" ont été ignorés dans votre recherche.</p></default>
+    </switch>
+    
+
+<ul>
+    <loop on="$this->selection">
+        <li>
+            <a href="show?REF=$REF">$Fre</a>
+            <if test="$EM">
+                <br />EM : <a href="show?REF=$EM">$EM</a>
+            </if>
+        </li>
+    </loop>
+</ul>
+<p>{$this->selection->count()} réponse(s)</p>

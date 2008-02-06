@@ -1,0 +1,17 @@
+div.term p
+{
+    margin: 0;
+}
+
+div.term p.FRE
+{
+    color: #008;
+    font-weight: bold;
+}
+
+
+div.term span.lib /* les mentions "TG :", "TS :", etc. */
+{
+    color: #000;
+    font-weight: bold;
+}
