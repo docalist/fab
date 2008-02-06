@@ -233,11 +233,51 @@ class XapianDatabaseDriver2 extends Database
      */
     protected function doOpen($path, $readOnly=true)
     {
-        // Ouvre la base xapian
+        // Ouverture de la base xapian en lecture
         if ($readOnly)
+        {
             $this->xapianDatabase=new XapianDatabase($path);
+        }
+        
+        // Ouverture de la base xapian en écriture
         else
-            $this->xapianDatabase=new XapianWritableDatabase($path, Xapian::DB_OPEN);
+        {
+            $starttime=microtime(true);
+            $maxtries=100;
+            for($i=1; ; $i++)
+            {
+                try
+                {
+//                    echo "tentative d'ouverture de la base...<br />\n";
+                    $this->xapianDatabase=new XapianWritableDatabase($path, Xapian::DB_OPEN);
+                }
+                catch (Exception $e)
+                {
+                    // comme l'exception DatabaseLockError de xapian n'est pas mappée en php
+                    // on teste le début du message d'erreur pour déterminer le type de l'exception
+                    if (strpos($e->getMessage(), 'DatabaseLockError:')===0)
+                    {
+//                        echo 'la base est verrouillée, essais effectués : ', $i, "<br />\n";
+                        
+                        // Si on a fait plus de maxtries essais, on abandonne
+                        if ($i>$maxtries) throw $e;
+                        
+                        // Sinon, on attend un peu et on refait un essai
+                        $wait=rand(1,9) * 10000;
+//                        echo 'attente de ', $wait/10000, ' secondes<br />', "\n";
+                        usleep($wait); // attend de 0.01 à 0.09 secondes 
+                        continue;
+                    }
+                    
+                    // Ce n'est pas une exception de type DatabaseLockError, on la propage
+                    throw $e;
+                }
+                
+                // on a réussi à ouvrir la base
+                break;
+            }
+//            echo 'Base ouverte en écriture au bout de ', $i, ' essai(s). Temps total : ', (microtime(true)-$starttime), ' sec.<br />', "\n";
+        }
             
         // Charge la structure de la base
         $this->structure=unserialize($this->xapianDatabase->get_metadata('fab_structure_php'));
@@ -567,10 +607,11 @@ class XapianDatabaseDriver2 extends Database
      * @param string $text
      * @return array
      */
-    private function tokenize($text)
+    public function tokenize($text)
     {
         static $charFroms = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZÀÁÂÃÄÅŒÆÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖØÙÚÛÜÝßàáâãäåœæçèéêëìíîïðñòóôõöùúûüýþÿ-Þ\'';        
         static $charTo    = '0123456789abcdefghijklmnopqrstuvwxyzaaaaaaœæceeeeiiiidnooooo0uuuuysaaaaaaœæceeeeiiiidnooooouuuuyby e ';
+        // todo: a tester : pas besoin d'avoir [0-9A-Z] dans la liste : xapian le fera. ne garder que les accents et les signes diacritiques
          
         // Convertit les sigles en mots
         $text=preg_replace_callback('~(?:[a-z0-9]\.){2,9}~i', array($this, 'AcronymToTerm'), $text);
@@ -582,7 +623,7 @@ class XapianDatabaseDriver2 extends Database
         $text=strtr($text, array('æ'=>'ae', 'œ'=>'oe'));
 
         // Retourne un tableau contenant tous les mots présents
-        return str_word_count($text, 1, '0123456789@');
+        return str_word_count($text, 1, '0123456789@_');
     }
     
 
@@ -896,7 +937,7 @@ class XapianDatabaseDriver2 extends Database
     private function parseQuery($equation)
     {
         // Equation=null ou chaine vide : sélectionne toute la base
-        if (is_null($equation) || $equation==='')
+        if (is_null($equation) || $equation==='' || $equation==='*')
             return new XapianQuery('');
             
         // Pré-traitement de la requête pour que xapian l'interprête comme on souhaite
@@ -1045,7 +1086,7 @@ class XapianDatabaseDriver2 extends Database
 
         // Combine l'équation et le filtre pour constituer la requête finale
         if ($filter)
-            $query=new XapianQuery(XapianQuery::OP_FILTER, $query, $filter);
+            $query=new XapianQuery(XapianQuery::OP_FILTER, $query, $this->xapianFilter);
             
         // Exécute la requête
         $this->xapianEnquire->set_query($query);
@@ -1751,18 +1792,61 @@ class XapianDatabaseDriver2 extends Database
         }
     }
     
+    public function reindexByCopying()
+    {
+        // Crée la nouvelle base en '.tmp'
+        $path=$this->path.'.tmp';
+        
+        $dbs=new DatabaseStructure(file_get_contents(Runtime::$root . 'data/DatabaseTemplates/ascodocpsy.xml'));
+        
+        $tmp=Database::create($path, $dbs, 'xapian2');
+        
+        while(ob_get_level()) ob_end_flush();
+        $this->search(null, array('_sort'=>'+', '_max'=>20000));
+        echo $this->count(), ' notices à copier. <br />';
+
+        $start=microtime(true);
+        $i=0;
+        foreach ($this as $record)
+        {
+            $tmp->addRecord();
+            foreach($record as $field=>$value)
+            {
+                $tmp[$field]=$value;
+            }
+            $tmp->saveRecord();
+            
+            $id=$this->xapianMSetIterator->get_docid();
+            if (0 === $i % 100)
+            {
+                echo sprintf('%.2f', microtime(true)-$start), ', i=', $i, ', id=', $id, '<br />';
+                flush();
+            }
+            
+            $i++;
+        }
+
+        //
+        echo sprintf('%.2f', microtime(true)-$start), ', i=', $i, ', id=', $id, ', flush de la base...<br />';
+        flush();
+        
+        echo sprintf('%.2f', microtime(true)-$start), ', terminé !<br />';
+        flush();
+    }
+    
     public function reindex()
     {
         while(ob_get_level()) ob_end_flush();
-        $this->search(null, array('_sort'=>'+', '_max'=>-1));
+        $this->search(null, array('_sort'=>'+', '_max'=>20000));
         echo $this->count(), ' notices à réindexer. <br />';
+        
         $start=microtime(true);
-//        $this->xapianDatabase->begin_transaction(true);
+//        $this->xapianDatabase->begin_transaction(false);
         $i=0;
         foreach ($this as $record)
         {
             $id=$this->xapianMSetIterator->get_docid();
-            if (0 === $i % 100)
+            if (0 === $i % 1000)
             {
                 echo sprintf('%.2f', microtime(true)-$start), ', i=', $i, ', id=', $id, '<br />';
                 flush();
@@ -1776,7 +1860,7 @@ class XapianDatabaseDriver2 extends Database
             
             $i++;
         }
-//        $this->xapianDatabase->commit_transaction(true);
+//        $this->xapianDatabase->commit_transaction();
 
         //
         echo sprintf('%.2f', microtime(true)-$start), ', i=', $i, ', id=', $id, ', flush de la base...<br />';
