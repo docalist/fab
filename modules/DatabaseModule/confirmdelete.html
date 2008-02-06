@@ -1,0 +1,28 @@
+<if test="{$this->selection->count()==1}">
+    <h1>Suppression d'un enregistrement dans la base {Config::get('database')}</h1>
+</if>
+<else>
+    <h1>Suppression de {$this->selection->count()} enregistrements dans la base {Config::get('database')}</h1>
+</else>
+
+<fieldset label="Confirmation">
+    <if test="{$this->selection->count()==1}">
+        <p>Vous avez demandé la suppression d'un enregistrement, correspondant à l'équation {$this->equation}</p>
+    </if>
+    <else>
+        <p>Vous avez demandé la suppression de {$this->selection->count()} enregistrements, correspondant à l'équation {$this->equation}</p>
+    </else>
+    <p>Pour confirmer votre demande, cliquez sur le bouton "Supprimer".</p>
+    <p>Sinon, retournez sur la <a href="javascript:history.back()">page précédente</a>.</p>
+
+    <p><strong>Attention :</strong></p> 
+    <ul>
+        <li><strong>Les enregistrements seront supprimés définitivement de la base de données.</strong></li>
+        <li><strong>Aucune annulation de la suppression ne sera possible.</strong></li>
+     </ul>
+    <form action="Delete" method="get">
+        <hidden name="confirm" value="{time()}" />
+        <hidden name="_equation" value="{$this->equation}" />
+        <submit label="Supprimer..." style="float:right;" />
+    </form>
+</fieldset>

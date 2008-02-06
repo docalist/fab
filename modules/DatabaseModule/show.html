@@ -1,0 +1,14 @@
+<table border="1">
+    <loop on="{$this->selection->getStructure()->fields}" as="$name,$field">
+        <tr class="{empty($this->selection[$name]) ? 'empty' : ''}">
+            <th title="{$field->description}">
+                {$field->label:$field->name}
+            </th>
+            <td>
+                <span>
+                    {$this->selection[$name]:'&#160;'}
+                </span>
+            </td>
+        </tr>
+    </loop>
+</table>

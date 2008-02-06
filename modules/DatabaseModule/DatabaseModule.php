@@ -91,7 +91,7 @@ class DatabaseModule extends Module
     }
     public function actionReindex()
     {
-        die('ne fonctionne pas, ne pas utiliser tant que le bug n\'aura pas été fixé');
+        //die('ne fonctionne pas, ne pas utiliser tant que le bug n\'aura pas été fixé');
         set_time_limit(0);
         $this->openDatabase(false);
         $this->selection->reindex();
@@ -124,7 +124,7 @@ class DatabaseModule extends Module
         // Affiche le formulaire de recherche si on n'a aucun paramètre
         if (is_null($this->equation))
         {
-            if (! $this->request->hasParams())
+            if (! $this->request->hasParameters())
                 Runtime::redirect('searchform'); // c'est la seule différence avec ActionShow. Si on avait dans la config 'redirectToSearchForm yes/no', show pourrait être une pseudo action
             $this->showError('Vous n\'avez indiqué aucun critère de recherche.');
             return;
@@ -351,9 +351,13 @@ class DatabaseModule extends Module
      * Supprime la ou les notice(s) indiquée(s) par l'équation puis affiche le template
      * indiqué dans la clé 'template' de la configuration.
      * 
-     * Si aucun template n'est indiqué, affiche un message 'notice supprimée'.
+     * Avant de supprimer les notices, redirige vers la pseudo action confirmDelete
+     * pour demander une confirmation.
+     *  
+     * @param int $confirm
+     * @return unknown
      */
-    public function actionDelete()
+    public function actionDelete($confirm=0)
     {
         // Ouvre la base de données
         $this->openDatabase(false);
@@ -369,98 +373,94 @@ class DatabaseModule extends Module
         if (! $this->select($this->equation, -1) )
             return $this->showError("Aucune réponse. Equation : $this->equation");
 
-        // TODO: déléguer au TaskManager
+        // Demande confirmation si ce n'est pas déjà fait
+        $confirm=$this->request->int('confirm')->ok();
+        $confirm=time()-$confirm;
+        if($confirm<0 || $confirm>Config::get('timetoconfirm',30))  // laisse timetoconfirm secondes à l'utilisateur pour confirmer
+            Runtime::redirect($this->request->setAction('confirmDelete'));
+            
+        // Récupère le nombre exact de notices à supprimer
+        $count=$this->selection->count();
+        
+        // Crée une tâche dans le TaskManager si on a plus de maxrecord notices et qu'on n'est pas déjà dans une tâche
+        if ( $count > Config::get('maxrecord',1))
+        {
+            // afficher formulaire, choisir date et heure, revenir ici
+            $id=Task::create()
+                ->setRequest($this->request->setAction('BatchDelete'))
+                ->setTime(0)
+                ->setLabel("Suppression de $count notices dans la base ".Config::get('database'))
+                ->setStatus(Task::Waiting)
+                ->save()
+                ->getId();
+                
+            Runtime::redirect('/TaskManager/TaskStatus?id='.$id);
+            return;
+        }
 
         // Supprime toutes les notices de la sélection
         foreach($this->selection as $record)
             $this->selection->deleteRecord();
-
-        // Détermine le template à utiliser
-        if (! $template=$this->getTemplate())
-            echo '<p>Notice supprimée.</p>';
-
-        // Détermine le callback à utiliser
-        $callback=$this->getCallback();
-
+        
         // Exécute le template
         Template::run
         (
-            $template,  
-            array($this, $callback),
-            $this->selection->record  //fixme : pas de sens : on passe un record supprimé + il peut y en avoir plusieurs
+            $this->getTemplate(),  
+            array($this, $this->getCallback())
         );
+
+        // Ferme la base maintenant
+        unset($this->selection); // optionnel, voir si on garde
     }
     
-    /**
-     * Affiche le formulaire de type Chercher/Remplacer indiqué dans la clé
-     * 'template' de la configuration
-     */
-     public function actionReplaceForm()
-     {        
+    public function actionBatchDelete()
+    {
+        // Détermine si on est une tâche du TaskManager ou si on est "en ligne"
+        if (!User::hasAccess('cli')) die(); // todo: mettre access:cli en config
+        
         // Ouvre la base de données
-        $this->openDatabase();
+        $this->openDatabase(false);
 
-        // Récupère l'équation de recherche qui donne les enregistrements sur lesquels travailler
+        // Récupère l'équation de recherche qui donne les enregistrements à supprimer
         $this->equation=$this->getEquation();
 
         // Paramètre equation manquant
         if (is_null($this->equation))
-            return $this->showError('Vous n\'avez indiqué aucun critère de recherche sur les enregistrements de la base de données.');
-            
+            return $this->showError('Le ou les numéros des notices à supprimer n\'ont pas été indiqués.');
+
         // Aucune réponse
-        if (! $this->select($this->equation) )
+        if (! $this->select($this->equation, -1) )
             return $this->showError("Aucune réponse. Equation : $this->equation");
 
-        // Construit le tableau des champs modifiables des enregistrements retournés par la recherche.
-        // Par compatibilité avec les générateurs de contrôles utilisateurs (fichier generators.xml)
-        // il faut un tableau de tableaux contenant chacun une clé 'code' et une clé 'label'
-        // On suppose que la sélection peut contenir des enregistrements provenants de différentes tables (pas la même structure)
-        $fieldList = array();   // le tableau global qui contient les tableaux de champs
+        // Récupère le nombre exact de notices à supprimer
+        $count=$this->selection->count();
         
-        // Si on est certain de n'avoir que des enregistrements de même nature (même noms de champs),
-        // on peut vouloir boucler sur un seul enregistrement (au lieu de tous à l'heure actuelle)
-        // Cependant, dans le cas de nombreuses BDD relationnelles, une selection peut être composé d'enreg
-        // de nature différente (différentes tables)
-        // TODO: optimisation possible si on a un fichier structure BDD de bas niveau
-        
-        $ignore = array('REF');  // liste des champs à ignorer : REF plus ceux déjà ajoutés à $fieldList
-        
-        foreach($this->selection as $record)
-        {
-            $newField = array();    // un tableau par champ trouvé
-            
-            foreach($record as $fieldName => $fieldValue)
-            {
-                if (! in_array($fieldName, $ignore))   // REF n'est pas modifiable
-                {
-                    $newField['code'] = $fieldName;
-                    $newField['label'] = $fieldName;    // on affichera directement le code du champ tel que dans la BDD
-                    $fieldList[] = $newField;           // ajoute au tableau global
-                    $ignore[] = $fieldName;             // pour ne pas le rajouter la prochaine fois qu'on le trouve
-                }
-            }
-            break;
-        }
-        
-        // Tri le tableau des champs modifiables
-        sort($fieldList);
+        // idea: avoir un template unique contenant un switch et qu'on appelle avec phase="before", "after", etc. à creuser.
 
-        // Détermine le template à utiliser
-        if (! $template=$this->getTemplate())
-            throw new Exception('Le template à utiliser n\'a pas été indiqué');
-        
-        // Détermine le callback à utiliser
-        $callback=$this->getCallback();
-               
         // Exécute le template
         Template::run
         (
-            $template,  
-            array($this, $callback),           // Priorité à la fonction utilisateur
-            array('fieldList'=>$fieldList)
+            $this->getTemplate(),  
+            array($this, $this->getCallback())
         );
-     }
-    
+        
+        // Supprime toutes les notices de la sélection
+        $nb=0;
+        foreach($this->selection as $record)
+        {
+            $this->selection->deleteRecord();
+            TaskManager::progress(++$nb, $count);
+        }
+        echo '<p>Fermeture de la base...</p>';
+        TaskManager::progress(50,50);
+        
+        // Ferme la base maintenant
+        unset($this->selection);
+        
+        // Done.
+        echo '<p>Suppression des ', $count, ' enregistrements terminée</p>';
+    }
+
     /**
      * Effectue le chercher/remplacer et appelle le template indiqué dans la clé
      * template de la configuration ensuite : feedback
@@ -470,47 +470,75 @@ class DatabaseModule extends Module
      * ($count contient alors le nombre d'occurences remplacées)
      *  
      */
-     public function actionReplace()
+     public function actionReplace($_equation, $search='', $replace='', array $fields=array(), $word=false, $ignoreCase=true, $regexp=false)
      {       
-        // Ouvre la base de données
+        // Vérifie les paramètres
+        $this->equation=$this->request->required('_equation')->ok();
+        $search=$this->request->unique('search')->ok();
+        $replace=$this->request->unique('replace')->ok();
+        $fields=$this->request->asArray('fields')->required()->ok();
+        $word=$this->request->bool('word')->ok();
+        $ignoreCase=$this->request->bool('ignoreCase')->ok();
+        $regexp=$this->request->bool('regexp')->ok();
+        
+        // Vérifie qu'on a des notices à modifier 
         $this->openDatabase(false);
-
-        // Récupère l'équation de recherche qui donne les enregistrements sur lesquels travailler
-        $this->equation=$this->getEquation();
-        
-        // TODO : Pb avec les équations qui ont des guillemets
-        
-        $search=Utils::get($_REQUEST['search'], '');
-        $replace=Utils::get($_REQUEST['replaceStr'], '');
-        $fields = (array) Utils::get($_REQUEST['fields']);
-        
-        $wholeWord=is_null(Utils::get($_REQUEST['wholeWord'])) ? false : true;
-        $caseInsensitive=is_null(Utils::get($_REQUEST['caseInsensitive'])) ? false : true;
-        $regExp=is_null(Utils::get($_REQUEST['regExp'])) ? false : true;
-        
-        // Vérifie que les données sont renseignées
-        if ($this->equation==='')
-            return $this->showError('Vous n\'avez indiqué aucun critère de recherche sur les enregistrements de la base de données.');
-
-        // S'il n'y a rien à faire,on redirige vers replaceform
-        if (count($fields)==0 || ($search==='' && $replace===''))
-            Runtime::redirect('replaceform?_equation=' . urlencode($this->equation));
-            
-        // Lance la requête qui détermine les enregistrements sur lesquels on va opérer le chercher/remplacer 
         if (! $this->select($this->equation, -1) )
             return $this->showError("Aucune réponse. Equation : $this->equation");
+        
+        $count=$this->selection->count();
 
-        // Eventuelle callback de validation des données passée au format array(object, nom méthode) 
-//        if (($callback = $this->getCallback()) !== 'none')
-//            $callback = array($this, $callback);
-//        else
-//            $callback = null;
+        // Si on est "en ligne" (ie pas en ligne de commande), crée une tâche dans le TaskManager
+        if (!User::hasAccess('cli'))
+        {
+            $options=array();
+            if ($word) $options[]='mot entier';
+            if ($ignoreCase) $options[]='ignorer la casse';
+            if ($regexp) $options[]='expression régulière';
+            if (count($options))
+                $options=' (' . implode(', ', $options) . ')';
+            else
+                $options='';
+                
+            $label=sprintf
+            (
+                'Remplacer %s par %s dans %d notices de la base %s%s',
+                var_export($search,true),
+                var_export($replace,true),
+                $count,
+                Config::get('database'),
+                $options
+            );
+            
+            $id=Task::create()
+                ->setRequest($this->request)
+                ->setTime(0)
+                ->setLabel($label)
+                ->setStatus(Task::Waiting)
+                ->save()
+                ->getId();
+                
+            Runtime::redirect('/TaskManager/TaskStatus?id='.$id);
+            return;
+        }
+        
+        // Sinon, au boulot !
 
+        echo '<h1>Modification en série</h1>', "\n";
+        echo '<ul>', "\n";
+        echo '<li>Equation de recherche : <code>', $this->equation, '</code></li>', "\n";
+        echo '<li>Nombre de notices à modifier : <code>', $count, '</code></li>', "\n";
+        echo '<li>Rechercher : <code>', var_export($search,true), '</code></li>', "\n";
+        echo '<li>Remplacer par : <code>', var_export($replace,true), '</code></li>', "\n";
+        echo '<li>Dans le(s) champ(s) : <code>', implode(', ', $fields), '</code></li>', "\n";
+        echo '<li>Mots entiers uniquement : <code>', ($word ? 'oui' : 'non'), '</code></li>', "\n";
+        echo '<li>Ignorer la casse des caractères : <code>', ($ignoreCase ? 'oui' : 'non'), '</code></li>', "\n";
+        echo '<li>Expression régulière : <code>', ($regexp ? 'oui' : 'non'), '</code></li>', "\n";
+        
+        
         $count = 0;         // nombre de remplacements effectués par enregistrement
         $totalCount = 0;    // nombre total de remplacements effectués sur le sous-ensemble de notices
         
-        // TODO: déléguer le boulot au TaskManager (exécution peut être longue)
-
         // Search est vide : on injecte la valeur indiquée par replace dans les champs vides
         if ($search==='')
         {
@@ -526,7 +554,7 @@ class DatabaseModule extends Module
         // chercher/remplacer sur exp reg ou chaîne
         else        
         {
-            if ($regExp || $wholeWord)
+            if ($regexp || $word)
             {
                 // expr reg ou alors chaîne avec 'Mot entier' sélectionné
                 // dans ces deux-cas, on appellera pregReplace pour simplier
@@ -534,12 +562,12 @@ class DatabaseModule extends Module
                 // échappe le '~' éventuellement entré par l'utilisateur car on l'utilise comme délimiteur
                 $search = str_replace('~', '\~', $search);
                 
-                if ($wholeWord)
+                if ($word)
                     $search = $search = '~\b' . $search . '\b~';
                 else
                     $search = '~' . $search . '~';  // délimiteurs de l'expression régulière
                     
-                if ($caseInsensitive)
+                if ($ignoreCase)
                     $search = $search . 'i';
 
                 foreach($this->selection as $record)
@@ -563,8 +591,8 @@ class DatabaseModule extends Module
                 foreach($this->selection as $record)
                 {
                     $this->selection->editRecord(); // on passe en mode édition de l'enregistrement
-//                    $this->selection->strReplace($fields, $search, $replace, $caseInsensitive, $count, $callback);     // cf. Database.php
-                    $this->selection->strReplace($fields, $search, $replace, $caseInsensitive, $count);
+//                    $this->selection->strReplace($fields, $search, $replace, $ignoreCase, $count, $callback);     // cf. Database.php
+                    $this->selection->strReplace($fields, $search, $replace, $ignoreCase, $count);
                     $this->selection->saveRecord();
                     $totalCount += $count;
                 }
@@ -686,7 +714,7 @@ class DatabaseModule extends Module
                 $this->request->defaults('_max', Config::get('max', 10))
                     ->unique()
                     ->int()
-                    ->min(0)
+                    ->min(-1)
                     ->ok(),
                     
             '_sort'=> isset($sort) ? $sort : 
@@ -780,7 +808,13 @@ class DatabaseModule extends Module
         (
             $template,  
             array($this, $callback),
-            array('message'=>$message)
+            array('message'=>$message),
+            $this->selection->record
+            
+            // On passe en paramètre la sélection en cours pour permettre
+            // d'utiliser le même template dans un search (par exemple) et 
+            // dans l'erreur 'aucune réponse' (on a le cas pour ImportModule)
+            
         );
     }
     
@@ -835,7 +869,7 @@ class DatabaseModule extends Module
         
         // Combine en OU tous les paramètres qui sont des noms d'index/alias et combine en ET avec l'équation précédente
         $structure=$this->selection->getStructure();
-        foreach($this->request->getParams() as $name=>$value)
+        foreach($this->request->getParameters() as $name=>$value)
         {
             if (is_null($value) || $value==='') continue;
             if (isset($structure->indices[strtolower($name)]) || isset($structure->aliases[strtolower($name)]))
@@ -869,7 +903,7 @@ class DatabaseModule extends Module
         if ($equation !== '') return $equation;
         
         // L'équation par défaut indiquée dans la config sinon
-        return $this->configUserGet('DefaultEquation', null);
+        return $this->configUserGet('equation', null);
     }
     
     /**
@@ -899,10 +933,10 @@ class DatabaseModule extends Module
     {
         // Charge les filtres indiqués dans la clé 'filter' de la configuration
         $filters1=(array) $this->configUserGet('filter');
-        
+                
         // Charge les filtres indiqués dans les paramètres '_filter' de la requête
         $filters2=(array) $this->request->_filter;
-
+        
         // Fusionne les deux
         return array_merge($filters1, $filters2);
     }
@@ -1135,7 +1169,7 @@ class DatabaseModule extends Module
      * 
      * @return string le nom du template à utiliser ou null
      */
-    private function configUserGet($key, $default=null)
+    protected function configUserGet($key, $default=null)
     {
         $value=Config::get($key);
         if (is_null($value))
