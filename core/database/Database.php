@@ -95,6 +95,17 @@ abstract class Database implements ArrayAccess, Iterator
     
     public $record=null;
     
+    
+    /**
+     * Le path complet (non relatif) de la base de données
+     * 
+     * Initialisé par {@link open()} et {@link create()}, utilisé 
+     * par {@link getPath()}
+     *
+     * @var string
+     */
+    private $path='';
+    
     /**
      * Le constructeur est privé car ni cette classe, ni aucun des drivers qui
      * héritent de cette classe ne sont instanciables.
@@ -169,6 +180,8 @@ abstract class Database implements ArrayAccess, Iterator
                 throw new Exception("Impossible de créer la base '$database' : le type de base '$type' n'est pas supporté.");
         }
         $db->type=$type;
+        $db->path=$database;
+        
         return $db;
     }
 
@@ -268,10 +281,22 @@ abstract class Database implements ArrayAccess, Iterator
                 throw new Exception("Impossible d'ouvrir la base '$database' : le type de base '$type' n'est pas supporté.");
         }
         $db->type=$type;
+        $db->path=$path;
         return $db;
     }
 
-
+    /**
+     * Retourne le path de la base de données
+     *
+     * La fonction retourne le path complet de la base.
+     * 
+     * @return string
+     */
+    public function getPath()
+    {
+        return $this->path;
+    }
+    
     /**
      * Méthode implémentée dans les drivers : ouvre la base
      * 
@@ -830,7 +855,7 @@ abstract class Database implements ArrayAccess, Iterator
         
         foreach($fields as $field)
         {
-            if ($this->record[$field] === '')
+            if ( is_null($this->record[$field]) || ($this->record[$field] === '') )
             {
                 $this->record[$field] = $replace;
                 ++$count;
