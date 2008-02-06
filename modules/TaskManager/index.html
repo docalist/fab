@@ -1,0 +1,82 @@
+<h1>Gestionnaire de tâches</h1>
+
+/* STATUT DU TASKMANAGER, BOUTONS DEMARRER/ARRETER */
+<h2>Statut</h2>
+<p>{TaskManager::status()}.</p>
+<p>
+    <if test="{! TaskManager::isRunning()}">
+        <a href="/TaskManager/Start">Démarrer</a>
+    </if>
+    <else>
+        <a href="/TaskManager/Stop">Arrêter</a>
+        <a href="/TaskManager/Restart">Redémarrer</a>
+    </else>
+</p>
+
+/* LISTE DES TACHES */
+<h2>Liste des tâches</h2>
+    <searchinfo for="StopWords" />  
+    <searchinfo for="InternalStopWords" />  
+    <searchinfo for="QueryTerms" />  
+    <searchinfo for="InternalQueryTerms" />  
+    <searchinfo for="MaxPossibleWeight" />  
+    <searchinfo for="MaxAttainedWeight" />  
+    <searchinfo for="InternalQuery" />  
+    <searchinfo for="InternalFilter" />  
+    <searchinfo for="InternalFinalQuery" />  
+    <searchinfo for="SortOrder" />
+    
+    <def name="odd" value="{true}" />
+    <table border="1" class="tasks">
+        <tr>
+            /* <th>N°</th> */
+            <th><a href="{$this->request->copy()->set('_sort','-')}" title="Trier par ordre de création">Tâche</a></th>
+            <th>Etat</th>
+            /* <th>Creation</th> */
+            /* <th>Date/heure</th> */
+            /* <th>Répétition</th>*/
+            <th><a href="{$this->request->copy()->set('_sort','last-')}" title="Trier par date de dernière exécution">Dernière exécution</a></th>
+            <th><a href="{$this->request->copy()->set('_sort','next')}" title="Trier par date de prochaine exécution">Prochaine exécution</a></th>
+            <th>Actions</th>
+        </tr>
+        <if test="{$this->selection->count() == 0}">
+            <tr class="$Status {$odd ? 'odd' : ''}">
+                <td colspan="6">Aucune tâche à afficher.</td>
+            </tr>
+            <script>jQuery('#checkall').hide();</script>
+        </if>
+        <else>
+            <loop on="{$this->selection}" as="$rank,$record">
+                <tr class="$Status {$odd ? 'odd' : ''}">
+                 /* <td class="id">$ID</td> */
+                    <td class="label" title="Tâche n°$Id. Date de création : {Utils::friendlyDate(Task::stringToTimestamp($creation))}, date d'exécution prévue : {Utils::friendlyDate(Task::stringToTimestamp($time), '%H:%M:%S')}, répétition : {$Repeat:'non'}">{$Label:$Module.'/'.$Action}</td>
+                    <td class="status">$Status</td>
+                 /* <td class="creation">{Utils::friendlyDate(Task::stringToTimestamp($creation))}</td> */
+                 /* <td class="time">{Utils::friendlyDate(Task::stringToTimestamp($time), '%H:%M:%S')}</td> */
+                 /*   <td class="label">{$Repeat:'-'}</td> */
+                    <td class="last"><a href="TaskStatus?id=$id" strip="{is_null($last)}" title="Voir le résultat...">{Utils::friendlyDate(Task::stringToTimestamp($last), '%H:%M:%S')}</a></td>
+                    <td class="next">{Utils::friendlyDate(Task::stringToTimestamp($next), '%H:%M:%S')}</td>
+                    <td class="actions">
+                        <def name="url" value="{$this->request->copy()->clear('_filter')->set('ID', $ID)}" />
+                        
+                        /* show */
+                        <a href="{$url->setAction('show')}"><img src="/FabWeb/css/importmodule/page_white_magnify.png" alt="Détails" /></a>
+                        
+                        /* delete : on peut supprimer un fichier s'il vient d'être uploadé ou s'il a été importé mais pas s'il est en attente d'import */
+                        <a test="{$Status!=='task'}" href="{$url->setAction('delete')}"><img src="/FabWeb/css/importmodule/page_white_delete.png" alt="Supprimer" /></a>
+                    </td>
+                </tr>
+                <def name="odd" value="{!$odd}" />
+            </loop>
+        </else>
+    </table>
+    
+    /* AFFICHER/MASQUER HISTORIQUE */
+    <p style="text-align: right;">
+        <if test="{$this->request->bool('done')->ok()}">
+            <a href="{$this->request->clear('_filter')->clear('done')}" title="Masque les fichiers qui ont déjà été importés dans la base">Masquer l'historique</a>
+        </if>
+        <else>
+            <a href="{$this->request->clear('_filter')->set('done','true')}" title="Affiche les fichiers qui ont déjà été importés dans la base">Afficher l'historique</a>
+        </else>
+    </p>
