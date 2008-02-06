@@ -163,6 +163,7 @@ class Module
         // Stocke le path du module et son nom exact
         $object->path=$moduleDirectory;
         $object->module=$module;
+        debug && Debug::log($module . ' : %o', $object);
 
         return $object;        
     }
@@ -371,7 +372,7 @@ Config::addArray($this->config);    // fixme: objectif : uniquement $this->confi
             {
                 $value=$this->request->get($name);
         
-                if (!empty($value))
+                if ($value!=='' && !is_null($value))
                 {
                     // Tableau attendu : caste la valeur en tableau
                     if ($param->isArray() && !is_array($value))
