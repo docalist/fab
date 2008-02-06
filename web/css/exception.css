@@ -1,0 +1,108 @@
+body
+{
+    background-color: #eee;
+    font: 76% Verdana, Arial, sans-serif; 
+    color: #444;
+}
+
+h1
+{
+    font-size: 1.5em; 
+    background-color: orange; 
+    -moz-border-radius: 0.5em;
+    padding: 1em;
+    margin: 0;
+}
+
+h2
+{
+    font-size: 1.2em;
+}
+
+h3
+{
+    font-size: 1.1em;
+}
+
+a
+{
+    color: #888;
+    text-decoration: none;
+}
+
+div.content 
+{ 
+    padding: 2em; 
+    border: 1px solid #ccc; 
+    background-color: #fff; 
+    -moz-border-radius: 1em; 
+}
+
+div.code
+{
+    display: none;
+}
+
+p.filePath
+{
+    margin: 0;
+    background-color: #00C;
+    color: #fff;
+    padding: 0.3em;
+}
+
+ul
+{
+    list-style: square;
+    margin: 1.5em;
+    padding: 0;
+}
+
+div.code ol
+{
+    margin: 0;
+    padding: 0;
+    background-color: #eee;
+    border: 2px solid #00C;
+    overflow: auto;
+
+    padding-left: 5em;
+}
+
+div.code ol li
+{
+
+    background-color: rgb(250,250,250);
+    margin: 0;
+    border-left: 1px dotted #ccc;
+    padding-left: 0.2em;
+    font: normal 14px monospace;
+}
+
+div.code li.selected 
+{
+    font-weight: bold; 
+    background-color: #deeeff; 
+    padding-top: 0.1em auto; 
+}
+
+@media print
+{
+    body
+    {
+        margin: 0;
+        padding: 0;
+    }
+    
+    h1
+    {
+        padding-left: 0;
+        padding-right: 0;
+    }
+    
+    div.content
+    {
+        padding: 0;
+        border: none;
+    }
+}
