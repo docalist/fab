@@ -1029,6 +1029,7 @@ final class Utils
      */
     public static function varExport($var, $return = false)
     {
+        if(is_null($var)) return 'null'; // juste parce que je le préfère en minu...
         if (! is_array($var)) return var_export($var, $return);
         
         $t = array();
@@ -1504,6 +1505,34 @@ final class Utils
         return round($bytes/pow(1024, floor($exp)),2) . ' ' . $symbols[$exp];
     }
 
+    public static function friendlyDate($timestamp, $today='%Hh%M', $yesterday='hier à %Hh%M', $thisYear='%d/%m à %Hh%M', $other='%d/%m/%y à %Hh%M')
+    {
+        // améliorations : pour comparer les dates, on utilise à chaque fois
+        // date(fmt, $x)===date($fmt)
+        // c'est un peu lourd.
+        // a priori, on peut faire la même chose avec un simple modulo : 
+        // if ($creation % 86400 === time() % 86400) -> aujourd'hui
+        // if ($creation % 86400 === (time() % 86400) - 1) -> hier
+        // à tester
+        if(is_null($timestamp)) return '-';
+        if ($timestamp===0) return 'dès que possible';
+        
+        // aujourd'hui
+        if (date('Ymd', $timestamp)===date('Ymd')) 
+            return strftime($today, $timestamp);
+        
+        // hier
+        if (date('Ymd', $timestamp)===date('Ymd', time()-86400)) 
+            return strftime($yesterday, $timestamp);
+            
+        // même année
+        if (date('Y', $timestamp)===date('Y')) 
+            return strftime($thisYear, $timestamp);
+            
+        // autre
+        return strftime($other, $timestamp);    
+    }
+    
     /**
      * Retourne la taille sur le disque d'un répertoire
      *
@@ -1530,5 +1559,10 @@ final class Utils
         }
         return $size;
     }    
+    public static function ksort(array $array)
+    {
+        ksort($array);
+        return $array;
+    }
 }
 ?>
