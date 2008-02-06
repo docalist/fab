@@ -338,6 +338,7 @@ class Runtime
 
         // Définit le fuseau horaire utilisé par les fonctions date de php
         self::setupTimeZone();                      // Modules requis : Config
+        setlocale(LC_ALL, 'fr'); // fr_FR ne marche pas, retourne false.
         
         // Charge la configuration générale (fichiers general.config fab/application/environnement)
         self::setupGeneralConfig();                 // Modules requis : Debug, Config
@@ -540,32 +541,19 @@ $fab_init_time=microtime(true);
     
     private static function setupRoutes()
     {
-        $defaultRoutes=Config::get('defaultroutes'); // indique s'il faut charger ou non les routes de fab
-        
         // Charge d'abord les routes de fab
-        switch ($defaultRoutes) 
-        {
-            case 0: break; // on ne charge rien
-            case 1:        // routes minimales
-                Config::load(self::$fabRoot.'config' . DIRECTORY_SEPARATOR . 'routes.minimal.config', 'routes', array('Routing','transform'));
-                break;
-            case 2:        // routes étendues
-                Config::load(self::$fabRoot.'config' . DIRECTORY_SEPARATOR . 'routes.complete.config', 'routes', array('Routing','transform'));
-                break;
-            default:
-                throw new Exception('Valeur incorrecte pour la clé defaultRoutes de votre fichier de config (0, 1 ou 2 attendus)');            
-        }
+        Config::load(self::$fabRoot.'config' . DIRECTORY_SEPARATOR . 'routes.config', 'routes', array('Routing','transform'));
         
-        // Les routes de l'application
+        // Puis les routes de l'application
         if (file_exists($path = self::$root.'config' . DIRECTORY_SEPARATOR . 'routes.config'))
             Config::load($path, 'routes', array('Routing','transform'));
 
-        // Les routes spécifiques à l'environnement (dans l'application)
-        if (!empty(self::$env))   // charge les routes spécifiques à l'environnement (en premier pour qu'elles soient prioritaiers)
+        // Puis les routes spécifiques à l'environnement en cours
+        if (!empty(self::$env))
         {
-            if (file_exists($path=self::$root.'config'.DIRECTORY_SEPARATOR.'routes.' . self::$env . '.config'))
+            if (file_exists($path=self::$fabRoot.'config'.DIRECTORY_SEPARATOR.'routes.' . self::$env . '.config'))
                 Config::load($path, 'routes', array('Routing','transform'));
-            if ($defaultRoutes!=0 && file_exists($path=self::$fabRoot.'config'.DIRECTORY_SEPARATOR.'routes.' . self::$env . '.config'))
+            if (file_exists($path=self::$root.'config'.DIRECTORY_SEPARATOR.'routes.' . self::$env . '.config'))
                 Config::load($path, 'routes', array('Routing','transform'));
         }
 
@@ -640,6 +628,8 @@ $fab_init_time=microtime(true);
      */
     public static function redirect($url, $noRouting=false)
     {
+        if ($url instanceOf Request) $url=$url->getUrl();
+        
         if ($noRouting && (preg_match('~^[a-z]{3,6}:~',$url)==0))
             $url=Utils::getHost() . $url;
         else
@@ -713,8 +703,8 @@ $fab_init_time=microtime(true);
             'TemplateCode'=>'core/template/TemplateCode.php',
             'TemplateEnvironment'=>'core/template/TemplateEnvironment.php',
             'TaskManager'=>'modules/TaskManager/TaskManager.php',
-            'Request'=>'core/Request/Request.php',
-        
+            'Task'=>'modules/TaskManager/Task.php',
+            'Request'=>'core/Request/Request.php'
         );
         if (!isset($dir[$class])) return;
         $path=self::$fabRoot. strtr($dir[$class],'/', DIRECTORY_SEPARATOR);
