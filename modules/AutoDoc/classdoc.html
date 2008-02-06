@@ -53,6 +53,24 @@
         <submit label="»»»" />
     </form>
              
+    <div class="sect2" test="{$class->constants}">
+        <h2>Constantes définies par la classe</h2>
+        <dl>
+            <loop on="{$class->constants}" as="$constant">
+                <dt>
+                    <a name="{$constant->name}" />
+                    <span class="keyword">Const</span>
+                    <span class="value" style="font-weight: bold;">{$constant->name}</span>
+                    <span class="operator">=</span>
+                    <code>{$constant->value}</code>
+                    ({$constant->type})
+                </dt>
+                <dd>
+                </dd>
+            </loop>
+        </dl>
+    </div>
+    
     <div class="sect2" test="{$class->properties}">
         <h2>Propriétés</h2>
         <loop on="{$class->properties}" as="$group,$properties">
@@ -119,7 +137,13 @@
             <hr />
             <loop on="{$methods}" as="$method">
                 <div class="sect2">
-                    <span test="{$method->inheritedFrom}" style="float: right">Héritée de {AutoDoc::link($method->inheritedFrom, $method->name)}</span>                    
+                    <if test="{$method->inheritedFrom}">
+                        <span style="float: right">Héritée de {AutoDoc::link($method->inheritedFrom, $method->name)}</span>
+                    </if>
+                    <elseif test="{$method->overwrites}">
+                        <span style="float: right">Surcharge {AutoDoc::link($method->overwrites, $method->name, $method->overwrites.'::'.$method->name.'()')}</span>
+                    </elseif>                    
+/*                    <span test="{$method->inheritedFrom}" style="float: right">Héritée de {AutoDoc::link($method->inheritedFrom, $method->name)}</span>*/                    
                     <h2>
                         <a name="{$method->name}" />{$method->name}()
                     </h2>
@@ -128,7 +152,7 @@
                     {$method->summary}{$method->description}
                     
                     <if test="{$method->parameters}">
-                        <h4>Paramètres : </h4>
+                        <h4>Paramètre{count($method->parameters)==1 ? '' : 's'} : </h4>
                         <ul>
                             <loop on="{$method->parameters}" as="$parameter">
                                 <li>
@@ -144,7 +168,7 @@
                     </if>
                     
                     <if test="{$method->return}">
-                        <h4>Valeur de retour: </h4>
+                        <h4>Valeur de retour : </h4>
                         <ul><li>
                         <p>
                             <span class="type">{$method->return->type}</span>

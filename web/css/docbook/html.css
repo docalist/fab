@@ -472,3 +472,50 @@ span.value
     color: #040;
 /*    font-weight: bold;*/
 }
+
+
+/* icones pour repérer les différents types de lien */
+a.external
+{
+    padding-right: 14px;
+    background: url(linkicons/remote.gif) no-repeat center right;
+}
+
+a.external:hover,a.external:active,a.external:focus
+{
+    background-image: url(linkicons/remote_a.gif);
+}
+
+a.property, a.method
+{
+    padding-right: 14px;
+    background: url(linkicons/scrolldown.gif) no-repeat center right;
+}
+a.property:hover, a.property:active, a.property:focus,
+a.method:hover, a.method:active, a.method:focus
+{
+    background-image: url(linkicons/scrolldown_a.gif);
+}
+
+a.externalproperty, a.externalmethod, a.externalconst
+{
+    padding-right: 14px;
+    background: url(linkicons/scrollup.gif) no-repeat center right;
+}
+a.externalproperty:hover, a.externalproperty:active, a.externalproperty:focus, 
+a.externalmethod:hover, a.externalmethod:active, a.externalmethod:focus,
+a.externalconst:hover, a.externalconst:active, a.externalconst:focus
+{
+    background-image: url(linkicons/scrollup_a.gif);
+}
+
+
+a.otherclass
+{
+    padding-right: 14px;
+    background: url(linkicons/note.gif) no-repeat center right;
+}
+a.otherclass:hover, a.otherclass:active, a.otherclass:focus 
+{
+    background-image: url(linkicons/note_a.gif);
+}

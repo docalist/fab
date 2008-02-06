@@ -5,6 +5,32 @@ class AutoDoc extends Module
     
     public static $flags=array('inherited'=>false, 'private'=>false, 'protected'=>false, 'public'=>true, 'errors'=>false, 'sort'=>false);
     
+    private function includeClasses($path)
+    {
+        $dir=new DirectoryIterator($path);
+        foreach($dir as $item)
+        {
+            $name=$item->getFileName();
+            //echo $item->getPathName(), '   (', $name,'), type=', $item->getType(), '<br />';
+            
+            // ignore '.', '..', '.svn/', '.settings', etc.
+            if (substr($name,0,1)==='.') continue;
+            
+            // ignore les sous-répertoires 'tests/'
+            if ($name=='tests') continue;
+            
+            if($item->isDir())
+            {
+                $this->includeClasses($item->getPathName());
+            }
+            elseif(Utils::getExtension($name)==='.php')
+            {
+                echo 'Fichier à inclure : ', $item->getPathName(), '<br />';
+                @require_once($item->getPathName());
+            }
+        }
+    }
+    
     /**
      * Affiche la documentation interne d'une classe ou d'un module
      * 
@@ -32,8 +58,33 @@ class AutoDoc extends Module
      * Cela permet, en mettant tous les flags à false, de n'afficher que la 
      * documentation des actions. 
      */
-    public function actionIndex($class, $inherited=true, $private=true, $protected=true, $public=true)
+    public function actionIndex($class='', $inherited=true, $private=true, $protected=true, $public=true)
     {
+        if($class==='')
+        {
+            $this->includeClasses(Runtime::$fabRoot.'core');
+            $this->includeClasses(Runtime::$fabRoot.'modules');
+            $this->includeClasses(Runtime::$root.'modules');
+            //die();
+            $classes=get_declared_classes();
+            $lib=Runtime::$fabRoot.'lib';
+            foreach($classes as $class)
+            {
+                $reflex=new ReflectionClass($class);
+                if ($reflex->isUserDefined())
+                {
+                    $path=$reflex->getFileName();
+                    
+                    if (strncmp($path, $lib, strlen($lib))===0) continue;
+                    echo '<a href="?class='.$class.'">'.$class.' ('.$path.')'.'</a><br />';
+                }
+            }
+            echo'<pre>';
+            print_r($classes);
+            echo '</pre>';
+            die();
+        }
+
         // Vérifie que la classe demandée existe
         if (!class_exists($class, true))
         {
@@ -72,8 +123,10 @@ class AutoDoc extends Module
      * @param string $anchor une ancre optionnelle (nom de méthode ou de propriété)
      * @return string
      */
-    public static function link($class, $anchor='')
+    public static function link($class, $anchor='', $label='', $cssClass='')
     {
+        if($label==='') $label=$class;
+        
         $link='<a href="?class='.$class;
         
         foreach(self::$flags as $flag=>$default)
@@ -84,7 +137,12 @@ class AutoDoc extends Module
         }
         
         if ($anchor) $link.='#'.$anchor;
-        $link.='">'.$class.'</a>';
+        $link.='"';
+        
+        if ($cssClass)
+            $link.=' class="'.$cssClass.'"';
+            
+        $link.='>'.$label.'</a>';
         return $link;    
     }
     
@@ -149,26 +207,34 @@ class ElementDoc
             {
                 if (!array_key_exists($type, $types))
                 {
-                    try
+                    if (in_array($type, array(0, 1, -1, 'true', 'false'), true))
                     {
-                        $class=new ReflectionClass($type);
-                    }
-                    catch(Exception $e)
-                    {
-                        $class=null;                    
-                    }
-                    if (is_null($class))
-                    {
-                        $this->docError(sprintf('type inconnu "%s" pour %s', $type, $arg), $method);
+                        // ok pas vraiment un type, mais c'est pratique
+                        // d'autoriser ces valeurs pour dire, par exemple
+                        // qu'une fonction retourne array|false ou 0|timestamp
                     }
                     else
                     {
-                        if ($class->isUserDefined())
-                            $type=AutoDoc::link($class->getName());
+                        try
+                        {
+                            $class=new ReflectionClass($type);
+                        }
+                        catch(Exception $e)
+                        {
+                            $class=null;                    
+                        }
+                        if (is_null($class))
+                        {
+                            $this->docError(sprintf('type inconnu "%s" pour %s', $type, $arg), $method);
+                        }
                         else
-                            $type=$class->getName();
-                    }
-                    
+                        {
+                            if ($class->isUserDefined())
+                                $type=AutoDoc::link($class->getName());
+                            else
+                                $type=$class->getName();
+                        }
+                    }                    
                     break;
                 }
                 
@@ -187,7 +253,10 @@ class ElementDoc
                     
                     if(isset($typeinfo['link'])) // lien pour ce type
                     {
-                        $type='<a href="'.$typeinfo['link'].'">'.$type.'</a>';
+                        if(isset($typeinfo['title'])) // titre du lien
+                            $type='<a href="'.$typeinfo['link'].'" title="'.$typeinfo['title'].'">'.$type.'</a>';
+                        else
+                            $type='<a href="'.$typeinfo['link'].'">'.$type.'</a>';
                     }
                     
                     break;
@@ -209,7 +278,11 @@ class ClassDoc extends ElementDoc
     
     public function __construct(ReflectionClass $class)
     {
-        $doc=new DocBlock($class->getDocComment());
+        $doc=$class->getDocComment();
+        if ($doc===false)
+            $this->docError('aucune documentation pour la classe', $class->getName());
+
+        $doc=new DocBlock($doc);
         parent::_construct($class->getName(), $doc);
         
         // Ancêtres
@@ -223,8 +296,8 @@ class ClassDoc extends ElementDoc
         }
         
         // Constantes
-//        foreach($class->getConstants() as $constant)
-//            $this->constants[$constant->getName()]=new ConstantDoc($method);
+        foreach($class->getConstants() as $name=>$value) // pas de réflection pour les constantes de classes
+            $this->constants[$name]=new ConstantDoc($name, $value);
         
         // Propriétés
         foreach($class->getProperties() as $property)
@@ -272,10 +345,49 @@ class ClassDoc extends ElementDoc
         return $this->isModule;
     }
 }
+
+class ConstantDoc extends ElementDoc
+{
+    public $type=null;
+    public $value=null;
+    
+    public function __construct($name, $value)
+    {
+//        $doc=$property->getDocComment();
+//        if ($doc===false)
+//            $this->docError('aucune documentation pour la propriété', $property->getName());
+
+        $this->type=$this->checkType($this->getType($value), 'constante', $name);
+        $this->value=Utils::varExport($value,true);
+
+        $doc=new DocBlock('');
+        
+        parent::_construct($name, $doc);
+    }
+    
+    private function getType($var)
+    {
+        $type=strtolower(gettype($var));
+        switch($type)
+        {
+            case 'integer': return 'int';
+            case 'double' : return 'float';
+        }
+        return $type;
+    }
+}
+/**
+ * Enter description here...
+ *
+ */
 class PropertyDoc extends ElementDoc
 {
     public function __construct(ReflectionProperty $property)
     {
+        $doc=$property->getDocComment();
+        if ($doc===false)
+            $this->docError('aucune documentation pour la propriété', $property->getName());
+
         $doc=new DocBlock($property->getDocComment());
         parent::_construct($property->getName(), $doc);
     }
@@ -286,10 +398,14 @@ class MethodDoc extends ElementDoc
 {
     public $parameters;
     public $return;
-    public $inheritedFrom;
-    
+    public $inheritedFrom='';
+    public $overwrites='';
     public function __construct($class, ReflectionMethod $method)
     {
+        $doc=$method->getDocComment();
+        if ($doc===false)
+            $this->docError('aucune documentation pour la méthode', $method->getName());
+
         $doc=new DocBlock($method->getDocComment());
         parent::_construct($method->getName(), $doc);
 
@@ -341,7 +457,7 @@ class MethodDoc extends ElementDoc
                     $method->getEndline()-$method->getStartLine()+1
                 )
             );
-            if (preg_match('~return\b~', $source))
+            if (preg_match('~return\b\s*[^;]+;~', $source))
                 $this->docError('@return manquant', $this->name); 
         }
             
@@ -401,11 +517,23 @@ class MethodDoc extends ElementDoc
         $this->signature=$h;
         
         // Méthode héritée ou non
-        $h=$method->getDeclaringClass()->getName();
+        $c=$method->getDeclaringClass();
+        $h=$c->getName();
         if ($h != $class)
+        {
             $this->inheritedFrom=$h;
+        }
         else
-            $this->inheritedFrom='';
+        {
+            // c'est soit une méthode déclarée dans cette classe
+            // soit une méthode héritée d'une classe ancêtre qu'on surcharge
+            //$this->inheritedFrom='';
+            $ancestor=$c->getParentClass();
+            if (false !==$ancestor && $ancestor->hasMethod($method->getName()))
+            {
+                $this->overwrites=$ancestor->getMethod($method->getName())->getDeclaringClass()->getName();
+            }
+        }
     }
 }
 
@@ -772,6 +900,57 @@ class DocBlock extends DocItem
 //        $doc=str_replace(array_keys($this->replacement),array_values($this->replacement), $doc);
     }
     
+    private function link($link, $text)
+    {
+        // Url absolue (http:, ftp:, etc.)
+        if (preg_match('~^[a-z]{3,10}:~', $link))  // commence par un nom de protocole, une query string ou un hash (#)
+            return '<a href="'.$link.'" class="external">'.$text.'</a>';
+        
+        // Pour un lien de la forme class::xxx, sépare le nom de la classe du reste 
+        $class='';
+        if (strpos($link,'::')!==false)
+            list($class,$link)=explode('::',$link,2);
+            
+        $link=trim($link);
+            
+        
+        // Nom de variable (commence par un dollar)
+        if (strpos($link,'$')===0)
+        {
+            $link=substr($link,1);
+            
+            if ($class)
+                return AutoDoc::link($class, $link, $text, 'externalproperty');
+                
+            return '<a class="property" href="#'.$link.'">'.$text.'</a>';
+        }
+        
+        // Nom de fonction
+        if (substr($link,-2)==='()')
+        { 
+            $link=substr($link,0, -2);
+            if ($class)
+                return AutoDoc::link($class, $link, $text, 'externalmethod');
+                
+            return '<a class="method" href="#'.$link.'">'.$text.'</a>';
+        }
+            
+        // Truc de la forme Class::xxx : une constante 
+        if ($class)
+        {
+            return AutoDoc::link($class, $link, $text, 'externalconst');
+        }
+        
+        // Pas de nom classe, juste un true de la forme xxx
+        // ça peut être une autre classe ou une constante de la classe en cours... ou une erreur (pas $ devant var, pas de () après fonction...)
+        // On opte pour une autre classe
+        return AutoDoc::link($link, '', $text, 'otherclass');
+        
+        // todo: pour tous les liens créés, vérifier que c'est un lien valide
+        // ie tester que c'est bien une propriété/méthode/constante de la classe
+        // en cours ou indiquée.
+    }
+    
     private function parseInlineTag($match)
     {
         // 1 le nom du tag ({@link xxx} -> 'link'
@@ -791,19 +970,8 @@ class DocBlock extends DocItem
                 // Si on n'a pas de texte, prend le lien
                 if ($text===false || trim($text)==='') $text=$link;
                 
-                // Supprime les parenthèses finales si c'est un nom de fonction
-                if (substr($link,-2)==='()') 
-                    $link=substr($link,0, -2);
-                    
-                // Supprime le dollar initial si c'est un nom de variable
-                $link=ltrim($link,'$');
-
-                // 
-                if (strpos($link,'/')===false)
-                    $link='#'.$link;
-                    
-                return '<a href="'.$link.'">'.$text.'</a>';
-                break;
+                // Transforme l'url et crée le lien
+                return $this->link($link,$text);
                 
             default:
                 echo 'tag inconnu : ', $match[0], '<br />';
