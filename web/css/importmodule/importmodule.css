@@ -1,0 +1,110 @@
+@CHARSET "ISO-8859-1";
+table.importfiles
+{
+    border: 1px solid #000;
+    border-collapse: collapse;
+    width: 100%;
+}
+table.importfiles td,
+table.importfiles th    
+{
+    padding: 0 1em 0 1em;
+    text-align: center;
+}
+
+table.importfiles a img
+{
+    border: 1px solid transparent;
+/*    opacity: .5;*/
+}
+
+table.importfiles a:hover img
+{
+    border: 1px outset #000;
+    background-color: #888;
+/*    opacity: 1.0;*/
+}
+
+table.importfiles tr.even
+{
+    background-color: #fff;
+}
+table.importfiles tr.odd
+{
+    background-color: #eee;
+}
+
+/*
+table.importfiles tr.upload_ok
+{
+    color: green;
+}
+table.importfiles tr.upload_error
+{
+    color: red;
+}
+table.importfiles tr.task
+{
+    color: blue;
+}
+
+table.importfiles tr.import_ok,
+table.importfiles tr.import_warning,
+table.importfiles tr.import_error
+{
+    color: grey;
+}
+*/
+
+table.importfiles tr
+{
+    color: #000;
+}
+
+table.importfiles tr.import_ok,
+table.importfiles tr.import_warning,
+table.importfiles tr.import_error
+{
+    color: #888;
+}
+
+
+table.importfiles tr td.filename
+{
+    background: url('') no-repeat 4px center ;
+    padding-left: 24px;
+}
+
+table.importfiles tr.upload_ok td.filename
+{
+    background-image: url('tick.png');
+    color: green;
+}
+table.importfiles tr.upload_error td.filename
+{
+    background-image: url('exclamation.png');
+    color: red;
+}
+table.importfiles tr.task td.filename
+{
+    background-image: url('clock.png');
+    color: blue;
+}
+table.importfiles tr.import_ok td.filename
+{
+    background-image: url('accept.png');
+    color: green;
+    opacity: 0.5;
+}
+table.importfiles tr.import_warning td.filename
+{
+    background-image: url('clock_error.png');
+    color: orange;
+    opacity: 0.5;
+}
+table.importfiles tr.import_error td.filename
+{
+    background-image: url('clock_red.png');
+    color: red;
+    opacity: 0.5;
+}
