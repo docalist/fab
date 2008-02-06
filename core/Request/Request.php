@@ -76,6 +76,15 @@ class Request
      */
     private $_check;
 
+    /**
+     * Clone la requête en cours
+     *
+     * @return Request
+     */
+    public function copy()
+    {
+        return clone $this;
+    }
 
     /**
      * Construit un nouvel objet Request avec les paramètres indiqués.
@@ -94,7 +103,7 @@ class Request
         array_shift($args);
         foreach($args as $arg)
         {
-            $this->addParams($arg);
+            $this->addParameters($arg);
         }
     }
     
@@ -104,7 +113,7 @@ class Request
      * @param array $parameters
      * @return Request $this pour permettre le chainage des appels de méthodes
      */
-    public function addParams(array $parameters)
+    public function addParameters(array $parameters)
     {
         foreach($parameters as $key=>$value)
         {
@@ -270,6 +279,25 @@ class Request
         return $this;    
     }
     
+    /**
+     * Supprime tous les paramètres de la requête sauf ceux dont le nom est 
+     * indiqué en paramètre.
+     * 
+     * Exemple : 
+     * <code>
+     * $request->keepOnly('REF'); // supprime tous sauf REF
+     * </code>
+     *
+     * @param string $arg nom du premier paramètre à conserver. Vous pouvez 
+     * indiquer autant d'argument arg que nécessaire 
+     * @return Request $this pour permettre le chainage des appels de méthodes
+     */
+    public function keepOnly($arg)
+    {
+        $args=func_get_args();
+        $this->_parameters=array_intersect_key($this->_parameters, array_flip($args));
+        return $this;        
+    }
     
     /**
      * Détruit le paramètre indiqué
@@ -313,7 +341,7 @@ class Request
      *
      * @return bool
      */
-    public function hasParams()
+    public function hasParameters()
     {
         return count($this->_parameters)!==0;
     }
@@ -324,7 +352,7 @@ class Request
      *
      * @return array
      */
-    public function getParams()
+    public function getParameters()
     {
         return $this->_parameters;
     }
@@ -403,8 +431,11 @@ class Request
      * Retourne la valeur d'un paramètre figurant dans un autre tableau
      * que {@link _parameters} ou la valeur par défaut indiquée
      *
-     * @param string $key
-     * @param mixed $default
+     * @param array $array le tableau dans lequel la clé indiquée va être 
+     * recherchée
+     * @param string $key la clé à rechercher
+     * @param mixed $default la valeur par défaut à retourner si $key ne figure 
+     * pas dans le tableau $array
      * @return string|null
      */
     protected function other($array, $key, $default=null)
@@ -1046,8 +1077,35 @@ class Request
         $this->_checkName=null;
         return $this->_check;
     }
+    
+    /**
+     * Retourne la requête en cours sous la forme d'une url indiquant le module,
+     * l'action et les paramètres actuels de la requête
+     *
+     * @return string
+     */
+    public function getUrl()
+    {
+        return 
+            '/' . $this->_module . '/' . $this->_action 
+            . Routing::buildQueryString($this->_parameters, true);
+    }
+    
+    /**
+     * Alias de {@link getUrl()} : retourne la requête en cours sous forme
+     * d'url.
+     * 
+     * __toString est une méthode magique de php qui est appellée lorsque PHP
+     * a besoin de convertir un objet en chaine de caractères.
+     * 
+     * @return string
+     */
+    public function __toString()
+    {
+        return $this->getUrl();
+    }
 }
-
+/*
 class HttpRequest extends Request 
 {
     
@@ -1060,7 +1118,7 @@ class CliRequest extends Request
         parent::__construct($_SERVER['argv']);        
     }
 }
-
+*/
 /**
  * Classe de base des exceptions générées par les fonctions de validation
  * de paramètres de {@link Request}

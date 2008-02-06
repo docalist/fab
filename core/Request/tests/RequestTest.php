@@ -53,12 +53,12 @@ class RequestTest extends AutoTestCase
         $this->assertSame($request->item, null);
         $this->assertSame($request->void, null);
         
-        $this->assertSame($request->hasParams(), false);
-        $this->assertSame($request->getParams(), array());
+        $this->assertSame($request->hasParameters(), false);
+        $this->assertSame($request->getParameters(), array());
         
     }
     
-    public function test_Get_Set_Has_GetParams_Add_Clear()
+    public function test_Get_Set_Has_GetParameters_Add_Clear()
     {
         // Crée la requête
         $request=new Request($this->params);
@@ -68,8 +68,8 @@ class RequestTest extends AutoTestCase
         $this->assertSame($request->get('ref'), 12);
         $this->assertSame($request->get('item'), 'AAA');
         $this->assertSame($request->has('item'), true);
-        $this->assertSame($request->hasParams(), true);        
-        $this->assertSame($request->getParams(), $this->params);        
+        $this->assertSame($request->hasParameters(), true);        
+        $this->assertSame($request->getParameters(), $this->params);        
         
         // Null pour les params qui n'existent pas
         $this->assertSame($request->has('void'), false);
@@ -84,14 +84,14 @@ class RequestTest extends AutoTestCase
         $this->assertSame($request->clear('item'), $request, 'clear ne retourne pas $request');        
         $this->assertSame($request->has('item'), false);
         $this->assertSame($request->get('item'), null);
-        $this->assertSame($request->hasParams(), true);        
+        $this->assertSame($request->hasParameters(), true);        
         
         // Add après un set
         $this->assertSame($request->set('item', 'AAA'), $request, 'set ne retourne pas $request');        
         $this->assertSame($request->add('item', 'BBB'), $request, 'add ne retourne pas $request');        
         $this->assertSame($request->has('item'), true);
         $this->assertSame($request->get('item'), array('AAA','BBB'));
-        $this->assertSame($request->getParams(), array('ref'=>12, 'item'=>array('AAA','BBB')));        
+        $this->assertSame($request->getParameters(), array('ref'=>12, 'item'=>array('AAA','BBB')));        
         
         // Add après un clear d'item
         $this->assertSame($request->clear('item'), $request, 'clear ne retourne pas $request');        
@@ -100,14 +100,14 @@ class RequestTest extends AutoTestCase
         $this->assertSame($request->add('item', 'BBB'), $request, 'add ne retourne pas $request');        
         $this->assertSame($request->has('item'), true);
         $this->assertSame($request->get('item'), array('AAA','BBB'));
-        $this->assertSame($request->getParams(), array('ref'=>12, 'item'=>array('AAA','BBB')));        
+        $this->assertSame($request->getParameters(), array('ref'=>12, 'item'=>array('AAA','BBB')));        
         
         // Clear all
         $this->assertSame($request->clear(), $request, 'clear ne retourne pas $request');        
         $this->assertSame($request->has('ref'), false);
         $this->assertSame($request->has('item'), false);
-        $this->assertSame($request->hasParams(), false);        
-        $this->assertSame($request->getParams(), array());        
+        $this->assertSame($request->hasParameters(), false);        
+        $this->assertSame($request->getParameters(), array());        
         
     }
 
@@ -131,7 +131,7 @@ class RequestTest extends AutoTestCase
         unset($request->item);
         $this->assertSame($request->has('item'), false);
         $this->assertSame($request->item, null);
-        $this->assertSame($request->hasParams(), true);        
+        $this->assertSame($request->hasParameters(), true);        
         
         // Add après un set
         $request->item='AAA';        
