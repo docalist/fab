@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<database label="Thesaurus" lastupdate="2008/01/15 12:05:27">
+    <description>Structure de base de données utilisée pour stocker un thésaurus monolingue/monohiérarchique</description>
+    <fields>
+        <field name="REF" type="autonumber" label="Numéro du terme" />
+        <field name="Fre" label="Libellé du terme" />
+        <field name="MT" label="Micro-thesaurus">
+            <description>Libellé du terme représentant la racine du micro-thésaurus auquel appartient le terme</description>
+        </field>
+        <field name="TG" label="Terme générique" description="Libellé du terme générique de ce terme ou vide s'il s'agit d'un non-descripteur" />
+        <field name="TS" label="Terme(s) spécifique(s)" description="Liste des terme(s) spécifique(s) de ce terme (descripteurs uniquement)" />
+        <field name="EM" label="Employer" description="Pour un non-descripteur, libellé du descripteur à utiliser à la place" />
+        <field name="EP" label="Employé pour">
+            <description>Pour un descripteur, liste des non-descripteurs pour lesquels ce terme est employé</description>
+        </field>
+        <field name="TA" label="Terme(s) associé(s)" description="Pour un descripteur, liste des descripteurs associés" />
+        <field name="NA" label="Note d'application">
+            <description>Une précision indiquant le sens ou le contexte dans lequel ce terme doit être compris (descripteurs uniquement)</description>
+        </field>
+    </fields>
+    <indices>
+        <index name="REF">
+            <fields>
+                <field name="REF" words="true" />
+            </fields>
+        </index>
+        <index name="Fre" label="Libellé du terme">
+            <fields>
+                <field name="Fre" words="true" phrases="true" values="true" global="true" weight="5" />
+            </fields>
+        </index>
+        <index name="MT" label="Micro-thesaurus">
+            <fields>
+                <field name="MT" words="true" phrases="true" values="true" />
+            </fields>
+        </index>
+        <index name="TG" label="Terme générique">
+            <fields>
+                <field name="TG" words="true" phrases="true" values="true" count="true" />
+            </fields>
+        </index>
+        <index name="TS" label="Terme(s) spécifique(s)">
+            <fields>
+                <field name="TS" words="true" phrases="true" values="true" count="true" />
+            </fields>
+        </index>
+        <index name="EM" label="Employer">
+            <fields>
+                <field name="EM" words="true" phrases="true" values="true" count="true" />
+            </fields>
+        </index>
+        <index name="EP" label="Employer pour">
+            <fields>
+                <field name="EP" words="true" phrases="true" values="true" count="true" />
+            </fields>
+        </index>
+        <index name="TA" label="Terme(s) associé(s)">
+            <fields>
+                <field name="TA" words="true" phrases="true" values="true" count="true" />
+            </fields>
+        </index>
+        <index name="NA" label="Note d'application">
+            <fields>
+                <field name="NA" words="true" phrases="true" />
+            </fields>
+        </index>
+    </indices>
+</database>
