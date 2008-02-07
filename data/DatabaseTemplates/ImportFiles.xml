@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<database label="Liste des fichiers à importer (ImportModule)" creation="2008/01/21 17:13:37" lastupdate="2008/01/23 18:36:27">
+    <description>Structure de la base de données utilisée par le module ImportModule de fab pour stocker et gérer la liste des fichiers à importer.</description>
+    <fields>
+        <field name="REF" type="autonumber" label="Numéro unique identifiant le fichier à importer" />
+        <field name="Path" label="Path du fichier uploadé" description="Il s'agit du path du fichier stocké sur le serveur une fois l'upload effectué" />
+        <field name="FileName" label="Nom du fichier uploadé par l'utilisateur">
+            <description>Il s'agit du nom que l'utilisateur a indiqué lors de l'upload, pas forcément du nom du fichier tel qu'il est stocké sur le serveur.</description>
+        </field>
+        <field name="Size" type="int" label="Taille du fichier uploadé" description="en octets" />
+        <field name="Status" label="Statut du fichier">
+            <description>upload_ok : fichier uploadé, vérifié, non planifié, non traité
+upload_error : fichier uploadé, des erreurs ont été détectées pendant la vérification (le champ Notes détaille les erreurs)
+task : l'import de ce fichier est planifié (le numéro de la tâche correspondante est stockée dans le champ TaskId)
+import_ok : le fichier a été chargé (le champ Notes contient le détail du nombre de notices chargées)
+import_warning : le fichier a été chargé, des warnings ont été générés durant l'import (indiqués dans Notes)
+import_error : le fichier a été chargé, des erreurs ont été générées durant l'import (indiquées dans Notes), une ou plusieurs notices n'ont pas été chargées </description>
+        </field>
+        <field name="TaskId" label="Id de la tâche chargée de faire l'import de ce fichier">
+            <description>Une fois qu'un import a été planifié, ce champ contient l'id de la tâche correspondante (si plusieurs imports sont planifiés, chaque import ne chargera que les fichiers qu'il doit charger et non pas tout).</description>
+        </field>
+        <field name="Notes" label="Notes, remarques, erreurs">
+            <description>Pour un fichier qui vient d'être uploadé, ce champ peut contenir des informations de statut retournées par validFile() (fichier erronné : ce n'est pas du CSV, le fichier est vide, nombre de notices à importer, etc.)
+
+Une fois l'import fait, ce champ peut contenir le résultat (xxx notices importées, liste des notices ignorées, etc.)</description>
+        </field>
+        <field name="Creation" label="Date de création de l'enregistrement">
+            <description>Correspond à la date/heure à laquelle le fichier a été uploadé sur le serveur.
+
+Format aaaammjjhhmmss</description>
+        </field>
+        <field name="LastUpdate" label="Date de dernière modification de l'enregistrement" description="format aaaammjjhhmmss" />
+        <field name="Ident" label="Ident de l'utilisateur qui a uploadé le fichier">
+            <description>remarque : un peu spécifique à ascodocpsy, voir si on garde dans la structure standard de fab ou si on crée un autre database template</description>
+        </field>
+    </fields>
+    <indices>
+        <index name="REF">
+            <fields>
+                <field name="REF" words="true" />
+            </fields>
+        </index>
+        <index name="Status">
+            <fields>
+                <field name="Status" words="true" />
+            </fields>
+        </index>
+        <index name="TaskId">
+            <fields>
+                <field name="TaskId" words="true" />
+            </fields>
+        </index>
+        <index name="Ident">
+            <fields>
+                <field name="Ident" words="true" />
+            </fields>
+        </index>
+    </indices>
+    <sortkeys>
+        <sortkey name="FileName" label="Tri par nom du fichier">
+            <fields>
+                <field name="FileName" />
+            </fields>
+        </sortkey>
+        <sortkey name="Status" label="Tri par statut">
+            <fields>
+                <field name="Status" />
+            </fields>
+        </sortkey>
+        <sortkey name="Ident" label="Tri par ident">
+            <fields>
+                <field name="Ident" />
+            </fields>
+        </sortkey>
+    </sortkeys>
+</database>
