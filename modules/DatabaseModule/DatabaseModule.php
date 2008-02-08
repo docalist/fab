@@ -147,8 +147,91 @@ class DatabaseModule extends Module
             $template,
             array($this, $callback),
             $this->selection->record  
-        );                
+        );          
+        $this->updateSearchHistory();      
     }   
+    
+    private function & loadSearchHistory()
+    {
+        // Nom de la clé dans la session qui stocke l'historique des recherches pour cette base
+        $historyKey='search_history_'.Config::get('database');
+        
+        // Récupère l'historique actuel
+        if (!isset($_SESSION[$historyKey])) $_SESSION[$historyKey]=array();
+        return $_SESSION[$historyKey];
+        
+    }
+    
+    private function updateSearchHistory()
+    {
+        $maxHistory=10;
+        
+        // Charge l'historique
+        $hist=& $this->loadSearchHistory();
+        
+        // Récupère l'équation à ajouter à l'historique
+        $equation=$this->equation;
+        $xapianEquation=$this->selection->searchInfo('internalfinalquery');
+        
+        // Crée une clé unique pour l'équation de recherche
+        $key=crc32($xapianEquation); // ou md5 si nécessaire
+        
+        // Si cette équation figure déjà dans l'historique, on la remet à la fin
+        $number=null;
+        if (isset($hist[$key]))
+        {
+            $number=$hist[$key]['number'];
+            unset($hist[$key]);
+        }
+        
+        while (count($hist)>$maxHistory-1)
+        {
+            reset($hist);
+            unset($hist[key($hist)]);
+        }
+
+        // Attribue un numéro à cette recherche
+        if (is_null($number))
+        {
+            for($number=1; $number <=$maxHistory; $number++)
+            {
+                foreach($hist as $t)
+                {
+                    if ($t['number']==$number) continue 2;
+                }
+                break;
+            }
+        }
+        
+        // Ajoute l'équation (à la fin)        
+        $hist[$key]= array
+        (
+            'user' =>$equation,
+            'xapian'=>$xapianEquation,
+            'count'=>$this->selection->count('environ '),
+            'time'=>time(),
+            'number'=>$number
+        );
+            
+//        $this->clearSearchHistory();
+        echo 'Historique de recherche mis à jour : <br/>';
+        echo '<pre>', print_r($hist,true), '</pre>';
+        
+    }
+    
+    private function clearSearchHistory()
+    {
+        // Charge l'historique
+        $hist=& $this->loadSearchHistory();
+        
+        // Efface tout
+        foreach($hist as $key=>$value) unset($hist[$key]);
+    }
+    
+    public function getSearchHistory()
+    {
+        return $this->loadSearchHistory();
+    }
     
     /**
      * Affiche une ou plusieurs notices en "format long"
@@ -1595,7 +1678,7 @@ class DatabaseModule extends Module
             }
             
             //echo 'Génération fichier ',$filenames[$i],' pour équation ', $equation, '<br />';
-            $counts[$i]=$this->selection->count();
+            $counts[$i]=$max===-1 ? $this->selection->count() : (min($max,$this->selection->count()));
             
             // Si l'utilisateur a demandé un envoi par mail, démarre la capture
             if ($mail or $zip)
