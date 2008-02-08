@@ -474,16 +474,21 @@ echo 'heure du serveur : ', strftime('%X %x'), '<br />';
         // Charge la tâche indiquée
         $task=new Task($id);
         
-        // NO DRY : récupère le path de la base. todo: ajouter qq chose dans Database
-        $database=Config::get('taskmanager.database');
-        if (Utils::isRelativePath($database))
-            $database=Utils::searchFile($database, Runtime::$root . 'data/db');
-        
-        $outputFile='files' . DIRECTORY_SEPARATOR . $task->getId(false) . '.html';
+        // Détermine le path du fichier de sortie de la tâche
+        $path=Runtime::$fabRoot.'data'.DIRECTORY_SEPARATOR.'db'.DIRECTORY_SEPARATOR.'tasks'.DIRECTORY_SEPARATOR.$task->getId(false) . '.html';
+
+        // On se charge nous même d'ouvrir (et de fermer, cf plus bas) le fichier
+        // Car si on laisse ouputHandler le faire, on n'a aucun moyen de récupérer les pb éventuels (fichier non trouvé, etc.)
+        if (false === self::$outputFile=@fopen($path, 'w')) 
+        {
+            $task->setStatus(Task::Error)->setLabel($task->getLabel()." -- Erreur : impossible d'ouvrir le fichier $path en écriture")->save();
+            // todo: on n'a aucun champ dans la base pour stocker l'erreur, pour le moment on met dans le label
+            // en même temps, ce type d'erreur ne se produira pas si tout est bien configuré
+            return;
+        }
         
         // Mémorise l'ID et le OutputFile de la tâche (utilisé par progress et taskOutputHandler)
         self::$id=$task->getId(false);
-        self::$outputFile=Utils::makePath($database, $outputFile);
 
         // A partir de maintenant, redirige tous les echo vers le fichier OutputFile
         ob_start(array('TaskManager', 'taskOutputHandler'), 2);//, 4096, false);
@@ -491,7 +496,7 @@ echo 'heure du serveur : ', strftime('%X %x'), '<br />';
         // cf : http://fr2.php.net/manual/en/function.ob-implicit-flush.php#60973
         
         // Indique que l'exécution a démarré
-        $task->setStatus(Task::Running)->setLast(time())->setOutput($outputFile)->save();
+        $task->setStatus(Task::Running)->setLast(time())->setOutput(self::$outputFile)->save();
         TaskManager::request('echo Début de la tâche #'.self::$id);
         
         // Ecrit quelques infos sur la tâche
@@ -523,6 +528,7 @@ echo 'heure du serveur : ', strftime('%X %x'), '<br />';
 //            echo "Une erreur s'est produite durant l'exécution : ", $e->getMessage(), '<br />';
             ExceptionManager::handleException($e, false);
             ob_end_flush();
+            fclose(self::$outputFile);
         	return;
         }
 
@@ -537,6 +543,7 @@ echo 'heure du serveur : ', strftime('%X %x'), '<br />';
         self::request('echo Fin ok de la tâche #'.self::$id);
         $task->setStatus($task->getRepeat() ? Task::Waiting : Task::Done)->save();
         ob_end_flush();
+        fclose(self::$outputFile);
     }
     
     /**
@@ -571,19 +578,7 @@ echo 'heure du serveur : ', strftime('%X %x'), '<br />';
      */
     public static function taskOutputHandler($buffer, $phase)
     {
-        static $file=null;
-        
-        if ($phase & PHP_OUTPUT_HANDLER_START)
-        {
-            $dir=Runtime::$fabRoot.'data'.DIRECTORY_SEPARATOR.'tasks'.DIRECTORY_SEPARATOR;
-            if (false === $file=fopen(self::$outputFile, 'w')) return false;
-        }
-
-        fwrite($file, $buffer);
-
-        if ($phase & PHP_OUTPUT_HANDLER_END)
-            fclose($file);
-
+        fwrite(self::$outputFile, $buffer);
         return ; // ne pas mettre return true, sinon php affiche '111111...'
     }
     
@@ -682,13 +677,8 @@ echo 'heure du serveur : ', strftime('%X %x'), '<br />';
         // Charge la tâche indiquée
         $task=new Task($id);
         
-        // NO DRY : récupère le path de la base. todo: ajouter qq chose dans Database
-        $database=Config::get('taskmanager.database');
-        if (Utils::isRelativePath($database))
-            $database=Utils::searchFile($database, Runtime::$root . 'data/db');
+        $outputFile=Runtime::$fabRoot.'data'.DIRECTORY_SEPARATOR.'db'.DIRECTORY_SEPARATOR.'tasks'.DIRECTORY_SEPARATOR.$task->getId(false) . '.html';
         
-        $outputFile='files' . DIRECTORY_SEPARATOR . $task->getId(false) . '.html';
-        $outputFile=Utils::makePath($database, $outputFile);
         if (file_exists($outputFile))
         {
             $file=fopen($outputFile, 'r');
