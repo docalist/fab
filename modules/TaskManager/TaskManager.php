@@ -115,6 +115,44 @@ class TaskManager extends DatabaseModule
      */
     private static $outputFile=null;
     
+    
+    /**
+     * Retourne le path complet de la base de données utilisée par le 
+     * gestionnaire de tâches.
+     *
+     * Raison : a base utilisée doit être unique pour un serveur donnée et donc
+     * n'est pas stockée dans le répertoire data/db d'une application mais
+     * dans le répertoire data/db de fab. Du coup, il ne faut pas qu'on passe
+     * par le système d'alias (db.config) habituel.
+     * 
+     * Remarque : le path obtenu contient toujours un slash ou un antislash
+     * final.
+     * 
+     * @return string
+     */
+    public static function getDatabasePath()
+    {
+        return Runtime::$fabRoot
+            . 'data'    . DIRECTORY_SEPARATOR
+            . 'db'      . DIRECTORY_SEPARATOR
+            . 'tasks'   . DIRECTORY_SEPARATOR;
+    }
+
+    /**
+     * Retourne le prath complet du répertoire dans lequel sont stockés les 
+     * fichiers de sortie générés par les tâches.
+     *
+     * Remarque : le path obtenu contient toujours un slash ou un antislash
+     * final.
+     * 
+     * @return string
+     */
+    public static function getOutputDirectory()
+    {
+        return self::getDatabasePath()
+            . DIRECTORY_SEPARATOR
+            . 'files' . DIRECTORY_SEPARATOR;
+    }
     /**
      * Méthode appellée avant l'exécution d'une action du TaskManager.
      * 
@@ -127,23 +165,40 @@ class TaskManager extends DatabaseModule
      */
     public function preExecute()
     {
-        /* 
-         * pour que la base de données soit accessible par tout le monde
-         * (taskmanager, task...), database est définie dans 
-         * general.config/TaskManager/database et non pas dans TaskManager.config
-         * pour exécuter une action, on recopie.
-         */
+        // Indique à toutes les actions de ce module où et comment ouvrir la base tasks
+        $database=self::getDatabasePath();
+        Config::set('database', $database);
+        Config::set("db.$database.type", 'xapian2');
         
-        Config::set('database', Config::get('taskmanager.database'));
+        // Si la base tasks n'existe pas encore, on essaie de la créer de façon transparente
+        if (!file_exists($database))
+        {
+            $path=Runtime::$fabRoot
+                . 'data'              . DIRECTORY_SEPARATOR
+                . 'DatabaseTemplates' . DIRECTORY_SEPARATOR
+                . 'tasks.xml';
+
+            try
+            {
+                if (! file_exists($path))
+                    throw new Exception("Structure tasks.xml non trouvée");
+    
+                $dbs=new DatabaseStructure(file_get_contents($path));
+                Database::create($database, $dbs, 'xapian2');
+                if (!@mkdir($path=self::getOutputDirectory(), 0777))
+                    throw new Exception("Impossible de créer le répertoire $path");
+            }
+            catch (Exception $e)
+            {
+                throw new Exception("Erreur de configuration : la base tasks n'existe pas et il n'est pas possible de la créer maintenant (".$e->getMessage().")");            
+            }
+        }
         
+        // Pour l'action search ajoute un filtre si l'option "masquer l'historique" est active
         if ($this->method==='actionSearch')
         {
-            // Filtre sur les fichiers qui n'ont pas encore été importés
             if (!$this->request->bool('done')->defaults(false)->ok())
                 $this->request->add('_filter', 'last='.strftime('%Y%m%d%H*').' OR (not status:done)');
-//                $this->request->add('_filter', 'not status:done');
-echo 'filtre : ', $this->request->get('_filter'), '<br />';
-echo 'heure du serveur : ', strftime('%X %x'), '<br />';
         }
     }
     
@@ -475,7 +530,7 @@ echo 'heure du serveur : ', strftime('%X %x'), '<br />';
         $task=new Task($id);
         
         // Détermine le path du fichier de sortie de la tâche
-        $path=Runtime::$fabRoot.'data'.DIRECTORY_SEPARATOR.'db'.DIRECTORY_SEPARATOR.'tasks'.DIRECTORY_SEPARATOR.$task->getId(false) . '.html';
+        $path=self::getOutputDirectory().$task->getId(false) . '.html';
 
         // On se charge nous même d'ouvrir (et de fermer, cf plus bas) le fichier
         // Car si on laisse ouputHandler le faire, on n'a aucun moyen de récupérer les pb éventuels (fichier non trouvé, etc.)
@@ -677,7 +732,7 @@ echo 'heure du serveur : ', strftime('%X %x'), '<br />';
         // Charge la tâche indiquée
         $task=new Task($id);
         
-        $outputFile=Runtime::$fabRoot.'data'.DIRECTORY_SEPARATOR.'db'.DIRECTORY_SEPARATOR.'tasks'.DIRECTORY_SEPARATOR.$task->getId(false) . '.html';
+        $outputFile=self::getOutputDirectory().$task->getId(false) . '.html';
         
         if (file_exists($outputFile))
         {

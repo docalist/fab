@@ -60,7 +60,7 @@
                         <def name="url" value="{$this->request->copy()->clear('_filter')->set('ID', $ID)}" />
                         
                         /* show */
-                        <a href="{$url->setAction('show')}"><img src="/FabWeb/css/importmodule/page_white_magnify.png" alt="Détails" /></a>
+                        <a href="{$url->setAction('Show')}"><img src="/FabWeb/css/importmodule/page_white_magnify.png" alt="Détails" /></a>
                         
                         /* delete : on peut supprimer un fichier s'il vient d'être uploadé ou s'il a été importé mais pas s'il est en attente d'import */
                         <a test="{$Status!=='task'}" href="{$url->setAction('delete')}"><img src="/FabWeb/css/importmodule/page_white_delete.png" alt="Supprimer" /></a>

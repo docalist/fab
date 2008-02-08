@@ -225,7 +225,8 @@ class Task
             else
             {
                 // Ouvre la base de données (readonly)
-                $tasks=Database::open(Config::get('taskmanager.database'));
+                $database=TaskManager::getDatabasePath();
+                $tasks=Database::open($database, true, 'xapian2');
                 
                 // Recherche la tâche indiquée
                 if( !$tasks->search('ID='.$id))
@@ -308,7 +309,8 @@ class Task
     public function save()
     {
         // Ouvre la base de données (read/write)
-        $tasks=Database::open(Config::get('taskmanager.database'), false);
+        $database=TaskManager::getDatabasePath();
+        $tasks=Database::open($database, false, 'xapian2');
         
         // Nouvelle tâche jamais enregistrée (ie n'a pas d'ID) : addRecord
         if (is_null($this->id))
