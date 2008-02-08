@@ -198,7 +198,7 @@ class TaskManager extends DatabaseModule
         if ($this->method==='actionSearch')
         {
             if (!$this->request->bool('done')->defaults(false)->ok())
-                $this->request->add('_filter', 'last='.strftime('%Y%m%d%H*').' OR (not status:done)');
+                $this->request->add('_filter', 'last='.strftime('%Y%m%d*').' OR (not status:done)');
         }
     }
     
