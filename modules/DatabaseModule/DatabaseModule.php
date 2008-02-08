@@ -214,8 +214,8 @@ class DatabaseModule extends Module
         );
             
 //        $this->clearSearchHistory();
-        echo 'Historique de recherche mis à jour : <br/>';
-        echo '<pre>', print_r($hist,true), '</pre>';
+//        echo 'Historique de recherche mis à jour : <br/>';
+//        echo '<pre>', print_r($hist,true), '</pre>';
         
     }
     
