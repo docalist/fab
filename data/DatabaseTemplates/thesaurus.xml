@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="iso-8859-1"?>
-<database label="Thesaurus" lastupdate="2008/01/15 12:05:27">
+<database label="Thesaurus" lastupdate="2008/02/11 12:13:55">
     <description>Structure de base de données utilisée pour stocker un thésaurus monolingue/monohiérarchique</description>
+    <stopwords>a and au aux d de des du en et l la le les not or ou par pour re sauf sur un une</stopwords>
     <fields>
         <field name="REF" type="autonumber" label="Numéro du terme" />
         <field name="Fre" label="Libellé du terme" />
@@ -65,4 +66,11 @@
             </fields>
         </index>
     </indices>
+    <lookuptables>
+        <lookuptable name="Fre" label="Tous les termes">
+            <fields>
+                <field name="Fre" />
+            </fields>
+        </lookuptable>
+    </lookuptables>
 </database>
