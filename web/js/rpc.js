@@ -46,7 +46,7 @@ jQuery.AutoCompleteHandler =
         {
             jQuery('body', document).append
             (
-                '<div id="'+popupId+'" style="display: none;position: absolute; top: 0; left: 0; z-index: 30001;"></div>'
+                '<div id="'+popupId+'" style="overflow: auto; height: 15em;display: none;position: absolute; top: 0; left: 0; z-index: 30001;"></div>'
                 /*style=" display: none;"*/
             );
             jQuery.AutoCompleteHandler.popup=
@@ -60,10 +60,22 @@ jQuery.AutoCompleteHandler =
                         
             if (jQuery.AutoCompleteHandler.popup.length===0)
             {
-//                console.error('Impossible de créer le popup');
                 return;
             }
+
+            // Si c'est le premier appel, crée un handler 'onsubmit' pour le formulaire
+            // Il remet l'attribut autocomplete à 'on' pour tous les input et les textarea
+            // nb : ne fonctionnera pas si on avait plusieurs form dans une même page
+            jQuery(this.form).submit
+            (
+                function()
+                {
+                    jQuery('input,textarea').attr('autocomplete','on');
+                }
+            );
+             
         }
+        
         
         // Récupére les paramètres et application les valeurs par défaut
         defaultSettings=
@@ -71,7 +83,9 @@ jQuery.AutoCompleteHandler =
             url: url,
             delay: 500,
             asValue: false,
-            asExpression: false
+            asExpression: false,
+            height: 'auto',
+            onload: null
         };
         
         if (settings)
@@ -81,13 +95,6 @@ jQuery.AutoCompleteHandler =
                             
 	    // Initialise les contrôles
         return this.each(function(){
-/*
-            if (this.tagName != 'INPUT' && this.getAttribute('type') != 'text' )
-            {
-                console.error('impossible de faire du autocomplete sur un tag '+this.tagName);
-                return;
-            }
-*/            
             this.ac=settings;
             this.ac.cache=new Array();
 
@@ -99,13 +106,11 @@ jQuery.AutoCompleteHandler =
                 // Mémorise la target en cours lorsque le champ obtient le focus
                 .focus(function(){
                     jQuery.AutoCompleteHandler.target=this;
-//	                jQuery(this).attr('autocomplete', 'off');
                 })
                 
                 // Met à null la target en cours et cache le popup quand le champ perd le focus
 
                 .blur (function(){
-//	                jQuery(this).attr('autocomplete', 'on');
                     if (jQuery.AutoCompleteHandler.keepFocus) return;
                     jQuery.AutoCompleteHandler.hide();
                     jQuery.AutoCompleteHandler.target=null;
@@ -303,20 +308,19 @@ vitesse de frappe de l'utilisateur
     // Gère la navigation au sein du popup
     select : function(what)
     {
-        popup=jQuery.AutoCompleteHandler.popup;
-        current=jQuery.AutoCompleteHandler.current;
-        items=jQuery(popup).children(0).children();
+        var popup=jQuery.AutoCompleteHandler.popup;
+        var current=jQuery.AutoCompleteHandler.current;
+        var items=jQuery(popup).children(0).children();
         
         switch(what)
         {
             case 'current':
                 if (current > -1)
                 {
+                    //alert('items='+items+', current='+current + ', items.length='+items.length);
                     item=items.eq(current);
-                    if (item.attr('onclick'))
-                        item.trigger('click');
-                    else
-                        jQuery.AutoCompleteHandler.set(item.text());                    
+                    //alert('item : '+item);
+                    item.click();
                     jQuery.AutoCompleteHandler.hide();
                 }
                 break;
@@ -339,13 +343,12 @@ vitesse de frappe de l'utilisateur
                 // si what est un des items du popup, ok, sinon erreur
                 current=items.index(what);
                 if (current == -1) return;
-//                    console.error('Appel incorrect de select : ', what);
         }
 
         if (jQuery.AutoCompleteHandler.current > -1)
             items.eq(jQuery.AutoCompleteHandler.current).removeClass('selected');
         jQuery.AutoCompleteHandler.current=current;
-        items.eq(current).addClass('selected');
+        items.eq(current).addClass('selected').get(0).scrollIntoView(false);
     },
     
     update: function()
@@ -392,8 +395,9 @@ vitesse de frappe de l'utilisateur
         // Cache la boite en attendant qu'on ait les résultats
         jQuery.AutoCompleteHandler.xhr=jQuery.ajax({
             type: 'GET',
-            url: target.ac.url.replace('%s', escape(selection.value)),
-            success: jQuery.AutoCompleteHandler.gotResult
+            url: target.ac.url.replace(/%s/g, escape(selection.value)),
+            success: jQuery.AutoCompleteHandler.gotResult,
+            dataType: 'html'
         });
     },
 
@@ -408,8 +412,12 @@ vitesse de frappe de l'utilisateur
         
         if (target.ac.cache)
             target.ac.cache[jQuery.AutoCompleteHandler.xhrValue]=data;
+        
+        var height=target.ac.height;
 
+        popup.height('auto');
         popup.attr("innerHTML", data);
+        if (popup.height()>height) popup.height(height);
         
         items=jQuery(popup).children(0).children();
         if (items.length==0)
@@ -422,7 +430,7 @@ vitesse de frappe de l'utilisateur
             .mouseover(function(){
                 jQuery.AutoCompleteHandler.select(this);
             })
-            .css('cursor','pointer')
+//            .css('cursor','pointer')
             .each(function(item){ // permet à l'élément d'utiliser this->set(x) dans son onclick
                 this.set=jQuery.AutoCompleteHandler.set;
             })
@@ -430,6 +438,12 @@ vitesse de frappe de l'utilisateur
         
         if (! jQuery.AutoCompleteHandler.visible)
             jQuery.AutoCompleteHandler.show();
+
+        jQuery.AutoCompleteHandler.select(items[0]);
+        
+        if (target.ac.onload)
+            target.ac.onload(popup);
+            
     }
     
     

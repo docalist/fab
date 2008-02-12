@@ -2,11 +2,18 @@
     Affichage d'un ou plusieurs termes du thésaurus sous forme
     de liste alphabétique structurée
 */
-<h2>Thesaurus SantéPsy</h2>
+<h2><a href="/{$this->module}">Thesaurus SantéPsy</a></h2>
 
 <loop on="{$this->selection}">
     <div class="term">
-        <p class="FRE">$Fre</p>
+        <p class="FRE">
+            <a
+                strip="{$EM}"   /* pas de lien si c'est un non descripteur */
+                title="Notices de la base SantéPsy indexées à ce terme"
+                href="/Base/Search?motscles=[$Fre]">
+                $Fre
+            </a>
+        </p>
         
         <p test="$MT" class="MT">
             <span class="lib">MV :</span>

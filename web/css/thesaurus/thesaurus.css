@@ -1,17 +1,8 @@
-div.term p
+ul.thesaurus div
 {
-    margin: 0;
-}
-
-div.term p.FRE
-{
-    color: #008;
     font-weight: bold;
 }
-
-
-div.term span.lib /* les mentions "TG :", "TS :", etc. */
+ul.thesaurus li
 {
-    color: #000;
-    font-weight: bold;
+    padding: 0.3em 0;
 }

@@ -1,4 +1,4 @@
-<h2>Thesaurus SantéPsy</h2>
+<h2><a href="/{$this->module}">Thesaurus SantéPsy</a></h2>
 <p>Votre recherche : {$this->equation}</p>
     /* Affiche les mots-vides qui ont été ignorés dans l'équation */
     <def name="stopwords" value="{$this->selection->searchInfo('stopwords')}" />
@@ -12,9 +12,9 @@
 <ul>
     <loop on="$this->selection">
         <li>
-            <a href="show?REF=$REF">$Fre</a>
+            <a href="Show?REF=$REF">$Fre</a>
             <if test="$EM">
-                <br />EM : <a href="show?REF=$EM">$EM</a>
+                <br />EM : <a href="Show?Fre=[$EM]">$EM</a>
             </if>
         </li>
     </loop>
