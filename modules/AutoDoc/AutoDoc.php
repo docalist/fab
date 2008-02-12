@@ -5,6 +5,24 @@ class AutoDoc extends Module
     
     public static $flags=array('inherited'=>false, 'private'=>false, 'protected'=>false, 'public'=>true, 'errors'=>false, 'sort'=>false);
     
+    public function actionDocbook($filename='format.documentation')
+    {
+        $path=Runtime::$fabRoot . "doc/$filename.xml";
+        if (! file_exists($path))
+            die('impossible de trouver le fichier '.$path);
+
+        $source=file_get_contents($path);
+        $source=utf8_decode($source);
+        
+        if (false === $start=strpos($source, '<sect1'))
+            die('Impossible de trouver &lt;sect1 dans le fichier docbook');
+        
+        $source=substr($source, $start);
+        $source=str_replace('$', '\$', $source);
+        
+        Template::runSource($source);
+    }
+
     private function includeClasses($path)
     {
         $dir=new DirectoryIterator($path);
