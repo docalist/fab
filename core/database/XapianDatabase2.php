@@ -1076,7 +1076,7 @@ class XapianDatabaseDriver2 extends Database
         }
         $this->start=$start+1;
         $this->max=$max;
-        $this->rank=0;
+        //$this->rank=0;
         if ($minscore<0) $minscore=0; elseif($minscore>100) $minscore=100;
         
         // Met en place l'environnement de recherche lors de la première recherche
@@ -1445,7 +1445,7 @@ class XapianDatabaseDriver2 extends Database
             case 'docid': return $this->xapianMSetIterator->get_docid();
             
             case 'equation': return $this->selection->equation;
-            case 'rank': return $this->rank;
+            case 'rank': return $this->xapianMSetIterator->get_rank()+1;
             case 'start': return $this->start;
             case 'max': return $this->max;
             
