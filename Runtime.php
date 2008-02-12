@@ -602,7 +602,7 @@ $fab_init_time=microtime(true);
             //session_set_cookie_params(Config::get('sessions.lifetime'));
             session_cache_limiter('none');
 
-            session_start();
+            @session_start();
         }
             
     }
