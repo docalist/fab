@@ -4,7 +4,6 @@
     background: #EFF8FF; 
     overflow: hidden;
     white-space: nowrap;
-/*    font-size: 0.9em;*/
 }
 
 #autocompletePopup ul
@@ -24,6 +23,7 @@
     list-style: none;
     border-bottom: 1px solid #ddd;
     padding-left: 0.2em;
+    cursor: pointer;
 }
 
 #autocompletePopup li span
@@ -36,3 +36,7 @@
     padding-right: 0.2em; 
 }
 
+#autocompletePopup div
+{
+    color: #008;
+}
