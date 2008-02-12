@@ -304,9 +304,10 @@ table
     margin: 0 auto 0.5em auto;
     text-indent: 0;
 }
-table title
+div.table div.title
 {
     max-width: 100%;
+    text-align: center;
     /* 
         evite que le titre de la table soit plus large que la table
         sinon, la table n'est plus centrée. Apparemment, faire margin: auto
@@ -351,7 +352,7 @@ tfoot
     vertical-align: middle;
 }
 
-entry
+td
 { 
     display: table-cell;
     vertical-align:top;
@@ -362,7 +363,7 @@ entry
     background-color: #F5F4F1;
 }
 
-thead entry
+th
 {
     vertical-align: middle;
     font-weight: bold;
