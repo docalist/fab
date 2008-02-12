@@ -349,9 +349,25 @@ Config::addArray($this->config);    // fixme: objectif : uniquement $this->confi
         $module=self::loadModule($request->getModule());
         $module->request=$request;
         $module->configureAction($request->getAction());
-//        pre('Module : ', $module);
         $module->execute();
+        
+        // Expérimental : enregistre les données du formulaire si un paramètre "_autosave" a été transmis
+        if ($request->has('_autosave'))
+        {
+            Runtime::startSession();
+            $_SESSION['autosave'][$request->get('_autosave')]=$request->clear('_autosave')->getParameters();
+        }
     }
+    
+    // Experimental : do not use, récupération des données enregistrées pour un formulaire    
+    public static function formData($name)
+    {
+        Runtime::startSession();
+    
+        if (!isset($_SESSION['autosave'][$name])) return array();
+        return $_SESSION['autosave'][$name];
+    }
+
 
     private function runAction()
     {
