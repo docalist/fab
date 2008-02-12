@@ -373,23 +373,81 @@ class Config
      */
     public static function mergeConfig(&$t1,$t2)
     {
+        /*
+            Modifs DM 20/12/07, gestion de l'attribut inherit="false"
+            
+            La gestion existante fonctionne lorsque deux tableaux sont fusionnés
+            Mais si le tableau obtenu est à nouveau fusionné avec un autre, on
+            n'a plus aucune info nous disant 'ne pas hériter'.
+
+            J'ai modifié le code pour créer à chaque fois, dans le tableau
+            résultat, une clé '!inherit' contenant la liste des clés qui ne
+            doivent pas hériter de la config existante.
+
+            Cela fonctionne, mais il subsiste dans la config des clés précédées
+            d'un slash qui ne devrait pas apparaître (par exemple dans la config
+            de l'action EditStructure de DatabaseAdmin). Dans la pratique, ce 
+            n'est pas forcément génant parce que la config finale de premier 
+            niveau n'a pas de slash, donc ça marche.
+
+            Les slashs qui subsistent viennent du fait que si la clé n'existe
+            pas déjà dans le tableau t1, on recopie directement la valeur
+            provenant du tableau t2. Si cette valeur est elle même un tableau
+            contenant des clés précédées d'un slash, celles-ci ne seront jamais 
+            supprimées (en fait il faudrait faire un merge).   
+          
+         */
+        if (isset($t2['!inherit']))
+        {
+            $noinherit=$t2['!inherit'];
+            unset($t2['!inherit']);
+        }
         foreach ($t2 as $key=>$value)
         {
+//            if (is_array($value))
+//            {
+//                $temp=array();
+//                self::mergeConfig($temp, $value);
+//                $value=$temp;
+//            }
+            
             if (is_int($key))
                 $t1[]=$value; 
             else 
             {
                 if ($inherit = (substr($key, 0, 1)!=='!'))
                 {
-                    if (array_key_exists($key,$t1) &&  
-                        is_array($value) && is_array($old=&$t1[$key]))
-                        self::mergeConfig($old,$value);
-                    else
+                    if (isset($noinherit[$key]))
+                    {
                         $t1[$key]=$value;
+                    }
+                    else
+                    {
+
+                        if (array_key_exists($key,$t1) &&  
+                            is_array($value) && is_array($old=&$t1[$key]))
+                            self::mergeConfig($old,$value);
+                        else
+                            $t1[$key]=$value;
+
+/*
+                        if (is_array($value))
+                        {
+                            if (!isset($t1[$key]) || !is_array($t1[$key])) $t1[$key]=array();
+                            self::mergeConfig($t1[$key],$value);
+                        }
+                        else
+                        {
+                            $t1[$key]=$value;
+                        }
+*/
+                    }
                 }
                 else
                 {
-                    $t1[substr($key,1)]=$value;
+                    $key=substr($key,1);
+                    $t1[$key]=$value;
+                    $t1['!inherit'][$key]=true;
                 }
             }
         }
