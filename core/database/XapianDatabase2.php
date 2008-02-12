@@ -1030,6 +1030,7 @@ class XapianDatabaseDriver2 extends Database
         // a priori, pas de réponses
         $this->eof=true;
 
+        $rset=null;
         // Analyse les options indiquées (start et sort) 
         if (is_array($options))
         {
@@ -1052,6 +1053,18 @@ class XapianDatabaseDriver2 extends Database
                 $filter=(array)$options['_filter'];
             else
                 $filter=null;
+
+            if (isset($options['_minscore']))
+                $minscore=(int)$options['_minscore'];
+            else
+                $minscore=0;
+                
+            if (isset($options['_rset']) && is_array($id=$options['_rset']))
+            {
+                $rset=new XapianRset();
+                foreach($id as $id)
+                    $rset->add_document($id);
+            }
         }
         else
         {
@@ -1059,10 +1072,12 @@ class XapianDatabaseDriver2 extends Database
             $start=0;
             $max=-1;
             $filter=null;
+            $minscore=0;
         }
         $this->start=$start+1;
         $this->max=$max;
         $this->rank=0;
+        if ($minscore<0) $minscore=0; elseif($minscore>100) $minscore=100;
         
         // Met en place l'environnement de recherche lors de la première recherche
         if (is_null($this->xapianEnquire)) $this->setupSearch();
@@ -1093,9 +1108,12 @@ class XapianDatabaseDriver2 extends Database
         
         // Définit l'ordre de tri des réponses
         $this->setSortOrder($sort);
+
+        // Définit le score minimal souhaité
+        if ($minscore) $this->xapianEnquire->set_cutoff($minscore);
         
         // Lance la recherche
-        $this->xapianMSet=$this->xapianEnquire->get_MSet($start, $max, $max+1);
+        $this->xapianMSet=$this->xapianEnquire->get_MSet($start, $max, $max+1, $rset);
         $this->count=$this->xapianMSet->get_matches_estimated();
 
         // Teste si la requête a retourné des réponses
