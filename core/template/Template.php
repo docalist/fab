@@ -299,7 +299,7 @@ class Template
         array_unshift($data,array('this'=>Utils::callerObject(2)));
 
         // Exécute le template        
-        self::runInternal($path,$data);
+        self::runInternal($path,$data,$source);
     }
     
     public static function runold($template /* $dataSource1, $dataSource2, ..., $dataSourceN */ )
@@ -533,14 +533,23 @@ return false (ne pas afficher le contenu par défaut)
         // S'il s'agit d'une action, on l'exécute
         if ($action[0]==='/')
         {
-            if (!is_null($args))
-            {
-                if (Utils::isGet()) $t=& $_GET; else $t=& $_POST;
-    
-                foreach ($args as $argName=>$argValue)
-                    $t[$argName]=$_REQUEST[$argName]=$argValue;
-            }
-            Routing::dispatch($action);
+//            if (!is_null($args))
+//            {
+//                if (Utils::isGet()) $t=& $_GET; else $t=& $_POST;
+//    
+//                foreach ($args as $argName=>$argValue)
+//                    $t[$argName]=$_REQUEST[$argName]=$argValue;
+//            }
+//            Routing::dispatch($action);
+            
+            $action=ltrim($action, '/');
+            $module=strtok($action, '/');
+            $action=strtok('/');
+            if ($action==='') $action='Index';
+            
+            $request=new Request($args);
+            $request->setModule($module)->setAction($action);
+            Module::run($request);
         }
 
         // C'est un template : on l'exécute

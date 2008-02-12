@@ -622,7 +622,12 @@ class TemplateCode
                 'array_intersect_key',
                 'array_diff_key',
                 'array_map',
-            'iterator_to_array'
+                'iterator_to_array',
+                'chr',
+                'crc32',
+                'md5',
+                'dechex',
+                'utf8_encode'
                 
             ));
             $runtimeFunctions=array_flip(array

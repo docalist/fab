@@ -1024,7 +1024,8 @@ private static $line=0, $column=0;
                 return;
             
             case XML_CDATA_SECTION_NODE:    // Une section CDATA
-                echo $node->ownerDocument->saveXML($node);
+                echo htmlspecialchars($node->nodeValue);
+                //echo $node->ownerDocument->saveXML($node);
                 return;
 
             case XML_ENTITY_REF_NODE:
