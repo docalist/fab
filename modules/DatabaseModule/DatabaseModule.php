@@ -147,8 +147,17 @@ class DatabaseModule extends Module
             $template,
             array($this, $callback),
             $this->selection->record  
-        );          
-        $this->updateSearchHistory();      
+        );  
+
+        // Ajoute la requête dans l'historique des équations de recherche
+        $history=$this->configUserGet('history', false);
+
+        if ($history===true) $history=10;
+        elseif ($history===false) $history=0;
+
+        if (!is_int($history)) $history=0;
+        if ($history>0 && ! Utils::isAjax())
+            $this->updateSearchHistory($history);      
     }   
     
     private function & loadSearchHistory()
@@ -159,12 +168,12 @@ class DatabaseModule extends Module
         // Récupère l'historique actuel
         if (!isset($_SESSION[$historyKey])) $_SESSION[$historyKey]=array();
         return $_SESSION[$historyKey];
-        
     }
     
-    private function updateSearchHistory()
+    private function updateSearchHistory($maxHistory=10)
     {
-        $maxHistory=10;
+        // Charge les sessions si ce n'est pas le cas (pas mis en config, comme ça la session n'est chargée que si on en a besoin)
+        Runtime::startSession();
         
         // Charge l'historique
         $hist=& $this->loadSearchHistory();
@@ -213,19 +222,23 @@ class DatabaseModule extends Module
             'number'=>$number
         );
             
-//        $this->clearSearchHistory();
 //        echo 'Historique de recherche mis à jour : <br/>';
 //        echo '<pre>', print_r($hist,true), '</pre>';
         
     }
     
-    private function clearSearchHistory()
+    public function actionClearSearchHistory()
     {
-        // Charge l'historique
-        $hist=& $this->loadSearchHistory();
+        // Charge les sessions si ce n'est pas le cas (pas mis en config, comme ça la session n'est chargée que si on en a besoin)
+        Runtime::startSession();
         
-        // Efface tout
-        foreach($hist as $key=>$value) unset($hist[$key]);
+        // Nom de la clé dans la session qui stocke l'historique des recherches pour cette base
+        $historyKey='search_history_'.Config::get('database'); // no dry / loadSearchHistory
+        
+        // Récupère l'historique actuel
+        if (isset($_SESSION[$historyKey])) unset($_SESSION[$historyKey]);
+        
+        echo "Historique effacé.";
     }
     
     public function getSearchHistory()
@@ -703,7 +716,7 @@ class DatabaseModule extends Module
     {
         header('Content-type: text/html; charset=iso-8859-1');
 
-        $max=$this->request->defaults('max', 10)->int()->min(0)->ok();
+        $max=$this->request->defaults('max', 25)->int()->min(0)->ok();
         
         // Ouvre la base
         $this->openDatabase();
@@ -1050,58 +1063,50 @@ class DatabaseModule extends Module
     }     
     
     /**
-     * A partir d'une sélection ouverte et de la queryString, retourne la barre de navigation entre
-     * les différentes pages de résultats (au format XHTML).
-     * Peut-être appelée directement depuis un template
-     * 
-     * @param $actionName string l'action qui donne les résultats pour lesquels on créé une barre de navigation
-     * @param $maxLinks integer le nombre de liens maximum à afficher dans la barre de navigation
-     * @param $prevLabel string le libellé du lien vers la page précédente
-     * @param $nextLabel string le libelle du lien vers la page suivante
-     * @param $firstLabel string le libelle du lien vers la première page de résultats pour la sélection (chaîne vide si aucun)
-     * @param $lastLabel string le libelle du lien vers la dernière page de résultats pour la sélection (chaîne vide si aucun)
-     * 
-     * @return chaîne XHTML correspond à la barre de navigation ou une chaîne vide s'il n'y a qu'une seule page à afficher
+     * Génère une barre de navigation affichant le nombre de réponses obtenues
+     * et les liens suivant/précédent
+     *
+     * @param string $prevLabel libellé à utiliser pour le lien "Précédent"
+     * @param string $nextLabel libellé à utiliser pour le lien "Suivant"
+     * @return string
      */
     public function getSimpleNav($prevLabel = '&lt;&lt; Précédent', $nextLabel = 'Suivant &gt;&gt;')
     {
-        // la base de la query string pour la requête
-        $query=$_GET;
-        unset($query['_start']);
-        unset($query['module']);
-        unset($query['action']);
-        $query=self::buildQuery($query); // FIXME: code dupliqué avec le buildQueryString de Routing
-        
-//DMDM nouveau routing        $actionName = $this->action;    // on adapte l'URL en fonction de l'action en cours (search, show, ...)
-
+        // Regarde ce qu'a donné la requêt en cours
         $start=$this->selection->searchInfo('start');
         $max= $this->selection->searchInfo('max');
         $count=$this->selection->count();
         
-//DMDM nouveau routing        $this->module=strtolower($this->module); // BUG : this->module devrait être tel que recherché par les routes
-//DMDM nouveau routing        $url='/'.$this->module.'/'.$this->action.'?'.$query;
-        $url='?'.$query; // DMDM nouveau routing
-
+        // Clone de la requête qui sera utilisé pour générer les liens
+        $request=$this->request->copy();
+        //$request=Runtime::$originalRequest->copy();
+        //echo 'request=<pre>', print_r($request,true), '</pre>';
+        //$request->clear('module')->clear('action');
+        
+        // Détermine le libellé à afficher
         if ($start==min($start+$max-1,$count))
             $h='Résultat ' . $start . ' sur '.$this->selection->count('environ %d'). ' ';
         else
             $h='Résultats ' . $start.' à '.min($start+$max-1,$count) . ' sur '.$this->selection->count('environ %d'). ' ';
         
+        // Génère le lien "précédent"
         if ($start > 1)
         {
             $newStart=max(1,$start-$max);
-            $prevUrl=Routing::linkFor($url.'&_start='.$newStart);
+            
+            $prevUrl=Routing::linkFor($request->set('_start', $newStart));
             $h.='<a href="'.$prevUrl.'">'.$prevLabel.'</a>';
         }
         
+        // Génère le lien "suivant"
         if ( ($newStart=$start+$max) <= $count)
         {
-            $nextUrl=Routing::linkFor($url.'&_start='.$newStart);
-            //if ($h) $h.=' ';
+            $nextUrl=Routing::linkFor($request->set('_start', $newStart));
             if ($start > 1 && $h) $h.='&nbsp;|&nbsp;';
             $h.='<a href="'.$nextUrl.'">'.$nextLabel.'</a>';
         }
 
+        // Retourne le résultat
         return '<span class="navbar">'.$h.'</span>';
     }
     
@@ -1935,6 +1940,53 @@ class DatabaseModule extends Module
             echo '  </record>', "\n"; 
         }
         echo '</database>', "\n"; 
+    }
+    
+    // Recherche des doublons potentiels pour la notice en cours dans this->selection
+    public function findDuplicates()
+    {
+        //$duplicates=clone $this->selection;
+        $sav=$this->selection;
+        $this->openDatabase();
+        $duplicates=$this->selection;
+        $this->selection=$sav;
+        
+        $equation=sprintf
+        (
+            'Tit:(%s) AND NOT REF:%d',
+            $this->selection['Tit'],
+            $this->selection['REF']
+        );
+//echo '<pre>';
+$terms=$this->selection->getTerms();
+$terms=$terms['index'];
+$fields=array('Type', 'Aut', 'Tit', 'CongrTit', 'Date', 'DateText', 'Rev', 'Edit', 'IsbnIssn');
+
+$terms=array_intersect_key($terms, array_flip($fields));
+        
+$equation='(';        
+foreach($terms as $name=>$tokens)
+{
+    $tokens=implode(' ', array_keys($tokens));
+    $equation.=$name . ':(' . $tokens . ') ';        
+}
+$equation .=') AND NOT REF:'.$this->selection['REF'];
+//echo 'equation : ', $equation, '<br />';
+//        print_r($terms);
+
+        $duplicates->search
+        (
+            $equation
+            ,
+            array
+            (
+                '_sort'=>'%',
+                '_max'=>10,
+                '_minscore'=>75,
+                '_rset'=>array($this->selection->searchInfo('docid'))
+            )
+        );
+        return $duplicates;
     }
     
     public function actionTest()
