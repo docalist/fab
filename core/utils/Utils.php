@@ -1564,5 +1564,82 @@ final class Utils
         ksort($array);
         return $array;
     }
+    
+    /**
+     * Convertit les urls et les adresses e-mails présentes dans le texte
+     * passé en paramètre en lien cliquable.
+     * 
+     * La fonction transforme toutes les chaines xxx qui ressemblent à une url 
+     * ou à une adresse e-mail en lien html de la forme :
+     * <code>&lt;a href="xxx">xxx&lt;/a></code>
+     *
+     * La fonction prend garde de ne pas rajouter un tag 'a' aux liens qui
+     * sont déjà englobés dans un tag 'a'.
+     * 
+     * Les adresses IP sont également reconnues (pour les urls, pas pour les 
+     * e-mails).
+     * 
+     * @param string $text le texte a transformé
+     * @return string le texte obtenu
+     */
+    public static function autoLink($text)
+    {
+        $IPByte    = '\d{1,3}';                             // Un octet dans une adresse IP 
+        $IP    = "$IPByte\.$IPByte\.$IPByte\.$IPByte";      // Adresse IP (IPV4)
+        $Protocol   = '(?:http|https|ftp)://';              // protocole internet
+        $TopDomain  = '\.[A-Za-z]{2,4}';                    // un point suivi d'un code pays de 2 ou 3 ou 4 lettres
+        $Ident      = '[\w-]+';                             // un 'mot' du nom de domaine
+        $Domain     = "$Ident(?:\.$Ident)*$TopDomain";      // nom de domaine
+        $Port       = '\:\d+';                              // port TCP
+        $UrlPath    = '(?:/[^# /\\n\\r<]+)+';               // path d'un document (y compris éventuelle query string)
+        $Bookmark   = '#\w+';                               // ancre au sein du document (=id hml valide)
+        $DomainIP  = "$Domain|$IP";                         // Une nom de domaine ou une adresse IP
+        $Url        = "($Protocol|www\.|ftp\.)(?:$DomainIP)(?:$Port)?(?:$UrlPath)?(?:$Bookmark)?";    // url complète
+        $Email      = "$Ident(?:\.$Ident)*@$Domain";         // Adresse e-mail
+        $lead       = '(?:<\w+.*?>)?';                      // utilisé pour tester si l'url est déjà dans un <a>...</a>
+        
+        $text=preg_replace_callback("~($lead)($Url)~", array('Utils','autolinkCallbackForUrls'), $text);
+        $text=preg_replace_callback("~($lead)($Email)~", array('Utils','autolinkCallbackForEmails'), $text);
+        return $text;
+    }
+
+    /**
+     * Callback utilisé par {@link autoLink()} pour reconnaître les urls.
+     *
+     * @param array $matches les occurences trouvées par preg_replace_callback()
+     * @return string le texte obtenu
+     */
+    private static function autolinkCallbackForUrls(array $matches)
+    {
+        // 1=lead, 2=url, 3=protocole ou 'www.' ou 'ftp.'
+        if (strpos($matches[1],'<a ')===0) // examine ce qui précède, si c'est '<a xxx' retourne inchangé
+            return $matches[0];
+            
+        $url=$matches[2];
+        if(strpos($matches[3],'://')===false) 
+        {
+            if (stripos($matches[3], 'ftp')===0)
+                $url='ftp://'.$url;
+            else
+                $url='http://'.$url;
+        }
+        return $matches[1].'<a href="' . $url . '">' . $matches[2] . '</a>';
+    }
+    
+    /**
+     * Callback utilisé par {@link autoLink()} pour reconnaître les adresses
+     * e-mails.
+     *
+     * @param array $matches les occurences trouvées par preg_replace_callback()
+     * @return string le texte obtenu
+     */
+    private static function autolinkCallbackForEmails(array $matches)
+    {
+        // 1=lead, 2=email
+        if (strpos($matches[1],'<a ')===0) // examine ce qui précède, si c'est '<a xxx' retourne inchangé
+            return $matches[0];
+            
+        return $matches[1].'<a href="mailto:' . $matches[2] . '">' . $matches[2] . '</a>';
+    }
 }
 ?>
