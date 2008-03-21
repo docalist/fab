@@ -118,7 +118,7 @@
     Champs cachés : équation
 */
     <loop on="$equations" as="$equation">
-        <hidden name="_equation" value="$equation" />
+        <hidden name="_equation" value="{htmlspecialchars($equation)}" />
     </loop>
 
 /*

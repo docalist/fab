@@ -39,10 +39,10 @@ div.help dt
     
     <p><strong>{$this->selection->count('environ ')} notice(s)</strong> pour l'équation <code>{$this->equation}</code></p>
 </slot>
-<form method="get" action="replace" class="form">
+<form method="get" action="Replace" class="form">
     <slot name="formheader" />
 
-    <input type="hidden" name="_equation" value="{$this->equation}" />
+    <input type="hidden" name="_equation" value="{htmlspecialchars($this->equation)}" />
     
     <fieldset label="Rechercher :">
         <textbox name="search" style="width: 100%;" /><br />

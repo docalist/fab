@@ -25,7 +25,7 @@
     </fieldset>
 
     <hidden name="confirm" value="{time()}" />
-    <hidden name="_equation" value="{$this->equation}" />
+    <hidden name="_equation" value="{htmlspecialchars($this->equation)}" />
     <submit label="Supprimer..." style="float:right;" />
 
 </form>
