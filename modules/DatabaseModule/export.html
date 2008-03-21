@@ -19,7 +19,7 @@
             <p>
                 Export en format {$format['label']}
                 <if test="{$format['max']!=-1}">
-                    (maximum {$format['max']})
+                    (maximum {$format['max']} notices)
                 </if>
             </p>
             <hidden name="_format" value="$name" />
@@ -40,7 +40,7 @@
                             value="$name" 
                             id="$name" 
                             checked="{Utils::get($format['default']) ? 'selected': ''}"
-                            label="{$format['label'].(($format['max']!=-1) ? (' (maximum '.$format['max'].')') : '')}"
+                            label="{$format['label'].(($format['max']!=-1) ? (' (maximum '.$format['max'].' notices)') : '')}"
                         />
                     </div>
                 </loop>
