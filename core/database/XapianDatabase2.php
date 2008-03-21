@@ -180,6 +180,14 @@ class XapianDatabaseDriver2 extends Database
      */
     private $sortKey=null;
     
+    
+    /**
+     * Opérateur par défaut utilisé par le queryparser
+     *
+     * @var null|int
+     */
+    private $defaultOp=null;
+    
     /**
      * Retourne la structure de la base de données
      *
@@ -869,8 +877,7 @@ class XapianDatabaseDriver2 extends Database
             $this->stopper->add($stopword);
         $this->xapianQueryParser->set_stopper($this->stopper); // fixme : stopper ne doit pas être une variable locale, sinon segfault
     
-        $this->xapianQueryParser->set_default_op(XapianQuery::OP_OR); // FIXME : quel doit-être l'opérateur par défaut ?
-        
+        $this->xapianQueryParser->set_default_op($this->defaultOp);
         $this->xapianQueryParser->set_database($this->xapianDatabase); // indispensable pour FLAG_WILDCARD
     }
 
@@ -1032,6 +1039,7 @@ class XapianDatabaseDriver2 extends Database
 
         $rset=null;
         // Analyse les options indiquées (start et sort) 
+        $this->defaultOp=XapianQuery::OP_OR;
         if (is_array($options))
         {
             $sort=isset($options['_sort']) ? $options['_sort'] : null;
@@ -1064,6 +1072,23 @@ class XapianDatabaseDriver2 extends Database
                 $rset=new XapianRset();
                 foreach($id as $id)
                     $rset->add_document($id);
+            }
+
+            if (isset($options['_defaultop']))
+            {
+                switch( strtolower(trim($options['_defaultop'])))
+                {
+                    case 'et':
+                    case 'and':
+                        $this->defaultOp=XapianQuery::OP_AND;
+                        break;
+                    case 'ou':
+                    case 'or':
+                        $this->defaultOp=XapianQuery::OP_OR;
+                        break;
+                    default:
+                        throw new Exception('Opérateur par défaut incorrect : '.$options['_defaultop']);
+                }
             }
         }
         else

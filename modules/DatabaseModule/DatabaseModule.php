@@ -818,7 +818,9 @@ class DatabaseModule extends Module
                     ->unique()
                     ->ok(),
                     
-            '_filter'=>$this->getFilter()
+            '_filter'=>$this->getFilter(),
+                    
+            '_defaultop'=>Config::get('defaultop'),
         );
         return $this->selection->search($equation, $options);
     }
@@ -1072,7 +1074,7 @@ class DatabaseModule extends Module
      */
     public function getSimpleNav($prevLabel = '&lt;&lt; Précédent', $nextLabel = 'Suivant &gt;&gt;')
     {
-        // Regarde ce qu'a donné la requêt en cours
+        // Regarde ce qu'a donné la requête en cours
         $start=$this->selection->searchInfo('start');
         $max= $this->selection->searchInfo('max');
         $count=$this->selection->count();
