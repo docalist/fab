@@ -1,3 +1,14 @@
+/**
+   Url à appeller pour récupérer les valeurs de lookup.
+   
+   Par défaut, appelle l'action ThesoLookup du module en cours. Marche
+   bien si le module en cours est un descendant de ThesaurusModule mais ne
+   fonctionne pas si on appelle ThesoLookup par exemple à partir de /Base.
+   La variable ThesoLookupUrl permet dans ce cas de définir une url absolue
+   Exemple : ThesoLookupUrl='{Routing::linkFor("/ThesaurusModule/ThesoLookup")}'
+*/ 
+var ThesoLookupUrl='ThesoLookup';
+
 // fonction appellée par rpc quand on reçoit les données envoyées par thesolookup
 function ThesoLookup(popup)
 {
@@ -16,7 +27,7 @@ function ThesoLookup(popup)
             term=term.replace(/[\[\]]/g, '');
             term = '[' + term + ']';
             
-            popup.load('ThesoLookup?Fre='+escape(term), null, jQuery.AutoCompleteHandler.gotResult);
+            popup.load(ThesoLookupUrl+'?Fre='+escape(term), null, jQuery.AutoCompleteHandler.gotResult);
             event.stopPropagation();
             event.preventDefault();
             jQuery.AutoCompleteHandler.target.focus();
