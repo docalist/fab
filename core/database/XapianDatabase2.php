@@ -1180,22 +1180,21 @@ class XapianDatabaseDriver2 extends Database
         $this->sortKey=null;
         
         // Définit l'ordre de tri
+        $this->sortOrder=$sort;
         switch ($sort)
         {
             case '%':
-                $this->sortOrder='par pertinence';
                 $this->xapianEnquire->set_Sort_By_Relevance();
                 break;
                 
             case '+':
-                $this->sortOrder='par docid croissants';
                 $this->xapianEnquire->set_weighting_scheme(new XapianBoolWeight());
                 $this->xapianEnquire->set_DocId_Order(XapianEnquire::ASCENDING);
                 break;
 
             case '-':
             case null:
-                $this->sortOrder='par docid décroissants';
+                $this->sortOrder='-';
                 $this->xapianEnquire->set_weighting_scheme(new XapianBoolWeight());
                 $this->xapianEnquire->set_DocId_Order(XapianEnquire::DESCENDING);
                 break;
@@ -1235,17 +1234,14 @@ class XapianDatabaseDriver2 extends Database
                 $order = ((($matches[2]==='-') || ($matches[4]) === '-')) ? 0:1; //XapianEnquire::DESCENDING : XapianEnquire::ASCENDING;
                 if ($matches[1])        // trier par pertinence puis par champ
                 {
-                    $this->sortOrder='par pertinence puis par '. $label . ($order ? ' croissants': ' décroissants');
                     $this->xapianEnquire->set_sort_by_relevance_then_value($id, !$order);
                 }
                 elseif ($matches[5])    // trier par champ puis par pertinence
                 { 
-                    $this->sortOrder='par ' . $label . ($order ? ' croissants': ' décroissants') . ' puis par pertinence';
                     $this->xapianEnquire->set_sort_by_value_then_relevance($id, !$order);
                 }
                 else                    // trier par champ uniquement
                 {                        
-                    $this->sortOrder='par ' . $label . ($order ? ' croissants': ' décroissants');
                     $this->xapianEnquire->set_sort_by_value($id, !$order);
                 }
         }
