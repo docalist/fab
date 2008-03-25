@@ -115,12 +115,15 @@
     </fieldset>
 
 /*
-    Champs cachés : équation
+    Champs cachés : équation, sort
 */
     <loop on="$equations" as="$equation">
         <hidden name="_equation" value="{htmlspecialchars($equation)}" />
     </loop>
-
+    <loop on="{$this->request->asArray('filename')->ok()}" as="$filename">
+        <hidden name="filename" value="{htmlspecialchars($filename)}" />
+    </loop>
+    <hidden name="_sort" value="{htmlspecialchars($this->request->unique('_sort')->ok())}" />
 /*
     Boutons du formulaire
 */    
@@ -135,7 +138,6 @@ jQuery(document).ready(
     \{
         var MailDetails=function()
         \{
-console.debug('here');
             if (jQuery('#_mail').is(':checked'))
                 jQuery('#_maildetails').show();
             else

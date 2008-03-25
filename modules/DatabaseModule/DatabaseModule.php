@@ -1656,7 +1656,7 @@ class DatabaseModule extends Module
         foreach($equations as $i=>$equation)
         {
             $h=is_array($filename) ? Utils::get($filename[$i],'') : $filename;
-            if ($h) $h='-' . $h;
+            //if ($h) $h='-' . $h;
             $j=1;
             $result=sprintf($basename, $h);
             while(in_array($result, $filenames))
@@ -1762,10 +1762,14 @@ class DatabaseModule extends Module
 //                throw new Exception('Impossible de créer le fichier zip - 1');
             foreach($files as $i=>$path)
             {
-                if (!$zipFile->addFile($files[$i], $filenames[$i]))
+                if (!$zipFile->addFile($files[$i], Utils::convertString($filenames[$i],'CP1252 to CP437')))
                     throw new Exception('Impossible de créer le fichier zip - 2');
-                if (!$zipFile->setCommentIndex($i, Utils::convertString($equations[$i],'CP1252 to CP850')))            
+                if (!$zipFile->setCommentIndex($i, Utils::convertString($equations[$i],'CP1252 to CP437')))            
                     throw new Exception('Impossible de créer le fichier zip - 3');
+                    
+                // Historiquement, le format ZIP utilise CP437 
+                // (source : annexe D de http://www.pkware.com/documents/casestudies/APPNOTE.TXT) 
+                 
             }
             if (!$zipFile->close())            
                 throw new Exception('Impossible de créer le fichier zip - 4');
