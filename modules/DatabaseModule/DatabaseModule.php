@@ -1678,7 +1678,7 @@ class DatabaseModule extends Module
         foreach($equations as $i=>$equation)
         {        
             // Lance la recherche, si aucune réponse, erreur
-            if (! $this->select($equation, $max, 0, '+'))
+            if (! $this->select($equation, $max, 0))
             {
             	echo "Aucune réponse pour l'équation $equation<br />";
                 continue;
