@@ -1528,7 +1528,11 @@ class DatabaseModule extends Module
                 $showForm=true; // on ne sait pas quel format utiliser
             }
         }
-                
+        if (isset($fmt['description'])) 
+            $fmt['description']=trim($fmt['description']);
+        else
+            $fmt['description']='';
+            
         // Option "envoi par mail"
         if ($mail=(bool)Config::get('allowmail'))                   // seulement si l'option mail est autorisée dans la config
         {
@@ -1699,7 +1703,7 @@ class DatabaseModule extends Module
                     header('content-type: ' . $fmt['content-type']);
         
                 if (isset($fmt['content-disposition']))
-                    header('content-disposition: ' . $fmt['content-disposition']);
+                    header('content-disposition: ' . sprintf($fmt['content-disposition'],Utils::setExtension($filenames[$i])));
             }
         
             // Si un générateur spécifique a été définit pour ce format, on l'exécute
@@ -1731,6 +1735,7 @@ class DatabaseModule extends Module
                         $template,
                         array($this, $callback),
                         array('format'=>$format),
+                        array('fmt'=>$fmt),
                         $this->selection->record
                     );
                 }
@@ -1820,14 +1825,15 @@ class DatabaseModule extends Module
                 array
                 (
                     'to'=>$to,
-                    'subject'=>htmlentities($subject),            // Le message tapé par l'utilisateur dans le formulaire
-                    'message'=>htmlentities($message),            // Le message tapé par l'utilisateur dans le formulaire
-                    'filenames'=>$filenames,        // Les noms des fichiers joints
-                    'equations'=>$equations,        // Les équations de recherche
-                    'format'=>$fmt['label'],              // Le nom du format d'export
-                    'counts'=>$counts,              // Le nombre de notices de chacun des fichiers
-                    'filesizes'=>$filesizes,        // La taille non compressée de chacun des fichiers
-                    'zip'=>$zip                     // true si option zip
+                    'subject'=>htmlentities($subject),  // Le message tapé par l'utilisateur dans le formulaire
+                    'message'=>htmlentities($message),  // Le message tapé par l'utilisateur dans le formulaire
+                    'filenames'=>$filenames,            // Les noms des fichiers joints
+                    'equations'=>$equations,            // Les équations de recherche
+                    'format'=>$fmt['label'],            // Le nom du format d'export
+                    'description'=>$fmt['description'], // Description du format d'export
+                    'counts'=>$counts,                  // Le nombre de notices de chacun des fichiers
+                    'filesizes'=>$filesizes,            // La taille non compressée de chacun des fichiers
+                    'zip'=>$zip                         // true si option zip
                     
                 )
             );
@@ -1883,14 +1889,15 @@ class DatabaseModule extends Module
                     array
                     (
                         'to'=>$to,
-                        'subject'=>htmlentities($subject),            // Le message tapé par l'utilisateur dans le formulaire
-                        'message'=>htmlentities($message),            // Le message tapé par l'utilisateur dans le formulaire
-                        'filenames'=>$filenames,        // Les noms des fichiers joints
-                        'equations'=>$equations,        // Les équations de recherche
-                        'format'=>$fmt['label'],              // Le nom du format d'export
-                        'counts'=>$counts,              // Le nombre de notices de chacun des fichiers
-                        'filesizes'=>$filesizes,        // La taille non compressée de chacun des fichiers
-                        'zip'=>$zip                     // true si option zip
+                        'subject'=>htmlentities($subject),      // Le message tapé par l'utilisateur dans le formulaire
+                        'message'=>htmlentities($message),      // Le message tapé par l'utilisateur dans le formulaire
+                        'filenames'=>$filenames,                // Les noms des fichiers joints
+                        'equations'=>$equations,                // Les équations de recherche
+                        'format'=>$fmt['label'],                // Le nom du format d'export
+                        'description'=>$fmt['description'],     // Description du format d'export
+                        'counts'=>$counts,                      // Le nombre de notices de chacun des fichiers
+                        'filesizes'=>$filesizes,                // La taille non compressée de chacun des fichiers
+                        'zip'=>$zip                             // true si option zip
                         
                     )
                 );

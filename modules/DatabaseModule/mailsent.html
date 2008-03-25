@@ -19,8 +19,7 @@
                 Le fichier joint au message est une archive au format 
                 <a href="http://www.7-zip.org/fr/" 
                 title="7-zip : logiciel open-source d'archivage de fichiers pour windows">zip</a>
-                contenant vos notices en format 
-                <strong>"{Utils::lcFirst($format)}"</strong>.
+                contenant vos notices.
             </p>
             
             <if test="{count($filenames)===1}">
@@ -55,7 +54,12 @@
             </li>
         </loop>
     </ul>
-    
+
+    <p>
+        Les notices sont en format <strong>"{Utils::lcFirst($format)}"</strong>.
+    </p>
+    <p test="$description">$description</p>
+ 
     <p>
         <a href="/{$this->module}/searchform">Retour au formulaire de recherche</a>
     </p>

@@ -21,6 +21,9 @@
                 <if test="{$format['max']!=-1}">
                     (maximum {$format['max']} notices)
                 </if>
+                <p test="{isset($format['description'])}">
+                    <small>{$format['description']}</small>
+                </p>
             </p>
             <hidden name="_format" value="$name" />
         </loop>
@@ -42,6 +45,9 @@
                             checked="{Utils::get($format['default']) ? 'selected': ''}"
                             label="{$format['label'].(($format['max']!=-1) ? (' (maximum '.$format['max'].' notices)') : '')}"
                         />
+                        <p test="{isset($format['description'])}">
+                            <small>{$format['description']}</small>
+                        </p>
                     </div>
                 </loop>
             </div>
