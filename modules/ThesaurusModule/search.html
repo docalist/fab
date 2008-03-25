@@ -1,5 +1,11 @@
 <h2><a href="/{$this->module}">Thesaurus SantéPsy</a></h2>
-<p>Votre recherche : {$this->equation}</p>
+
+<p>
+    <a style="float: right" href="index" onclick="history.go(-1); return false;">
+        Modifier votre recherche
+    </a>
+    Votre recherche : {$this->equation}
+</p>
     /* Affiche les mots-vides qui ont été ignorés dans l'équation */
     <def name="stopwords" value="{$this->selection->searchInfo('stopwords')}" />
     <switch test="{count($stopwords)}">
