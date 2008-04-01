@@ -145,11 +145,15 @@ jQuery(document).ready(
         var MailDetails=function()
         \{
             if (jQuery('#_mail').is(':checked'))
+            \{
                 jQuery('#_maildetails').show();
+            \}
             else
+            \{
                 jQuery('#_maildetails').hide();
+            \}
         \}
-        jQuery('#_mail').change(MailDetails);
+        jQuery('#_mail').click(MailDetails);
         MailDetails();
     \}
 );    
