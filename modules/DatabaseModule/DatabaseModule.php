@@ -1160,7 +1160,9 @@ class DatabaseModule extends Module
         }
 
         // Requête utilisée pour générer les liens
-        $request=htmlspecialchars(Routing::linkFor($this->request->copy()->clearNull()->clear('_start').'&_start='));
+        $request=Routing::linkFor($this->request->copy()->clearNull()->clear('_start'));
+        $request.=(strpos($request,'?')===false ? '?' : '&') . '_start=';
+        $request=htmlspecialchars($request);
         
 //        echo '<div class="pager">';
         
@@ -1175,7 +1177,7 @@ class DatabaseModule extends Module
         if ($firstLabel)
         {
             if ($current > 1)
-                echo '<a class="first" href="',$request, 1,'" title="page suivante">', $firstLabel, '</a>';
+                echo '<a class="first" href="',$request, 1,'" title="première page">', $firstLabel, '</a>';
             else
                 echo '<span class="first">', $firstLabel, '</span>';
         }    
