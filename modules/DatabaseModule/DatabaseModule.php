@@ -1081,9 +1081,6 @@ class DatabaseModule extends Module
         
         // Clone de la requête qui sera utilisé pour générer les liens
         $request=$this->request->copy();
-        //$request=Runtime::$originalRequest->copy();
-        //echo 'request=<pre>', print_r($request,true), '</pre>';
-        //$request->clear('module')->clear('action');
         
         // Détermine le libellé à afficher
         if ($start==min($start+$max-1,$count))
@@ -1112,111 +1109,121 @@ class DatabaseModule extends Module
         return '<span class="navbar">'.$h.'</span>';
     }
     
-    public function getResNavigation($maxLinks = 10, $prevLabel = '<', $nextLabel = '>', $firstLabel = '', $lastLabel = '')
-    {        
-        // la base de la query string pour la requête
-        $queryStr=$_GET;
-        unset($queryStr['_start']);
-        unset($queryStr['module']);
-        unset($queryStr['action']);
-        $baseQueryString=self::buildQuery($queryStr);
+    /**
+     * Enter description here...
+     *
+     * Voir {@link http://www.smashingmagazine.com/2007/11/16/pagination-gallery-examples-and-good-practices/}
+     * 
+     * @param unknown_type $links
+     * @param unknown_type $previousLabel
+     * @param unknown_type $nextLabel
+     * @param unknown_type $firstLabel
+     * @param unknown_type $lastLabel
+     */
+    public function getNavigation($links = 9, $previousLabel = '‹', $nextLabel = '›', $firstLabel = '«', $lastLabel = '»')
+    {
+        /*
+                                $max réponses par page
+                            $links liens générés au maximum
+                      +----------------------------------------+  
+            1   2   3 | 4   5   6   7  (8)  9   10  11  12  13 | 14  15 16            
+                      +-^---------------^-------------------^--+        ^
+                        |               |                   |           |
+                        $first          $current            $last       $maxlast
+        */
         
-        $actionName = $this->action;    // on adapte l'URL en fonction de l'action en cours (search, show, ...)
+        // Regarde ce qu'a donné la requête en cours
+        $start=$this->selection->searchInfo('start');
+        $max= $this->selection->searchInfo('max');
+        $count=$this->selection->count();
+        
+        // Numéro de la page en cours
+        $current = intval(($start - 1) / $max) + 1;
+        
+        // Numéro du plus grand lien qu'il est possible de générer
+        $maxlast = intval(($count - 1) / $max) + 1;
+        
+        // "demi-fenêtre"
+        $half=intval($links / 2);
+        
+        // Numéro du premier lien à générer
+        $first=max(1, $current-$half);
+        
+        // Numéro du dernier lien à générer
+        $last=$first+$links-1;
+        
+        // Ajustement des limites
+        if ($last > $maxlast)
+        {
+            $last=$maxlast;
+            $first=max(1,$last-$links+1);
+        }
 
-        $currentStart = $this->selection->searchInfo('start');  // num dans la sélection du première enreg de la page en cours 
-        $maxRes = $this->selection->searchInfo('max');          // le nombre de réponses max par page
+        // Requête utilisée pour générer les liens
+        $request=htmlspecialchars(Routing::linkFor($this->request->copy()->clearNull()->clear('_start').'&_start='));
         
-        $startParam = 1;                // le param start pour les URL des liens générés dans la barre de navigation
-        $pageNum = 1;                   // le premier numéro de page à généré comme lien dans la barre de navigation
-        $navBar = '<span class="navbar">';                   // la barre de navigation au format XHTML
+//        echo '<div class="pager">';
         
-        // numéro de la page dont les résultats sont affichés
-        $currentPage = intval(($currentStart - 1) / $maxRes) + 1;
+        echo '<span class="label">';
+        if ($start==min($start+$max-1,$count))
+            echo 'Réponse ', $start, ' sur ', $this->selection->count('environ %d'), ' ';
+        else
+            echo 'Réponses ', $start, ' à ', min($start+$max-1, $count), ' sur ', $this->selection->count('environ %d'), ' ';
+        echo '</span>';
         
-        // numéro de la dernière page de résultats pour la sélection en cours (indépendamment de $maxLinks)
-        $lastSelPageNum = ($this->selection->count() % $maxRes) == 0 ? (intval($this->selection->count()/$maxRes)) : (intval($this->selection->count()/$maxRes)+1);
-        // numéro de page du dernier lien qu'on affiche (<= $lastSelPageNum suivant la val de $maxLinks)
-        $lastDispPageNum = $lastSelPageNum;    
-        
-        // Ajustement de la valeur des variable pour la gestion de la "fenêtre" de liens : nombre de liens à afficher...
-        if ($maxLinks < $lastSelPageNum)
+        // Lien vers la première page
+        if ($firstLabel)
         {
-            // nombre de liens à afficher avant le numéro de la page courante dans la barre
-            // de navigation en supposant que le numéro de la page courante sera centré sur celle-ci
-            $numLinksBefore = intval(($maxLinks - 1) / 2);
-            
-            // ici, le premier numéro de page à afficher dans la barre de navigation ($pageNum) vaut 1
-            // le recalcule si nécessaire
-            if ( ($currentPage - $numLinksBefore) >= 1 )
-            {
-                if (($currentPage + ($maxLinks - $numLinksBefore - 1)) > $lastSelPageNum)
-                {
-                    // on va afficher le lien vers la dernière page de résultats pour la sélection
-                    // le num de la page courante ne sera pas centré sur la barre (sinon on afficherait 
-                    // un ou des liens vers des pages de résultats inexistantes à droite)
-                    $pageNum = $currentPage - ($maxLinks - ($lastSelPageNum - $currentPage + 1));
-                }
-                else
-                {
-                    $pageNum = ($currentPage - $numLinksBefore);
-                }
-            }
-            
-            $lastDispPageNum = $pageNum + ($maxLinks - 1);  // ajuste le numéro de la dernière page à afficher dans la barre
-            $startParam =  ($pageNum - 1) * $maxRes + 1;    // ajuste $startParam pour le premier lien correspondant à un num de page
-        }
+            if ($current > 1)
+                echo '<a class="first" href="',$request, 1,'" title="page suivante">', $firstLabel, '</a>';
+            else
+                echo '<span class="first">', $firstLabel, '</span>';
+        }    
         
-        if ($pageNum < $lastDispPageNum)    // plusieurs pages de résultats : génère les liens 
-        {            
-            // lien "page précédente" et éventuel lien vers la première page
-            if ($currentPage > 1)
-            {
-                if ( ($firstLabel != '') && ($pageNum > 1) )    // afficher lien vers la première page ?
-                    $navBar = $navBar . '<span class="firstPage"><a href="' . $actionName . '?' . $baseQueryString . "&_start=1" . '">' . $firstLabel . '</a></span> ';
-                    
-                // TODO: ligne suivante nécessaire ?
-                $prevStart = $currentStart-$maxRes >=1 ? $currentStart-$maxRes : 1; // param start pour le lien vers la page précédente
-                $navBar = $navBar . '<span class="prevPage"><a href="' . $actionName . '?' . $baseQueryString . "&_start=$prevStart" . '">' . $prevLabel . '</a></span> ';
-            }
-            
-            // génère les liens vers chaque numéro de page de résultats
-            for($pageNum; $pageNum <= $lastDispPageNum; ++$pageNum)
-            {
-                if($startParam == $currentStart)    // s'il s'agit du numéro de la page qu'on va afficher, pas de lien
-                    $navBar = $navBar . $pageNum . ' ';
-                else
-                {
-                    $navBar = $navBar . '<span class="pageNum"><a href="' . $actionName . '?' . $baseQueryString . "&_start=$startParam" . '">'. $pageNum . '</a></span> ';
-//                    $link=$actionName . '?' . $baseQueryString . "&_start=$startParam";
-                    //echo Routing::linkFor(Utils::convertString($link, 'lower'));
-//                    echo Routing::linkFor($link);
-//                    echo $link;
-//                    $navBar = $navBar . '<span class="pageNum"><a href="' . Routing::linkFor($link) . '">'. $pageNum . '</a></span> ';
-                }    
-                $startParam += $maxRes;
-            }
-            
-            // lien "page suivante" et éventuellement, lien vers la dernière page de la sélection
-            if (($currentPage < $lastSelPageNum))
-            {
-                // TODO : ligne commentée suivante nécessaire ?
-//                $nextStart = $currentStart+$maxRes <= $this->selection->count() ? $currentStart+$maxRes : ;
-                $nextStart = $currentStart + $maxRes;   // param start pour le lien vers la page suivante
-                $navBar = $navBar . '<span class="nextPage"><a href="' . $actionName . '?' . $baseQueryString . "&_start=$nextStart" . '">' . $nextLabel . '</a></span> ';
-                
-                if ( ($lastLabel != '') && ($lastDispPageNum < $lastSelPageNum) )   // afficher lien vers la dernière page ?
-                {
-                    $startParam = ($this->selection->count() % $maxRes) == 0 ? $this->selection->count() - $maxRes + 1 : intval($this->selection->count() / $maxRes) * $maxRes + 1;
-                    $navBar = $navBar . '<span class="lastPage"><a href="' . $actionName . '?' . $baseQueryString . "&_start=$startParam" . '">' . $lastLabel . '</a></span>';
-                }
-            }
-            
-            return $navBar . "</span>";
-        }
-        else    // une seule page à afficher : on ne renvoie pas de liens (chaîne vide)
+        // Lien vers la page précédente
+        if ($previousLabel)
         {
-            return '';   
+            if ($current > 1)
+                echo '<a class="previous" href="', $request, 1+($current-2)*$max,'" title="page précédente">', $previousLabel, '</a>';
+            else
+                echo '<span class="previous">', $previousLabel, '</span>';
+            
+        }    
+        
+        // Lien vers les pages de la fenêtre
+        for($i=$first; $i <= $last; $i++)
+        {
+            if ($i===$current)
+            {
+                echo '<span class="current">', $i, '</span>';
+            }
+            else
+            {
+                $title='Réponses '.(1+($i-1)*$max) . ' à ' . min($count, $i*$max);
+                echo '<a href="', $request, 1+($i-1)*$max,'" title="', $title, '">', $i, '</a>';
+            }
         }
+
+        // Lien vers la page suivante
+        if ($nextLabel)
+        {
+            if ($current < $maxlast)
+                echo '<a class="next" href="', $request, 1+($current)*$max,'" title="page suivante">', $nextLabel, '</a>';
+            else
+                echo '<span class="next">', $nextLabel, '</span>';
+            
+        }    
+        
+        // Lien vers la dernière page
+        if ($lastLabel)
+        {
+            if ($current < $maxlast)
+                echo '<a class="last" href="', $request, 1+($maxlast-1)*$max,'" title="dernière page">', $lastLabel, '</a>';
+            else
+                echo '<span class="last">', $lastLabel, '</span>';
+        }    
+        
+//        echo '</div>';
     }
     
     /**
