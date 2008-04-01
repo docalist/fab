@@ -56,7 +56,7 @@
         Chacune des deux parties est optionnelle : l'absence de rôle signifie
         "tous les rôles", l'absence d'objet signifie "tous les objets". Ainsi,
         <code>Admin</code> tout seul signifie 'administrateur de tout' et 
-        <code>Bdsp</code> tout seul signifie "tous les droits sur l'objet bdsp".
+        <code>Bdsp</code> tout seul signifie "n'importe quel droit sur l'objet bdsp".
     </para>
 
     <para>
