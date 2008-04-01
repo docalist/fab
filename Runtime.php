@@ -111,7 +111,13 @@ class Runtime
     
     public static $queryString=''; // initialisé par repairgetpost
     
+    /**
+     * La requête correspondant à l'url demandée par le navigateur
+     *
+     * @var Request
+     */
     public static $request=null;
+    
     // Vérifie qu'on a l'environnement minimum nécessaire à l'exécution de l'application
     // et que la configuration de php est "correcte"
     public static function checkRequirements()
