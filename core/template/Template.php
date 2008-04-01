@@ -536,15 +536,6 @@ return false (ne pas afficher le contenu par défaut)
         // S'il s'agit d'une action, on l'exécute
         if ($action[0]==='/')
         {
-//            if (!is_null($args))
-//            {
-//                if (Utils::isGet()) $t=& $_GET; else $t=& $_POST;
-//    
-//                foreach ($args as $argName=>$argValue)
-//                    $t[$argName]=$_REQUEST[$argName]=$argValue;
-//            }
-//            Routing::dispatch($action);
-            
             $action=ltrim($action, '/');
             $module=strtok($action, '/');
             $action=strtok('/');
@@ -553,7 +544,11 @@ return false (ne pas afficher le contenu par défaut)
             // On repart de la requête d'origine, et on ajoute les nouveaux paramètres
             $request=Runtime::$request->copy();
             if (! is_null($args)) $request->addParameters($args);
+
+            $sav=Runtime::$request->getModule($module);
+            Runtime::$request->setModule($module);
             Module::runAs($request, $module, $action);
+            Runtime::$request->setModule($sav);
         }
 
         // C'est un template : on l'exécute
