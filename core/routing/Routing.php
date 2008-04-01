@@ -207,51 +207,8 @@ class Routing
         if (is_null(Runtime::$request))    
             Runtime::$request=$request;
         
-        //self::setupRouteFor($url);
-
         Module::run($request);
     }
-    
-    
-    public static function setupRouteFor($url)
-    {
-        // Détermine une route pour cette url
-        if (! $route=self::routeFor($url))        
-            throw new Exception('Route not found');
-
-        // Ajoute les variables dans $_GET/$_REQUEST ou dans $_POST/$_REQUEST selon la méthode
-        if (Utils::isGet())$t= & $_GET; else $t = & $_POST;          
-        
-        // réinitialise le module et l'action en cours
-        unset($t['module'], $t['action']);  // sinon on obtient un tableau de modules
-                                            // si dispatch est appellée plusieurs fois
-        if(isset($route['module']))
-            $t['module']=$route['module'];
-        if(isset($route['action']))
-            $t['action']=$route['action'];
-            
-        if (isset($route['args']))
-        {
-            foreach ($route['args'] as $name=>$value)
-            {
-                if (isset($t[$name]))
-                {
-                    if (is_array($t[$name]))
-                        $t[$name][]=$value;
-                    else
-                        $t[$name]=array($t[$name], $value);
-                }
-                else
-                {
-                    $t[$name]=$value;
-                }
-                $_REQUEST[$name]= & $t[$name];
-            }
-        }
-        foreach(array('module','action') as $name)
-            $_REQUEST[$name]= $t[$name] = $route[$name];
-    }
-    
     
     
     /**
@@ -481,8 +438,8 @@ class Routing
         // Pas d'url -> on prends le module et l'action en cours
         if ($url==='')
         {
-            $module=$_REQUEST['module']; // module en cours
-            $action=$_REQUEST['action']; // action en cours
+            $module=Runtime::$request->getModule(); // module en cours
+            $action=Runtime::$request->getAction(); // action en cours
             if (strncmp($action, 'action', 6)===0)
                 $action=substr($action, 6);
         }
@@ -530,7 +487,7 @@ class Routing
         // pas de slash au début -> lien vers une action du module en cours
         else
         {
-            $module=@$_REQUEST['module']; // module en cours
+            $module=Runtime::$request->getModule(); // module en cours
             $action=$url; // rtrim($url,'/');
         }
 
