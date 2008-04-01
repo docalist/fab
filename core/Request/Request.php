@@ -321,6 +321,9 @@ class Request
      *
      * @param string $key
      * @return Request $this pour permettre le chainage des appels de méthodes
+     * 
+     * @todo : accepter plusieurs paramètres pour permettre de vider
+     * plusieurs arguments d'un coup
      */
     public function clear($key=null)
     {
@@ -335,6 +338,33 @@ class Request
         return $this;
     }
 
+    /**
+     * Supprime de la requête tous les paramètres dont la valeur est
+     * une chaine vide, un tableau vide ou la valeur null.
+     * 
+     * @return Request $this pour permettre le chainage des appels de méthodes
+     */
+    public function clearNull()
+    {
+        foreach($this->_parameters as $key=>&$value)
+        {
+            if ($value===null or $value==='' or $value===array())
+            {
+                unset($this->_parameters[$key]);
+            }
+            elseif(is_array($value))
+            {
+                foreach($value as $key=>$item)
+                {
+                    if ($item===null or $item==='' or $item===array())
+                    {
+                        unset($value[$key]);
+                    }
+                }
+            }
+        }
+        return $this;
+    }
     
     /**
      * Indique si la requête contient des paramètres 
