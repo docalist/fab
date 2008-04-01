@@ -174,6 +174,7 @@ class Template
      */
     private static function runInternal($path, array $data, $source=null)
     {
+//echo '<div style="background:#888;padding: 1em;border: 1px solid red;"><div>','TEMPLATE ', $path,'</div>';
         debug && Debug::log('Exécution du template %s', $path);
 
         // Sauvegarde l'état
@@ -262,6 +263,7 @@ class Template
         $t=array_pop(self::$stateStack);
         self::$template         =$t['template'];
         self::$data             =$t['data'];
+//echo '</div>';
     }
 
     public static function run($path /* $dataSource1, $dataSource2, ..., $dataSourceN */ )
@@ -516,6 +518,7 @@ return false (ne pas afficher le contenu par défaut)
 //        echo "Début d'exécution du slot $name, action par défaut : $defaultAction, args=", var_export($args,true),"<br />";
         $action=Config::get("slots.$name", $defaultAction);
 //        echo "Action à exécuter : $action<br />";
+
         if ($action==='') 
         {
 //            echo "contenu par défaut\n";
@@ -529,7 +532,7 @@ return false (ne pas afficher le contenu par défaut)
         	return false;
         }
         debug && Debug::log('slot %s : %s', $name, $action);
-
+//echo '<div style="background:#888;padding: 1em;border: 1px solid red;"><div>','SLOT ', $name,'=',($action?$action:'(contenu par défaut)'),'</div>';
         // S'il s'agit d'une action, on l'exécute
         if ($action[0]==='/')
         {
@@ -547,9 +550,10 @@ return false (ne pas afficher le contenu par défaut)
             $action=strtok('/');
             if ($action==='') $action='Index';
             
-            $request=new Request($args);
-            $request->setModule($module)->setAction($action);
-            Module::run($request);
+            // On repart de la requête d'origine, et on ajoute les nouveaux paramètres
+            $request=Runtime::$request->copy();
+            if (! is_null($args)) $request->addParameters($args);
+            Module::runAs($request, $module, $action);
         }
 
         // C'est un template : on l'exécute
@@ -584,6 +588,7 @@ return false (ne pas afficher le contenu par défaut)
             // Exécute le template        
             self::runInternal($path,$data);
         }
+//echo '</div>';
         return false;
     }    
 }

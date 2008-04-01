@@ -345,10 +345,15 @@ Config::addArray($this->config);    // fixme: objectif : uniquement $this->confi
      */
     public static function run(Request $request)
     {
+        self::runAs($request, $request->getModule(), $request->getAction());
+    }
+    
+    public static function runAs(Request $request, $module, $action)
+    {
         Utils::clearSearchPath();
-        $module=self::loadModule($request->getModule());
+        $module=self::loadModule($module);
         $module->request=$request;
-        $module->configureAction($request->getAction());
+        $module->configureAction($action);
         $module->execute();
         
         // Expérimental : enregistre les données du formulaire si un paramètre "_autosave" a été transmis

@@ -200,8 +200,14 @@ class Routing
         $request
             ->setModule($route['module'])
             ->setAction($route['action']);
-
-        self::setupRouteFor($url);
+        
+        // Hack : si c'est le premier dispatch qu'on exécute,
+        // Stocke la requête obtenue dans le runtime pour
+        // que Template::runSlot() puis y accéder
+        if (is_null(Runtime::$request))    
+            Runtime::$request=$request;
+        
+        //self::setupRouteFor($url);
 
         Module::run($request);
     }
@@ -524,7 +530,7 @@ class Routing
         // pas de slash au début -> lien vers une action du module en cours
         else
         {
-            $module=$_REQUEST['module']; // module en cours
+            $module=@$_REQUEST['module']; // module en cours
             $action=$url; // rtrim($url,'/');
         }
 
