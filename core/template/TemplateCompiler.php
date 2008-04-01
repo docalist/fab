@@ -2294,10 +2294,26 @@ return false (ne pas afficher le contenu par défaut)
         ++self::$fillLevel;
 
         $fill=self::$fillVar[self::$fillLevel]=self::$env->getTemp('fill');
-        echo self::PHP_START_TAG, $fill,'=array_flip(preg_split(\'~\s*[,;/·¨|]\s*~\', trim(',$values,'), -1, PREG_SPLIT_NO_EMPTY))', self::PHP_END_TAG;
-        // candidats : cr, lf, tilde
         
+        // Stocke les valeurs. Cela peut être soit un tableau, soit une chaine
+        echo self::PHP_START_TAG, "\n";
+        echo $fill, '=', $values, ';', "\n";
+        echo 'if (! is_array(', $fill, ')) ', $fill, '=preg_split(\'~\s*[,;/·¨|]\s*~\', trim(',$fill,'), -1, PREG_SPLIT_NO_EMPTY);', "\n";
+        echo $fill, '=array_fill_keys(', $fill, ',true);', "\n";
+        echo self::PHP_END_TAG;
+
+        // autres candidats possibles comme séparateurs utilisés dans le preg_split ci-dessus : cr, lf, tilde
+        
+        // Crée une nouvelle variable, $fill, utilisable uniquement au sein du bloc <fill>..</fill>
+        // et qui contient la liste des valeurs qui n'ont pas encore été utilisées.
+        self::$env->push(array('fill'=>"array_keys(array_filter($fill))"));
+        
+        // Compile tous les noeuds fils du bloc <fill>...</fill>
         self::compileChildren($node);
+
+        // Supprime la variable temporaire $fill
+        self::$env->pop();
+        
         self::$env->freeTemp($fill);
         echo self::PHP_START_TAG, 'unset(',$fill,')', self::PHP_END_TAG;
         --self::$fillLevel;
@@ -2330,7 +2346,11 @@ return false (ne pas afficher le contenu par défaut)
                 throw new exception(__METHOD__.' appellée pour un tag ' . $node.tagName);
         }
         $canEval=self::parse($value,true);
-        self::compileElement($node, 'if (isset('.self::$fillVar[self::$fillLevel].'[trim('.$value.')])) echo \' '.$code.'\'');
+        $item=self::$fillVar[self::$fillLevel].'[trim('.$value.')]';
+        self::compileElement($node, "if (isset($item)){echo ' $code';$item=false;}");
+        
+        //self::compileElement($node, 'if (isset('.self::$fillVar[self::$fillLevel].'[trim('.$value.')])) echo \' '.$code.'\'');
+        
     }
 
 }
