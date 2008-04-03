@@ -814,8 +814,7 @@ class DatabaseModule extends Module
                     ->ok(),
                     
             '_sort'=> isset($sort) ? $sort : 
-                $this->request->defaults('_sort', Config::get('sort','+'))
-                    ->unique()
+                $this->request->defaults('_sort', Config::get('sort','-'))
                     ->ok(),
                     
             '_filter'=>$this->getFilter(),

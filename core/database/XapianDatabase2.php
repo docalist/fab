@@ -166,17 +166,25 @@ class XapianDatabaseDriver2 extends Database
     private $xapianFilter=null; 
     
     /**
-     * Libellé de l'ordre de tri utilisé lors de la recherche
+     * Libellé de l'ordre de tri utilisé lors de la recherche.
+     * 
+     * Si plusieurs critères de tri ont été indiqués lors de la requête,
+     * le libellé obtenu est une chaine listant toutes les clés (séparées
+     * par des espaces).
+     * 
+     * Exemples :
+     * - 'type', 'date-', '%', '+', '-' pour une clé de tri unique
+     * - 'type date-', 'date- %' pour une clé de tri composite
      *
      * @var string
      */
     private $sortOrder='';
     
     /**
-     * Numéro du slot dans les 'values' du document qui contient la valeur
-     * de la clé de tri pour l'ordre de tri en cours
+     * Tableau contenant les numéros des slots qui contiennent les valeurs
+     * composant l'ordre de tri en cours.
      *
-     * @var null|int
+     * @var null|array
      */
     private $sortKey=null;
     
@@ -1157,95 +1165,182 @@ class XapianDatabaseDriver2 extends Database
     
     /**
      * Paramètre le MSet pour qu'il retourne les documents selon l'ordre de tri
-     * indiqué par la chaine $sort passée en paramètre.
+     * indiqué en paramètre.
      * 
-     * Les options possibles pour sort sont :
-     * - <code>%</code> : trier les notices par score (la meilleure en tête)
-     * - <code>+</code> : trier par ordre croissant de numéro de document
-     * - <code>-</code> : trier par ordre décroissant de numéro de document
+     * @param string|array|null $sort un tableau ou une chaine indiquant les 
+     * différents critères composant l'ordre de tri souhaité.
+     * 
+     * Les critères de tri possible sont :
+     * - <code>%</code> : trier les notices par pertinence (la meilleure en tête)
+     * - <code>+</code> : trier par ordre croissant des numéros de document
+     * - <code>-</code> : trier par ordre décroissant des numéros de document
      * - <code>xxx+</code> : trier sur le champ xxx, par ordre croissant
+     *   (le signe plus est optionnel, c'est l'ordre par défaut)
      * - <code>xxx-</code> : trier sur le champ xxx, par ordre décroissant
-     * - <code>xxx+%</code> : trier sur le champ xxx par ordre croissant, puis
-     *   par pertinence.
-     * - <code>xxx-%</code> : trier sur le champ xxx par ordre décroissant, puis
-     *   par pertinence.
-     * - <code>%xxx+</code>
-     * - <code>%xxx-</code>
      * 
-     * @param string|null $sort
+     * Plusieurs critères de tri peuvent être combinés entres eux. Dans ce cas,
+     * le premier critère sera d'abord utilisé, puis, en cas d'égalité, le 
+     * second et ainsi de suite.
+     * 
+     * La combinaison des critères peut se faire soit en passant en paramètre
+     * une chaine listant dans l'ordre les différents critères, soit en passant 
+     * en paramètre un tableau contenant autant d'éléments que de critères ; 
+     * soit en combinant les deux.
+     * 
+     * Exemple de critères composites :
+     * - chaine : <code>'type'</code>, <code>'type+ date- %'</code> 
+     * - tableau : <code>array('type', 'date+')</code>,
+     *   <code>array('type', 'date+ revue+ titre %'</code>
+     *
+     * Remarque : n'importe quel caractère de ponctuation peut être utilisé
+     * pour séparer les différents critères au sein d'une même chaine (espace, 
+     * virgule, point-virgule...)
+     * 
+     * @throws Exception si l'ordre de tri demandé n'est pas possible ou si
+     * la clé de tri indiquée n'existe pas dans la base. 
      */
     private function setSortOrder($sort=null)
-    {   
-        $this->sortOrder='';
-        $this->sortKey=null;
+    {
+        // Si $sort est un tableau, on concatène tous les éléments ensembles
+        if (is_array($sort))
+            $sort=implode(',', $sort);
+            
+        // On a une chaine unique avec tous les critères, on l'explose
+        $t=preg_split('~[^a-zA-Z_%+-]+~m', $sort, -1, PREG_SPLIT_NO_EMPTY);
         
-        // Définit l'ordre de tri
-        $this->sortOrder=$sort;
-        switch ($sort)
+        // Ordre de tri par défaut : par docid décroissants
+        if (empty($t)) 
+            $t=array('-');
+        
+        // Cas d'un tri simple (un seul critère indiqué)
+        $this->sortKey=array();
+        if (count($t)===1)
         {
-            case '%':
-                $this->xapianEnquire->set_Sort_By_Relevance();
-                break;
-                
-            case '+':
-                $this->xapianEnquire->set_weighting_scheme(new XapianBoolWeight());
-                $this->xapianEnquire->set_DocId_Order(XapianEnquire::ASCENDING);
-                break;
-
-            case '-':
-            case null:
-                $this->sortOrder='-';
-                $this->xapianEnquire->set_weighting_scheme(new XapianBoolWeight());
-                $this->xapianEnquire->set_DocId_Order(XapianEnquire::DESCENDING);
-                break;
-                
-            default:
-                // Vérifie la syntaxe
-                if 
-                (
-                    0==preg_match('~(%?)([+-]?)([a-z]+)([+-]?)(%?)~i', $sort, $matches) 
-                    or 
-                    ($matches[1]<>'' and $matches[5]<>'') // le % figure à la fois au début et à la fin
-                    or 
-                    ($matches[2]<>'' and $matches[4]<>'') // le +/- figure à la fois avant et après le nom du champ
-                )
-                    throw new Exception('Ordre de tri incorrect, syntaxe non reconnue : ' . $sort);
+            $this->sortOrder = $key = $t[0];
+            switch ($key)
+            {
+                // Par pertinence
+                case '%':
+                    $this->xapianEnquire->set_Sort_By_Relevance();
+                    break;
                     
-                // Récupère le nom de la clé de tri à utiliser
-                $sortkey=$matches[3];
+                // Par docid croissants
+                case '+':
+                    $this->xapianEnquire->set_weighting_scheme(new XapianBoolWeight());
+                    $this->xapianEnquire->set_DocId_Order(XapianEnquire::ASCENDING);
+                    break;
+    
+                // Par docid décroissants
+                case '-':
+                    $this->xapianEnquire->set_weighting_scheme(new XapianBoolWeight());
+                    $this->xapianEnquire->set_DocId_Order(XapianEnquire::DESCENDING);
+                    break;
                 
-                // Vérifie que cette clé de tri existe
-                $sortkey=strtolower($sortkey);
-                if (! isset($this->structure->sortkeys[$sortkey]))
-                    throw new Exception('Impossible de trier par : ' . $sortkey);
-                
-                // Récupère l'id de la clé de trie (= le value slot number à utiliser)
-                $id=$this->structure->sortkeys[$sortkey]->_id;
+                // Sur une clé de tri existante
+                default:
+                    // Détermine l'ordre (croissant/décroissant)
+                    $lastChar=substr($key, -1);
+                    $forward=true;
+                    if ($lastChar==='+' || $lastChar==='-')
+                    {
+                        $key=substr($key, 0, -1);
+                        $forward=($lastChar==='+');
+                    }
 
-                $label=$this->structure->sortkeys[$sortkey]->label;
-                if ($label)
-                    $label= '"'.$label . '('.$sortkey. ')"';
-                else 
-                    $label='"' . $sortkey . '"';
-                                 
-                $this->sortKey=$id;
-                
-                // Détermine l'ordre
-                $order = ((($matches[2]==='-') || ($matches[4]) === '-')) ? 0:1; //XapianEnquire::DESCENDING : XapianEnquire::ASCENDING;
-                if ($matches[1])        // trier par pertinence puis par champ
+                    // Vérifie que la clé de tri existe dans la base
+                    $key=strtolower($key);
+                    if (! isset($this->structure->sortkeys[$key]))
+                        throw new Exception('Impossible de trier par : ' . $key);
+                    
+                    // Récupère l'id de la clé de tri (= le value slot number à utiliser)
+                    $id=$this->structure->sortkeys[$key]->_id;
+                    
+                    // Trie sur cette valeur
+                    $this->xapianEnquire->set_sort_by_value($id, !$forward);
+                    
+                    // Mémorise l'ordre de tri en cours (pour searchInfo)
+                    $this->sortOrder=$key . ($forward ? '+' : '-');
+                    $this->sortKey[$key]=$id;
+            }
+        }
+        
+        // Cas d'un tri composite (plusieurs critères de tri)
+        else
+        {
+            // On va utiliser un sorter xapian pour créer la clé
+            $this->sorter=new XapianMultiValueSorter();
+            /*
+             * Remarque : on utilise une propriété et non pas une simple variable
+             * locale car xapian ne conserve pas lui-même de référence sur le
+             * sorter. Avec une variable locale, le sorter serait libéré dès la
+             * fin de cette fonction et xapian planterait ensuite.
+             */
+            
+            // Réinitialise l'ordre de tri en cours
+            $this->sortOrder='';
+            
+            // On va utiliser la méthode set_sort_by_key sauf s'il faut combiner avec la pertinence
+            $function='set_sort_by_key';
+            
+            // Ajoute chaque critère de tri au sorter
+            foreach($t as $i=>$key)
+            {
+                switch ($key)
                 {
-                    $this->xapianEnquire->set_sort_by_relevance_then_value($id, !$order);
+                    // Par pertinence : change la méthode à utiliser
+                    case '%':
+                        if ($i===0)
+                            $method='set_sort_by_relevance_then_key';
+                        elseif($i===count($t)-1)
+                            $method='set_sort_by_key_then_relevance';
+                        else
+                            throw new Exception('Ordre de tri incorrect "'.$sort.'" : "%" peut être au début ou à la fin mais pas au milieu');
+                            
+                        $this->sortOrder.=$key . ' ';
+                        break;
+                        
+                    // Par docid : impossible, on ne peut pas combiner avec autre chose
+                    case '+':
+                    case '-':
+                        throw new Exception('Ordre de tri incorrect "'.$sort.'" : "'.$key.'" ne peut pas être utilisé avec d\'autres critères');
+                        break;
+        
+                    // Sur une clé de tri existante
+                    default:
+                        // Détermine l'ordre (croissant/décroissant)
+                        $lastChar=substr($key, -1);
+                        $forward=true;
+                        if ($lastChar==='+' || $lastChar==='-')
+                        {
+                            $key=substr($key, 0, -1);
+                            $forward=($lastChar==='+');
+                        }
+                        
+                        // Vérifie que la clé de tri existe dans la base
+                        $key=strtolower($key);
+                        if (! isset($this->structure->sortkeys[$key]))
+                            throw new Exception('Impossible de trier par : ' . $key);
+                        
+                        // Récupère l'id de la clé de tri (= le value slot number à utiliser)
+                        $id=$this->structure->sortkeys[$key]->_id;
+
+                        // Ajoute cette clé au sorter
+                        $this->sorter->add($id, $forward);
+                        
+                        // Mémorise l'ordre de tri en cours (pour searchInfo)
+                        $this->sortOrder.=$key . ($forward ? '+ ' : '- ');
+                        $this->sortKey[$key]=$id;
                 }
-                elseif ($matches[5])    // trier par champ puis par pertinence
-                { 
-                    $this->xapianEnquire->set_sort_by_value_then_relevance($id, !$order);
-                }
-                else                    // trier par champ uniquement
-                {                        
-                    $this->xapianEnquire->set_sort_by_value($id, !$order);
-                }
+            }
+            
+            // Demande à xapian de trier en utilisant la méthode et le sorter obtenu
+            $this->xapianEnquire->$function($this->sorter, false);
+
+            // Supprime l'espace final de l'ordre en cours
+            $this->sortOrder=trim($this->sortOrder);
         }
     }
+
 
     /**
      * Suggère des termes provenant de la table indiquée
@@ -1494,8 +1589,18 @@ class XapianDatabaseDriver2 extends Database
             case 'internalfilter': return is_null($this->xapianFilter) ? null : $this->xapianFilter->get_description();
             case 'internalfinalquery': return $this->xapianEnquire->get_query()->get_description();
 
-            case 'sortorder': return  $this->sortOrder;
-            case 'sortkey': return  isset($this->sortKey) ? $this->xapianDocument->get_value($this->sortKey) : '';
+            // Le libellé de la clé de tri en cours
+            case 'sortorder':
+                return  $this->sortOrder;
+                
+            // La valeur de la clé de tri pour l'enreg en cours
+            case 'sortkey': 
+                if (is_null($this->sortKey)) return array();
+
+                $result=array();
+                foreach($this->sortKey as $key=>$id)
+                    $result[$key]=$this->xapianDocument->get_value($id);
+                return $result;
             
             default: return null;
         }
