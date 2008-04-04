@@ -42,7 +42,7 @@
                             name="_format" 
                             value="$name" 
                             id="$name" 
-                            checked="{Utils::get($format['default']) ? 'selected': ''}"
+                            checked="{$this->configUserGet('formats.'.$name.'.default') ? 'selected': ''}"
                             label="{$format['label'].(($format['max']!=-1) ? (' (maximum '.$format['max'].' notices)') : '')}"
                         />
                         <p test="{isset($format['description'])}">
