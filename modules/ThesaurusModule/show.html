@@ -5,7 +5,7 @@
 <h2><a href="/{$this->module}">Thesaurus SantéPsy</a></h2>
 
 <p>
-    <a style="float: right" href="index" onclick="history.go(-1); return false;">
+    <a style="float: right" href="index">
         Nouvelle recherche
     </a>
 </p>
@@ -16,44 +16,44 @@
             <a
                 strip="{$EM}"   /* pas de lien si c'est un non descripteur */
                 title="Notices de la base SantéPsy indexées à ce terme"
-                href="/Base/Search?motscles=[$Fre]">
+                href="/Base/Search?MotsCles=[$Fre]">
                 $Fre
             </a>
         </p>
         
         <p test="$MT" class="MT">
             <span class="lib">MV :</span>
-            <a href="?Fre=[$MT]">$MT</a>
+            <a href="?Fre=[{strtr($MT,'[]','  ')}]">$MT</a>
         </p>
     
         <p test="$TG" class="TG">
             <span class="lib">TG :</span>
-            <a href="?Fre=[$TG]">$TG</a>
+            <a href="?Fre=[{strtr($TG,'[]','  ')}]">$TG</a>
         </p>
     
         <loop on="(array)$TS" as="$TS">
             <p class="TS">
                 <span class="lib">TS :</span>
-                <a href="?Fre=[$TS]">$TS</a>
+                <a href="?Fre=[{strtr($TS,'[]','  ')}]">$TS</a>
             </p>
         </loop>
     
         <loop on="(array)$TA" as="$TA">
             <p class="TA">
                 <span class="lib">VA :</span>
-                <a href="?Fre=[$TA]">$TA</a>
+                <a href="?Fre=[{strtr($TA,'[]','  ')}]">$TA</a>
             </p>
         </loop>
     
         <p test="$EM" class="EM">
             <span class="lib">EM :</span>
-            <a href="?Fre=[$EM]">$EM</a>
+            <a href="?Fre=[{strtr($EM,'[]','  ')}]">$EM</a>
         </p>
     
         <loop on="(array)$EP" as="$EP">
             <p class="EP">
                 <span class="lib">EP :</span>
-                <a href="?Fre=[$EP]">$EP</a>
+                <a href="?Fre=[{strtr($EP,'[]','  ')}]">$EP</a>
             </p>
         </loop>
     

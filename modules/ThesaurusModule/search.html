@@ -20,7 +20,7 @@
         <li>
             <a href="Show?REF=$REF">$Fre</a>
             <if test="$EM">
-                <br />EM : <a href="Show?Fre=[$EM]">$EM</a>
+                <br />EM : <a href="Show?Fre=[{strtr($EM,'[]','  ')}]">$EM</a>
             </if>
         </li>
     </loop>
