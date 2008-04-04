@@ -1267,7 +1267,7 @@ class DatabaseModule extends Module
      * 
      * @return string le nom du template à utiliser ou null
      */
-    protected function configUserGet($key, $default=null)
+    public function configUserGet($key, $default=null)
     {
         $value=Config::get($key);
         if (is_null($value))
