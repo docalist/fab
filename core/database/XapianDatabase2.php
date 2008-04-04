@@ -1107,8 +1107,24 @@ class XapianDatabaseDriver2 extends Database
             $filter=null;
             $minscore=0;
         }
+        
+        // Ajuste start pour que ce soit un multiple de max
+        if ($max>0) $start=$start-($start % $max);
+        
+        /*
+         * explication : si on est sur la 2nde page avec max=10, on affiche la
+         * 11ème réponse en premier. Si on demande alors à passer à 50 notices par
+         * page, on va alors afficher les notices 11 à 50, mais on n'aura pas
+         * de lien "page précédente". 
+         * Le code ci-dessus, dans ce cas, ramène "start" à 1 pour que toutes
+         * les notices soient affichées.
+         */
+        
+        // Stocke les valeurs finales
         $this->start=$start+1;
         $this->max=$max;
+        
+            
         //$this->rank=0;
         if ($minscore<0) $minscore=0; elseif($minscore>100) $minscore=100;
         
