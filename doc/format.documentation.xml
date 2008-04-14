@@ -293,7 +293,7 @@
         <para>
             Pour que la documentation puisse être consultée directement à partir
             du svn de fab, deux propriétés subversion doivent être appliquées
-            à chaque fichier xm composant la doc :
+            à chaque fichier xml composant la doc :
         </para>
         
         <itemizedlist>
