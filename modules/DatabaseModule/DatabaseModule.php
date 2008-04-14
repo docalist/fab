@@ -354,6 +354,71 @@ class DatabaseModule extends Module
     }
     
     /**
+     * Saisie par duplication d'une notice existante
+     * 
+     * Identique à l'action load, si ce n'est que la configuration contient une
+     * section "fields" qui indique quels champs doivent être copiés ou non.
+     */
+    public function actionDuplicate()
+    {
+        // Ouvre la base de données
+        $this->openDatabase();
+
+        // Détermine la recherche à exécuter        
+        $this->equation=$this->getEquation();
+
+        // Erreur, si aucun paramètre de recherche n'a été passé
+        // Erreur, si des paramètres ont été passés, mais tous sont vides et l'équation obtenue est vide
+        if (is_null($this->equation))
+            return $this->showError('Vous n\'avez indiqué aucun critère permettant de sélectionner la notice à modifier.');
+
+        // Si un numéro de référence a été indiqué, on charge cette notice         
+        // Vérifie qu'elle existe
+        if (! $this->select($this->equation))
+            return $this->showNoAnswer("La requête $this->equation n'a donné aucune réponse.");
+        
+        // Si sélection contient plusieurs enreg, erreur
+        if ($this->selection->count() > 1)
+            return $this->showError('Vous ne pouvez pas éditer plusieurs enregistrements à la fois.');     
+
+        // Détermine le template à utiliser
+        if (! $template=$this->getTemplate())
+            throw new Exception('Le template à utiliser n\'a pas été indiqué');
+        
+        // Détermine le callback à utiliser
+        $callback=$this->getCallback();
+        
+        // Récupère dans la config la section <fields> qui indique les champs à dupliquer
+        $fields=Config::get('fields');
+        
+        // Par défaut doit-on tout copier ou pas ?
+        $default=(bool) Utils::get($fields['default'], true);
+        unset($fields['default']);
+        
+        // Convertit les noms des champs en minu pour qu'on soit insensible à la casse
+        $fields=array_combine(array_map('strtolower', array_keys($fields)), array_values($fields));
+
+        // Recopie les champs
+        $values=array();
+        foreach($this->selection->record as $name=>$value)
+        {
+            $values[$name]= ((bool)Utils::get($fields[strtolower($name)], $default)) ? $value : null;
+        }
+
+        // Affiche le formulaire de saisie/modification
+        Template::run
+        (
+            $template,
+            array
+            (
+                'REF'=>0,
+            ),
+            array($this, $callback),
+            $values  
+        );             
+    }
+    
+    /**
      * Sauvegarde la notice désignée par 'REF' avec les champs passés en
      * paramètre.
      * Redirige ensuite l'utilisateur vers l'action 'show'
