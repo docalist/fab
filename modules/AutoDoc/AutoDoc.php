@@ -7,11 +7,16 @@ class AutoDoc extends Module
     
     public function actionDocbook($filename='format.documentation')
     {
-        $path=Runtime::$fabRoot . "doc/$filename.xml";
+        $path=Runtime::$root . "doc/$filename.xml";
         if (! file_exists($path))
-            die('impossible de trouver le fichier '.$path);
-
+        {
+            $path=Runtime::$fabRoot . "doc/$filename.xml";
+            if (! file_exists($path))
+                die('impossible de trouver le fichier '.$path);
+        }
+        
         $source=file_get_contents($path);
+        
         $source=utf8_decode($source);
         
         if (false === $start=strpos($source, '<sect1'))

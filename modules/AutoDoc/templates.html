@@ -50,7 +50,16 @@
 
 /* Paragraphes */
 <template match="//para"><p>{select('node()')}</p></template>
+<template match="//para"><p>{select('node()')}</p></template>
+<template match="//para"><p>{select('node()')}</p></template>
 
+/*
+    actuellement, les templates match de fab n sont pas récursifs.
+    Si on a des para dans des li, ils ne sont pas convertis.
+    On répête le template match //para trois fois pour que ça convertisse
+    jusqu'à 3 niveaux d'imbrication.
+*/
+ 
 /* Listes */
 <!-- <template match="//listitem/para"><p>{select('node()')}</p></template>  -->
 <template match="//itemizedlist"><ul>{select('node()')}</ul></template>
