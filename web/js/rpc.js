@@ -58,7 +58,7 @@ jQuery.AutoCompleteHandler =
             
             // Ajoute un gestionnaire keydown au document plutôt qu'aux contrôles, comme ça, si
             // le contrôle perd le focus, les touches de direction restent fonctionnelles
-            jQuery(document.documentElement).keypress(jQuery.AutoCompleteHandler.keydownHandler);
+            jQuery(document.documentElement).keydown(jQuery.AutoCompleteHandler.keydownHandler);
                 
             // Crée un gestionnaire 'onsubmit' pour le formulaire pour remettre 
             // l'attribut autocomplete à 'on' pour tous les input et les textarea
@@ -232,12 +232,13 @@ jQuery.AutoCompleteHandler =
         var selectionStart = jQuery.AutoCompleteHandler.getSelectionStart(target);
         var selection = jQuery.AutoCompleteHandler.getTextRange(value, selectionStart);
 
-        // Ajoute des crochets ou des guillemets si l'item contient des caractères spéciaux 
-        if (/[^_a-zA-Z0-9_ÀÁÂÃÄÅÆÇÈÉÊËÌÍÎÏĞÑÒÓÔÕÖØÙÚÛÜİŞßàáâãäåæçèéêëìíîïğñòóôõöøùúûüış]/.test(item))
-        {
-            if (target.ac.asValue) {
-                item = '[' + item + ']';
-            } else if (target.ac.asExpression) {
+        // Ajoute des crochets ou des guillemets 
+        if (target.ac.asValue) {
+            item = '[' + item + ']';
+        } else if (target.ac.asExpression) {
+            // seulement si l'item contient des caractères spéciaux
+            if (/[^_a-zA-Z0-9_ÀÁÂÃÄÅÆÇÈÉÊËÌÍÎÏĞÑÒÓÔÕÖØÙÚÛÜİŞßàáâãäåæçèéêëìíîïğñòóôõöøùúûüış]/.test(item))
+            {
                 item = '"' + item + '"';
             }
         }
