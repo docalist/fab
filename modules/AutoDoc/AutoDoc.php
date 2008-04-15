@@ -5,27 +5,70 @@ class AutoDoc extends Module
     
     public static $flags=array('inherited'=>false, 'private'=>false, 'protected'=>false, 'public'=>true, 'errors'=>false, 'sort'=>false);
     
-    public function actionDocbook($filename='format.documentation')
+
+    /**
+     * Affiche la documentation interne d'une classe ou d'un module
+     * 
+     * Les flags passés en paramètre permettent de choisir ce qui sera affiché.
+     * 
+     * @param string $class le nom de la classe pour laquelle il faut afficher
+     * la documentation
+     * 
+     * @param string $filename le nom du fichier docBook à afficher
+     * 
+     * @param bool $inherited <code>true</code> pour afficher les propriétés 
+     * et les méthodes héritées, <code>false</code> sinon
+     * 
+     * @param bool $private  <code>true</code> pour afficher les propriétés et 
+     * les méthodes privées, <code>false</code> sinon
+     * 
+     * @param bool $protected <code>true</code> pour afficher les propriétés et 
+     * les méthodes protégées, <code>false</code> sinon
+     * 
+     * @param bool $public <code>true</code> pour afficher les propriétés et 
+     * les méthodes publiques, <code>false</code> sinon.
+     * 
+     * Remarques :
+     * 
+     * - La documentation des actions est affichée même si 
+     *   <code>$public=false</code>, bien qu'il s'agisse de méthodes publiques.
+     *   Cela permet, en mettant tous les flags à false, de n'afficher que la 
+     *   documentation des actions.
+     * - Normallement, uniquement l'un des deux paramètres <code>$class</code>
+     *   ou <code>filename</code> doit être indiqué. Si vous indiquez les deux, 
+     *   <code>$class</code> est prioritaire.  
+     */
+    public function actionIndex($class='', $filename='', $inherited=true, $private=true, $protected=true, $public=true)
     {
-        $path=Runtime::$root . "doc/$filename.xml";
-        if (! file_exists($path))
+        // Stocke dans la config les flags de visibilité passés en paramètre
+        foreach(self::$flags as $flag=>$default)
+            Config::set('show.'.$flag, $this->request->bool($flag)->defaults($default)->ok());
+
+        if ($class) return $this->phpDoc($class);
+        if ($filename) return $this->docBook($filename);
+            
+        // expérimental, essaie de dresser la liste de toutes les classes existantes
+        $this->includeClasses(Runtime::$fabRoot.'core');
+        $this->includeClasses(Runtime::$fabRoot.'modules');
+        $this->includeClasses(Runtime::$root.'modules');
+        //die();
+        $classes=get_declared_classes();
+        $lib=Runtime::$fabRoot.'lib';
+        foreach($classes as $class)
         {
-            $path=Runtime::$fabRoot . "doc/$filename.xml";
-            if (! file_exists($path))
-                die('impossible de trouver le fichier '.$path);
+            $reflex=new ReflectionClass($class);
+            if ($reflex->isUserDefined())
+            {
+                $path=$reflex->getFileName();
+                
+                if (strncmp($path, $lib, strlen($lib))===0) continue;
+                echo '<a href="?class='.$class.'">'.$class.' ('.$path.')'.'</a><br />';
+            }
         }
-        
-        $source=file_get_contents($path);
-        
-        $source=utf8_decode($source);
-        
-        if (false === $start=strpos($source, '<sect1'))
-            die('Impossible de trouver &lt;sect1 dans le fichier docbook');
-        
-        $source=substr($source, $start);
-        $source=str_replace('$', '\$', $source);
-        
-        Template::runSource($source);
+        echo'<pre>';
+        print_r($classes);
+        echo '</pre>';
+        die();
     }
 
     private function includeClasses($path)
@@ -54,25 +97,40 @@ class AutoDoc extends Module
         }
     }
     
+    
+    /**
+     * Affiche un fichier docbook en format xml
+     * 
+     * @param string $filename le nom du fichier à afficher
+     */
+    private function docbook($filename)
+    {
+        $path=Runtime::$root . "doc/$filename.xml";
+        if (! file_exists($path))
+        {
+            $path=Runtime::$fabRoot . "doc/$filename.xml";
+            if (! file_exists($path))
+                die('impossible de trouver le fichier '.$path);
+        }
+        
+        $source=file_get_contents($path);
+        
+        $source=utf8_decode($source);
+        
+        if (false === $start=strpos($source, '<sect1'))
+            die('Impossible de trouver &lt;sect1 dans le fichier docbook');
+        
+        $source=substr($source, $start);
+        $source=str_replace('$', '\$', $source);
+        
+        Template::runSource($path, $source);
+    }
+    
     /**
      * Affiche la documentation interne d'une classe ou d'un module
      * 
-     * Les flags passés en paramètre permettent de choisir ce qui sera affiché.
-     * 
-     * @param bool $class le nom de la classe pour laquelle il faut afficher
+     * @param string $class le nom de la classe pour laquelle il faut afficher
      * la documentation
-     * 
-     * @param bool $inherited <code>true</code> pour afficher les propriétés 
-     * et les méthodes héritées, <code>false</code> sinon
-     * 
-     * @param bool $private  <code>true</code> pour afficher les propriétés et 
-     * les méthodes privées, <code>false</code> sinon
-     * 
-     * @param bool $protected <code>true</code> pour afficher les propriétés et 
-     * les méthodes protégées, <code>false</code> sinon
-     * 
-     * @param bool $public <code>true</code> pour afficher les propriétés et 
-     * les méthodes publiques, <code>false</code> sinon.
      * 
      * Remarque :
      * 
@@ -81,33 +139,8 @@ class AutoDoc extends Module
      * Cela permet, en mettant tous les flags à false, de n'afficher que la 
      * documentation des actions. 
      */
-    public function actionIndex($class='', $inherited=true, $private=true, $protected=true, $public=true)
+    private function phpDoc($class)
     {
-        if($class==='')
-        {
-            $this->includeClasses(Runtime::$fabRoot.'core');
-            $this->includeClasses(Runtime::$fabRoot.'modules');
-            $this->includeClasses(Runtime::$root.'modules');
-            //die();
-            $classes=get_declared_classes();
-            $lib=Runtime::$fabRoot.'lib';
-            foreach($classes as $class)
-            {
-                $reflex=new ReflectionClass($class);
-                if ($reflex->isUserDefined())
-                {
-                    $path=$reflex->getFileName();
-                    
-                    if (strncmp($path, $lib, strlen($lib))===0) continue;
-                    echo '<a href="?class='.$class.'">'.$class.' ('.$path.')'.'</a><br />';
-                }
-            }
-            echo'<pre>';
-            print_r($classes);
-            echo '</pre>';
-            die();
-        }
-
         // Vérifie que la classe demandée existe
         if (!class_exists($class, true))
         {
@@ -117,10 +150,6 @@ class AutoDoc extends Module
                 throw new Exception('Impossible de trouver la classe '.$class);
         }
         
-        // Stocke dans la config les flags de visibilité passés en paramètre
-        foreach(self::$flags as $flag=>$default)
-            Config::set('show.'.$flag, $this->request->bool($flag)->defaults($default)->ok());
-
         $class=new ClassDoc(new ReflectionClass($class));
 
         Template::Run
