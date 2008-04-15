@@ -287,15 +287,16 @@ class Template
         self::runInternal($path,$data);
     }
     
-    public static function runSource($source /* $dataSource1, $dataSource2, ..., $dataSourceN */ )
+    public static function runSource($path, $source /* $dataSource1, $dataSource2, ..., $dataSourceN */ )
     {
         // Détermine le path du répertoire du script qui nous appelle
-        $path=dirname(Utils::callerScript()).DIRECTORY_SEPARATOR;
+        //$path=dirname(Utils::callerScript()).DIRECTORY_SEPARATOR;
         // TODO: +numéro de ligne ou nom de la fonction ?
         
         // Crée un tableau à partir des sources de données passées en paramètre
         $data=func_get_args();
-        array_shift($data);
+        array_shift($data); // enlève $path de la liste
+        array_shift($data); // enlève $source de la liste 
         
         // Ajoute une source '$this' correspondant au module appellant        
         array_unshift($data,array('this'=>Utils::callerObject(2)));
@@ -304,103 +305,6 @@ class Template
         self::runInternal($path,$data,$source);
     }
     
-    public static function runold($template /* $dataSource1, $dataSource2, ..., $dataSourceN */ )
-    {
-        debug && Debug::log('Exécution du template %s', $template);
-
-        // Sauvegarde l'état
-        array_push
-        (
-            self::$stateStack, 
-            array
-            (
-                'template'      => self::$template,
-                'data'          => self::$data
-            )
-        );
-
-
-        if (Utils::isRelativePath($template))
-        {
-            $sav=$template;
-            $template=Utils::searchFile($template);
-            if ($template===false) 
-                throw new Exception("Impossible de trouver le template $sav. searchPath=".print_r(Utils::$searchPath, true));
-        }
-
-        // Stocke le path du template
-        debug && Debug::log("Path du template : '%s'", $template);
-        self::$template=$template; // enregistre le path du template en cours (cf walkTable)
-        
-        // Stocke les sources de données passées en paramètre
-        self::$data=func_get_args();
-        array_shift(self::$data);
-        
-        $signature='';
-        foreach(self::$data as $data)
-        {
-            if (is_object($data))
-                $signature.='o';
-            elseif (is_string($data))
-                $signature.='f'; 
-            elseif (is_array($data))  
-            {
-                if (is_callable($data))
-                    $signature.='m'; 
-                else
-                    $signature.='a'; 
-            }
-        }
-        
-        array_unshift(self::$data,array('this'=>Utils::callerObject(2)));
-        $cachePath=Utils::setExtension($template, $signature . Utils::getExtension($template));
-        
-        // Compile le template s'il y a besoin
-        if (self::needsCompilation($template, $cachePath))
-        {
-            debug && Debug::notice("'%s' doit être compilé", $template);
-            
-            // Charge le contenu du template
-            if ( false === $source=file_get_contents($template) )
-                throw new Exception("Le template '$template' est introuvable.");
-            
-            // Compile le code
-            debug && Debug::log('Compilation du source');
-            //require_once dirname(__FILE__) . '/TemplateCompiler.php';
-            $source=TemplateCompiler::compile($source, self::$data);
-
-//          if (php_version < 6) ou  if (! PHP_IS_UTF8)
-            $source=utf8_decode($source);
-
-            // Stocke le template dans le cache et l'exécute
-            if (config::get('cache.enabled'))
-            {
-                debug && Debug::log("Mise en cache de '%s'", $template);
-                Cache::set($cachePath, $source);
-                debug && Debug::log("Exécution à partir du cache");
-
-                require(Cache::getPath($cachePath));
-            }
-            else
-            {
-                debug && Debug::log("Cache désactivé, evaluation du template compilé");
-                eval(self::PHP_END_TAG . $source);
-            }            
-        }
-        
-        // Sinon, exécute le template à partir du cache
-        else
-        {
-            debug && Debug::log("Exécution à partir du cache");
-            require(Cache::getPath($cachePath));
-        }
-
-        // restaure l'état du gestionnaire
-        $t=array_pop(self::$stateStack);
-        self::$template         =$t['template'];
-        self::$data             =$t['data'];
-    }        
-
     /**
      * Teste si un template a besoin d'être recompilé en comparant la version
      * en cache avec la version source.
