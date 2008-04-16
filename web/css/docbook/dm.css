@@ -11,7 +11,7 @@
 *
 {
     color: red;
-    background-color: pink;
+    background-color: #FFC0CB;
     /* affiche en rose tous les éléments inconnus */
 }    
 sect1, sect2, sect3, sect4, example, all,
@@ -22,6 +22,7 @@ table, tgroup, thead, tbody, tfooter, row, entry
 {
     background-color: transparent; /* OK pour tous les éléments connus */
 }
+
 *[role]
 {
    background-color: red; /* repère en rouge les éléments inconnus qui ont un attribut role */
@@ -42,7 +43,13 @@ title
 }
 
 /* Sections et titres de section */
-sect1, sect2, sect3, sect4
+sect1
+{
+    background-color: white; /* OK pour tous les éléments connus */
+    padding: 1em;
+}
+
+sect2, sect3, sect4
 {
     padding: 1em 0 1em 1em;
     margin-bottom: 1em;
@@ -51,7 +58,7 @@ sect1, sect2, sect3, sect4
 sect1
 {
     font-size: 76%;
-    max-width: 60em;
+    /* max-width: 60em;*/
     margin: 0 auto;
 }
 
@@ -67,24 +74,26 @@ sect2 title
     font-size: 1.2em;
     text-align: left;
     font-weight: bold;
-    margin: 0 0 1em -1em;
-    border-bottom: 1px solid #009;
+    margin: 0 0 1em 0em;
+    
+    border-width: 1px;
+    border-style: solid;
+    border-color: transparent transparent #009 transparent;
 }
+
 sect3 title
 {
     font-size: 1.1em;
     text-align: left;
     font-weight: bold;
-    margin: 0 0 1em -1em;
-    border-bottom: none;
+    margin: 0 0 1em 0;
 }
 sect4 title
 {
     font-size: 1em;
     text-align: left;
     font-weight: bold;
-    margin: 0 0 1em -1em;
-    border-bottom: none;
+    margin: 0 0 1em 0;
     text-decoration: underline;
 }
 
@@ -93,64 +102,92 @@ sect4 title
     icones utilisées : 34x34px
 */
 
+note:before,
+tip:before,
+example:before,
+warning:before,
+important:before,
+caution:before
+{
+    content: url("images/note.png");
+}
+
 note, tip, example, warning, important, caution
 {
-    background: #eee none no-repeat scroll 10px 50%;
+/*    background: #eee none no-repeat scroll 10px 50%;*/
     border:1px solid #444;
     margin: 0.5em 0em;
-    padding: 0 54px 0em 54px;
-    -moz-border-radius: 5px;
-    
+    padding: 0 54px;
+/*    -moz-border-radius: 5px;*/
 }
 
 note
 {
-    background-image: url(images/note.png);
     background-color: #FFFFCC;
-    border-color: orange;
+    border-color: #FFA500; /* orange */
+}
+note:before
+{
+    content: url("images/note.png");
 }
 
 tip
 {
-    background-image: url(images/tip.png);
     background-color: #efe;
     border-color: #080;
+}
+tip:before
+{
+    content: url("images/tip.png");
 }
 
 warning
 {
-    background-image: url(images/warning.png);
     background-color: #FFE4B5; /* mocassin */
-    border-color: darkorange;
+    border-color: #FF8C00; /* darkorange; */
+}
+warning:before
+{
+    content: url("images/warning.png");
 }
 
 important
 {
-    background-image: url(images/important.png);
     background-color: #ddf;
     border-color: #008;
+}
+important:before
+{
+    content: url("images/important.png");
 }
 
 caution
 {
-    background-image: url(images/caution.png);
     background-color: #fdd;
     border-color: #F00;
+}
+caution:before
+{
+    content: url("images/caution.png");
 }
 
 example
 {
-/*    background: #eee url(images/example.png) no-repeat scroll 0 0;*/
+    background-color: #eee;
     padding: 0em 1em 0 1em;
     margin: 1em 0;
+}
+example:before
+{
+    content: url("images/example.png");
 }
 
 note title, tip title, example title, warning title, important title, caution title, table title
 {
     font-size: 1.1em;
     font-weight: bold;
-    border: none;
-    color: orange;
+    border: 0px;
+    color: #FFA500; /* orange; */
     font-weight: bold;
     margin: 0;
     padding: 0.5em 0 0 0;
@@ -162,7 +199,7 @@ tip title
 }
 warning title
 {
-    color: darkorange;
+    color: #FF8C00; /* darkorange; */
 }
 important title
 {
@@ -185,7 +222,7 @@ para
 {
     color: #444;
     margin: 0.5em 0;
-    line-height: 1.5em;
+    line-height: 1.5;
 /*    text-align: justify;*/
 }
 
@@ -236,7 +273,7 @@ emphasis
 emphasis[role="strong"]
 {
     font-style: normal;
-    font-weight: bolder;
+    font-weight: bold;
     background-color: transparent; /* debug */
 }
 
@@ -251,7 +288,8 @@ screen
     font-family: "Courier New", Courier, Monospace;
     white-space: pre; /* Ne marche pas sous IE 7 ! */
     color: #00A;
-    overflow: auto; /* ajoute des ascenseurs si on a vraiment des lignes trop longues */
+    /*overflow: auto;*/
+     /* ajoute des ascenseurs si on a vraiment des lignes trop longues */
 }
 
 /* affiche une erreur pour les programlisting sans role ou avec un role non reconnu */
@@ -262,7 +300,7 @@ programlisting:before
     background-color: #f00;
     display: block;
     text-align: center;
-    margin-top: -0.5em;
+    /*margin-top: -0.5em;*/
 }
 
 programlisting[role=xml]:before,
@@ -286,7 +324,7 @@ code, command, filename
     display: inline;
     font-family: "Courier New", Courier, Monospace;
     white-space: pre;
-    background-color: transparent;
+    background-color: #eee;
     color: inherit;
     font-size: 104%;
 }
@@ -306,22 +344,24 @@ command
 
 table
 {
-    display: table;
-    border-collapse: collapse;
+    display: block;
+    /* border-collapse: collapse; */
     margin: 0 auto 0.5em auto;
     text-indent: 0;
 }
 table title
 {
-    max-width: 100%;
+    /* max-width: 100%; */
     /* 
         evite que le titre de la table soit plus large que la table
         sinon, la table n'est plus centrée. Apparemment, faire margin: auto
         sur tgroup ne suffit pas
     */
+    display: block;
 }    
 tgroup
 {
+    display: table;
 }
 
 row
@@ -374,7 +414,7 @@ thead entry
     vertical-align: middle;
     font-weight: bold;
     color: #000;
-    background: #A97;
+    background-color: #A97;
 }
 
 /* Numérotation des titres */
