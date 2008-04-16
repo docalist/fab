@@ -46,7 +46,9 @@ class AutoDoc extends Module
 
         if ($class) return $this->phpDoc($class);
         if ($filename) return $this->docBook($filename);
-            
+        $this->docBook('index'); // ni filename ni classe affiche le fichier index.xml (soit de l'application, soit de fab)
+        return;
+        
         // expérimental, essaie de dresser la liste de toutes les classes existantes
         $this->includeClasses(Runtime::$fabRoot.'core');
         $this->includeClasses(Runtime::$fabRoot.'modules');
