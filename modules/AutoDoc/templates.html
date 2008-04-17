@@ -1,6 +1,44 @@
+/* Ajoute à chacun des titres l'id de la section parent */
+<template match="//sect2/title|//sect3/title|//sect4/title">
+    <title>{select('../@id|node()')}</title>
+</template>
+
+<template match="//toc">
+    <toc1>{select('//sect2/title')}</toc1>
+</template>
+
+<template match="//toc1/title" id="">
+    <li>
+        <a href='#$id'>{select('node()')}</a>
+        <ul>{select('//sect2[@id="'.$id.'"]/sect3/title')}</ul>
+    </li>
+</template>
+
+<template match="//ul/title" id="">
+    <li>
+        <a href='#$id'>{select('node()')}</a>
+        <ul>{select('//sect3[@id="'.$id.'"]/sect4/title')}</ul>
+    </li>
+</template>
+
+<template match="//ul/title" id="">
+    <li>
+        <a href='#$id'>{select('node()')}</a>
+    </li>
+</template>
+/* Suppprime l'id qu'on a ajouté au titre */
+<template match="//sect2/title|//sect3/title|//sect4/title" id="">
+    <title id="">{select('node()|@*')}</title>
+</template>
+
+<template match="//toc1"><div class="tableofcontents"><div class="title">Sommaire</div><ul>{select('node()')}</ul></div></template>
+
 /* SECT 1 */
 <template match="//sect1/title"><h1>{select('node()|@*')}</h1></template>
-<template match="//sect1info" /> /* on supprime */
+<template match="//sect1info">
+    <div class="releaseinfo">{select('translate(releaseinfo/text(), "$", "")')}</div>
+</template>
+
 <template match="//sect1"><div class="sect1">{select('node()|@*')}</div></template>
 
 /* SECT 2 */
@@ -50,8 +88,6 @@
 
 /* Paragraphes */
 <template match="//para"><p>{select('node()|@*')}</p></template>
-<template match="//para"><p>{select('node()|@*')}</p></template>
-<template match="//para"><p>{select('node()|@*')}</p></template>
 
 /*
     actuellement, les templates match de fab n sont pas récursifs.
@@ -63,7 +99,9 @@
 /* Listes */
 <!-- <template match="//listitem/para"><p>{select('node()|@*')}</p></template>  -->
 <template match="//itemizedlist"><ul>{select('node()|@*')}</ul></template>
+
 <template match="//orderedlist"><ol>{select('node()|@*')}</ol></template>
+
 <template match="//listitem"><li>{select('node()|@*')}</li></template>
 
 /* Liens (texte = contenu du noeud si présent, url sinon) */
@@ -80,4 +118,3 @@
 <template match="//code"><code>{select('node()|@*')}</code></template>
 aucun intérêt...
  -->
-

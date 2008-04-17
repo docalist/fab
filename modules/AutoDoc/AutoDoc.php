@@ -123,7 +123,7 @@ class AutoDoc extends Module
             die('Impossible de trouver &lt;sect1 dans le fichier docbook');
         
         $source=substr($source, $start);
-        $source=str_replace('$', '\$', $source);
+        //$source=str_replace('$', '\$', $source);
         
         Template::runSource($path, $source);
     }
