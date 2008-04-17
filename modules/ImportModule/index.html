@@ -23,12 +23,12 @@
         <upload name="file$num" label="Fichier $num :" size="40" /><br />
     </loop>
     <p>
-        <submit name="upload" label="Envoyer au serveur..." nustyle="float: right" />
+        <submit name="upload" label="Envoyer au serveur..." onclick="jQuery('#wait').show();" />
     </p>
 </form>
 
-<div id="wait" style="display: none; background-color: #eee; position: absolute; top: 40%; left: 30%; width: 40%; border: 5px ridge #008; padding: 1em; text-align: center;">
-    <img id="progressbar" src="/images/progressbar2.gif" /><br />
+<div id="wait" style="display: none; background-color: #eee; position: absolute; top: 25%; left: 30%; width: 40%; border: 5px ridge #008; padding: 1em; text-align: center;">
+    <img id="progressbar" src="/FabWeb/images/progressbar2.gif" /><br />
     Veuillez patienter pendant l'envoi des fichiers au serveur...
 </div>
 
