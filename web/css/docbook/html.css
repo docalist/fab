@@ -424,7 +424,7 @@ caution title:before
     content: "";
     counter-increment: none;
 }
-sect1info, sect1info releaseinfo
+div.releaseinfo
 {
     color: #AAA;
     background-color: transparent;
@@ -520,3 +520,49 @@ a.otherclass:hover, a.otherclass:active, a.otherclass:focus
 {
     background-image: url(linkicons/note_a.gif);
 }
+
+div.tableofcontents
+{
+    background-color: #FFFFCC;
+    border:1px solid orange;
+    margin: 0.5em 0em 2em 2em;
+    padding: 0em;
+    -moz-border-radius: 5px;
+    float: right;
+    
+}
+div.tableofcontents div.title
+{
+    background-color: darkorange;
+    color: white;
+    display: block;
+    text-align: center;
+    font-weight: bold;
+    padding: 0.2em;
+}
+div.tableofcontents ul
+{
+    list-style-type: none;
+    list-style-image: url(none);
+    margin: 0;
+    padding: 0.1em 1em;
+}
+div.tableofcontents li
+{
+    list-style-type: none;
+    list-style-image: url(none);
+}
+    
+div.tableofcontents code,
+div.tableofcontents filename,
+div.tableofcontents command,
+div.tableofcontents emphasis
+        
+{
+    font-family: inherit;
+    color: inherit;
+    background-color: inherit;
+    border: none;
+    text-decoration: none;
+}
+  
