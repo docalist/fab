@@ -36,7 +36,11 @@ class TemplateCode
     public static function tokenize($expression)
     {
         // Utilise l'analyseur syntaxique de php pour décomposer l'expression en tokens
+        ob_start();
         $tokens = token_get_all(self::PHP_START_TAG . $expression . self::PHP_END_TAG);
+        $warning=ob_get_clean();
+        if ($warning !== '')
+            throw new Exception("Une erreur s'est produite durant l'analyse de l'expression :<br />".$expression.'<br />'.$warning);
         
         // Enlève le premier et le dernier token (PHP_START_TAG et PHP_END_TAG)
         array_shift($tokens);

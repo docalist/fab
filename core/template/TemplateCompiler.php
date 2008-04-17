@@ -270,7 +270,7 @@ class TemplateCompiler
 //echo '</pre>';
 //echo $source;        
         // Supprime les commentaires de templates : /* xxx */
-        $source=preg_replace('~/\*.*?\*/~ms', null, $source);
+        $source=preg_replace('~/\*\s.*?\s\*/~ms', null, $source);
         
         // Ajoute si nécessaire une déclaration xml au template
         if (substr($source, 0, 6)==='<?xml ')
@@ -301,7 +301,11 @@ class TemplateCompiler
             if (false === $path=Utils::searchFile($file))
                 throw new Exception("Impossible de trouver le fichier include $file spécifié dans la config, searchPath=".var_export(Utils::$searchPath));
 //            debug && Debug::log('Concaténation du fichier include %s au source du template.file=%s, searchpath=%s', $path, $file, print_r(Utils::$searchPath, true));
-        	$h.=file_get_contents($path);
+            $include=file_get_contents($path);
+            // Supprime les commentaires en syntaxe C présents dans le include
+            $include=preg_replace('~/\*\s.*?\s\*/~ms', null, $include);
+            
+        	$h.=$include;
         }
         if ($h) $source=str_replace('</root>', '<div test="{false}">'.$h.'</div></root>', $source);
 //        if (Template::getLevel()==0) file_put_contents(dirname(__FILE__).'/dm.xml', $source);
@@ -624,7 +628,7 @@ private static $matchTemplate=null;
                     
             // Exécute la requête xpath pour obtenir la liste des noeuds sélectionnés par ce template
             if (false === $nodes=$xpath->query($expression))
-                throw new Exception("Erreur dans l'expression xpath [$expression]");
+            throw new Exception("Erreur dans l'expression xpath [$expression]");
                 
             // Aucun résultat : rien à faire
             if ($nodes->length==0) 
@@ -643,11 +647,22 @@ private static $matchTemplate=null;
                 // Instancie le noeud
                 self::instantiateMatch($result);
                 
-                // Ajoute un attribut strip pour que seul le corps du template apparaisse dans le source généré
-                $result->setAttribute('strip','true');
+                // result est maintenant un tag <template> instancié
+                // on va remplacer node (le noeud matché) par le contenu de result
                 
-                // Remplace le noeud instancié par le noeud obtenu
-                $node->parentNode->replaceChild($result, $node); // remplace match par node
+                // on ne peut pas travailler directement sur childNodes car
+                // dès qu'on fait un ajout de fils, la liste est modifiée.
+                // On commence donc par faire la liste de tous les noeuds
+                // à insérer.
+                $childs=array();
+                foreach($result->childNodes as $child)
+                    $childs[]=$child;
+                
+                foreach($childs as $child)
+                    $node->parentNode->insertBefore($child, $node);
+                    
+                // supprime le noeud <template> désormais vide qui reste
+                $node->parentNode->removeChild($node);
             }
         }
     }
@@ -719,6 +734,12 @@ private static $line=0, $column=0;
      */
     public static function instantiateMatch(DOMNode $node)
     {
+        if ($node instanceOf DOMCdataSection)
+        {
+            //self::dumpNodes($node, 'Section CDATA');
+            return;
+        }
+        
         // Traite tous les attributs du noeud
         if ($node->hasAttributes())
             foreach ($node->attributes as $attribute)
@@ -790,10 +811,10 @@ private static $line=0, $column=0;
                                                                                                                                     
 
          */
-        $matches=null;
         // Exécute le code présent dans les données du noeud
         if ($node instanceof DOMCharacterData) // #text, #comment... pour les PI :  || $node instanceof DOMProcessingInstruction
         {
+            $matches=null;
 //            if (preg_match_all(self::$reCode, utf8_decode($node->data), $matches, PREG_PATTERN_ORDER|PREG_OFFSET_CAPTURE)>0)
             if (self::findCode(utf8_decode($node->data), $matches))
             { 
