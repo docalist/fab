@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE sect1 PUBLIC "-//OASIS//DTD DocBook XML V4.5//EN"
+"http://www.oasis-open.org/docbook/xml/4.5/docbookx.dtd">
+<?xml-stylesheet href="../web/css/docbook/dm.css" type="text/css"?>
+<sect1 id="un.id.unique">
+    <sect1info>
+        <releaseinfo>$Id: modele.documentation.xml 587 2008-01-09 10:43:11Z
+        daniel.menard.bdsp $</releaseinfo>
+    </sect1info>
+
+    <title>Documentation de fab</title>
+
+    <tip>
+        <title>Sommaire</title>
+
+        <itemizedlist>
+            <listitem>
+                <para><ulink url="?filename=modele.documentation">Format de la
+                documentation</ulink></para>
+            </listitem>
+
+            <listitem>
+                <para><ulink url="?filename=modele.documentation">Modèle de
+                documentation</ulink></para>
+            </listitem>
+
+            <listitem>
+                <para><ulink url="?filename=routing">Routing (gestion des
+                urls)</ulink></para>
+            </listitem>
+
+            <listitem>
+                <para><ulink
+                url="?filename=template.introduction">Templates</ulink></para>
+
+                <itemizedlist>
+                    <listitem>
+                        <para><ulink
+                        url="?filename=template.introduction">Introduction</ulink></para>
+                    </listitem>
+
+                    <listitem>
+                        <para><ulink
+                        url="?filename=template.syntax">Syntaxe</ulink></para>
+                    </listitem>
+
+                    <listitem>
+                        <para><ulink
+                        url="?filename=template.matchtemplates">Templates
+                        match</ulink></para>
+                    </listitem>
+
+                    <listitem>
+                        <para><ulink
+                        url="?filename=template.compilation">Compilation</ulink></para>
+                    </listitem>
+                </itemizedlist>
+            </listitem>
+        </itemizedlist>
+    </tip>
+</sect1>

@@ -10,6 +10,8 @@
 
     <title>titre du chapitre</title>
     
+    <toc></toc>
+
     <sect2 id="id.de.sect1.plus.autre">
     
         <title>titre de cette section</title>

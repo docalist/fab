@@ -10,6 +10,8 @@
 
     <title>Templates : templates match</title>
     
+    <toc></toc>
+
     <sect2 id="templates.matchtemplates.introduction">
     
         <title>Introduction</title>
@@ -335,7 +337,7 @@ Copyright 1993-2007 BDSP.]]></programlisting>
             <para>
                 TODO : aucun des exemples ci-dessus n'a été testé pour de 
                 vrai... à faire
-            </para>    
+            </para>
         </example>
 
         <para>Remarques</para>
@@ -404,7 +406,7 @@ Copyright 1993-2007 BDSP.]]></programlisting>
             Dans le corps du template, les paramètres deviennent automatiquement 
             de nouvelles sources de données. Elles sont du coup utilisables 
             comme n'importe quelle autre variable : <code>$arg</code>, 
-            <code>{$arg}</code>, etc.
+            <code>\{$arg\}</code>, etc.
         </para>
         
         <para>    
@@ -475,19 +477,19 @@ Copyright 1993-2007 BDSP.]]></programlisting>
             <itemizedlist>
                 <listitem>
                     <para>
-                        le texte : <code>{select('text()')}</code>
+                        le texte : <code><![CDATA[{select('text()')}]]></code>
                     </para>
                 </listitem>
                 <listitem>
                     <para>
-                        les éléments : <code>{select('*')}</code>
+                        les éléments : <code><![CDATA[{select('*')}]]></code>
                     </para>
                 </listitem>
                 <listitem>
                     <para>
                         la valeur d'un ou de tous les attributs par exemple
-                        <code>{select('@nomAttribut')}</code> ou 
-                        <code>{select('@*')}</code>
+                        <code><![CDATA[{select('@nomAttribut')}]]></code> ou 
+                        <code><![CDATA[{select('@*')}]]></code>
                     </para>
                 </listitem>
                 <listitem>
@@ -591,25 +593,25 @@ Copyright 1993-2007 BDSP.]]></programlisting>
                 <itemizedlist>
                     <listitem>
                         <para>
-                            <code>class="{select('@class')}"</code> : correct
+                            <code><![CDATA[class="{select('@class')}"]]></code> : correct
                         </para>
                     </listitem>
                     <listitem>
                         <para>
-                            <code>class="{select('@*')}"</code> : erreur si le 
+                            <code><![CDATA[class="{select('@*')}"]]></code> : erreur si le 
                             noeud instancié contenait plusieurs attributs
                         </para>
                     </listitem>
                     <listitem>
                         <para>
-                            <code>class="{select('*')}</code> : illlégal, on 
+                            <code><![CDATA[class="{select('*')}]]></code> : illlégal, on 
                             essaie de mettre des éléments dans la valeur d'un 
                             attribut
                         </para>
                     </listitem>
                     <listitem>
                         <para>
-                            <code>class="{select('text()')}</code> : légal 
+                            <code><![CDATA[class="{select('text()')}]]></code> : légal 
                             (bien que probablement peu utile), puisqu'on ne 
                             sélectionne que du texte
                         </para>
@@ -634,7 +636,7 @@ Copyright 1993-2007 BDSP.]]></programlisting>
             </para>
             
             <para>
-                Ici, on utilise <code>{select('@*')}</code> dans le texte de 
+                Ici, on utilise <code><![CDATA[{select('@*')}]]></code> dans le texte de 
                 l'élément <code><![CDATA[<a>]]></code> présent dans le corps 
                 du template pour récupérer tous les attributs du noeud 
                 instancié.
@@ -683,7 +685,7 @@ Copyright 1993-2007 BDSP.]]></programlisting>
 
                 <para>
                     Voila comment sont traités les attributs lorsque le 
-                    <code>{select('@*')}</code> est exécuté :
+                    <code><![CDATA[{select('@*')}]]></code> est exécuté :
                 </para>
                 
                 <itemizedlist>
@@ -803,17 +805,17 @@ Copyright 1993-2007 BDSP.]]></programlisting>
             </para>
             
             <para>    
-                syntaxe complète : {select('xpath')}
+                syntaxe complète : <![CDATA[{select('xpath')}]]>
             </para>
                 
             <para>
-                Actuellement: syntaxe rigide (si on met des espaces après les { ou avant les } 
+                Actuellement: syntaxe rigide (si on met des espaces après les \{ ou avant les \} 
                 ou si on combine l'expression avec autre chose, ça ne marche pas (dû au regexp 
                 utilisées).
             </para>
             
             <para>    
-                exemple : {'avant ' . select('@title')} { trim(select('.'))}
+                exemple : <![CDATA[{'avant ' . select('@title')} { trim(select('.'))}]]>
             </para>    
             
             <para>    

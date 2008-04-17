@@ -8,6 +8,8 @@
         <releaseinfo>$Id$</releaseinfo>
     </sect1info>
 
+    <toc></toc>
+
     <title>Templates : compilation</title>
 <programlisting role="xml"><![CDATA[1. Constitution du source xml
 =============================
@@ -17,10 +19,10 @@
 - ajout éventuel d'une déclaration <?xml ... ?> au début du fichier 
 
 - ajout d'une racine unique au document xml (tout le source est englobé dans
-  des tags <root ignore="true"> ... </root>)
+  des tags root ignore="true" ... /root)
 
 - insertion des fichiers "auto-includes" indiqués dans la configuration à la
-  fin du source xml (juste avant la balise de fin </root>)
+  fin du source xml (juste avant la balise de fin /root)
 
 
 2. Chargement du source xml dans le DOM de php

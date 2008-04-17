@@ -5,11 +5,13 @@
 <sect1 id="template.syntax">
 
     <sect1info>
-        <releaseinfo>$Id$</releaseinfo>
+        <releaseinfo><![CDATA[$Id$]]></releaseinfo>
     </sect1info>
 
     <title>Syntaxe des templates</title>
-    
+
+    <toc></toc>
+
     <sect2 id="template.syntax.introduction">
         <title>Introduction</title>
         
@@ -30,8 +32,8 @@
                 interprétés par le parser xml : il suffit pour cela de les 
                 inclure dans un bloc CDATA :
             </para>        
-            <programlisting role="xml">&lt;![CDATA[
-    Ce bloc peut contenir des caractères comme $, &lt; et &gt;.
+            <programlisting role="xml">&amp;lt;![CDATA[
+    Ce bloc peut contenir des caractères comme \$, &lt; et &gt;.
     Ils ne seront pas interprétés par le parser xml
 ]]&gt;</programlisting>
         </tip>        
@@ -96,7 +98,7 @@
                 Les commentaires doivent être indiqués en utilisant la syntaxe 
                 xhtml :
             </para>
-            
+
             <programlisting role="xml"><![CDATA[<!-- commentaire -->]]></programlisting>                
                 
             <para>        
@@ -339,7 +341,7 @@ echo 'deux';
             <programlisting role="php"><![CDATA[{$titoriga:$titorigm:"pas de titre"}]]></programlisting>                
 
             <para>    
-                Dans ce cas, la première expression (<code>$titoriga</code>) 
+                Dans ce cas, la première expression (<code><![CDATA[$titoriga]]></code>) 
                 sera évaluée. Si elle retourne quelque chose (i.e pas une chaine 
                 vide), on s'arrête là et on retourne cette valeur. Sinon, on 
                 passe à la seconde, et ainsi de suite.
@@ -382,7 +384,7 @@ echo 'deux';
                         zone de données ne retourne pas de valeur, l'attribut devient automatiquement
                         optionnel.
                                 
-                        Par exemple, si <code>$class</code> n'est pas définit, le template 
+                        Par exemple, si <code><![CDATA[$class]]></code> n'est pas définit, le template 
                         suivant : 
                     
                         <programlisting role="xml"><![CDATA[<h1 class="$class">...</h1>]]></programlisting>
@@ -476,10 +478,10 @@ echo 'deux';
                 </itemizedlist>        
             
             <para>    
-                Remarque de Youenn : opt à la place de if. if est court mais en lisant if='$param', on n'a pas 
+<![CDATA[                Remarque de Youenn : opt à la place de if. if est court mais en lisant if='$param', on n'a pas 
                 directement à l'esprit (en tout cas moi) que si $param est vide, le mot if va disparaître
                 de la sortie, alors qu'en lisant opt='$param' à la place, ça me semble plus évident.
-            </para>
+]]>            </para>
 </sect3>
 
         <sect3 id="template.syntax.attributes.ignore">
@@ -642,9 +644,9 @@ echo 'deux';
 
             <para>                
                 Si l'attribut <code>as</code> ne spécifie qu'une seule variable 
-                <code>$var</code>, alors, dans le corps du <code>loop</code>,
-                <code>$var</code> donnera accès à la valeur et non à l'index 
-                en cours : équivalent à <code>$j</code> dans l'exemple précédent.
+                <code><![CDATA[$var]]></code>, alors, dans le corps du <code>loop</code>,
+                <code><![CDATA[$var]]></code> donnera accès à la valeur et non à l'index 
+                en cours : équivalent à <code><![CDATA[$j]]></code> dans l'exemple précédent.
             </para>            
             
         </sect3>
