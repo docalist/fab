@@ -1163,14 +1163,17 @@ class XapianDatabaseDriver2 extends Database
         
         // Lance la recherche
         $this->xapianMSet=$this->xapianEnquire->get_MSet($start, $max, $max+1, $rset);
-        $this->count=$this->xapianMSet->get_matches_estimated();
 
         // Teste si la requête a retourné des réponses
-        $this->xapianMSetIterator=$this->xapianMSet->begin();
-        if ($this->eof=$this->xapianMSetIterator->equals($this->xapianMSet->end())) 
+        if ($this->xapianMSet->is_empty())
         {
+            $this->xapianMSetIterator=null;
+            $this->count=0;
             return false;
-        } 
+        }
+
+        $this->xapianMSetIterator=$this->xapianMSet->begin();
+        $this->count=$this->xapianMSet->get_matches_estimated();
         $this->loadDocument();
         $this->eof=false;
         
