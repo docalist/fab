@@ -212,7 +212,7 @@ class SimpleTestListener implements PHPUnit_Framework_TestListener
         {
             echo 
                 '<li class="', ($this->odd?'odd ':''), 'fail">',
-                    'Fail. ', htmlentities($test->getName()), ' : ', htmlentities($e->getMessage()),
+                    'Fail. ', htmlentities($test->getName()), /*' : ', htmlentities($e->getMessage()),*/
                     '<div class="diff">',
                         '<div id="div1">',htmlentities($e->expected),'</div>',
                         '<div id="div2">',htmlentities($e->result),'</div>',
@@ -511,13 +511,14 @@ class AutoTestFile extends AutoTestCase
     {
         $test=$this->test;
         $file=$test['file'];
+        $expect=$test['expect'];
         $line=$test['line'];
         
         if (isset($test['test'])) // le test a un titre
         {
             $h='Ligne '.$line.', '.$test['test'];
             if (strpos($file, "\n")===false) // le source n'a qu'une ligne, on l'ajoute au titre
-                $h .= ' : ' . $file;
+                $h .= ' : ' . $file . ' -> ' . $expect;
             
         }
         else
