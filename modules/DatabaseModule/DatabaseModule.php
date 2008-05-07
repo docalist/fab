@@ -884,7 +884,9 @@ class DatabaseModule extends Module
                     
             '_filter'=>$this->getFilter(),
                     
-            '_defaultop'=>Config::get('defaultop'),
+            '_defaultop'=>
+                $this->request->defaults('_defaultop', Config::get('defaultop'))
+                    ->ok(),
         );
         return $this->selection->search($equation, $options);
     }
