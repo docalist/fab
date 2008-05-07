@@ -1,0 +1,50 @@
+Fichier de test pour la class utilitaire DedupTokens.
+(test de la méthode getEquation)
+
+@version : $Id$
+
+================================================================================
+--test--
+un simple mot donne directement l'équation
+--file-- 
+mot
+--expect--
+mot
+--comment--
+aucune parenthèse n'est ajoutée
+================================================================================
+--test--
+des parenthèses sont ajoutées s'il y a plusieurs mots 
+--file-- 
+un essai de texte
+--expect--
+(un essai de texte)
+================================================================================
+--test--
+les mots sont tokenisés (accents...)
+--file-- 
+éèêëîïôöçàâä &"'(-)
+--expect--
+eeeeiioocaaa
+================================================================================
+--test--
+Les mots répétés sont ignorés
+--file-- 
+un essai, encore un essai, le dernier essai
+--expect--
+(un essai encore le dernier)
+================================================================================
+--test--
+les opérateurs de fab sont supprimés de l'équation
+--file-- 
+a et b ou c sauf d and e or f xor g near h
+--expect--
+(a b c d e f g h)
+================================================================================
+--test--
+on peut passer un tableau en paramètre
+--file-- 
+premier article ¤ second article ¤ troisième article
+--expect--
+(premier article second troisieme)
+================================================================================

@@ -1,0 +1,50 @@
+Fichier de test pour la class utilitaire DedupTokens.
+(test de la méthode compare)
+
+@version : $Id$
+
+================================================================================
+--file-- 
+mot1
+mot1
+--expect--
+100
+================================================================================
+--file-- 
+mot1
+mot2
+--expect--
+0
+================================================================================
+--file-- 
+mot1 mot2
+mot1
+--expect--
+0
+--comment--
+les deux articles sont différents
+================================================================================
+--file-- 
+mot1 ¤ mot2
+mot1
+--expect--
+66,67
+--comment--
+(1 article en commun X 2)/(nb total d'articles=3) = 2/3
+================================================================================
+--file-- 
+mot1 ¤ mot2
+mot1 ¤ mot3
+--expect--
+50
+--comment--
+(1 article en commun X 2)/(nb total de mots=4) = 1/2
+================================================================================
+--file-- 
+Bilan ¤ Kinésithérapie ¤ Homme ¤ Pratique soins ¤ Evaluation ¤ Qualité ¤ Soins ¤ Rééducation ¤ Secteur privé
+Bilan ¤ Kinésithérapie ¤ Homme ¤ Pratique professionnelle ¤ Evaluation ¤ Qualité ¤ Soin ¤ Rééducation ¤ Secteur privé ¤ Fiche bilan
+--expect--
+73,68
+--comment--
+(7 articles en commun X 2)/(nb total d'articles=9+10=19) = 14/19 = 73,68%
+================================================================================
