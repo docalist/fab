@@ -335,8 +335,13 @@ class Template
         if (! Config::get('templates.checktime')) return false;
 
         // Compare la date du fichier en cache avec celle du fichier original
-        if ($mtime<=filemtime($path) ) return true;
-             
+        if ($mtime<=@filemtime($path) ) return true;
+        
+        // explication du '@' ci-dessus :
+        // si le fichier n'existe pas (utilisation de runSource, par exemple)
+        // évite de générer un warning et retourne false (ie pas besoin de
+        // recompiler)
+        
         // Le fichier est dans le cache et il est à jour
         return false;
     }
