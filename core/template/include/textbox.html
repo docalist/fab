@@ -3,7 +3,7 @@
     <label test="$label" class="textarea{rtrim(' '.$class)}" for="{autoId($id:$name:'textarea')}">$label</label>
     <textarea
         name="$name"
-        title="$label"
+        title="{select('@title') : $label}"
         class="textarea{rtrim(' '.$class)}"
         rows="{$rows:3}"
         cols="$cols"
@@ -16,7 +16,7 @@
     <input
         type="text" 
         name="$name" 
-        title="$label"
+        title="{select('@title') : $label}"
         value="{select('@value')}{select('.//node()')}"
         class="text{rtrim(' '.$class)}" 
         id="{$label ? lastId() : $id}">{select('@*')}</input>
