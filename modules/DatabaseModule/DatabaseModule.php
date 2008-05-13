@@ -238,7 +238,7 @@ class DatabaseModule extends Module
         // Récupère l'historique actuel
         if (isset($_SESSION[$historyKey])) unset($_SESSION[$historyKey]);
         
-        echo "Historique effacé.";
+        Runtime::redirect($_SERVER['HTTP_REFERER']);
     }
     
     public function getSearchHistory()
