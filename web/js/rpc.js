@@ -75,7 +75,18 @@ jQuery.AutoCompleteHandler =
             asValue: false,
             asExpression: false,
             height: 'auto',
-            onload: null
+            onload: null,
+            
+            // Nom de la classe qui sera ajoutée à tous les contrôles autocomplete
+            className: 'autocomplete',
+            
+            // source html à ajouter devant les contrôles
+            before: null,
+            
+            // Source html à ajouter après les contrôles
+            after: null,
+            
+            title: null
         };
         
         if (settings) {
@@ -84,13 +95,13 @@ jQuery.AutoCompleteHandler =
             settings = defaultSettings;
         }
                             
-	    // Initialise l'autocomplete pour chacun des contrôles jquery sélectionnés
+        // Initialise l'autocomplete pour chacun des contrôles jquery sélectionnés
         return this.each(function () {
             this.ac = settings;
             this.ac.cache = [];
 
             jQuery(this).
-            
+                
                 // Désactive l'autocomplete du navigateur
                 attr('autocomplete', 'off').
                 
@@ -107,6 +118,22 @@ jQuery.AutoCompleteHandler =
                     jQuery.AutoCompleteHandler.hide();
                     jQuery.AutoCompleteHandler.target = null;
                 });
+                
+            if (settings.className) {
+                jQuery(this).addClass(settings.className);
+            }
+            
+            if (settings.before) {
+                jQuery(this).before(settings.before);
+            }
+            
+            if (settings.after) {
+                jQuery(this).after(settings.after);
+            }
+            
+            if (settings.title) {
+                jQuery(this).attr('title', settings.title);
+            }
         });
     },
     
@@ -165,7 +192,8 @@ jQuery.AutoCompleteHandler =
                 return;
             }
             
-            if (event.keyCode === 9 && jQuery.AutoCompleteHandler.current === -1) { 
+            if ((event.keyCode === 9 || event.keyCode === 13) && jQuery.AutoCompleteHandler.current === -1) { 
+                jQuery.AutoCompleteHandler.hide();
                 return;
             }
 
@@ -325,7 +353,8 @@ jQuery.AutoCompleteHandler =
         }
         jQuery.AutoCompleteHandler.current = current;
         item = items.eq(current).addClass('selected');
-        if (! nomove) {
+        
+        if (item.length && ! nomove) {
             jQuery.AutoCompleteHandler.ensureVisible(item.get(0), popup.get(0));
         }
     },
