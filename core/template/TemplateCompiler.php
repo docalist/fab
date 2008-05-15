@@ -2302,32 +2302,50 @@ return false (ne pas afficher le contenu par défaut)
         return true;
     }
     
+    
+    private static function boolean($x)
+    {
+        if (is_string($x))
+        { 
+            switch(strtolower(trim($x)))
+            {
+                case 'true':
+                case 'on':
+                case '1':
+                case '-1':
+                    return true; 
+                default:
+                    return false;
+            }
+        }
+        return (bool) $x;
+    }
+    
     private static $fillLevel=0;
     private static $fillVar=array();
+    private static $fillStrict=array();
     
     private static function compileFill(DOMNode $node)
     {
-        $t=self::getAttributes($node, array('values'), null);
+        $t=self::getAttributes($node, array('values'), array('strict'=>'false'));
         $values=$t['values'];
-
         $canEval=self::parse($values,true);
 
         ++self::$fillLevel;
-
+        
+        self::$fillStrict[self::$fillLevel]=self::boolean($t['strict']);
+        
         $fill=self::$fillVar[self::$fillLevel]=self::$env->getTemp('fill');
         
-        // Stocke les valeurs. Cela peut être soit un tableau, soit une chaine
-        echo self::PHP_START_TAG, "\n";
-        echo $fill, '=', $values, ';', "\n";
-        echo 'if (! is_array(', $fill, ')) ', $fill, '=preg_split(\'~\s*[,;/·¨|]\s*~\', trim(',$fill,'), -1, PREG_SPLIT_NO_EMPTY);', "\n";
-        echo $fill, '=array_fill_keys(', $fill, ',true);', "\n";
-        echo self::PHP_END_TAG;
-
-        // autres candidats possibles comme séparateurs utilisés dans le preg_split ci-dessus : cr, lf, tilde
+        // Prépare la liste des valeurs pour le fill
+        echo 
+            self::PHP_START_TAG,
+            $fill, '=Template::getFillValues(', $values, ',', var_export(self::$fillStrict[self::$fillLevel],true), ');',
+            self::PHP_END_TAG;
         
         // Crée une nouvelle variable, $fill, utilisable uniquement au sein du bloc <fill>..</fill>
         // et qui contient la liste des valeurs qui n'ont pas encore été utilisées.
-        self::$env->push(array('fill'=>"array_keys(array_filter($fill))"));
+        self::$env->push(array('fill'=>"array_filter($fill)"));
         
         // Compile tous les noeuds fils du bloc <fill>...</fill>
         self::compileChildren($node);
@@ -2367,11 +2385,13 @@ return false (ne pas afficher le contenu par défaut)
                 throw new exception(__METHOD__.' appellée pour un tag ' . $node.tagName);
         }
         $canEval=self::parse($value,true);
-        $item=self::$fillVar[self::$fillLevel].'[trim('.$value.')]';
+        
+        if (self::$fillStrict[self::$fillLevel]) 
+            $item=self::$fillVar[self::$fillLevel].'[trim('.$value.')]';
+        else
+            $item=self::$fillVar[self::$fillLevel]."[implode(' ', Utils::tokenize($value))]";
+            
         self::compileElement($node, "if (isset($item)){echo ' $code';$item=false;}");
-        
-        //self::compileElement($node, 'if (isset('.self::$fillVar[self::$fillLevel].'[trim('.$value.')])) echo \' '.$code.'\'');
-        
     }
 
 }

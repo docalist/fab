@@ -413,6 +413,35 @@ class Template
     	return $x;
     }
 
+    /**
+     * Construit la liste des valeurs qui est utilisée par un bloc <fill>...</fill>
+     *
+     * @param string|array $values les valeurs provenant du champ
+     * @param boolean $strict true pour que le fill tiennent compte des accents
+     * et de la casse des caractères, false (valeur par défaut) sinon.
+     * @return array un tableau dont les clés contiennent les articles trouvés
+     * dans $values et dont la valeur est true.
+     */
+    public static function getFillValues($values, $strict=false)
+    {
+        if (! is_array($values)) 
+            $values=preg_split('~\s*[,;/·¨|]\s*~', trim($values), -1, PREG_SPLIT_NO_EMPTY);
+        // autres candidats possibles comme séparateurs utilisés dans le preg_split ci-dessus : cr, lf, tilde
+
+        $save=$values;
+        
+        if (! $strict)
+        {
+            foreach($values as & $value)
+                $value=implode(' ', Utils::tokenize($value));
+        }
+
+        if (count($values))
+            $values=array_combine($values, $save);
+        
+        return $values;
+    }
+    
 /*
 runSlot examine la config en cours pour savoir s'il faut examiner le noeud ou pas.
 si enabled=false : return false (ne pas exécuter le slot, ne pas afficher le contenu par défaut)
