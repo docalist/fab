@@ -331,7 +331,7 @@ class XapianDatabaseDriver2 extends Database
 //        if ($readOnly) return;
         
         // Mots vides de la base
-        $this->structure->_stopwords=array_flip($this->tokenize($this->structure->stopwords));
+        $this->structure->_stopwords=array_flip(Utils::tokenize($this->structure->stopwords));
 
         // Crée la liste des champs de type AutoNumber + mots-vides des champs
         foreach($this->structure->fields as $name=>$field)
@@ -346,14 +346,14 @@ class XapianDatabaseDriver2 extends Database
                 if ($field->stopwords==='')
                     $field->_stopwords=$this->structure->_stopwords;
                 else
-                    $field->_stopwords=array_flip($this->tokenize($field->stopwords.' '.$this->structure->stopwords));
+                    $field->_stopwords=array_flip(Utils::tokenize($field->stopwords.' '.$this->structure->stopwords));
             }
             else
             {
                 if ($field->stopwords==='')
                     $field->_stopwords=array();
                 else
-                    $field->_stopwords=array_flip($this->tokenize($field->stopwords));
+                    $field->_stopwords=array_flip(Utils::tokenize($field->stopwords));
             }
         }
     }
@@ -618,45 +618,6 @@ class XapianDatabaseDriver2 extends Database
     
     
     /**
-     * Construit la liste des tokens pour un texte donné.
-     * 
-     * @param string $text
-     * @return array
-     */
-    public function tokenize($text)
-    {
-        static $charFroms = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZÀÁÂÃÄÅŒÆÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖØÙÚÛÜÝßàáâãäåœæçèéêëìíîïðñòóôõöùúûüýþÿ-Þ\'';        
-        static $charTo    = '0123456789abcdefghijklmnopqrstuvwxyzaaaaaaœæceeeeiiiidnooooo0uuuuysaaaaaaœæceeeeiiiidnooooouuuuyby e ';
-        // todo: a tester : pas besoin d'avoir [0-9A-Z] dans la liste : xapian le fera. ne garder que les accents et les signes diacritiques
-         
-        // Convertit les sigles en mots
-        $text=preg_replace_callback('~(?:[a-z0-9]\.){2,9}~i', array($this, 'AcronymToTerm'), $text);
-        
-        // Convertit les caractères 
-        $text=strtr($text, $charFroms, $charTo);
-        
-        // Gère les lettres doubles
-        $text=strtr($text, array('æ'=>'ae', 'œ'=>'oe'));
-
-        // Retourne un tableau contenant tous les mots présents
-        return str_word_count($text, 1, '0123456789@_');
-    }
-    
-
-    /**
-     * Fonction utilitaire utilisée par {@link tokenize()} pour convertir
-     * les acronymes en mots
-     *
-     * @param array $matches
-     * @return string
-     */
-    private function AcronymToTerm($matches)
-    {
-        return str_replace('.','', $matches[0]);
-    }
-    
-    
-    /**
      * Initialise le document xapian en cours lors de la création ou de la
      * modification d'un enregistrement.
      * 
@@ -704,7 +665,7 @@ class XapianDatabaseDriver2 extends Database
                     if (! $field->words && ! $field->values) continue;
 
                     // Indexation au mot et à la phrase
-                    $tokens=$this->tokenize($value);
+                    $tokens=Utils::tokenize($value);
                     foreach($tokens as $term)
                     { 
                         // Vérifie que la longueur du terme est dans les limites autorisées
@@ -773,7 +734,7 @@ class XapianDatabaseDriver2 extends Database
                     if (strlen($value)>self::MAX_ENTRY) continue;
                     
                     // Tokenise et ajoute une entrée dans la table pour chaque terme obtenu 
-                    foreach($this->tokenize($value) as $term)
+                    foreach(Utils::tokenize($value) as $term)
                     {
                         // Vérifie que la longueur du terme est dans les limites autorisées
                         if (strlen($term)<self::MIN_ENTRY_SLOT || strlen($term)>self::MAX_ENTRY_SLOT) continue;
@@ -797,7 +758,7 @@ class XapianDatabaseDriver2 extends Database
             foreach($sortkey->fields as $name=>$field)
             {
                 
-                foreach($this->tokenize($field->name) as $fieldname) // FIXME: un peu lourd d'utiliser tokenize juste pour ça
+                foreach(Utils::tokenize($field->name) as $fieldname) // FIXME: un peu lourd d'utiliser tokenize juste pour ça
                 {
                     // Récupère les données du champ, le premier article si c'est un champ multivalué
                     $value=$this->fields[$fieldname];
@@ -813,7 +774,7 @@ class XapianDatabaseDriver2 extends Database
                     $value=$this->startEnd($value, $field->start, $field->end);
 //                    echo '...après startend value=', var_export($value,true), ', start=', var_export($field->start,true), ', end=', var_export($field->end, true), '<br />';
                 }
-                $value=implode(' ', $this->tokenize($value));
+                $value=implode(' ', Utils::tokenize($value));
                 
                 // Ne prend que les length premiers caractères
                 if ($field->length)
@@ -906,7 +867,7 @@ class XapianDatabaseDriver2 extends Database
         $wildcard=substr($term, -1)==='*';
         
         // Concatène tous les tokens du terme avec un underscore
-        $term=implode('_', $this->tokenize($term));
+        $term=implode('_', Utils::tokenize($term));
 
         // Tronque l'article s'il dépasse la limite autorisée
         if (strlen($term)>self::MAX_TERM-2)
@@ -957,7 +918,7 @@ class XapianDatabaseDriver2 extends Database
             
         // Pré-traitement de la requête pour que xapian l'interprête comme on souhaite
 //        if (debug) echo 'Equation originale : ', var_export($equation,true), '<br />';
-        $equation=preg_replace_callback('~(?:[a-z0-9]\.){2,9}~i', array($this, 'AcronymToTerm'), $equation); // sigles à traiter, xapian ne le fait pas s'ils sont en minu (a.e.d.)
+        $equation=preg_replace_callback('~(?:[a-z0-9]\.){2,9}~i', array('Utils', 'acronymToTerm'), $equation); // sigles à traiter, xapian ne le fait pas s'ils sont en minu (a.e.d.)
         $equation=Utils::convertString($equation, 'queryparser'); // FIXME: utiliser la même table que tokenize()
         $equation=preg_replace_callback('~\[(.*?)\]~', array($this,'searchByValueCallback'), $equation);
         $equation=self::frenchOperators($equation);

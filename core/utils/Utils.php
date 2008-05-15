@@ -1660,5 +1660,42 @@ final class Utils
             
         return $matches[1].'<a href="mailto:' . $matches[2] . '">' . $matches[2] . '</a>';
     }
+    
+    /**
+     * Construit la liste des tokens pour un texte donné.
+     * 
+     * @param string $text
+     * @return array
+     */
+    public static function tokenize($text)
+    {
+        static $charFroms = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZÀÁÂÃÄÅŒÆÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖØÙÚÛÜÝßàáâãäåœæçèéêëìíîïðñòóôõöùúûüýþÿ-Þ\'';        
+        static $charTo    = '0123456789abcdefghijklmnopqrstuvwxyzaaaaaaœæceeeeiiiidnooooo0uuuuysaaaaaaœæceeeeiiiidnooooouuuuyby e ';
+         
+        // Convertit les sigles en mots
+        $text=preg_replace_callback('~(?:[a-z0-9]\.){2,9}~i', array(__CLASS__, 'acronymToTerm'), $text);
+        
+        // Convertit les caractères 
+        $text=strtr($text, $charFroms, $charTo);
+        
+        // Gère les lettres doubles
+        $text=strtr($text, array('æ'=>'ae', 'œ'=>'oe'));
+
+        // Retourne un tableau contenant tous les mots présents
+        return str_word_count($text, 1, '0123456789@_');
+    }
+    
+
+    /**
+     * Fonction utilitaire utilisée par {@link tokenize()} pour convertir
+     * les acronymes en mots
+     *
+     * @param array $matches
+     * @return string
+     */
+    public static function acronymToTerm($matches)
+    {
+        return str_replace('.', '', $matches[0]);
+    }
 }
 ?>
