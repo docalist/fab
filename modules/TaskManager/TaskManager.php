@@ -468,7 +468,7 @@ class TaskManager extends DatabaseModule
                                          
                     // Lance la tâche
                     self::out('Lancement de la tâche '. $task->getId(false));
-                    self::runBackgroundModule('/TaskManager/RunTask?id=' . $task->getId(false), $task->getApplicationRoot());
+                    self::runBackgroundModule('/TaskManager/RunTask?id=' . $task->getId(false), $task->getApplicationRoot(), $task->getUrl());
 
                     $task=null; // indique que la tâche a été exécutée, il faut chercher la suivante
                 }
@@ -551,20 +551,18 @@ class TaskManager extends DatabaseModule
         // cf : http://fr2.php.net/manual/en/function.ob-implicit-flush.php#60973
         
         // Indique que l'exécution a démarré
-        $task->setStatus(Task::Running)->setLast(time())->setOutput(self::$outputFile)->save();
+        $start=time();
+        $task->setStatus(Task::Running)->setLast($start)->setOutput(self::$outputFile)->save();
         TaskManager::request('echo Début de la tâche #'.self::$id);
         
-        // Ecrit quelques infos sur la tâche
-//        echo "Début d'exécution de la tâche #", self::$id, '<br />'; 
-//        echo "Date/heure d'exécution prévue : ", strftime('%x %X', $task->getNext()), '<br />';
-//        echo "Date/heure actuelle : ", strftime('%x %X'), '<br />';
-//        echo "Process ID de la tâche : ", getmypid(), '<br />';
-//        echo "Fichier de sortie : ", self::$outputFile, '<br />';
-//        echo '<blockquote>';
+        echo sprintf
+        (
+            '<div class="taskinfo">Tâche #%s : %s<br />Date d\'exécution : %s<br />Requête exécutée : %s<br /></div>',
+            self::$id, $task->getLabel(), strftime('%x %X'), $this->request
+        );        
         
         // Construit la requête à exécuter
         $request=$task->getRequest();
-//        echo "Requête à exécuter : ", $request->getUrl(), '<br />';
         
         // Exécute la tâche
         try
@@ -576,27 +574,27 @@ class TaskManager extends DatabaseModule
         catch (Exception $e)
         {
             // ferme la barre de progression éventuelle
-            self::request('setprogress '.self::$id);
-            
-            self::request('echo Fin en erreur de la tâche #'.self::$id.' : '.$e->getMessage());
+            self::progress();
+
             $task->setStatus(Task::Error)->save();
-//            echo "Une erreur s'est produite durant l'exécution : ", $e->getMessage(), '<br />';
             ExceptionManager::handleException($e, false);
             ob_end_flush();
             fclose(self::$outputFile);
         	return;
         }
 
-        // ferme la barre de progression éventuelle
+        // Ferme la barre de progression éventuelle
         self::progress();
         
         // Indique que la tâche s'est exécutée correctement
-//        echo '</blockquote>';
-//        echo "La tâche s'est exécutée normalement<br />";
-//        echo "Fin d'exécution : ", strftime('%x %X'), '<br />';
-
-        self::request('echo Fin ok de la tâche #'.self::$id);
         $task->setStatus($task->getRepeat() ? Task::Waiting : Task::Done)->save();
+
+        echo sprintf
+        (
+            '<div class="taskinfo">Tâche #%s : terminée<br />Fin d\'exécution : %s<br />Durée d\'exécution : %s<br /></div>',
+            self::$id, strftime('%x %X'), Utils::friendlyElapsedTime(time()-$start)
+        );        
+        
         ob_end_flush();
         fclose(self::$outputFile);
     }
@@ -670,7 +668,7 @@ class TaskManager extends DatabaseModule
      * @param string $root la racine de l'application à passer en paramètre à 
      * {@link Runtime::setup()}.
      */
-    public static function runBackgroundModule($fabUrl, $root='')
+    private static function runBackgroundModule($fabUrl, $root='', $home='')
     {
         // Détermine le path de l'exécutable php-cli
         if (!$cmd = Config :: get('taskmanager.php', ''))
@@ -678,32 +676,39 @@ class TaskManager extends DatabaseModule
 
         // Vérifie que le programme php obtenu existe et est exécutable
         if (!is_executable($cmd))
-            throw new Exception("Le programme php (cli) est introuvable ou n'est pas exécutable");
+            throw new Exception("Impossible de trouver $cmd");
 
         // Si le path contient des espaces, ajoute des guillemets
-        if ( (strpos($cmd, ' ') !== false) and (substr($cmd,0,1) !=='"') )
-            $cmd = '"' . $cmd . '"';
-
-        // Détermine les options éventuelles à ajouter à l'exécutable
+        $cmd=escapeshellarg($cmd); // escapeshellcmd ne fait pas ce qu'on veut. bizarre
+        
+        // Détermine les options éventuelles à passer à php
         $args = Config :: get('taskmanager.phpargs');
         if ($args)
             $cmd .= ' ' . $args;
-
-        // Ajoute au path php la faburl à exécuter
-        $cmd .=' -f '.Runtime::$fabRoot.'bin'.DIRECTORY_SEPARATOR.'fab.php -- '.$fabUrl;        
-        if ($root) $cmd .= ' '.$root;
+            
+        // Ajoute le path du fichier php à exécuter
+        if ($home)        
+            $phpFile = $root . 'web' . DIRECTORY_SEPARATOR . basename($home);
+        else
+            $phpFile = Runtime::$webRoot . Runtime::$fcName;
         
-        debug && Debug :: log('Exec %s', $cmd);
+        $cmd .= ' ' . escapeshellarg($phpFile);
 
-        // Sous windows, utilise wscript.shell pour lancer le process en tâche de fond
+        // Argument 1 : module/action à exécuter
+        $cmd .= ' ' . escapeshellarg($fabUrl);
+        
+        // Argument 2 : url de la page d'accueil de l'application
+        if ($home)
+            $cmd .= ' ' . escapeshellarg($home);
+        
+        // Sous windows, on utilise wscript.shell pour lancer le process en tâche de fond
         if ( substr(PHP_OS,0,3) == 'WIN')
         { 
-            //$cmd='start  '.$cmd;
-            echo "Commande lancée : ", $cmd, "\n";
             $WshShell = new COM("WScript.Shell");
             $oExec = $WshShell->Run($cmd, 0, false);
         }
-        // Sinon, considère qu'on est sous *nix et utilise le & final
+
+        // Sinon, on considère qu'on est sous *nix et utilise le & final
         else
         {
         	$cmd .= ' &';
@@ -734,6 +739,8 @@ class TaskManager extends DatabaseModule
         
         $outputFile=self::getOutputDirectory().$task->getId(false) . '.html';
         
+        $ftell=0;
+
         if (file_exists($outputFile))
         {
             $file=fopen($outputFile, 'r');
@@ -742,23 +749,35 @@ class TaskManager extends DatabaseModule
             $ftell=ftell($file);
             fclose($file);
         }
-        else
-            $ftell=0;
                 
-        if ($task->getStatus() === Task::Running)
+        switch ($status=$task->getStatus())
         {
-            $progress=self::request('getprogress '.$id);
-            if ($progress==='')
-                $step=$max=0;
-            else
-                sscanf($progress, '%d %d', $step, $max);
+            case Task::Waiting :
+            case Task::Starting :
+            case Task::Running :
+                           
+                $progress=self::request('getprogress '.$id);
+                if ($progress==='')
+                    $step=$max=0;
+                else
+                    sscanf($progress, '%d %d', $step, $max);
                 
-            echo sprintf
-            (
-                '<span id="updater" url="%s" step="%d" max="%d"></span>',
-                Routing::linkFor($this->request->copy()->set('start', $ftell)->getUrl()),
-                $step, $max
-            );
+                echo sprintf
+                (
+                    '<span id="updater" url="%s" step="%d" max="%d"></span>',
+                    Routing::linkFor($this->request->copy()->set('start', $ftell)->getUrl()),
+                    $step, $max
+                );
+                break;
+                
+            case Task::Done:
+            case Task::Error:
+                break;
+                
+            case Task::Disabled:
+            case Task::Expired:
+                echo '<p>La tâche est en statut "', $status, '".</p>';
+                break;
         }        
     }
     
@@ -838,7 +857,7 @@ class TaskManager extends DatabaseModule
 			throw new Exception('Le gestionnaire de tâches est déjà lancé');
 		// à voir : pour *nix : nohup
 
-        self::runBackgroundModule('/TaskManager/daemon');
+        self::runBackgroundModule('/TaskManager/Daemon');
         
         sleep(1); // on lui laisse un peu de temps pour démarrer
         
@@ -1001,7 +1020,7 @@ class TaskManager extends DatabaseModule
         $t=array
         (
 //            null, null, null,
-            1, null, null,
+            0, null, null,
 //            2, null, array('p1'=>10, 'p2'=>20, 'p3'=>array(4,5,6), 'p4'=>5.1111123),
 //            3, null, null,
 //            4, null, null,
@@ -1030,8 +1049,8 @@ class TaskManager extends DatabaseModule
             
             $task=new Task();
             $task->setLabel($title);
-            $task->setTime($time-86400);
-            $task->setLast($time-86400);
+            $task->setTime($time);
+            //$task->setLast($time);
             if (! is_null($repeat))
                 $task->setRepeat($repeat);
                 
@@ -1042,10 +1061,10 @@ class TaskManager extends DatabaseModule
             if (! is_null($parameters))
                 $request->addParameters($parameters);
             $task->setRequest($request);
-            $task->setStatus(Task::Expired);
+            $task->setStatus(Task::Waiting);
             $task->save();
-            
-            echo 'Id de la tâche créée : ', $task->getId(false), "\n";
+            Runtime::redirect('/TaskManager/TaskStatus?id='.$task->getId(false));
+            //echo 'Id de la tâche créée : ', $task->getId(false), "\n";
         }
     }
 

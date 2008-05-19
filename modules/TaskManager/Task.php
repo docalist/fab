@@ -119,6 +119,13 @@ class Task
     private $applicationRoot='';
     
     /**
+     * Url complète du front controler utilisé pour créer la tâche
+     *
+     * @var string
+     */
+    private $url='';
+    
+    /**
      * Date/heure à laquelle la tâche a été créée
      * 
      * @var timestamp
@@ -213,6 +220,7 @@ class Task
             $this->creation=self::timestampToString(time());
             $this->applicationRoot=Runtime::$root;
             $this->status=self::Disabled;
+            $this->url=Utils::getHost() . Runtime::$realHome . Runtime::$fcName;
         }
         
         // Charge la tâche indiquée
@@ -365,6 +373,16 @@ class Task
         return $this->applicationRoot;
     }
 
+    /**
+     * Retourne l'url de la page d'accueil de l'application qui a créé cette 
+     * tâche.
+     *
+     * @return path
+     */
+    public function getUrl()
+    {
+        return $this->url;
+    }
     
     /**
      * Définit la requête à exécuter pour lancer cette tâche

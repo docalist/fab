@@ -39,11 +39,11 @@ function()
         
     };
     
-    // Lance une nouvelle reuqête ajax pour mettre à jour la page
+    // Lance une nouvelle requête ajax pour mettre à jour la page
     var ajax = function()
     {
         var url=updater.attr('url');
-        if (url=='') return; // aucune url indiquée, c''st une erreur
+        if (url=='') return; // aucune url indiquée, c'est une erreur
         
         xhr=jQuery.ajax
         (
@@ -77,8 +77,8 @@ function()
 
         
         var percent=Math.floor(100 * step/max);
-//        bar.find('span').text(step + '/' + max + ' (' + percent + ' %)');
-        bar.find('span').text(percent + ' %');
+        bar.find('span').text(step + '/' + max + ' (' + percent + ' %)');
+//        bar.find('span').text(percent + ' %');
         bar.find('div').css('width', percent+'%')
         bar.show();
     };

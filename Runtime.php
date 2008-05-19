@@ -105,7 +105,7 @@ class Runtime
      */
     public static $url='';
     private static $fcInUrl;
-    private static $fcName;
+    public static $fcName;
     
     public static $env='';
     
@@ -135,36 +135,6 @@ class Runtime
         // Initialise $fabRoot : la racine du framework
         self::$fabRoot=dirname(__FILE__) . DIRECTORY_SEPARATOR;
 
-        // Cas particulier : lancé en ligne de commande
-        if (php_sapi_name()=='cli') 
-        {
-            ignore_user_abort(true);    // à mettre ailleurs
-            set_time_limit(0);          // à mettre ailleurs
-
-            // on récupère éventuellement la webroot à utiliser en second paramètre
-            if (isset($_SERVER['argv'][2]))
-                self::$root=self::$webRoot=$_SERVER['argv'][2];
-            else
-                self::$root=self::$webRoot=self::$fabRoot;
-
-            // détermine "l'url" demandée, la query_string, etc.
-            self::$url=$_SERVER['argv'][1];
-            $pt=strpos(self::$url, '?');
-            if ($pt!==false)
-            {
-                $_SERVER['QUERY_STRING']=substr(self::$url, $pt+1);
-                self::$url=substr(self::$url, 0, $pt);
-                parse_str($_SERVER['QUERY_STRING'], $_GET);
-                $_REQUEST=$_GET;
-            }
-            else
-                $_SERVER['QUERY_STRING']='';
-            
-            $_SERVER['REQUEST_METHOD']='GET';
-            self::$fcInUrl=null;
-            return;
-        }
-
         // Path du script auquel a échu la requête demandée par l'utilisateur
         if (isset($_SERVER['SCRIPT_FILENAME']))
             $path=$_SERVER['SCRIPT_FILENAME'];
@@ -176,64 +146,95 @@ class Runtime
         // On corrige
         $path=strtr($path, '/', DIRECTORY_SEPARATOR);
         
-            // Nom du front controler = le nom du script qui traite la requête (index.php, debug.php...)
+        // Nom du front controler = le nom du script qui traite la requête (index.php, debug.php...)
         self::$fcName=basename($path);
-        
+         
         // Path du répertoire web de l'application = le répertoire qui contient le front controler
         self::$webRoot=dirname($path) . DIRECTORY_SEPARATOR ;
         
         // Path de l'application = par convention, le répertoire parent du répertoire web de l'application
         self::$root= dirname(self::$webRoot) . DIRECTORY_SEPARATOR;
         
-        // Url demandée par l'utilisateur
-        if (isset($_SERVER['REQUEST_URI']))
-            self::$url=$_SERVER['REQUEST_URI'];
-        else
-            die("Impossible d'initialiser l'application, REQUEST_URI non disponible");
+        // Initialisation en mode CLI (ligne de commande)
+        if (php_sapi_name()=='cli') 
+        {
+            ignore_user_abort(true);    // à mettre ailleurs
+            set_time_limit(0);          // à mettre ailleurs
 
-        // Préfixe de l'url : partie de l'url entre le nom du serveur et le nom du front controler
-        if (false !== $pt=stripos(self::$url, self::$fcName))
-        {
-            // l'url demandée contient le nom du front controler
-            self::$realHome=substr(self::$url, 0, $pt);
-            self::$home=self::$realHome.self::$fcName;
-            self::$fcInUrl=true;
-        }
-        else
-        {
-            if (isset($_SERVER['ORIG_PATH_INFO']))
-                $path=$_SERVER['ORIG_PATH_INFO'];
+            // Détermine le module, l'action et les paramètres à exécuter (Arg 1)
+            self::$url = isset($_SERVER['argv'][1]) ? $_SERVER['argv'][1] : '/';
+            echo 'init en mode cli, url=', self::$url, "<br />\n";    
+            
+            $pt=strpos(self::$url, '?');
+            if ($pt!==false)
+            {
+                echo 'query string, pt=', $pt, "\n";
+                $_SERVER['QUERY_STRING']=substr(self::$url, $pt+1);
+                self::$url=substr(self::$url, 0, $pt);
+                echo 'url=', self::$url, "<br />\n";    
+                parse_str($_SERVER['QUERY_STRING'], $_GET);
+                $_REQUEST=$_GET;
+            }
             else
-                die("Impossible d'initialiser l'application : url redirigée (sans front controler) mais ORIG_PATH_INFO non disponible");
+                $_SERVER['QUERY_STRING']='';
+            
+            // Détermine l'url de la page d'accueil de l'application (Arg 2, optionnel)
+            if (isset($_SERVER['argv'][2]))
+            {
+                self::$home=$_SERVER['argv'][2];
+                self::$realHome=dirname(self::$home);
+            }
 
-            if (false=== $pt=strpos($path, self::$fcName))
-                die("Impossible d'initialiser l'application : url redirigée mais nom du script non trouvé dans ORIG_PATH_INFO");
-
-            self::$fcInUrl=false;
-
-            self::$home=self::$realHome=substr(self::$url,0,$pt);
+            $_SERVER['REQUEST_METHOD']='GET';
+            self::$fcInUrl=null;
         }
-
-        // garantit que home et realHome contiennent toujours un slash final
-        self::$realHome=rtrim(self::$realHome,'/').'/';
-        self::$home=rtrim(self::$home,'/').'/';
         
-        // ajuste self::url pour qu'elle ne contienne que le module/action demandé par l'utilisateur
-        if(strncasecmp(self::$url,self::$home,strlen(self::$home)-1)!==0) // debug
-        {
-            var_dump(self::$url);
-            echo '<hr />';
-            var_dump(self::$home);
-            die("erreur interne lors de l'examen de l'url");
-        }
-             
-        if (strlen(self::$url)<strlen(self::$home))
-            self::$url='';
+        // Initialisation en modes CGI, SAPI...
         else
         {
-            self::$url=substr(self::$url, strlen(self::$home)-1);
-            if (false !== $pt=strpos(self::$url,'?'))
-                self::$url=substr(self::$url,0,$pt);
+            // Url demandée par l'utilisateur
+            if (isset($_SERVER['REQUEST_URI']))
+                self::$url=$_SERVER['REQUEST_URI'];
+            else
+                die("Impossible d'initialiser l'application, REQUEST_URI non disponible");
+    
+            // Préfixe de l'url : partie de l'url entre le nom du serveur et le nom du front controler
+            if (false !== $pt=stripos(self::$url, self::$fcName))
+            {
+                // l'url demandée contient le nom du front controler
+                self::$realHome=substr(self::$url, 0, $pt);
+                self::$home=self::$realHome.self::$fcName;
+                self::$fcInUrl=true;
+            }
+            else
+            {
+                if (isset($_SERVER['ORIG_PATH_INFO']))
+                    $path=$_SERVER['ORIG_PATH_INFO'];
+                else
+                    die("Impossible d'initialiser l'application : url redirigée (sans front controler) mais ORIG_PATH_INFO non disponible");
+    
+                if (false=== $pt=strpos($path, self::$fcName))
+                    die("Impossible d'initialiser l'application : url redirigée mais nom du script non trouvé dans ORIG_PATH_INFO");
+    
+                self::$fcInUrl=false;
+    
+                self::$home=self::$realHome=substr(self::$url,0,$pt);
+            }
+
+            // Garantit que home et realHome contiennent toujours un slash final
+            self::$realHome=rtrim(self::$realHome,'/').'/';
+            self::$home=rtrim(self::$home,'/').'/';
+            
+            if (strlen(self::$url)<strlen(self::$home))
+            {
+                self::$url='';
+            }
+            else
+            {
+                self::$url=substr(self::$url, strlen(self::$home)-1);
+                if (false !== $pt=strpos(self::$url,'?'))
+                    self::$url=substr(self::$url,0,$pt);
+            }
         }
     }
 

@@ -1553,6 +1553,37 @@ final class Utils
     }
     
     /**
+     * Retourne la durée écoulée passée en paramètre sous forme "humaine"
+     * (Par exemple 1 jour 2 heures 20 minutes et 5 secondes)
+     *
+     * @param int $time
+     * @return string
+     */
+    public static function friendlyElapsedTime($time)
+    { 
+        $h='';
+        
+        $days = floor($time/60/60/24);
+        $time -= $days*60*60*24;
+        if ($days) $h.= $days . ' jour' . ($days>1 ? 's' : '') . ' ';
+        
+        $hours = floor($time/60/60);
+        $time -= $hours*60*60;
+        if ($days || $hours) $h.= $hours . ' heure' . ($hours>1 ? 's' : '') . ' ';
+        
+        $mins = floor($time/60);
+        $time -= $mins*60;
+        if ($days || $hours || $mins) $h.= $mins . ' minute' . ($mins>1 ? 's' : '') . ' ';
+        
+        $secs = $time;
+        if ($h==='' || $secs>0)
+            $h.= ($h ? 'et ' : '') . $secs . ' seconde' . ($secs >1 ? 's' : '');
+        
+        return $h;
+    }    
+    
+    
+    /**
      * Retourne la taille sur le disque d'un répertoire
      *
      * @param string $path

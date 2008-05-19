@@ -129,20 +129,18 @@ table.tasks tr.error td.status
 /* la barre de progression */
 div#progressbar
 {
-    height: 10em;
-    border: 1px solid orange; 
-    width: 20em;
-    height: 16px; 
+    border: 3px solid orange; 
+    width: 100%;
     position: relative;
-    background: #EEE;
+    background: #CCC;
     overflow: hidden;
 }
 
 /* la div utilisée pour indiquer la progression en cours */
 div#progressbar div
 {
-    background: orange url('progressBarAnimOrange.gif') repeat-x ;
-    height: 16px;
+    background: orange url('progressBarAnimOrange.gif') ;
+    height: 2em;
     width: 50%;
 }
 
@@ -156,8 +154,17 @@ div#progressbar span
     width: 100%;
     font-family:verdana;
     font-weight:bold;
-    color:DarkOrange;
-    font-size:12px;        
+    color: #7F3300; /*DarkOrange ;*/
+    font-size: 1.2em;
+    line-height: 1.8em;        
 }
 
-
+div.taskinfo
+{
+    color: #888;
+    background-color: #eee;
+    border: 1px solid #aaa;
+    font-size: 0.9em;
+    margin: 1em auto;
+    padding: 0.5em;
+}

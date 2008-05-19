@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="iso-8859-1"?>
-<database label="Tâches" creation="2008/01/25 11:09:18" lastupdate="2008/02/05 18:31:36">
+<database label="Tâches" creation="2008/01/25 11:09:18" lastupdate="2008/05/15 17:51:20">
     <description>Structure de la base utilisée par le TaskManager de fab pour stocker la liste des tâches</description>
     <fields>
         <field name="ID" type="autonumber" label="Numéro unique de la tâche" />
-        <field name="Label" label="Libellé de la tâche" description="Descriptif (court) de ce que fait la tâche" />
-        <field name="Status" label="Statut de la tâche">
+        <field name="Label" label="Tâche" description="Descriptif (court) de ce que fait la tâche" />
+        <field name="Status" label="Etat">
             <description>disabled=tâche désactivée
 waiting=tâche en attente (ce n'est pas encore l'heure de l'exécuter)
 starting=tâche en train de démarrer (lancée par le TaskManager)
@@ -12,28 +12,29 @@ running=tâche en cours d'exécution
 done=tâche terminée
 error=tâche en erreur (lancement impossible, erreur durant l'exécution...)</description>
         </field>
-        <field name="ApplicationRoot" label="Path de l'application qui a créé la tâche">
+        <field name="ApplicationRoot" label="Application">
             <description>Contient le path complet de l'application qui a créé cette tâche (plus exactement c'est le path de la racine de l'application telle que retournée par Runtime::$root) </description>
         </field>
-        <field name="Creation" type="int" label="Date/heure de création" description="Timestamp indiquant la date et l'heure à laquelle la tâche a été créée" />
-        <field name="Time" type="int" label="Date/heure d'exécution">
+        <field name="Url" label="Url" description="Url de la page d'accueil de l'application" />
+        <field name="Creation" type="int" label="Date de création" description="Timestamp indiquant la date et l'heure à laquelle la tâche a été créée" />
+        <field name="Time" type="int" label="Planification">
             <description>Timestamp indiquant la date et l'heure à laquelle l'exécution de la tâche est planifiée (null=jamais, 0=dès que possible)</description>
         </field>
-        <field name="Repeat" label="Répéter la tâche tous les...">
+        <field name="Repeat" label="Répétition">
             <description>Pour une tâche récurrente, indique la manière dont la tâche doit être répétée.
 Format : entier unité/filtre,filtre...
 Exemples : &quot;1 mois&quot;, &quot;1 h./8-12,14-18&quot;, &quot;2 jours/1-15,lun-mar,ven&quot;</description>
         </field>
-        <field name="Module" label="Module à charger pour exécuter la tâche" />
-        <field name="Action" label="Action à appeller pour exécuter la tâche" description="Cela doit être une action du module indiqué dans le champ Module." />
-        <field name="Parameters" label="Paramètres à passer à l'action pour exécuter la tâche" description="Version sérialisée des paramètres indiqués lors de la création de la tâche" />
-        <field name="Next" type="int" label="Date/heure de la prochaine exécution">
+        <field name="Module" label="Module" />
+        <field name="Action" label="Action" description="Cela doit être une action du module indiqué dans le champ Module." />
+        <field name="Parameters" label="Paramètres" description="Version sérialisée des paramètres indiqués lors de la création de la tâche" />
+        <field name="Next" type="int" label="Prochaine exécution">
             <description>Timestamp indiquant la date et l'heure de la prochaine exécution de la tâche (null=jamais)</description>
         </field>
-        <field name="Last" type="int" label="Date/heure de la dernière exécution">
+        <field name="Last" type="int" label="Dernière exécution">
             <description>Timestamp indiquant la date et l'heure de la dernière exécution de la tâche (null=jamais exécutée)</description>
         </field>
-        <field name="Output" label="Path du fichier contenant la sortie générée par la tâche">
+        <field name="Output" label="Fichier de sortie">
             <description>à étudier : on pourrait éventuellement gérer Output comme un champ articles et stocker, pour une tâche récurrente, le résultat des n dernières exécutions.</description>
         </field>
     </fields>
