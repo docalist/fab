@@ -5,7 +5,10 @@
     <h1>Suppression de {$this->selection->count()} enregistrements dans la base {Config::get('database')}</h1>
 </else>
 
-<form action="Delete" method="post">
+/* Le nom du module doit être précisé sinon l'action Delete est toujours routée 
+à partir du premier module qui l'appelle. Le template peut être en effet appelé 
+depuis des modules différents (DatabaseModule, TaskManager) */
+<form action="{'/' . $this->module . '/Delete'}" method="post">
 
     <fieldset label="Confirmation">
         <if test="{$this->selection->count()==1}">
