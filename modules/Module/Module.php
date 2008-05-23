@@ -211,7 +211,7 @@ class Module
             }
                 
             // Charge la configuration spécifique à l'environnement en cours
-            if (empty(Runtime::$env))   
+            if (! empty(Runtime::$env))   
             {
                 if (file_exists($path=$root.$dir.Runtime::$env.'.config'))
                 {
