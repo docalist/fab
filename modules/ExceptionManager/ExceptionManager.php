@@ -1,7 +1,7 @@
 <?php
 /**
  * @package     fab
- * @subpackage  exception
+ * @subpackage  module
  * @author 		Daniel Ménard <Daniel.Menard@bdsp.tm.fr>
  * @version     SVN: $Id$
  */
@@ -13,19 +13,24 @@
  * @package     fab
  * @subpackage  exception
  */
-class ExceptionManager
+class ExceptionManager extends Module
 {
+    public function install()
+    {
+        set_exception_handler(array($this,'handleException'));
+        set_error_handler(array($this, 'handleError'), (E_ALL & !E_WARNING) | E_STRICT); // TODO config
+    }
+    
     /**
      * Affiche l'exception passée en paramètre.
-     * Cette fonction n'est pas destinée à être appellée directement : elle sera
+     * Cette méthode n'est pas destinée à être appellée directement : elle sera
      * automatiquement exécutée si une erreur survient dans le programme.
      * 
      * @param Exception $exception l'exception à afficher
      * @param boolean $addCaller flag indiquant si la fonction appelante doit
      * être ou non affichée dans la pile des appels.
-     * @access private
      */
-    public static function handleException(Exception $exception, $addCaller=true)
+    public function handleException(Exception $exception, $addCaller=true)
     {
         // TODO : voir si le template pourrait se charger de faire la boucle
         
@@ -76,9 +81,40 @@ class ExceptionManager
                                     
             }
 
+            
+            // Détermine l'action et le template à utiliser en fonction de la config
+            $template=$action=null;
+            $classes=array(get_class($exception)=>get_class($exception)) + class_parents($exception);
+            $exceptions=$this->config['exceptions'];
+            foreach($classes as $class)
+            {
+                if (! isset($exceptions[$class])) continue;
+                
+                if (is_string($exceptions[$class]))
+                {
+                    if (is_null($template)) $template=$exceptions[$class];
+                    continue;
+                }
+
+                if (is_array($exceptions[$class]))
+                {
+                    if (is_null($template) && isset($exceptions[$class]['template'])) $template=$exceptions[$class]['template'];
+                    if (is_null($action) && isset($exceptions[$class]['action'])) $action=$exceptions[$class]['action'];
+                    continue;
+                }
+            }
+            
+            // Fait en sorte que les templates soient recherchés par rapport à notre searchpath
+            // et non pas par rapport au searchpath du module qui a généré l'exception
+            // Inutile de sauvegarder le précédent : l'exécution va se terminer juste après
+            Utils::$searchPath=$this->searchPath;
+            
+            // Recherche le path exact du template par rapport à notre searchPath
+            if (false === $path=Utils::searchFile($template)) $path=$template;
+            
             Template::run
             (
-                dirname(__FILE__).'/Exception.htm', 
+                $path, 
                 array
                 (
                     'message'   => $exception->getMessage(),
@@ -87,6 +123,16 @@ class ExceptionManager
                     'stack'     => $stack
                 )
             );
+            
+            // Exécute l'action demandée
+            if (!is_null($action) && $action !=='' && $action !=='none')
+            {
+                if ( method_exists($this, $action))
+                    $this->$action($exception);
+                else
+                    echo "<hr />Warning : impossible d'exécuter l'action $action pour cette exception, cette méthode n'existe pas dans le module ", get_class($this), '.<br />';
+            }
+                        
         }
         catch (Exception $e)
         {
@@ -174,17 +220,72 @@ class ExceptionManager
 
     /**
      * Gestionnaire d'erreurs. Transforme les erreurs "classiques" de php et les
-     * transforme en exceptions pour qu'elles soient gérées par notre
+     * transforme en exceptions pour qu'elles soient gérées par le
      * gestionnaire d'exception.
-     * 
-     * Installé par la fonction {@link setup}
-     * @access private
      */
-    public static function handleError($code, $message, $file, $line)
+    public function handleError($code, $message, $file, $line)
     {
-        self::handleException(new Exception($message, $code), false);
+        echo 'erreur here : ', $message, '<br />';
+        $this->handleException(new Exception($message, $code), false);
         // NOTREACHED
         exit(); // todo : exit si erreur, pas si warning + runtime::shutdown
+    }
+    
+    protected function mail(Exception $exception)
+    {
+        // Charge les fichiers Swift
+        require_once Runtime::$fabRoot . 'lib/SwiftMailer/Swift.php';
+        require_once Runtime::$fabRoot . 'lib/SwiftMailer/Swift/Connection/SMTP.php';
+
+        // Crée une nouvelle connexion Swift
+        $swift = new Swift(new Swift_Connection_SMTP(ini_get('SMTP'))); // TODO: mettre dans la config de fab pour ne pas être obligé de changer php.ini
+        
+        // Crée le message
+        $email = new Swift_Message('Exception sur '.Utils::getHost().rtrim(Runtime::$home,'/'));
+        
+        
+        // Ajoute le corps du message
+        ob_start();
+        Template::run
+        (
+            $this->config['mail']['template'], 
+            array
+            (
+                'exception'=>$exception,
+                'request'=>Runtime::$request,
+                'host'=>Utils::getHost().rtrim(Runtime::$home,'/'),
+                'user'=>User::$user,
+                '_SERVER'=>$_SERVER,
+                '_COOKIE'=>$_COOKIE
+            )
+        );
+//        die();
+        $body=ob_get_clean();
+        $email->attach(new Swift_Message_Part($body, 'text/html'));
+        
+        // Détermine l'émetteur
+        $from=$to=new Swift_Address(Config::get('admin.email'), Config::get('admin.name'));
+        
+        // Détermine les destinataires
+        if (isset($this->config['mail']['recipients']))
+        {
+            $to=new Swift_RecipientList();
+            $to->add($this->config['mail']['recipients']);
+        }
+
+        // Envoie l'e-mail
+        try
+        {
+            $swift->send($email, $to, $from);
+        }
+        catch (Exception $e)
+        {
+            $sent=false;
+            echo '<hr />', __METHOD__, ' : impossible d\'envoyer l\'e-mail.<br />', $e->getMessage();
+        }
+
+        return true;
+        
     }
 }
 ?>

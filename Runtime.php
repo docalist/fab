@@ -406,8 +406,7 @@ class Runtime
 
         // Initialise le gestionnaire d'exceptions
         debug && Debug::log("Initialisation du gestionnaire d'exceptions");
-        //require_once self::$fabRoot.'core/exception/ExceptionManager.php';
-        self::setupExceptions(); 
+        Module::loadModule('ExceptionManager')->install();
         
         // Includes supplémentaires
         // TODO: écrire un class manager pour ne pas inclure systématiquement tout (voir du coté du gestionnaire de modules)
@@ -567,14 +566,6 @@ $fab_init_time=microtime(true);
 
     }
     
-    private static function setupExceptions()
-    {
-        set_exception_handler(array('ExceptionManager','handleException'));
-        
-        // Transforme les erreurs standards en exceptions fatales (nb : toutes, y compris les warning et les e_strict)
-        set_error_handler(array('ExceptionManager', 'handleError'), (E_ALL & !E_WARNING) | E_STRICT); // TODO config
-    }
-    
     public static function shutdown()
     {
         global $start_time;
@@ -699,7 +690,7 @@ $fab_init_time=microtime(true);
             'User'=>'core/user/User.php',
             'Module'=>'modules/Module/Module.php',
             'NoSecurity'=>'modules/NoSecurity/NoSecurity.php',
-            'ExceptionManager'=>'core/exception/ExceptionManager.php',
+//            'ExceptionManager'=>'core/exception/ExceptionManager.php',
             'Database'=>'core/database/Database.php',
             'DatabaseModule'=>'modules/DatabaseModule/DatabaseModule.php',
             'TextTable'=>'core/helpers/TextTable/TextTable.php',

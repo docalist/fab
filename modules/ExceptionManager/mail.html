@@ -1,0 +1,33 @@
+/* todo : les templates ne reconnaissent pas correctement {Runtime::request} */
+
+<def name="url" value="$host$request" />
+<h1>{$exception->getMessage()}</h1>
+
+<h2>Requête exécutée :</h2>
+Module : {$request->getModule()}<br />
+Action : {$request->getAction()}<br />
+Requête : <a href="$url">$url</a><br /> 
+Date/heure : {strftime('%x %X')}<br /> 
+
+<h2>Exception générée :</h2>
+Type : {get_class($exception)}<br /> 
+Emplacement : <pre>{$exception->getFile()} ligne {$exception->getLine()}</pre>
+Pile des appels : <pre>{$exception->getTraceAsString()}</pre> 
+
+<h2>Utilisateur en cours :</h2>
+<def name="ignore" value="{array('path','module','action', 'method','searchPath','config','request')}" />
+<loop on="$user" as="$name,$value">
+    <if test="{!in_array($name, $ignore)}">
+        $name : $value<br />
+    </if>
+</loop>
+
+<h2>Variables d'environnement du serveur :</h2>
+<loop on="$_SERVER" as="$name,$value">
+    {htmlentities($name)}: {htmlentities($value)}<br />
+</loop>
+
+<h2>Cookies :</h2>
+<loop on="$_COOKIE" as="$name,$value">
+    {htmlentities($name)}: {htmlentities($value)}<br />
+</loop>
