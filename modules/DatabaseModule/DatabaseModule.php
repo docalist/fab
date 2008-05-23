@@ -695,7 +695,7 @@ class DatabaseModule extends Module
         echo '<li>Mots entiers uniquement : <code>', ($word ? 'oui' : 'non'), '</code></li>', "\n";
         echo '<li>Ignorer la casse des caractères : <code>', ($ignoreCase ? 'oui' : 'non'), '</code></li>', "\n";
         echo '<li>Expression régulière : <code>', ($regexp ? 'oui' : 'non'), '</code></li>', "\n";
-        
+        echo '</ul>', "\n";
         
         $count = 0;         // nombre de remplacements effectués par enregistrement
         $totalCount = 0;    // nombre total de remplacements effectués sur le sous-ensemble de notices
