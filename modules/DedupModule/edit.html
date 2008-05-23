@@ -1,0 +1,123 @@
+<style>
+html,body
+\{
+    height: 100%;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+\}
+
+div#header
+\{
+    background-color: #fff;
+    height: 10%;
+    overflow: hidden;
+    border-bottom: 1px solid #000;
+\}
+
+div#header h1
+\{
+    font-size: 1.5em;
+    text-align: center;
+    margin: 0;
+    padding: 0.5em;
+\}
+
+iframe
+\{
+    height: 90%;
+    width: 49.999%; /* 50% : génère des erreurs d'arrondi sous IE... */
+    margin: 0;
+    padding: 0;
+\}
+
+iframe#left
+\{
+    float: left;
+\}
+
+iframe#right
+\{
+    float: right;
+\}
+
+</style>
+
+<div id="header">
+    <h1>Comparaison et fusion des notices</h1>
+</div>
+
+<iframe
+    src="/Base/LoadNoLayout?ref={$REF[0]}" 
+    scrolling="yes" 
+    frameborder="0"
+    marginwidth="0"
+    marginheight="0"
+    id="left"
+    name="left"
+    />
+      
+<iframe
+    src="/Base/LoadNoLayout?ref={$REF[1]}" 
+    scrolling="yes" 
+    frameborder="0"
+    marginwidth="0"
+    marginheight="0"
+    id="right"
+    name="right"
+    />
+
+<script type="text/javascript">
+/*
+    Lorsque le document principal est prêt, on va installer un gestionnaire
+    onscroll sur chacun des iframes
+*/ 
+jQuery(document).ready
+(
+    function()
+    \{
+        var last=-1;
+        
+        /*
+            Attend que chacun des iframe soit chargé avant d'installer
+            le gestionnaire onload, sinon, ça ne marche pas.
+        */
+        jQuery('#left,#right').load
+        (
+            function()
+            \{
+                //this.document.documentElement.body.style('background-color', 'red');
+                /*
+                    Si on utilise la méthode scroll de jQuery pour installer le 
+                    gestionnaire, ça ne fonctionne pas non plus, donc on
+                    l'installe directement en faisant frame.onload=xxx
+                */
+                window.frames[this.name].onscroll = function()
+                \{
+                    /* détermine le nom de l'iframe à synchroniser */
+                    var other=(this.name==='right' ? 'left' : 'right');
+                    
+                    /*
+                        IE génère une multitude d'événements scroll dès qu'on
+                        touche à l'ascenseur. Mémorise la dernière position et
+                        ne fait la synchronisation que si la position a 
+                        effectivement changé.
+                    */
+                    if (this.document.documentElement.scrollTop !==last)
+                    \{
+                        window.frames[other].document.documentElement.scrollTop=this.document.documentElement.scrollTop;
+                        last=this.document.documentElement.scrollTop;
+                    \}
+                \};
+
+                window.frames[this.name].onkeydown = function(e)
+                \{
+                    if (typeof(e)==='undefined') e=window.event;
+                    console.debug('keydown. altkey=', e.altKey, ', keycode=', e.keyCode, ', e=', e);
+                \}
+            \}
+        )
+    \}
+);
+</script>

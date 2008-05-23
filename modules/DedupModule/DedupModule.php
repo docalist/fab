@@ -109,8 +109,7 @@ class DedupModule extends Module
         echo '<hr />';
         
         // Lance les tests
-        $format=Config::get('format');
-        $this->runTests($tests, $format);
+        $this->runTests($tests, Config::get('format1'), Config::get('format2'));
     }
     private function prepareTests($tests)
     {
@@ -197,9 +196,10 @@ class DedupModule extends Module
      * @param String $format le format d'affichage des notices (le source
      * d'un template)
      */
-    private function runTests(array $tests, $format)
+    private function runTests(array $tests, $format1, $format2)
     {
-        $path=__FILE__.'/'.md5($format).'.html';
+        $path1=__FILE__.'/'.md5($format1).'.html';
+        $path2=__FILE__.'/'.md5($format2).'.html';
         
         $duplicates=$this->search(null);
         echo "\n", '<ol>', "\n";
@@ -211,7 +211,7 @@ class DedupModule extends Module
             if ($equation==='')
             {
                 echo '<li>';
-                Template::runSource($path, $format, $record);
+                Template::runSource($path1, $format1, $record);
                 echo '<p style="color: red">WARNING : impossible de dédoublonner cette notice, aucun test ne s\'applique<p>';
                 echo '</li>';
                 continue;
@@ -235,14 +235,14 @@ class DedupModule extends Module
                         if ($first) // premier doublon trouvé : affiche la notice étudiée
                         {
                             echo '<li>';
-                            Template::runSource($path, $format, $record);
+                            Template::runSource($path1, $format1, $record);
                             echo "\n", '    <ul>', "\n";
                             $hasDuplicates=true;
                             $first=false;
                         }
                         echo '        <li>';
                         echo $duplicates->searchInfo('score'), '% - ';
-                        Template::runSource($path, $format, $duplicate);
+                        Template::runSource($path2, $format2, array('REFMAIN'=>$record['REF']), $duplicate);
                         echo '</li>', "\n";
                     }
                 }
@@ -454,7 +454,7 @@ class DedupModule extends Module
         {
             $value=preg_replace('~\b(?:et|ou|sauf|and|or|not|but)\b~i', '', $value);
             //$value=strtr($value, '"[]()+-:.', '         ');
-            $value=implode(' ', $this->selection->tokenize($value));
+            $value=implode(' ', Utils::tokenize($value));
             return $value;
         }
         
@@ -480,6 +480,18 @@ class DedupModule extends Module
                 throw new Exception("Aucune réponse pour l'équation $equation");
         }
         return $selection;
+    }
+    
+    public function actionEdit(array $REF)
+    {
+        if (count($REF) !== 2)
+            throw new InvalidArgumentException('Vous devez indiquer deux numéros de notices valides.');
+            
+        Template::run
+        (
+            'edit.html', 
+            array('REF'=>$REF)
+        );
     }
 }
 

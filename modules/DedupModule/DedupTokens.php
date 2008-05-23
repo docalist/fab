@@ -49,7 +49,7 @@ class DedupTokens extends DedupMethod
         if (is_array($value)) $value=implode('¤', $value);
 
         // Extrait les tokens
-        $tokens=$this->selection->tokenize($value);
+        $tokens=Utils::tokenize($value);
         
         // Dédoublonne
         $tokens=array_flip($tokens);

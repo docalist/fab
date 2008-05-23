@@ -32,7 +32,7 @@ class DedupValues extends DedupTokens
     {
         $value=(array) $value;
         foreach ($value as &$item)
-            $item='[' . implode(' ', $this->selection->tokenize($item)) . ']';
+            $item='[' . implode(' ', Utils::tokenize($item)) . ']';
         return array_flip($value);
     }
 }

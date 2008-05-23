@@ -577,7 +577,8 @@ class TaskManager extends DatabaseModule
             self::progress();
 
             $task->setStatus(Task::Error)->save();
-            ExceptionManager::handleException($e, false);
+            //ExceptionManager::handleException($e, false);
+            throw $e;
             ob_end_flush();
             fclose(self::$outputFile);
         	return;
