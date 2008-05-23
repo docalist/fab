@@ -42,16 +42,23 @@ class Module
      * @throws ModuleException si le module n'est pas valide (par exemple 
      * pseudo module sans clé 'module=' dans la config).
      */
-    public static function loadModule($module)
+    public static function loadModule($module, $fab=false)
     {
         // Recherche le répertoire contenant le module demandé
-        $moduleDirectory=Utils::searchFileNoCase
-        (
-            $module, 
-            Runtime::$root.'modules',   // répertoire "/modules" de l'application 
-            Runtime::$fabRoot.'modules' // répertoire "/modules" du framework
-        );
-
+        if ($fab)
+            $moduleDirectory=Utils::searchFileNoCase
+            (
+                $module, 
+                Runtime::$fabRoot.'modules' // répertoire "/modules" du framework
+            );
+        else
+            $moduleDirectory=Utils::searchFileNoCase
+            (
+                $module, 
+                Runtime::$root.'modules',   // répertoire "/modules" de l'application 
+                Runtime::$fabRoot.'modules' // répertoire "/modules" du framework
+            );
+        
         // Génère une exception si on ne le trouve pas
         if (false === $moduleDirectory)
         {
@@ -84,8 +91,13 @@ class Module
                 }
             }
             
+            // Vérifie que c'est bien une classe déscendant de 'Module'
+            if (! is_subclass_of($module, 'Module'))
+                throw new ModuleException("Le module '$module' est invalide : il n'hérite pas de la classe ancêtre 'Module' de fab");
+                            
             // Crée une nouvelle instance du module
             $object=new $module();
+
             $object->searchPath=array(Runtime::$fabRoot.'core'.DIRECTORY_SEPARATOR.'template'.DIRECTORY_SEPARATOR); // fixme: on ne dervait pas fixer le searchpath ici
             
             $transformer=array($object, 'compileConfiguration');
@@ -144,17 +156,33 @@ class Module
             // transformer spécifique (il faut faire un vrai module dans ce cas). 
             // Question : comment vérifier ça ?
             
-        
-            if (! isset($config['module']))
-                throw new ModuleException("Le module '$module' est invalide : le fichier $module.php n'existe pas et la clé 'module' n'est pas définie dans le fichier de configuration");
 
             debug && Debug::log('Chargement du pseudo-module %s', $module);
-             
-            // Récursive jusqu'à ce qu'on trouve (et qu'on charge) un vrai module    
-            $object=self::loadModule($config['module']);
+            
+            if (isset($config['module']))
+            {
+                // Charge le module correspondant
+                $object=self::loadModule($config['module']);
+
+                // Applique la config du pseudo-module à la config du module
+                Config::mergeConfig($object->config, $config);
+            }
+            else
+            {
+                // pseudo module implicite : on a juste un répertoire toto dans
+                // le répertoire modules de l'application, mais on n'a ni fichier
+                // toto.php ni config spécifique indiquant de quel module doit
+                // hériter toto. Dans ce cas, considère qu'on veut créer un 
+                // nouveau module qui hérite du module de même nom existant dans fab.
+                $object=self::loadModule($module, true);
+                
+                // dans ce cas précis, pas de merge de la config car elle est
+                // déjà chargée par l'appel au loadModule ci-dessus puisque c'est 
+                // le même nom
+                
+            }
+            
     
-            // Applique la config du pseudo-module à la config du module
-            Config::mergeConfig($object->config, $config);
             
             // Met à jour le searchPath du module
             array_unshift($object->searchPath, $moduleDirectory);
