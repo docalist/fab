@@ -1890,7 +1890,7 @@ echo "Source desindente :\n",  $xml->saveXml($xml), "\n-------------------------
         
         echo self::PHP_START_TAG,
             "$on=$t[on];", 
-            "if (! is_array($on) && ! $on instanceOf Traversable) throw new Exception('loop sur objet non iterable');",
+            "if (! is_array($on) && ! $on instanceOf Traversable && !is_object($on)) throw new Exception('loop sur objet non iterable');",
             ($max?"$max=0;\n":''), 
             "foreach($on as $keyReal=>$valueReal):", self::PHP_END_TAG;
         if ($node->hasChildNodes())

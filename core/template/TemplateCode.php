@@ -621,6 +621,7 @@ class TemplateCode
                 'number_format',
                 'ucfirst',
                 'htmlspecialchars',
+                'htmlentities',
                 'nl2br',
                 'array_flip',
                 'array_intersect_key',
@@ -631,8 +632,8 @@ class TemplateCode
                 'crc32',
                 'md5',
                 'dechex',
-                'utf8_encode'
-                
+                'utf8_encode',
+                'get_class'
             ));
             $runtimeFunctions=array_flip(array
             (
