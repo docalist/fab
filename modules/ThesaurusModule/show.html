@@ -22,43 +22,43 @@
         </p>
         
         <p test="$MT" class="MT">
-            <span class="lib">MV :</span>
+            <span class="lib">domaine thématique :</span>
             <a href="?Fre=[{strtr($MT,'[]','  ')}]">$MT</a>
         </p>
     
         <p test="$TG" class="TG">
-            <span class="lib">TG :</span>
+            <span class="lib">terme générique :</span>
             <a href="?Fre=[{strtr($TG,'[]','  ')}]">$TG</a>
         </p>
     
         <loop on="(array)$TS" as="$TS">
             <p class="TS">
-                <span class="lib">TS :</span>
+                <span class="lib">terme spécifique :</span>
                 <a href="?Fre=[{strtr($TS,'[]','  ')}]">$TS</a>
             </p>
         </loop>
     
         <loop on="(array)$TA" as="$TA">
             <p class="TA">
-                <span class="lib">VA :</span>
+                <span class="lib">voir aussi :</span>
                 <a href="?Fre=[{strtr($TA,'[]','  ')}]">$TA</a>
             </p>
         </loop>
     
         <p test="$EM" class="EM">
-            <span class="lib">EM :</span>
+            <span class="lib">employer :</span>
             <a href="?Fre=[{strtr($EM,'[]','  ')}]">$EM</a>
         </p>
     
         <loop on="(array)$EP" as="$EP">
             <p class="EP">
-                <span class="lib">EP :</span>
+                <span class="lib">employer pour :</span>
                 <a href="?Fre=[{strtr($EP,'[]','  ')}]">$EP</a>
             </p>
         </loop>
     
         <p test="$NA" class="NA">
-            <span class="lib">NE :</span>
+            <span class="lib">note d'application :</span>
             $NA
         </p>
     </div>
