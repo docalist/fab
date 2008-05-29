@@ -98,9 +98,9 @@ class DedupModule extends Module
     public function actionDedup($_equation)
     {
         // Lance la recherche dans la base
-        $this->selection=$this->search($_equation, array('_max'=>-1));
+        $this->selection=$this->search($_equation, array('_max'=>-1, '_sort'=>'+'));
         
-        echo '<h1>Recherche de doublons pour l\'équation ', $_equation, ' : ', $this->selection->count(), ' notices à étudier</h1>';
+        echo '<h1>Recherche de doublons pour l\'équation ', $_equation, ' : ', $this->selection->count(), ' notice(s) à étudier</h1>';
         
         $tests=Config::get('tests');
         
@@ -111,9 +111,21 @@ class DedupModule extends Module
         // Lance les tests
         $this->runTests($tests, Config::get('format1'), Config::get('format2'));
     }
-    private function prepareTests($tests)
+
+    /**
+     * Exécute le dédoublonnage lors de la saisie d'une notice
+     */
+    public function actionDedupData()
     {
+        // On nous a passé des données, crée une "fausse" sélection avec
+        // les paramètres de la requête
+        $this->selection=array($this->request->getParameters());
+
+        // Récupère les tests à réaliser
+        $tests=Config::get('tests');
         
+        // Lance les tests
+        $this->runTests($tests, null, Config::get('format'));
     }
     
     /**
@@ -198,26 +210,45 @@ class DedupModule extends Module
      */
     private function runTests(array $tests, $format1, $format2)
     {
-        $path1=__FILE__.'/'.md5($format1).'.html';
+        // format1 peut être null dans le cas de la recherche de doublons
+        // à partir des données passées en paramètre
+        if (! is_null($format1))
+            $path1=__FILE__.'/'.md5($format1).'.html';
         $path2=__FILE__.'/'.md5($format2).'.html';
         
         $duplicates=$this->search(null);
+        
+        // Nombre de notices ou nombre de tableau de données passées en paramètre
+        $nbRecord=is_array($this->selection) ? count($this->selection) : $this->selection->count();
+        
         echo "\n", '<ol>', "\n";
         foreach($this->selection as $rank=>$record)
-        {        
+        {
+            // Si les données ont été passées en paramètre, $this->selection
+            // devient le tableau des paramètres (ParamName => ParamValue)
+            if (is_array($this->selection))
+                $this->selection=$this->selection[$rank];
+                
             // Dump la notice en cours
             $equation=$this->createEquation($tests);
-                                    
+            
             if ($equation==='')
             {
-                echo '<li>';
-                Template::runSource($path1, $format1, $record);
-                echo '<p style="color: red">WARNING : impossible de dédoublonner cette notice, aucun test ne s\'applique<p>';
-                echo '</li>';
+                if (! is_null($format1))
+                {
+                    echo '<li>';
+                    Template::runSource($path1, $format1, $record);
+                    echo '<p style="color: red">WARNING : impossible de dédoublonner cette notice, aucun test ne s\'applique<p>';
+                    echo '</li>';
+                }
+                else
+                {
+                    echo '<p style="color: red">Impossible de dédoublonner cette notice, aucun test ne s\'applique<p>';
+                }
                 continue;
             }
 
-            if (debug) echo 'Equation générée : <a href="',Routing::linkFor('/Base/search?_defaultop=or&_equation='.urlencode($equation)), '">', $equation, '</a><br />';
+            if (debug) echo 'Equation générée : <a href="',Routing::linkFor('/Base/Search?_defaultop=or&_equation='.urlencode($equation)), '">', $equation, '</a><br />';
 
             if ($duplicates->search($equation, array('_sort'=>'%', '_max'=>50)))
             {
@@ -232,11 +263,17 @@ class DedupModule extends Module
                     $score=0;
                     if ($this->isDuplicate($tests, $duplicate, $score))
                     {
-                        if ($first) // premier doublon trouvé : affiche la notice étudiée
+                        // Premier doublon trouvé : affiche la notice étudiée.
+                        // Si c'est une recherche de doublon à partir de données
+                        // passées en paramètre (saisie), n'affiche rien
+                        if ($first) 
                         {
-                            echo '<li>';
-                            Template::runSource($path1, $format1, $record);
-                            echo "\n", '    <ul>', "\n";
+                            if (! is_null($format1))
+                            {
+                                echo '<li>';
+                                Template::runSource($path1, $format1, $record);
+                                echo "\n", '    <ul>', "\n";
+                            }
                             $hasDuplicates=true;
                             $first=false;
                         }
@@ -246,13 +283,18 @@ class DedupModule extends Module
                         echo '</li>', "\n";
                     }
                 }
-                if ($hasDuplicates)
+                if ($hasDuplicates && ! is_null($format1))
                 {
                     echo '    </ul>', "\n";
                     echo '</li>', "\n";
                 }
             }
-            TaskManager::progress($rank, $this->selection->count());
+            else
+            {
+                echo '<p>Aucun doublon trouvé</p>';
+            }
+            
+            TaskManager::progress($rank, $nbRecord);
         }
         
         echo '</ol>', "\n";
@@ -295,8 +337,7 @@ class DedupModule extends Module
 
                     // tester dans notice étudiée si field=options
                     $method='DedupTokens';
-                    $method=new $method($this->selection);
-                
+                    $method=new $method();
                     
                     $equation[] = $field.'='.$method->getEquation($options);//dmdm;
 
@@ -306,8 +347,8 @@ class DedupModule extends Module
                 else
                 {
                     // Récupère la valeur du champ
-                    $value=$this->selection[$field];
-                        
+                    $value=isset($this->selection[$field]) ? $this->selection[$field] : null; 
+
                     if (is_null($value) || $value==='')
                     { 
                         if (debug) echo 'Test ', $numTest+1, ' ignoré (', $field, ' non renseigné)<br />';
@@ -315,7 +356,7 @@ class DedupModule extends Module
                     }
                     
                     $method='Dedup' . Utils::get($options['compare'], 'tokens');
-                    $method=new $method($this->selection);
+                    $method=new $method();
                 
                     $value=$method->getEquation($value);
 
@@ -329,8 +370,17 @@ class DedupModule extends Module
         
         if (debug) echo '<br />';
         
+        // Résultat
+        
+        // Construit la partie "sauf" de l'équation si on dispose d'un numéro de référence
+        $REF=isset($this->selection['REF']) ? $this->selection['REF'] : null;
+        $REF=($REF!=='0' && ! is_null($REF)) ? " -REF:$REF" : '';
+        
+        // Combine toutes les équations
+        $equations=implode(' OR ', $equations);
+        
         // Retourne le résultat
-        return '(' . implode(' OR ', $equations) . ') -REF:' . $this->selection['REF'];
+        return $equations!=='' ? '(' . $equations. ')'. $REF : '';
     }
 
     /**
@@ -349,6 +399,9 @@ class DedupModule extends Module
             if (debug) echo '<br />test ', $numTest+1, ' :<br />';
             foreach($test as $field=>$options)
             {
+                // Récupère la valeur du champ
+                $value=isset($this->selection[$field]) ? $this->selection[$field] : null;             
+                
                 // cas d'une valeur
                 if (is_scalar($options))
                 {
@@ -363,7 +416,6 @@ class DedupModule extends Module
                 
                 if (is_null($options))
                 {
-                    $value=$this->selection[$field];
                     if (is_null($value) || $value==='') 
                     {
                         if (debug) echo $field, '=', var_export($options,true), ' dans le doublon, non rempli, passage au test suivant<br />';
@@ -375,9 +427,9 @@ class DedupModule extends Module
 
                 $method='Dedup' . ucfirst(Utils::get($options['compare'], 'tokens'));
                 if (debug) echo 'comparaison des tokens de ', $field, ' avec la méthode ', $method, '<br />';
-                $method=new $method($this->selection);
+                $method=new $method();
                 
-                $score=$method->compare($this->selection[$field], $duplicate[$field]);
+                $score=$method->compare($value, $duplicate[$field]);
                 if ($score < $min)
                 {
                     if (debug) echo 'score inférieur à min=', $min, ', passage au test suivant<br />';
@@ -408,7 +460,7 @@ class DedupModule extends Module
     private function fieldContains($field, $value)
     {
         // Récupère la valeur du champ
-        $field=$this->selection[$field];
+        $field=isset($this->selection[$field]) ? $this->selection[$field] : null;
         
         // Convertit la valeur recherchée en minuscules et supprime les accents
         $value=trim(Utils::convertString($value, 'lower'));
@@ -418,12 +470,18 @@ class DedupModule extends Module
         {
             return is_null($value) || $value==='';
         }
+
+        // Explose le champ à l'aide du séparateur défini en config
+        // TODO : problème car le sep '/' est un caractère commun qui peut se trouver dans des champs texte
+        $sep=Config::get('sep');
+        if (isset($sep))
+            $field=explode($sep,$field);
         
         // Si le champ est monovalué, on compare directement les valeurs
-        if (is_scalar($field))
-        {
-            return trim(Utils::convertString($field, 'lower')) === $value;
-        }
+//        if (is_scalar($field))
+//        {
+//            return trim(Utils::convertString($field, 'lower')) === $value;
+//        }
         
         // Si le champ est un champ articles, teste si l'un des articles correspond à la valeur recherchée
         if (is_array($field))

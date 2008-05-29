@@ -15,16 +15,6 @@
 
 abstract class DedupMethod
 {
-    /**
-     * @var XapianDatabaseDriver2
-     */
-    protected $selection;
-    
-    public function __construct(Database $selection)
-    {
-        $this->selection=$selection;
-    }
-    
     public function getEquation($value)
     {
         return $value;
