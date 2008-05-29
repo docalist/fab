@@ -208,7 +208,7 @@ abstract class Database implements ArrayAccess, Iterator
      * 
      * @param DatabaseStructure $newStructure la nouvelle structure de la base.
      */
-    public function changeStructure(DatabaseStructure $newStructure)
+    public function setStructure(DatabaseStructure $newStructure)
     {
         
     }

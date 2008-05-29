@@ -72,7 +72,8 @@ var Editor =
             name: 'Tri',        // Nom de la clé de tri
             label: '',          // Libellé du tri
             description: '',    // Description du tri
-            fields: []          // Liste des champs qui composent cette clé de tri
+            type: 'string',     // Type de la clé de tri (string, number)
+            fields: []          // Champs (étudiés dans l'ordre, s'arrête au premier non vide)
         },
         db_sortkeys_fields:     // La liste des champs d'une clé de tru
         {

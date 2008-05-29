@@ -203,7 +203,8 @@ class XapianDatabaseDriver2 extends Database
      */
     public function getStructure()
     {
-        return $this->structure;
+        return unserialize($this->xapianDatabase->get_metadata('fab_structure_php'));
+        //return $this->structure;
     }
     
     // *************************************************************************
@@ -229,6 +230,38 @@ class XapianDatabaseDriver2 extends Database
         
         // Crée la base xapian
         $this->xapianDatabase=new XapianWritableDatabase($path, Xapian::DB_CREATE_OR_OVERWRITE); // todo: remettre à DB_CREATE
+        
+        // Enregistre la structure de la base
+        $this->xapianDatabase->set_metadata('fab_structure', $structure->toXml());
+        $this->xapianDatabase->set_metadata('fab_structure_php', serialize($structure));
+
+        // Initialise les propriétés de l'objet
+        $this->structure=$structure;
+        $this->initDatabase(true);
+    }
+
+    /**
+     * Modifie la structure d'une base de données en lui appliquant la
+     * structure passée en paramêtre.
+     * 
+     * La fonction se contente d'enregistrer la nouvelle structure dans 
+     * la base : selon les modifications apportées, il peut être nécessaire
+     * ensuite de lancer une réindexation complète (par exemple pour créer les
+     * nouveaux index ou pour purger les champs qui ont été supprimés). 
+     * 
+     * @param DatabaseStructure $newStructure la nouvelle structure de la base.
+     */
+    public function setStructure(DatabaseStructure $structure)
+    {
+        if (! $this->xapianDatabase instanceOf XapianWritableDatabase)
+            throw new LogicException('Impossible de modifier la structure d\'une base ouverte en lecture seule.');
+              
+        // Vérifie que la structure de la base de données est correcte
+        if (true !== $t=$structure->validate())
+            throw new Exception('La structure de base passée en paramètre contient des erreurs : ' . implode('<br />', $t));
+
+        // Compile la structure
+        $structure->compile();
         
         // Enregistre la structure de la base
         $this->xapianDatabase->set_metadata('fab_structure', $structure->toXml());
@@ -753,27 +786,16 @@ class XapianDatabaseDriver2 extends Database
         // FIXME : faire un clear_value avant. Attention : peut vire autre chose que des clés de tri. à voir
         foreach($this->structure->sortkeys as $sortkeyname=>$sortkey)
         {
-//            echo 'Sortkey : ', $sortkeyname, '<br />';
-            $key='';
             foreach($sortkey->fields as $name=>$field)
             {
-                
-                foreach(Utils::tokenize($field->name) as $fieldname) // FIXME: un peu lourd d'utiliser tokenize juste pour ça
-                {
-                    // Récupère les données du champ, le premier article si c'est un champ multivalué
-                    $value=$this->fields[$fieldname];
-//                    echo '...champ ', $fieldname, ', value=', var_export($value,true), '<br />';
-                    if (is_array($value)) $value=reset($value);
-//                    echo '...champ ', $fieldname, ', value=', var_export($value,true), '<br />';
-                    if ($value!==null && $value !== '') break;
-                }
+                // Récupère les données du champ, le premier article si c'est un champ multivalué
+                $value=$this->fields[$name];
+                if (is_array($value)) $value=reset($value);
 
                 // start et end
                 if ($field->start || $field->end)
-                {
                     $value=$this->startEnd($value, $field->start, $field->end);
-//                    echo '...après startend value=', var_export($value,true), ', start=', var_export($field->start,true), ', end=', var_export($field->end, true), '<br />';
-                }
+
                 $value=implode(' ', Utils::tokenize($value));
                 
                 // Ne prend que les length premiers caractères
@@ -781,23 +803,27 @@ class XapianDatabaseDriver2 extends Database
                 {
                     if (strlen($value) > $field->length)
                         $value=substr($value, 0, $field->length);
-                        
-                    // Complète avec des espaces si la clé fait moins que length caractères
-                    if (strlen($value) < $field->length) // FIXME: on ne devrait pas être obligé de padder, xapian devrait supporter le multisort
-                        $value=str_pad($value, $field->length, ' ', STR_PAD_RIGHT);
                 }
                                     
-                // Stocke la partie de clé
-//                echo '...valeur finale=', var_export($value,true), '<br />';
-                $key.=$value;
+                // Si on a une valeur, terminé, sinon examine les champs suivants 
+                if ($value!==null && $value !== '') break;
             }
-            $key=rtrim($key);
-            if ($key==='') $key=chr(255);
-//            if ($key !== '')
-//            {
-//                echo '...clé finale pour ', $sortkeyname , ' : [<tt>', $key, '</tt>], len=', strlen($key), '<br />';
-                $this->xapianDocument->add_value($sortkey->_id, $key);
-//            }
+            
+            if (!isset($sortkey->type)) $sortkey->type='string'; // FIXME: juste en attendant que les bases asco soient recréées
+            switch($sortkey->type)
+            {
+                case 'string':
+                    if (is_null($value) || $value === '') $value=chr(255);
+                    break;
+                case 'number':
+                    if (! is_numeric($value)) $value=INF;
+                    $value=Xapian::sortable_serialise($value);
+                    break;
+                default:
+                    throw new LogicException("Type de clé incorrecte pour la clé de tri $sortkeyname");
+                    
+            }
+            $this->xapianDocument->add_value($sortkey->_id, $value);
         }
 
     }
@@ -829,6 +855,7 @@ class XapianDatabaseDriver2 extends Database
 //            else
                 $this->xapianQueryParser->add_prefix($name, $index->_id.':');
         }
+        
         // Indique au QueryParser la liste des alias
         foreach($this->structure->aliases as $aliasName=>$alias)
         {
@@ -840,6 +867,7 @@ class XapianDatabaseDriver2 extends Database
                     $this->xapianQueryParser->add_prefix($aliasName, $this->structure->indices[$name]->_id.':');
             }
         }
+        
         // Initialise le stopper (suppression des mots-vides)
         $this->stopper=new XapianSimpleStopper();
         foreach ($this->structure->_stopwords as $stopword=>$i)
@@ -848,6 +876,23 @@ class XapianDatabaseDriver2 extends Database
     
         $this->xapianQueryParser->set_default_op($this->defaultOp);
         $this->xapianQueryParser->set_database($this->xapianDatabase); // indispensable pour FLAG_WILDCARD
+        
+        // Expérimental : autorise un value range sur le champ REF s'il existe une clé de tri nommée REF
+        foreach($this->structure->sortkeys as $name=>$sortkey)
+        {
+            if (!isset($sortkey->type)) $sortkey->type='string'; // FIXME: juste en attendant que les bases asco soient recréées
+            if ($sortkey->type==='string')
+            {
+                // todo: xapian ne supporte pas de préfixe pour les stringValueRangeProcessor
+                // $this->vrp=new XapianStringValueRangeProcessor($this->structure->sortkeys['ref']->_id);
+            }
+            else
+            {
+                $this->vrp=new XapianNumberValueRangeProcessor($sortkey->_id, $name.':', true);
+                $this->xapianQueryParser->add_valuerangeprocessor($this->vrp);
+            }
+            // todo: date
+        }
     }
 
     /**
@@ -946,10 +991,10 @@ class XapianDatabaseDriver2 extends Database
 //        $h=preg_replace_callback('~(\d+):~',array($this,'idToName'),$h);
 ////        if (debug) echo "Equation xapian après idtoname... : ", $h, "<br />"; 
 
-        // Correcteur orhtographique
+        // Correcteur orthographique
         if ($correctedEquation=$this->xapianQueryParser->get_corrected_query_string())
             echo '<strong>Essayez avec l\'orthographe suivante : </strong><a href="?_equation='.urlencode($correctedEquation).'">', $correctedEquation, '</a><br />';
-        
+
         return $query;        
     }
     
@@ -1916,20 +1961,56 @@ class XapianDatabaseDriver2 extends Database
         }
     }
     
-    public function reindexByCopying()
+    public function reindex()
     {
-        // Crée la nouvelle base en '.tmp'
-        $path=$this->path.'.tmp';
-        
-        $dbs=new DatabaseStructure(file_get_contents(Runtime::$root . 'data/DatabaseTemplates/ascodocpsy.xml'));
-        
-        $tmp=Database::create($path, $dbs, 'xapian2');
-        
-        while(ob_get_level()) ob_end_flush();
-        $this->search(null, array('_sort'=>'+', '_max'=>20000));
-        echo $this->count(), ' notices à copier. <br />';
+        $startTime=microtime(true);
 
-        $start=microtime(true);
+        // Vérifie que la base est ouverte en écriture
+        if (! $this->xapianDatabase instanceof XapianWritableDatabase)
+            throw new Exception('Impossible de réindexer une base de données ouverte en lecture seule.');
+        
+        // Mémorise le path actuel de la base
+        $path=$this->getPath();
+
+        echo '<h1>Réindexation complète de la base ', basename($path), '</h1>';        
+        
+        // Sélectionne toutes les notices
+        $this->search(null, array('_sort'=>'+', '_max'=>-1));
+        $count=$this->count();
+        if ($count==0)
+        {
+            echo '<p>La base ne contient aucun document, il est inutile de lancer la réindexation.</p>';
+            return;
+        }
+        echo '<ol>';
+        
+        echo '<li>La base contient ', $count, ' notices.</li>';
+        
+        // Si une base 'tmp' existe déjà, on le signale et on s'arrête
+        echo '<li>Création de la base de données temporaire...</li>';
+        $pathTmp=$path.DIRECTORY_SEPARATOR.'tmp';
+        if (file_exists($pathTmp) && count(glob($pathTmp . DIRECTORY_SEPARATOR . '*'))!==0)
+            throw new Exception("Le répertoire $pathTmp contient déjà des données (réindexation précédente interrompue ?). Examinez et videz ce répertoire puis relancez la réindexation.");
+
+        // Crée la nouvelle base dans './tmp'
+        $tmp=Database::create($pathTmp, $this->getStructure(), 'xapian2');
+        
+        // Crée le répertoire 'old' s'il n'existe pas déjà
+        $pathOld=$path.DIRECTORY_SEPARATOR.'old';
+        if (! is_dir($pathOld))
+        {
+            if (! @mkdir($pathOld))
+                throw new Exception('Impossible de créer le répertoire ' . $pathOld);
+        }
+
+        // Données collectées pour le graphique
+        $width=560;
+        $data=array();
+        $step=ceil($this->count() / ($width*1/4)); // on prendra une mesure toute les step notices
+
+        // Recopie les notices
+        echo '<li>Réindexation des notices...</li>';
+        $last=$start=microtime(true);
         $i=0;
         foreach ($this as $record)
         {
@@ -1941,11 +2022,212 @@ class XapianDatabaseDriver2 extends Database
             $tmp->saveRecord();
             
             $id=$this->xapianMSetIterator->get_docid();
-            if (0 === $i % 100)
+            $time=microtime(true);
+            if (($time-$start)>1)
+            {
+                TaskManager::progress($i, $count);
+                $start=$time;
+            }
+            
+            if (0 === $i % $step)
+            {
+                if ($i>2)
+                {
+                    $data[$i]=round($step/($time-$last),0);
+                }
+                $last=$time;
+            }
+            
+            $i++;
+        }
+        TaskManager::progress($i, $count);
+        
+        // + copier les spellings, les synonyms, les meta keys
+        
+        // Ferme la base temporaire
+        echo '<li>Flush et fermeture de la base temporaire...</li>';
+        $tmp=null;
+
+        if (($i % $step)>0) $data[$i]=round(($i%$step)/(microtime(true)-$last),0);
+
+        // Ferme la base actuelle en mettant à 'null' toutes les propriétés de $this
+        echo '<li>Fermeture de la base actuelle...</li>';
+        
+        $me=new ReflectionObject($this);
+        foreach((array)$me->getProperties() as $prop)
+        {
+            $prop=$prop->name;
+            $this->$prop=null;
+        }
+        
+        /*
+            On va maintenant remplacer les fichiers de la base existante par
+            les fichiers de la base temporaire.
+
+            Potentiellement, il se peut que quelqu'un essaie d'ouvrir la base 
+            entre le moment où on commence le transfert et le moment où tout 
+            est transféré.
+
+            Pour éviter ça, on procède en deux étapes : 
+            1. on déplace vers le répertoire ./old tous les fichiers de la base 
+               existante, en commençant par le fichier de version (iamflint), ce
+               qui fait que plus personne ne peut ouvrir la base dès que 
+               celui-ci a été renommé ;
+            2. on transfère tous les fichier de ./tmp en ordre inverse, 
+               c'est-à-dire en terminant par le fichier de version, ce qui fait 
+               que personne ne peut ouvrir la base tant qu'on n'a pas fini. 
+        */
+        
+        // Liste des fichiers pouvant être créés pour une base flint
+        $files=array
+        (
+            'iamflint',         // le fichier de version doit être le 1er de la liste
+            'flintlock',
+
+            'position.baseA',
+            'position.baseB',
+            'position.DB',
+        
+            'postlist.baseA',
+            'postlist.baseB',
+            'postlist.DB',
+        
+            'record.baseA',
+            'record.baseB',
+            'record.DB',
+        
+            'spelling.baseA',
+            'spelling.baseB',
+            'spelling.DB',
+            
+            'synonym.baseA',
+            'synonym.baseB',
+            'synonym.DB',
+            
+            'termlist.baseA',
+            'termlist.baseB',
+            'termlist.DB',
+        
+            'value.baseA',
+            'value.baseB',
+            'value.DB',
+        );
+        
+        
+        // Transfère tous les fichiers existants vers le répertoire ./old
+        clearstatcache();
+        echo '<li>Transfert de la base actuelle dans le répertoire "old"...</li>';
+        foreach($files as $file)
+        {
+            $old=$pathOld . DIRECTORY_SEPARATOR . $file;
+            if (file_exists($old))
+            {
+                unlink($old);
+            }
+            
+            $h=$path . DIRECTORY_SEPARATOR . $file;
+            if (file_exists($h))
+            {
+                rename($h, $old);
+            }
+        }
+        
+        // Transfère les fichiers du répertoire tmp dans le répertoire de la base
+        echo '<li>Installation de la base temporaire comme base actuelle...</li>';
+        foreach(array_reverse($files) as $file)
+        {
+            $h=$path . DIRECTORY_SEPARATOR . $file;
+            
+            $tmp=$pathTmp . DIRECTORY_SEPARATOR . $file;
+            if (file_exists($tmp))
+            {            
+                //echo "Déplacement de $tmp vers $h<br />";
+                rename($tmp, $h);
+            }            
+        }
+        
+        // Essaie de supprimer le répertoire tmp (désormais vide)
+        $files=glob($pathTmp . DIRECTORY_SEPARATOR . '*');
+        if (count($files)!==0)
+            echo '<li><strong>Warning : il reste des fichiers dans le répertoire tmp</strong></li>';
+
+        // todo: en fait on n'arrive jamais à supprimer tmp. xapian garde un handle dessus ? à voir, pas indispensable de supprimer tmp
+        /*
+            if (!@unlink($pathTmp))
+                echo '<p>Warning : impossible de supprimer ', $pathTmp, '</p>';
+        */
+            
+        // Réouvre la base
+        echo '<li>Ré-ouverture de la base...</li>';
+        $this->doOpen($path, false);
+        $this->search(null, array('_sort'=>'+', '_max'=>-1));
+
+        echo '<li>La réindexation est terminée.</li>';
+        echo '<li>Statistiques :';
+        
+        // Génère un graphique
+        $type='lc';        // type de graphe
+        $size=$width.'x300';    // Taille du graphe (largeur x hauteur)
+        $title=utf8_encode('Nombre de notices réindexées par seconde');
+        $grid='5,5,1,5';  // largeur, hauteur, taille trait, taille blanc
+        $xrange=min(array_keys($data)) . ',' . max(array_keys($data));
+
+        $min=min($data);
+        $max=max($data);
+        $average=array_sum($data)/count($data);
+        $yrange=$min . ',' . $max;
+        
+        $ratio=($max-$min)/100;
+        foreach($data as &$val)
+            $val=round(($val-$min)/$ratio, 0);
+
+        $data='t:' . implode(',',$data);
+        
+        $avg01=($average-$min)/($max-$min);
+        $src=sprintf
+        (
+            'http://chart.apis.google.com/chart?cht=%s&chs=%s&chd=%s&chtt=%s&chg=%s&chxt=x,y,x&chxr=0,%s|1,%s&chxl=2:||taille de la base&chm=r,220000,0,%.3F,%.3F',
+            $type,    
+            $size,
+            $data,
+            $title,
+            $grid,
+            $xrange,
+            $yrange,
+            $avg01,
+            $avg01-0.001
+        );
+
+        echo '<p><img style="border: 4px solid black; background-color: #fff; padding: 1em; margin: auto;" src="'.$src.'" /></p>';
+        echo sprintf('<p>Minimum : %d notices/seconde, Maximum : %d notices/seconde, Moyenne : %.3F notices/seconde', $min, $max, $average);
+        echo '<p>Durée totale de la réindexation : ', Utils::friendlyElapsedTime(microtime(true)-$startTime), '.</p>';
+
+        echo '</li></ol>';
+    }
+
+/*
+    public function reindex()
+    {
+        while(ob_get_level()) ob_end_flush();
+        $this->search(null, array('_sort'=>'+', '_max'=>40000));
+        echo $this->count(), ' notices à réindexer. <br />';
+        
+        $start=microtime(true);
+        $i=0;
+        foreach ($this as $record)
+        {
+            $id=$this->xapianMSetIterator->get_docid();
+            if (0 === $i % 1000)
             {
                 echo sprintf('%.2f', microtime(true)-$start), ', i=', $i, ', id=', $id, '<br />';
                 flush();
             }
+            
+            $this->xapianDocument->clear_terms();
+            $this->xapianDocument->clear_values();
+        
+            // Remplace le document existant 
+            $this->xapianDatabase->replace_document($id, $this->xapianDocument);
             
             $i++;
         }
@@ -1954,11 +2236,12 @@ class XapianDatabaseDriver2 extends Database
         echo sprintf('%.2f', microtime(true)-$start), ', i=', $i, ', id=', $id, ', flush de la base...<br />';
         flush();
         
+        $this->xapianDatabase->flush();
         echo sprintf('%.2f', microtime(true)-$start), ', terminé !<br />';
         flush();
     }
     
-    public function reindex()
+    public function reindexOld()
     {
         while(ob_get_level()) ob_end_flush();
         $this->search(null, array('_sort'=>'+', '_max'=>20000));
@@ -1994,7 +2277,8 @@ class XapianDatabaseDriver2 extends Database
         echo sprintf('%.2f', microtime(true)-$start), ', terminé !<br />';
         flush();
     }
-    
+*/
+        
     public function warmUp()
     {
         $begin=$this->xapianDatabase->allterms_begin();

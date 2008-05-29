@@ -50,7 +50,6 @@
             <div id="db_fields_rightpanel">
                 <fieldset>
                     <legend>Propriétés du champ</legend>
-
                     <textbox id="db_fields_name" size="50" class="fullwidth" onkeyup="Editor.updateFieldName()" label="Nom :" /><br />
                     <select id="db_fields_type" src="array('autonumber', 'bool', 'int', 'text')" label="Type :" /><br />
                     <textbox id="db_fields_label" size="60" class="fullwidth" label="Libellé :" /><br />
@@ -241,9 +240,10 @@
                     <textbox id="db_sortkeys_name" size="80" label="Nom :"/>
                     <textbox id="db_sortkeys_label" size="60" class="fullwidth" label="Libellé :" /><br />
                     <textbox id="db_sortkeys_description" class="fullwidth" rows="3" cols="60" label="Description :" /><br />
+                    <select label="Type de clé : " name="db_sortkeys_type" src="{array(array('code'=>'string', 'label'=>'string'),array('code'=>'number','label'=>'number'))}" />
                 </fieldset>
                 <fieldset>
-                    <legend>Liste des champs composant cette clé</legend>
+                    <legend>Champs (étudiés dans l'ordre, s'arrête au premier non vide)</legend>
                     <button class="addtr" style="float: right" title="Ajouter un champ"><img src="/fabweb/images/dbedit/table_add.png" alt="+" /></button>
                     <table id="db_sortkeys_fields" NUstyle="display: none">
                         <tr>

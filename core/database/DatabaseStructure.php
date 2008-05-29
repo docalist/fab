@@ -97,6 +97,7 @@ class DatabaseStructure
                     (
                         'field'=> array
                         (               
+                            '_id'=>0,            // Identifiant du champ
                             'name'=>'',         // Nom du champ
                             'words'=>false,     // Indexer les mots
                             'phrases'=>false,   // Indexer les phrases
@@ -123,6 +124,7 @@ class DatabaseStructure
                     (
                         'field'=>array
                         (
+                            '_id'=>0,            // Identifiant (numéro unique) du champ
                             'name'=>'',         // Nom du champ
                             'start'=>'',      // Position de début ou chaine délimitant le début de la valeur à ajouter à la table
                             'end'=>''         // Longueur ou chaine délimitant la fin de la valeur à ajouter à la table
@@ -143,6 +145,7 @@ class DatabaseStructure
                     (
                         'index'=>array
                         (
+                            '_id'=>0,            // Identifiant (numéro unique) du champ
                             'name'=>'',         // Nom de l'index
                         )
                     )
@@ -157,10 +160,12 @@ class DatabaseStructure
                     'name'=>'',             // Nom de la clé de tri
                     'label'=>'',            // Libellé de l'index
                     'description'=>'',      // Description de l'index
+                    'type'=>'string',       // Type de la clé à créer ('string' ou 'number')
                     'fields'=>array         // La liste des champs qui composent cette clé de tri
                     (
                         'field'=>array
                         (
+                            '_id'=>0,            // Identifiant (numéro unique) du champ
                             'name'=>'',         // Nom du champ
                             'start'=>'',      // Position de début ou chaine délimitant le début de la valeur à ajouter à la clé
                             'end'=>'',        // Longueur ou chaine délimitant la fin de la valeur à ajouter à la clé
@@ -218,7 +223,7 @@ class DatabaseStructure
                     break;
                     
                 default:
-                    throw new DatabaseStructureException('Impossible de déterminer le type de la structure de base de données passée en paramètre');
+                    throw new DatabaseStructureException('Impossible de déterminer le type de la structure de base de données passée à '.__CLASS__);
             }
         }
 
@@ -850,32 +855,38 @@ class DatabaseStructure
                 $errors[]="Les clés de tri #$i et #$sortkeys[$name] ont le même nom";
             $sortkeys[$name]=$i;
             
-            // Vérifie que la clé a au moins un index
+            // Vérifie le type de clé
+            $sortkey->type=strtolower(trim($sortkey->type));
+            switch($sortkey->type)
+            {
+                case 'number':
+                case 'string':
+                    break; // ok
+                case '':
+                case null:
+                    $sortkey->type='string';
+                default:
+                    $errors[]="Type incorrect pour la clé de tri #$i : '$name'";
+            }
+            
+            // Vérifie que la clé a au moins un champ
             if (count($sortkey->fields)===0)
                 $errors[]="Aucun champ n'a été indiqué pour la clé de tri #$i ($sortkey->name)";
-            else foreach ($sortkey->fields as $j=>&$field)
+            else 
             {
-                // Vérifie que le champ indiqué existe
-                $fieldnames=str_word_count(Utils::ConvertString($field->name, 'alphanum'), 1, '0123456789');
-                if (count($fieldnames)===0)
-                    $errors[]="Aucun champ indiqué dans la clé de tri #$i : '$name'";
-                else
+                foreach ($sortkey->fields as $j=>&$field)
                 {
-                    foreach($fieldnames as $fieldname)
-                    {
-                        if (!isset($fields[$fieldname]))
-                            $errors[]="Nom de champ inconnu dans la clé de tri #$i : '$fieldname'";
-                        
-                    }
+                    // Vérifie que le champ indiqué existe
+                    $name=trim(Utils::ConvertString($field->name, 'alphanum'));
+                    if (!isset($fields[$name]))
+                        $errors[]="Nom de champ inconnu dans la clé de tri #$i : '$name'";
+                    
+                    // Ajuste start et end
+                    $this->startEnd($field, $errors, "Champ #$j de la clé de tri #$i : ");
+                    $field->length=(int)$field->length;
                 }
-                
-                // Ajuste start et end
-                $this->startEnd($field, $errors, "Champ #$j de la clé de tri #$i : ");
-                $field->length=(int)$field->length;
-                if (count($sortkey->fields)>1 && $j<count($sortkey->fields)-1 && empty($field->length))
-                    $errors[]="Vous devez indiquer une longueur pour le champ #$i : '$fieldname' de la clé de tri '$name'";
+                unset($field);
             }
-            unset($field);
         }
         unset($sortkey);
 
@@ -914,10 +925,14 @@ class DatabaseStructure
             if (is_string($object->$prop))
             {
                 if (ctype_digit(trim($object->$prop))) // entier sous forme de chaine
+                {
                     $object->$prop=(int)$object->$prop;
+                }
             }
             elseif(is_null($object->$prop))
+            {
                 $object->$prop='';
+            }
         }
         
         // Si start et end sont des indices, vérifie que end > start
@@ -929,12 +944,10 @@ class DatabaseStructure
             $errors[]=$label . 'end doit être strictement supérieur à start';
             
         // Si start vaut 0, met null
-        if (is_int($object->start))
-            $object->start=null;
+        if ($object->start===0) $object->start=null;
             
         // End ne peut pas être à zéro 
-        if ($object->end===0)
-            $errors[]=$label . 'end ne peut pas être à zéro';
+        if ($object->end===0) $errors[]=$label . 'end ne peut pas être à zéro';
                     
     }
     
@@ -1119,6 +1132,41 @@ class DatabaseStructure
                     throw new LogicException('Type de champ incorrect, aurait dû être détecté avant : ' . $field->type);
             }
         }
+
+        // Stocke l'ID de chacun des champs des index
+        foreach($this->indices as $index)
+        {
+            foreach ($index->fields as &$field)
+                $field->_id=$this->fields[trim(Utils::ConvertString($field->name, 'alphanum'))]->_id;
+            unset($field);
+        }
+
+
+        // Stocke l'ID de chacun des champs des tables des entrées
+        foreach($this->lookuptables as $lookuptable)
+        {
+            foreach ($lookuptable->fields as &$field)
+                $field->_id=$this->fields[trim(Utils::ConvertString($field->name, 'alphanum'))]->_id;
+            unset($field);
+        }
+
+        
+        // Stocke l'ID de chacun des index des tables des alias
+        foreach($this->aliases as $alias)
+        {
+            foreach ($alias->indices as &$index)
+                $index->_id=$this->indices[trim(Utils::ConvertString($index->name, 'alphanum'))]->_id;
+            unset($index);
+        }
+
+        
+        // Stocke l'ID de chacun des champs des clés de tri
+        foreach($this->sortkeys as $sortkey)
+        {
+            foreach ($sortkey->fields as &$field)
+                $field->_id=$this->fields[trim(Utils::ConvertString($field->name, 'alphanum'))]->_id;
+            unset($field);
+        }
     }
 
 
@@ -1148,7 +1196,464 @@ class DatabaseStructure
             }
         }
     }
+    
+    /**
+     * Etablit la liste des modifications apportées entre la structure passée 
+     * en paramètre et la structure actuelle.
+     *
+     * Remarque :
+     * Pour faire la comparaison, la structure actuelle et la structure 
+     * passée en paramètre doivent être compilées. La fonction appellera
+     * automatiquement la méthode {@link compile()} pour chacune des structures  
+     * si celles-ci ne sont pas déjà compilées.
+     *   
+     * @param DatabaseStructure $old la structure à comparer (typiquement : une
+     * version plus ancienne de la structure actuelle).
+     * 
+     * @return array un tableau listant les modifications apportées entre la
+     * structure passée en paramètre et la structure actuelle.
+     * 
+     * Chaque clé du tableau est un message décrivant la modification effectuée 
+     * et la valeur associée à cette clé indique le "niveau de gravité" de la
+     * modification apportée.
+     * 
+     * Exemple de tableau retourné :
+     * <code>
+     *      array
+     *      (
+     *          "Création du champ url" => 0
+     *          "Suppression de la table de lookup lieux" => 1
+     *          "Création de l'index liens" => 2 
+     *      )
+     * </code>
+     * 
+     * Le niveau de gravité est un chiffre dont la signification est la 
+     * suivante :
+     * 
+     * - 0 : la modification peut être appliquée immédiatement à une base, 
+     *   aucune réindexation n'est nécessaire (exemple : changement du nom d'un
+     *   champ)
+     * - 1 : la modification peut être appliquée immédiatement, mais il est 
+     *   souhaitable de réindexer la base pour purger les données qui ne sont
+     *   plus nécessaires (exemple : suppression d'un champ ou d'un index).
+     * - 2 : la base devra obligatoirement être réindexée pour que la 
+     *   modification apportée puisse être prise en compte (exemple : création
+     *   d'un nouvel index).
+     * 
+     * Remarque : pour savoir s'il faut ou non réindexer la base, il suffit
+     * d'utiliser la fonction {@link http://php.net/max max()} de php au 
+     * tableau obtenu.
+     * 
+     * Exemple : 
+     * <code>
+     *      if (max($dbs->compare($oldDbs)) > 1)
+     *          echo 'Il faut réindexer la base';
+     * </code>
+     * 
+     * La fonction retourne un tableau vide si les deux structures sont 
+     * identiques.
+     * 
+     */
+    public function compare(DatabaseStructure $old)
+    {
+        // Compile les deux structures si nécessaire
+        $old->compile();
+        $new=$this;
+        $new->compile();
+        
+        // Le tableau résultat
+        $changes=array();
+        
+        // Propriétés générales de la base
+        // -------------------------------
+        if ($old->label !== $new->label)
+            $changes['Modification du libellé de la base']=0;    
+        if ($old->description !== $new->description)
+            $changes['Modification de la description de la base']=0;
+        if ($old->stopwords !== $new->stopwords)
+            $changes['Modification des mots-vides de la base']=2;
+        if ($old->indexstopwords !== $new->indexstopwords)
+            $changes['Modification de la propriété "indexer les mots-vides" de la base']=2;
+            
+        // Liste des champs
+        // ----------------
+        $t1=$this->index($old->fields);
+        $t2=$this->index($new->fields);
+        
+        // Champs supprimés
+        foreach($deleted=array_diff_key($t1, $t2) as $i=>$item)
+            $changes['Suppression du champ ' . $item->name]=1;
+        
+        // Champs créés
+        foreach($added=array_diff_key($t2, $t1) as $i=>$item)
+            $changes['Création du champ ' . $item->name]=0;
+        
+        // Ordre des champs
+        if (array_keys(array_diff_key($t1,$deleted)) !== array_keys(array_diff_key($t2, $added)))
+            $changes['Modification de l\'ordre des champs de la base']=0;
+        
+        // Champs modifiés
+        foreach($t2 as $id=>$newField)
+        {
+            if (! isset($t1[$id])) continue;
+            $oldField=$t1[$id];
+
+            if ($oldField->name !== $newField->name)
+                $changes['Renommage du champ ' . $oldField->name . ' en ' . $newField->name]=0;
+            
+            if ($oldField->type !== $newField->type)
+                $changes['Changement du type du champ ' . $newField->name . ' (' . $oldField->type . ' -> ' . $newField->type . ')']=2;
+
+            if ($oldField->label !== $newField->label)
+                $changes['Changement du libellé du champ ' . $newField->name]=0;
+
+            if ($oldField->description !== $newField->description)
+                $changes['Changement de la description du champ ' . $newField->name]=0;
+
+            if ($oldField->defaultstopwords !== $newField->defaultstopwords )
+                $changes['Changement de la propriété "defaultstopwords" du champ ' . $newField->name]=2;
+                
+            if ($oldField->stopwords !== $newField->stopwords )
+                $changes['Changement des mots-vides pour le champ ' . $newField->name]=2;
+        }
+        
+
+        // Liste des index
+        // ---------------
+        $t1=$this->index($old->indices);
+        $t2=$this->index($new->indices);
+        
+        // Index supprimés
+        foreach($deleted=array_diff_key($t1, $t2) as $i=>$item)
+            $changes['Suppression de l\'index ' . $item->name]=1;
+            // todo : si l'index est vide, rien à faire, level 0
+        
+        // Index créés
+        foreach($added=array_diff_key($t2, $t1) as $i=>$item)
+            $changes['Création de l\'index ' . $item->name]=2;
+            // todo: si nouvel index sur nouveau champ et count=false, rien à faire, level 0
+        
+        // Ordre des index
+        if (array_keys(array_diff_key($t1,$deleted)) !== array_keys(array_diff_key($t2, $added)))
+            $changes['Modification de l\'ordre des index']=0;
+        
+        // Index modifiés
+        foreach($t2 as $id=>$newIndex)
+        {
+            if (! isset($t1[$id])) continue;
+            $oldIndex=$t1[$id];
+
+            if ($oldIndex->name !== $newIndex->name)
+                $changes['Renommage de l\'index ' . $oldIndex->name . ' en ' . $newIndex->name]=0;
+            
+            if ($oldIndex->label !== $newIndex->label)
+                $changes['Changement du libellé de l\'index ' . $newIndex->name]=0;
+
+            if ($oldIndex->description !== $newIndex->description)
+                $changes['Changement de la description de l\'index ' . $newIndex->name]=0;
+
+            // Liste des champs de cet index
+            $f1=$this->index($oldIndex->fields);
+            $f2=$this->index($newIndex->fields);
+            
+            // Champs enlevés
+            foreach($deleted=array_diff_key($f1, $f2) as $i=>$item)
+                $changes['Suppression du champ ' . $item->name . ' de l\'index ' . $newIndex->name]=2;
+                // todo : si l'index est vide, rien à faire, level 0
+            
+            // Champ ajoutés
+            foreach($added=array_diff_key($f2, $f1) as $i=>$item)
+                $changes['Ajout du champ ' . $item->name . ' dans l\'index ' . $newIndex->name]=2;
+                // todo: si nouvel index sur nouveau champ et count=false, rien à faire, level 0
+            
+            // Ordre des champs de l'index
+            if (array_keys(array_diff_key($f1,$deleted)) !== array_keys(array_diff_key($f2, $added)))
+                $changes['Modification de l\'ordre des champs dans l\'index ' . $newIndex->name]=0;
+    
+            // Champs d'index modifiés
+            foreach($f2 as $id=>$newField)
+            {
+                if (! isset($f1[$id])) continue;
+                $oldField=$f1[$id];
+                
+                if ($oldField != $newField)
+                    $changes['Index ' . $newIndex->name . ' : Modification des paramètres d\'indexation du champ ' . $newField->name]=2;
+            }
+        }
+        
+
+        // Liste des alias
+        // ---------------
+        $t1=$this->index($old->aliases);
+        $t2=$this->index($new->aliases);
+        
+        // Alias supprimés
+        foreach($deleted=array_diff_key($t1, $t2) as $i=>$item)
+            $changes['Suppression de l\'alias ' . $item->name]=0;
+        
+        // Alias créés
+        foreach($added=array_diff_key($t2, $t1) as $i=>$item)
+            $changes['Création de l\'alias ' . $item->name]=0;
+        
+        // Ordre des alias
+        if (array_keys(array_diff_key($t1,$deleted)) !== array_keys(array_diff_key($t2, $added)))
+            $changes['Modification de l\'ordre des alias']=0;
+        
+        // Alias modifiés
+        foreach($t2 as $id=>$newAlias)
+        {
+            if (! isset($t1[$id])) continue;
+            $oldAlias=$t1[$id];
+
+            if ($oldAlias->name !== $newAlias->name)
+                $changes['Renommage de l\'alias ' . $oldAlias->name . ' en ' . $newAlias->name]=0;
+            
+            if ($oldAlias->label !== $newAlias->label)
+                $changes['Changement du libellé de l\'alias ' . $newAlias->name]=0;
+
+            if ($oldAlias->description !== $newAlias->description)
+                $changes['Changement de la description de l\'alias ' . $newAlias->name]=0;
+
+            // Liste des index de cet alias
+            $f1=$this->index($oldAlias->indices);
+            $f2=$this->index($newAlias->indices);
+            
+            // Index enlevés
+            foreach($deleted=array_diff_key($f1, $f2) as $i=>$item)
+                $changes['Suppression de l\'index ' . $item->name . ' de l\'alias ' . $newAlias->name]=0;
+            
+            // Index ajoutés
+            foreach($added=array_diff_key($f2, $f1) as $i=>$item)
+                $changes['Ajout de l\'index ' . $item->name . ' dans l\'alias ' . $newAlias->name]=0;
+            
+            // Ordre des index de l'alias
+            if (array_keys(array_diff_key($f1,$deleted)) !== array_keys(array_diff_key($f2, $added)))
+                $changes['Modification de l\'ordre des index dans l\'alias ' . $newAlias->name]=0;
+    
+            // Index d'alias modifiés
+            /* Inutile : les index indiqués pour un alias n'ont pas d'autres propriétés que name
+            foreach($f2 as $id=>$newIndex)
+            {
+                if (! isset($f1[$id])) continue;
+                $oldIndex=$f1[$id];
+                
+                if ($oldIndex != $newIndex)
+                    $changes['Alias ' . $newAlias->name . ' : Modification des paramètres d\'alias de l\'index ' . $newIndex->name]=0;
+            }
+            */
+        }
+        
+        
+        // Liste des tables de lookup
+        // --------------------------
+        $t1=$this->index($old->lookuptables);
+        $t2=$this->index($new->lookuptables);
+        
+        // Tables de lookup supprimées
+        foreach($deleted=array_diff_key($t1, $t2) as $i=>$item)
+            $changes['Suppression de la table de lookup ' . $item->name]=1;
+        
+        // Tables de lookup créées
+        foreach($added=array_diff_key($t2, $t1) as $i=>$item)
+            $changes['Création de la table de lookup ' . $item->name]=2;
+        
+        // Ordre des tables de lookup
+        if (array_keys(array_diff_key($t1,$deleted)) !== array_keys(array_diff_key($t2, $added)))
+            $changes['Modification de l\'ordre des tables de lookup']=0;
+        
+        // Tables de lookup modifiées
+        foreach($t2 as $id=>$newTable)
+        {
+            if (! isset($t1[$id])) continue;
+            $oldTable=$t1[$id];
+
+            if ($oldTable->name !== $newTable->name)
+                $changes['Renommage de la table de lookup ' . $oldTable->name . ' en ' . $newTable->name]=0;
+            
+            if ($oldTable->label !== $newTable->label)
+                $changes['Changement du libellé de la table de lookup ' . $newTable->name]=0;
+
+            if ($oldTable->description !== $newTable->description)
+                $changes['Changement de la description de la table de lookup ' . $newTable->name]=0;
+
+            // Liste des champs de cette table de lookup
+            $f1=$this->index($oldTable->fields);
+            $f2=$this->index($newTable->fields);
+            
+            // Champs enlevés
+            foreach($deleted=array_diff_key($f1, $f2) as $i=>$item)
+                $changes['Suppression du champ ' . $item->name . ' de la table de lookup ' . $newTable->name]=2;
+                // todo : si l'index est vide, rien à faire, level 0
+            
+            // Champ ajoutés
+            foreach($added=array_diff_key($f2, $f1) as $i=>$item)
+                $changes['Ajout du champ ' . $item->name . ' dans la table de lookup ' . $newTable->name]=2;
+                // todo: si nouvel index sur nouveau champ et count=false, rien à faire, level 0
+            
+            // Ordre des champs de l'index
+            if (array_keys(array_diff_key($f1,$deleted)) !== array_keys(array_diff_key($f2, $added)))
+                $changes['Modification de l\'ordre des champs dans la table de lookup ' . $newTable->name]=0;
+    
+            // Champs dde tables de lookup modifiés
+            foreach($f2 as $id=>$newField)
+            {
+                if (! isset($f1[$id])) continue;
+                $oldField=$f1[$id];
+                
+                if ($oldField != $newField)
+                    $changes['Table de lookup ' . $newTable->name . ' : Modification des paramètres pour le champ ' . $newField->name]=2;
+            }
+        }
+        
+        
+        // Liste des tables de lookup
+        // --------------------------
+        $t1=$this->index($old->lookuptables);
+        $t2=$this->index($new->lookuptables);
+        
+        // Tables de lookup supprimées
+        foreach($deleted=array_diff_key($t1, $t2) as $i=>$item)
+            $changes['Suppression de la table de lookup ' . $item->name]=1;
+        
+        // Tables de lookup créées
+        foreach($added=array_diff_key($t2, $t1) as $i=>$item)
+            $changes['Création de la table de lookup ' . $item->name]=2;
+        
+        // Ordre des tables de lookup
+        if (array_keys(array_diff_key($t1,$deleted)) !== array_keys(array_diff_key($t2, $added)))
+            $changes['Modification de l\'ordre des tables de lookup']=0;
+        
+        // Tables de lookup modifiées
+        foreach($t2 as $id=>$newTable)
+        {
+            if (! isset($t1[$id])) continue;
+            $oldTable=$t1[$id];
+
+            if ($oldTable->name !== $newTable->name)
+                $changes['Renommage de la table de lookup ' . $oldTable->name . ' en ' . $newTable->name]=0;
+            
+            if ($oldTable->label !== $newTable->label)
+                $changes['Changement du libellé de la table de lookup ' . $newTable->name]=0;
+
+            if ($oldTable->description !== $newTable->description)
+                $changes['Changement de la description de la table de lookup ' . $newTable->name]=0;
+
+            // Liste des champs de cette table de lookup
+            $f1=$this->index($oldTable->fields);
+            $f2=$this->index($newTable->fields);
+            
+            // Champs enlevés
+            foreach($deleted=array_diff_key($f1, $f2) as $i=>$item)
+                $changes['Suppression du champ ' . $item->name . ' de la table de lookup ' . $newTable->name]=2;
+                // todo : si l'index est vide, rien à faire, level 0
+            
+            // Champ ajoutés
+            foreach($added=array_diff_key($f2, $f1) as $i=>$item)
+                $changes['Ajout du champ ' . $item->name . ' dans la table de lookup ' . $newTable->name]=2;
+                // todo: si nouvel index sur nouveau champ et count=false, rien à faire, level 0
+            
+            // Ordre des champs de l'index
+            if (array_keys(array_diff_key($f1,$deleted)) !== array_keys(array_diff_key($f2, $added)))
+                $changes['Modification de l\'ordre des champs dans la table de lookup ' . $newTable->name]=0;
+    
+            // Champs dde tables de lookup modifiés
+            foreach($f2 as $id=>$newField)
+            {
+                if (! isset($f1[$id])) continue;
+                $oldField=$f1[$id];
+                
+                if ($oldField != $newField)
+                    $changes['Table de lookup ' . $newTable->name . ' : Modification des paramètres pour le champ ' . $newField->name]=2;
+            }
+        }
+
+        
+        // Liste des clés de tri
+        // ---------------------
+        $t1=$this->index($old->sortkeys);
+        $t2=$this->index($new->sortkeys);
+        
+        // Clés de tri supprimées
+        foreach($deleted=array_diff_key($t1, $t2) as $i=>$item)
+            $changes['Suppression de la clé de tri ' . $item->name]=1;
+        
+        // Clés de tri créées
+        foreach($added=array_diff_key($t2, $t1) as $i=>$item)
+            $changes['Création de la clé de tri ' . $item->name]=2;
+        
+        // Ordre des clés de tri
+        if (array_keys(array_diff_key($t1,$deleted)) !== array_keys(array_diff_key($t2, $added)))
+            $changes['Modification de l\'ordre des clés de tri']=0;
+        
+        // Clés de tri modifiées
+        foreach($t2 as $id=>$newSortKey)
+        {
+            if (! isset($t1[$id])) continue;
+            $oldSortKey=$t1[$id];
+
+            if ($oldSortKey->name !== $newSortKey->name)
+                $changes['Renommage de la clé de tri ' . $oldSortKey->name . ' en ' . $newSortKey->name]=0;
+            
+            if ($oldSortKey->label !== $newSortKey->label)
+                $changes['Changement du libellé de la clé de tri ' . $newSortKey->name]=0;
+
+            if ($oldSortKey->description !== $newSortKey->description)
+                $changes['Changement de la description de la clé de tri ' . $newSortKey->name]=0;
+
+            if ($oldSortKey->type !== $newSortKey->type)
+                $changes['Changement du type de la clé de tri ' . $newSortKey->name]=2;
+
+            // Liste des champs de cette clé de tri
+            $f1=$this->index($oldSortKey->fields);
+            $f2=$this->index($newSortKey->fields);
+            
+            // Champs enlevés
+            foreach($deleted=array_diff_key($f1, $f2) as $i=>$item)
+                $changes['Suppression du champ ' . $item->name . ' de la clé de tri ' . $newSortKey->name]=2;
+            
+            // Champ ajoutés
+            foreach($added=array_diff_key($f2, $f1) as $i=>$item)
+                $changes['Ajout du champ ' . $item->name . ' dans la clé de tri ' . $newSortKey->name]=2;
+            
+            // Ordre des champs de la clé de tri
+            if (array_keys(array_diff_key($f1,$deleted)) !== array_keys(array_diff_key($f2, $added)))
+                $changes['Modification de l\'ordre des champs dans la clé de tri ' . $newSortKey->name]=2;
+    
+            // Champs de clés de tri modifiés
+            foreach($f2 as $id=>$newField)
+            {
+                if (! isset($f1[$id])) continue;
+                $oldField=$f1[$id];
+                
+                if ($oldField != $newField)
+                    $changes['Clé de tri ' . $newSortKey->name . ' : Modification des paramètres pour le champ ' . $newField->name]=2;
+            }
+        }
+        
+        // Retourne le résultat
+        return $changes;
+    }
+
+    /**
+     * Fonction utilitaire utilisée par {@link compare()}.
+     * 
+     * Index la collection d'objet en paramétre par id.
+     *
+     * @param array $collection un tableau contenant des objets ayant une
+     * propriété '_id'
+     * 
+     * @return array le même tableau mais dans lequel les clés des objets
+     * correspondent à la valeur de la propriété _id.
+     */
+    private function index($collection)
+    {
+        $t=array();
+        foreach($collection as $item)
+            $t[$item->_id]=$item;
+        return $t;
+    }
 }
+
 
 /**
  * Exception générique générée par {@link DatabaseStructure}
