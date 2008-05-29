@@ -25,7 +25,11 @@ define('BIS_PATH', Runtime::$root.'data/db/ascodocpsy.bed');
 
 class DatabaseAdmin extends Module
 {
-
+    /**
+     * @var XapianDatabaseDriver2
+     */
+    public $selection;
+    
     /*
      * affiche la liste des bases de données référencées dans db.config
      * et un bouton permettant de créer une nouvelle base
@@ -210,24 +214,156 @@ class DatabaseAdmin extends Module
         );
     }
     
+    public function actionSetStructure($database, $structure, $confirm=false)
+    {
+        // Détermine le path exact de la structure indiquée
+        $structure=Utils::defaultExtension($structure, '.xml');
+        $path=Utils::searchFile
+        (
+            'data/DatabaseTemplates/' . $structure,
+            Runtime::$root, 
+            Runtime::$fabRoot
+        );
+        
+        if ($path === false)
+            throw new Exception("Impossible de trouver le modèle de structure $structure");
+            
+        // Charge la structure
+        $newDbs=new DatabaseStructure(file_get_contents($path));
+        
+        // Ouvre la base de données et récupère la structure actuelle de la base
+        $this->selection=Database::open($database, !$confirm); // confirm=false -> readonly=true, confirm=true->readonly=false
+        $oldDbs=$this->selection->getStructure();
+        
+        // Compare l'ancienne et la nouvelle structure
+        $changes=$newDbs->compare($oldDbs);
+
+        // variables utilitaires pour avoir de liens sur le nom de la base et de la structure
+        $linkDatabase=sprintf
+        (
+            '<a href="%s" title="%s"><strong>%s</strong></a>',
+            Routing::linkFor('/DatabaseInspector/SearchForm?database=' . $database),
+            'Inspecter...', 
+            $database
+        );
+        $linkStructure=sprintf
+        (
+            '<a href="%s" title="%s"><strong>%s</strong></a>',
+            Routing::linkFor('/DatabaseAdmin/EditStructure?template=' . $structure), 
+            'Editer...', 
+            $structure
+        );
+        
+        // Affiche une erreur si aucune modification n'a été apportée
+        if (count($changes)===0)
+        {
+            echo "<p>La base de données $linkDatabase et le modèle $linkStructure",
+                 ' ont la même structure, aucune modification n\'est nécessaire.</p>';
+            return;
+        }
+
+        // Affiche la liste des modifications apportées et demande confirmation à l'utilisateur
+        if (! $confirm)
+        {
+            // Affiche le template de confirmation
+            Template::run
+            (
+                config::get('template'),
+                array
+                (
+                    'confirm'=>$confirm, 
+                    'database'=>$database, 
+                    'structure'=>$structure, 
+                    'changes'=>$changes,
+                    'linkDatabase'=>$linkDatabase,
+                    'linkStructure'=>$linkStructure
+                )
+            );
+            
+            return;
+        }
+        
+        // Applique la nouvelle structure à la base
+        $this->selection->setStructure($newDbs);
+        
+        // Affiche le résultat et propose (éventuellement) de réindexer
+        Template::run
+        (
+            config::get('template'),
+            array
+            (
+                'confirm'=>$confirm, 
+                'database'=>$database, 
+                'structure'=>$structure, 
+                'changes'=>$changes,
+                'linkDatabase'=>$linkDatabase,
+                'linkStructure'=>$linkStructure
+            )
+        );
+    }
+    
+    public function actionCompare($old,$new)
+    {
+        //header('content-type: text/plain;charset=ISO-8859-1;');
+        
+        $dir=Runtime::$root . 'data/DatabaseTemplates/';
+        
+        $old=Utils::defaultExtension($old, '.xml');
+        $new=Utils::defaultExtension($new, '.xml');
+        
+        echo '<h1>Comparaison des structures ', $old, ' et ', $new, '</h1>';
+        
+        $old=new DatabaseStructure(file_get_contents($dir.$old));
+        $new=new DatabaseStructure(file_get_contents($dir.$new));
+        
+        $changes=$new->compare($old);
+        
+        
+        if (count($changes)===0)
+            echo '<p>Aucune modification n\'a été détectée.</p>';
+        else
+        {
+            echo '<ul>', "\n";
+            $color=array(0=>'green', 1=>'orange', '2'=>'red');
+            foreach($changes as $change=>$level)
+            {
+                echo '    <li style="color:',$color[$level], '">', $change, ' (', $level, ')', '</li>', "\n";
+            }
+            echo '</ul>', "\n";
+            
+            echo '<div style="border: 1px solid #000; background-color: #fff; font-size: 1.5em; margin: 1em; padding: 0 1em">';
+            switch(max($changes))
+            {
+                case 0:
+                    echo '<p style="color:green">Toutes les modifications peuvent être prises en compte immédiatement, il est inutile de réindexer la base (0).</p>';
+                    break;
+                case 1:
+                    echo '<p style="color:orange">Les modifications apportées peuvent être prises en compte immédiatement, mais le fait de réindexer la base permettrait de purger les données qui ne sont plus nécessaires (1).</p>';
+                    break;
+                case 2:
+                    echo '<p style="color:red">Une ou plusieurs des modifications apportées nécessitent une réindexation de la base (2).</p>';
+                    break;
+                default: 
+                    echo '<p>gloups! max erroné</p>';
+            }
+            echo '</div>';
+        }
+    }
+    
     /**
      * Crée ou édite un fichier modèle de structure de base de données
      *
      * @return unknown
      */
-    public function actionEditStructure()
+    public function actionEditStructure($template='', $new=false)
     {
-//        pre(Config::getAll());
         $dir='data/DatabaseTemplates/';
         $fabDir=Runtime::$fabRoot.$dir;
         $appDir=Runtime::$root.$dir;
-            
-        // Récupère les paramètres
-        $template=Utils::get($_GET['template']);
-        $new=Utils::get($_GET['new']);
 
         $dbs=null;
         $errors=array();
+        
         if ($template)
         {
             // Cas 1 : Création d'un nouveau modèle
@@ -244,6 +380,7 @@ class DatabaseAdmin extends Module
                     $dbs=new DatabaseStructure();
                     file_put_contents($appDir.$template,$dbs->toXml());
                 }
+                $title='Création du modèle de structure '.$template;
             }
             
             // Cas 2 : édition d'un modèle existant
@@ -268,6 +405,7 @@ class DatabaseAdmin extends Module
                         $errors[]='Le fichier indiqué n\'existe pas : "' . $template . '"';
                     }
                 }
+                $title='Modification du modèle de structure '.$template;
             }
         }
                 
@@ -288,7 +426,7 @@ class DatabaseAdmin extends Module
         
         // Redresse la structure de la base, ignore les éventuelles erreurs
         $dbs->validate();
-        
+
         // Charge la structure dans l'éditeur
         Template::run
         (
@@ -298,7 +436,7 @@ class DatabaseAdmin extends Module
                 'structure'=>$dbs->toJson(), // hum.... envoie de l'utf-8 dans une page html déclarée en iso-8859-1...
                 'saveUrl'=>'SaveStructure',
                 'saveParams'=>"{template:'$template'}",
-                'title'=>'Modification du modèle de structure '.$template
+                'title'=>$title
             )
         );
     }
@@ -340,6 +478,7 @@ class DatabaseAdmin extends Module
     public function actionSaveStructure()
     {
         $json=Utils::get($_POST['structure']);
+        
         $dbs=new DatabaseStructure($json);
         
         // Valide la structure et détecte les erreurs éventuelles
@@ -352,6 +491,9 @@ class DatabaseAdmin extends Module
             echo json_encode(Utils::utf8Encode($result));
             return;
         }
+        
+        // Compile la structure (attribution des ID, etc.)
+        $dbs->compile();
         
         // Met à jour la date de dernière modification (et de création éventuellement)
         $dbs->setLastUpdate();
@@ -377,8 +519,6 @@ class DatabaseAdmin extends Module
     }
 
 
-    
-    
     public function actionAscoLoad()
     {
         while (ob_get_level()) ob_end_flush();
@@ -514,13 +654,70 @@ class DatabaseAdmin extends Module
         echo 'done';
     }
     
-    public function actionReindex()
+    /**
+     * Lance une réindexation complète de la base de données dont le 
+     * nom est passé en paramètre.
+     * 
+     * Dans un premier temps, on affiche une page à l'utilisateur lui indiquant 
+     * comment fonctionne la réindexation et lui demandant de confirmer son
+     * choix.
+     * 
+     * Dans un second temps (une fois qu'on a la confirmation), on crée une 
+     * tâche au sein du gestionnaire de tâches.
+     * 
+     * Enfin, la réindexation a proprement parler est exécutée par le 
+     * {@link TaskManager}.
+     *
+     * @param string $database le nom de la base à réindexer
+     * @param boolean $confirm le flag de confirmation
+     */
+    public function actionReindex($database, $confirm=false)
     {
-        set_time_limit(0);
-        $xapianDb=Database::open(DB_PATH, false, 'xapian2');
-        $xapianDb->reindex();
-        echo 'done';
+        // Si on est en ligne de commande, lance la réindexation proprement dite
+        if (User::hasAccess('cli'))
+        {
+            // Ouvre la base en écriture (pour la verrouiller)
+            $this->selection=Database::open($database, false);
+            
+            // Lance la réindexation
+            $this->selection->reindex();
+            return;
+        }
+        
+        // Sinon, interface web : demande confirmation et crée la tâche
+        
+        // Ouvre la base et vérifie qu'elle contient des notices
+        $this->selection=Database::open($database, true);
+        $this->selection->search(null, array('_max'=>-1, '_sort'=>'+'));
+        if ($this->selection->count()==0)
+        {
+            echo '<p>La base ne contient aucun document, il est inutile de lancer la réindexation.</p>';
+            return;
+        }
+        
+        // Demande confirmation à l'utilisateur
+        if (!$confirm)
+        {
+            Template::run
+            (
+                config::get('template'),
+                array('database'=>$database)
+            );
+            return;
+        }
+
+        // Crée une tâche au sein du gestionnaire de tâches
+        $id=Task::create()
+            ->setRequest($this->request)
+            ->setTime(0)
+            ->setLabel('Réindexation complète de la base ' . $database)
+            ->setStatus(Task::Waiting)
+            ->save()
+            ->getId();
+            
+        Runtime::redirect('/TaskManager/TaskStatus?id='.$id);
     }
+    
     public function actionBisToXapian()
     {
         $bisDb=Database::open('ascodocpsy', true);
