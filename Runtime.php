@@ -163,7 +163,6 @@ class Runtime
 
             // Détermine le module, l'action et les paramètres à exécuter (Arg 1)
             self::$url = isset($_SERVER['argv'][1]) ? $_SERVER['argv'][1] : '/';
-            echo 'init en mode cli, url=', self::$url, "<br />\n";    
             
             $pt=strpos(self::$url, '?');
             if ($pt!==false)
@@ -181,8 +180,20 @@ class Runtime
             // Détermine l'url de la page d'accueil de l'application (Arg 2, optionnel)
             if (isset($_SERVER['argv'][2]))
             {
-                self::$home=$_SERVER['argv'][2];
+                // Découpe l'url et stocke les différents bouts au bon endroit
+                $url=parse_url($_SERVER['argv'][2]);
+                
+                $_SERVER['HTTPS']='off';
+                
+                $_SERVER['SERVER_PORT']=isset($url['port']) ? $url['port'] : '80';
+                $_SERVER['SERVER_NAME']=$url['host'];
+                
+                self::$home=$url['path']; //$_SERVER['argv'][2];
                 self::$realHome=dirname(self::$home);
+                
+                // Garantit que home et realHome contiennent toujours un slash final
+                self::$realHome=rtrim(self::$realHome,'/').'/';
+                self::$home=rtrim(self::$home,'/').'/';
             }
 
             $_SERVER['REQUEST_METHOD']='GET';
