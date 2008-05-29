@@ -89,13 +89,16 @@ class DatabaseModule extends Module
             array($this, $callback)
         );
     }
+    
+    /**
+     * Lance une réindexation complète de la base de données.
+     * 
+     * Cette action se contente de rediriger l'utilisateur vers l'action 
+     * {@link DatabaseAdmin#actionReindex Reindex} de {@link DatabaseAdmin}. 
+     */
     public function actionReindex()
     {
-        //die('ne fonctionne pas, ne pas utiliser tant que le bug n\'aura pas été fixé');
-        set_time_limit(0);
-        $this->openDatabase(false);
-        $this->selection->reindex();
-        echo 'done';
+        Runtime::redirect('/DatabaseAdmin/Reindex?database='.Config::get('database'));
     }
     
     /**
@@ -494,7 +497,7 @@ class DatabaseModule extends Module
         {
             // Redirige l'utilisateur vers l'action show
             debug && Debug::log('Redirection pour afficher la notice enregistrée %s', $ref);
-            Runtime::redirect('show?REF='.$ref);
+            Runtime::redirect('Show?REF='.$ref);
         }
         else
         {
@@ -842,8 +845,8 @@ class DatabaseModule extends Module
      */
     protected function openDatabase($readOnly=true)
     {
-        // Le fichier de config du module indique la base à utiliser
         $database=Config::get('database');
+        // Le fichier de config du module indique la base à utiliser
 
         if (is_null($database))
             throw new Exception('La base de données à utiliser n\'a pas été indiquée dans le fichier de configuration du module');
@@ -2079,6 +2082,9 @@ $equation .=') AND NOT REF:'.$this->selection['REF'];
     
     public function actionTest()
     {
+        
+        echo Utils::friendlyElapsedTime(61.2);
+        die();
         // Ouvre la base de données
         //$this->openDatabase();
         echo "test des nouvelles fonctions le version 1.0.2 de xapian";
@@ -2135,7 +2141,9 @@ développement de la BDSP.
             $begin->next();
         }
 //        $db->add_spelling('hello');
-        
+
+        $db->add_synonym('enseignant', 'professeur');
+        die();
         echo "<h1>Essai de correction orthographique</h1>";
         foreach(array('sante','renne', 'rézau', 'ravigation', 'rational', 'BDSP') as $word)
             echo '<li>', $word, ' -&gt; ', utf8_decode($db->get_spelling_suggestion($word)), '</li>';
