@@ -130,7 +130,7 @@ class ImportModule extends DatabaseModule
 //        echo 'Numéros de REF OK, création de la tâche<br />';
 
         if ((count($REF)===1))
-            $title="Import d'un fichier dans la base";
+            $title='Import d\'un fichier dans la base';
         else
             $title='Import de '.count($REF).' fichiers dans la base';
         
@@ -181,11 +181,15 @@ class ImportModule extends DatabaseModule
         // Ouvre la base de données en écriture
         $this->openDatabase(false);
         
+        // Affiche le titre
         $nbFiles=count($REF);
         if ($nbFiles===1)
             echo '<h2>Import d\'un fichier dans la base (ref ', $REF[0], ')</h2>';
         else
             echo '<h2>Import de ', $nbFiles, ' fichiers dans la base</h2>';
+        
+        // Initialise les numéros de première et dernière notice
+        $firstRef=$lastRef=0;
         
         foreach($REF as $i=>$REF)
         {
@@ -193,10 +197,8 @@ class ImportModule extends DatabaseModule
                 echo '<h3>Fichier n°', $i+1, ' (ref ', $REF, ')</h3>';
             
             // Crée l'équation de recherche
-            // On filtre sur les fichiers autorisés à être importés            
-            // todo : remettre l'équation $equation='Status:task AND REF:'.$REF;
+            // On filtre sur les fichiers autorisés à être importés
             $equation='Status:task AND REF:'.$REF;
-            //$equation='REF:'.$REF;
 
             // Ouvre la base de données en écriture
 //            $this->openDatabase(false);
@@ -246,7 +248,7 @@ class ImportModule extends DatabaseModule
                 
                 // todo : revoir le paramètre $path quand selection['Path'] 
                 // contiendra un path relatif            
-                list($ok,$msg)=call_user_func($callback,$path,$errorFile);
+                list($ok,$msg,$first,$last)=call_user_func($callback,$path,$errorFile);
             }
             
             // on lui passe en paramètres :
@@ -269,8 +271,16 @@ class ImportModule extends DatabaseModule
 //            $this->openDatabase(false);
 //            echo '2e ouverture de la base en écriture<br />';
             
-            // Supprime le fichier des notices erronées si toutes les notices ont été importées
-            if ($ok) unlink($errorFile);
+            // L'import s'est bien passé
+            if ($ok)
+            {
+                // Supprime le fichier des notices erronées si toutes les notices ont été importées            
+                unlink($errorFile);
+                
+                // Récupère les numéros de la première et dernière notice
+                $firstRef=$firstRef===0 ? $first : min($firstRef,$first);
+                $lastRef=max($lastRef,$last);
+            }
             
             // Met à jour le statut du fichier et renseigne le champ Notes
             if ($this->selection->search("REF=$REF", array('_max'=>1)))
@@ -284,8 +294,39 @@ class ImportModule extends DatabaseModule
             // Ferme la base
 //            unset($this->selection);
 //            echo '2e fermeture de la base<br />';
+
+            $time=strftime('%x à %X');
+            echo '<p>Fin de l\'import le ', $time, '</p>';
+        }
+        
+        // TODO : Créer une clé de config 'dedouble' (true, false) pour dire si on 
+        // doit lancer le dédoublonnage automatiquement après l'import 
+        
+        // Dédoublonnage sur les notices importées
+        if (! is_null($firstRef) && ! is_null($lastRef))
+        {
+            // Crée la requête
+            $request=new Request();
+            $equation="REF:$firstRef";
+            $equation.=$lastRef!==0 ? "..$lastRef" : '';
+            $request->setModule('DedupModule')->setAction('Dedup')->set('_equation',$equation);
             
-            echo '<p>Fin de l\'import le ', strftime('%x à %X'), '</p>';
+            // Titre de la tâche
+            $label='Dédoublonnage ';
+            $label.=$nbFiles===1 ? 'du fichier intégré' : "des $nbFiles fichiers intégrés";
+            $label.=' dans la base '.Config::get('database').' le '.$time;
+
+            // Crée une tâche au sein du gestionnaire de tâches
+            $id=Task::create()
+                ->setRequest($request)
+                ->setTime(0)
+                ->setLabel($label)
+                ->setStatus(Task::Waiting)
+                ->save()
+                ->getId();
+                    
+            // Propose un lien vers le résultat du dédoublonnage
+            echo '<p><a href="', Routing::linkFor('/TaskManager/TaskStatus?id='.$id),'">Voir le résultat du dédoublonnage réalisé sur les notices importées</a></p>';
         }
     }
     
