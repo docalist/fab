@@ -633,7 +633,8 @@ class TemplateCode
                 'md5',
                 'dechex',
                 'utf8_encode',
-                'get_class'
+                'get_class',
+                'max'
             ));
             $runtimeFunctions=array_flip(array
             (
