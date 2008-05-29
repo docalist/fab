@@ -1562,6 +1562,7 @@ final class Utils
     public static function friendlyElapsedTime($time)
     { 
         $h='';
+        if (is_float($time) && $time>60) $time=round($time);
         
         $days = floor($time/60/60/24);
         $time -= $days*60*60*24;
@@ -1575,7 +1576,7 @@ final class Utils
         $time -= $mins*60;
         if ($days || $hours || $mins) $h.= $mins . ' minute' . ($mins>1 ? 's' : '') . ' ';
         
-        $secs = $time;
+        $secs = round($time,2);
         if ($h==='' || $secs>0)
             $h.= ($h ? 'et ' : '') . $secs . ' seconde' . ($secs >1 ? 's' : '');
         
