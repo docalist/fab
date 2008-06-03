@@ -18,8 +18,8 @@ class ThesaurusModule extends DatabaseModule
         require_once dirname(__FILE__).'/ThesaurusCindoc.php';
         
         // Path du fichier thesaurus à importer
-        $alphaPath=dirname(__FILE__) . '/alpha-20-06-07.txt';
-        $hierPath=dirname(__FILE__) . '/hier-20-06-07.txt';
+        $alphaPath=dirname(__FILE__) . '/alpha-26-05-08.txt';
+        $hierPath=dirname(__FILE__) . '/hier-26-05-08.txt';
         
         // Charge le fichier thesaurus
         $theso=new ThesaurusCindoc($alphaPath, $hierPath);
