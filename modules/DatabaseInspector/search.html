@@ -10,7 +10,7 @@
 </p>
 <loop on="{$this->selection}">
     <table style="width:49%; float: left;">
-        <loop on="{$this->selection->getStructure()->fields}" as="$name,$field">
+        <loop on="{$this->selection->getSchema()->fields}" as="$name,$field">
             <tr class="{empty($this->selection[$name]) ? 'empty' : ''}">
                 <th title="{$field->description}">
                     {$field->label:$field->name}

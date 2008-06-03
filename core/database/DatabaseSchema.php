@@ -7,7 +7,8 @@
  */
 
 /**
- * La structure d'une base de données fab.
+ * DatabaseSchema représente le schéma, c'est-à-dire la structure d'une base de 
+ * données fab.
  * 
  * Cette classe offre des fonctions permettant de charger, de valider et de 
  * sauvegarder la structure d'une base de données en format XML et JSON.
@@ -15,7 +16,7 @@
  * @package     fab
  * @subpackage  database
  */
-class DatabaseStructure
+class DatabaseSchema
 {
     /**
      * Les types de champ autorisés
@@ -28,7 +29,7 @@ class DatabaseStructure
         FIELD_BOOL=4;
 
     /**
-     * Ce tableau décrit les propriétés d'une structure de base de données.
+     * Ce tableau décrit les propriétés d'une schéma de base de données.
      * 
      * @var array
      */
@@ -43,8 +44,8 @@ class DatabaseStructure
             'description'=>'',          // Description, notes, historique des modifs...
             'stopwords'=>'',            // Liste par défaut des mots-vides à ignorer lors de l'indexation
             'indexstopwords'=>false,    // faut-il indexer les mots vides ?
-            'creation'=>'',           // Date de création de la structure
-            'lastupdate'=>'',         // Date de dernière modification de la structure
+            'creation'=>'',           // Date de création du schéma
+            'lastupdate'=>'',         // Date de dernière modification du schéma
             '_lastid'=>array
             (
                 'field'=>0,
@@ -179,20 +180,20 @@ class DatabaseStructure
     
 
     /**
-     * Constructeur. Crée une nouvelle structure de base de données à partir 
+     * Constructeur. Crée un nouveau schéma de base de données à partir 
      * de l'argument passé en paramètre.
      * 
      * L'argument est optionnel. Si vous n'indiquez rien ou si vous passez 
-     * 'null', une nouvelle structure de base de données (vide) sera créée.
+     * 'null', un nouveau schéma de base de données (vide) sera créée.
      * 
-     * Sinon, la structure de la base de données va être chargée à partir de
+     * Sinon, le schéma de la base de données va être chargée à partir de
      * l'argument passé en paramètre. Il peut s'agir :
      * <li>d'un tableau ou d'un objet php décrivant la base</li>
      * <li>d'une chaine de caractères contenant le source xml décrivant la base</li>
      * <li>d'une chaine de caractères contenant le source JSON décrivant la base</li>
      *
      * @param mixed $def 
-     * @throws DatabaseStructureException si le type de l'argument passé en 
+     * @throws DatabaseSchemaException si le type de l'argument passé en 
      * paramètre ne peut pas être déterminé ou si la définition a des erreurs 
      * fatales (par exemple un fichier xml mal formé)
      */
@@ -201,10 +202,10 @@ class DatabaseStructure
         // Faut-il ajouter les propriétés par défaut ? (oui pour tous sauf xml qui le fait déjà)
         $addDefaultsProps=true;
         
-        // Une structure vide
+        // Un schéma vide
         if (is_null($def))
         {
-            $this->label='Nouvelle structure de base de données';
+            $this->label='Nouvelle base de données';
             $this->creation=date('Y/m/d H:i:s');
         }
         
@@ -223,7 +224,7 @@ class DatabaseStructure
                     break;
                     
                 default:
-                    throw new DatabaseStructureException('Impossible de déterminer le type de la structure de base de données passée à '.__CLASS__);
+                    throw new DatabaseSchemaException('Impossible de déterminer le type du schéma de base de données passée à '.__CLASS__);
             }
         }
 
@@ -246,9 +247,9 @@ class DatabaseStructure
     
     
     /**
-     * Met à jour la date de dernière modification (lastupdate) de la structure
+     * Met à jour la date de dernière modification (lastupdate) du schéma
      *
-     * @param unknown_type $timestamp
+     * @param int $timestamp
      */
     public function setLastUpdate($timestamp=null)
     {
@@ -260,7 +261,7 @@ class DatabaseStructure
 
 
     /**
-     * Crée la structure de la base de données à partir d'un source xml
+     * Crée le schéma de la base de données à partir d'un source xml
      *
      * @param string $xmlSource
      * @return StdClass
@@ -278,14 +279,14 @@ class DatabaseStructure
         // Charge le document
         if (! $xml->loadXML($xmlSource))
         {
-            $h="Structure de base incorrecte, ce n'est pas un fichier xml valide :<br />\n"; 
+            $h="Schéma incorrect, ce n'est pas un fichier xml valide :<br />\n"; 
             foreach (libxml_get_errors() as $error)
                 $h.= "- ligne $error->line : $error->message<br />\n";
             libxml_clear_errors(); // libère la mémoire utilisée par les erreurs
-            throw new DatabaseStructureXmlException($h);
+            throw new DatabaseSchemaXmlException($h);
         }
 
-        // Convertit la structure xml en objet
+        // Convertit le schéma xml en objet
         $o=self::xmlToObject($xml->documentElement, self::$dtd);
         
         // Initialise nos propriétés à partir de l'objet obtenu
@@ -303,7 +304,7 @@ class DatabaseStructure
      * @param DOMNode $node le noeud xml à convertir
      * @param array $dtd un tableau indiquant les noeuds et attributs autorisés
      * @return StdClass
-     * @throws DatabaseStructureXmlNodeException si le source xml contient des 
+     * @throws DatabaseSchemaXmlNodeException si le source xml contient des 
      * attributs ou des tags non autorisés
      */
     private static function xmlToObject(DOMNode $node, array $dtd)
@@ -314,7 +315,7 @@ class DatabaseStructure
         reset($dtd);
         $tag=key($dtd);
         if ($node->tagName !== $tag)
-            throw new DatabaseStructureXmlNodeException($node, "élément non autorisé, '$tag' attendu");
+            throw new DatabaseSchemaXmlNodeException($node, "élément non autorisé, '$tag' attendu");
         $dtd=array_pop($dtd);
                     
         // Crée un nouvel objet contenant les propriétés par défaut indiquées dans le dtd
@@ -330,11 +331,11 @@ class DatabaseStructure
                 
                 // Vérifie que c'est un élément autorisé
                 if (! array_key_exists($name, $dtd))
-                    throw new DatabaseStructureXmlNodeException($node, "l'attribut '$name' n'est pas autorisé");
+                    throw new DatabaseSchemaXmlNodeException($node, "l'attribut '$name' n'est pas autorisé");
                     
                 // Si la propriété est un objet, elle ne peut pas être définie sous forme d'attribut
                 if (is_array($dtd[$name]))
-                    throw new DatabaseStructureXmlNodeException($node, "'$name' n'est pas autorisé comme attribut, seulement comme élément fils");
+                    throw new DatabaseSchemaXmlNodeException($node, "'$name' n'est pas autorisé comme attribut, seulement comme élément fils");
                     
                 // Définit la propriété
                 $result->$name=self::xmlToValue(utf8_decode($attribute->nodeValue), $attribute, $dtd[$name]);
@@ -352,11 +353,11 @@ class DatabaseStructure
                     
                     // Vérifie que c'est un élément autorisé
                     if (! array_key_exists($name, $dtd))
-                        throw new DatabaseStructureXmlNodeException($node, "l'élément '$name' n'est pas autorisé");
+                        throw new DatabaseSchemaXmlNodeException($node, "l'élément '$name' n'est pas autorisé");
                         
                     // Vérifie qu'on n'a pas à la fois un attribut et un élément de même nom (<database label="xxx"><label>yyy...)
                     if ($node->hasAttribute($name))
-                        throw new DatabaseStructureXmlNodeException($node, "'$name' apparaît à la fois comme attribut et comme élément");
+                        throw new DatabaseSchemaXmlNodeException($node, "'$name' apparaît à la fois comme attribut et comme élément");
 
                     // Cas d'une propriété simple (scalaire)
                     if (! is_array($dtd[$name]))
@@ -388,7 +389,7 @@ class DatabaseStructure
                     
                 // Types de noeud interdits
                 default:
-                    throw new DatabaseStructureXmlNodeException($node, "les noeuds de type '".$child->nodeName . "' ne sont pas autorisés");
+                    throw new DatabaseSchemaXmlNodeException($node, "les noeuds de type '".$child->nodeName . "' ne sont pas autorisés");
             }
         }
         return $result;
@@ -412,13 +413,13 @@ class DatabaseStructure
         {
             if($xml==='true') return true;
             if($xml==='false') return false;
-            throw new DatabaseStructureXmlNodeException($node, 'booléen attendu');
+            throw new DatabaseSchemaXmlNodeException($node, 'booléen attendu');
         }
         
         if (is_int($dtdValue))
         {
             if (! ctype_digit($xml))
-                throw new DatabaseStructureXmlNodeException($node, 'entier attendu');
+                throw new DatabaseSchemaXmlNodeException($node, 'entier attendu');
             return (int) $xml;
         }
         return $xml;
@@ -426,7 +427,7 @@ class DatabaseStructure
     
 
     /**
-     * Retourne la version xml de la structure de base de données en cours.
+     * Retourne la version xml du schéma.
      * 
      * @return string
      */    
@@ -441,9 +442,9 @@ class DatabaseStructure
     
     /**
      * Fonction utilitaire utilisée par {@link toXml()} pour générer la version
-     * Xml de la structure de la base.
+     * Xml du schéma.
      *
-     * @param array $dtd le dtd décrivant la structure de la base 
+     * @param array $dtd le dtd décrivant le schéma 
      * @param string $tag le nom du tag xml à générer
      * @param StdClass $object l'objet à générer
      * @param string $indent l'indentation en cours
@@ -564,11 +565,10 @@ class DatabaseStructure
 
 
     /**
-     * Initialise la structure de la base de données à partir d'un source JSON.
+     * Initialise le schéma à partir d'un source JSON.
      * 
      * La chaine passée en paramètre doit être encodée en UTF8. Elle est 
-     * décodée de manière à ce que la structure de base de données obtenue
-     * soit encodée en ISO-8859-1.
+     * décodée de manière à ce que le schéma obtenu soit encodé en ISO-8859-1.
      *
      * @param string $xmlSource
      * @return StdClass
@@ -587,7 +587,7 @@ class DatabaseStructure
     
 
     /**
-     * Retourne la version JSON de la structure de base de données en cours.
+     * Retourne la version JSON du schéma.
      * 
      * Remarque : la chaine obtenu est encodée en UTF-8.
      * 
@@ -595,7 +595,7 @@ class DatabaseStructure
      */    
     public function toJson()
     {
-        // Si notre structure est compilée, les clés de tous les tableaux
+        // Si notre schéma est compilé, les clés de tous les tableaux
         // sont des chaines et non plus des entiers. Or, la fonction json_encode
         // de php traite ce cas en générant alors un objet et non plus un 
         // tableau (je pense que c'est conforme à la spécification JSON dans la
@@ -671,12 +671,11 @@ class DatabaseStructure
     }
     
     /**
-     * Redresse et valide la structure de la base de données, détecte les 
-     * éventuelles erreurs.
+     * Redresse et valide le schéma, détecte les éventuelles erreurs.
      * 
      * @return (true|array) retourne 'true' si aucune erreur n'a été détectée
-     * dans la structure de la base de données. Retourne un tableau contenant
-     * un message pour chacune des erreurs rencontrées sinon.
+     * dans le schéma. Retourne un tableau contenant un message pour chacune 
+     * des erreurs rencontrées sinon.
      */
     public function validate()
     {
@@ -688,7 +687,7 @@ class DatabaseStructure
         
         // Vérifie qu'on a au moins un champ
 //        if (count($this->fields)===0)
-//            $errors[]="Structure de base incorrecte, aucun champ n'a été défini";
+//            $errors[]="Schéma, aucun champ n'a été défini";
     
         // Tableau utilisé pour dresser la liste des champs/index/alias utilisés
         $fields=array();
@@ -1056,12 +1055,12 @@ class DatabaseStructure
     }
 
     /**
-     * Compile la structure de base de données en cours.
+     * Compile le schéma en cours.
      * 
      * - Indexation des objets de la base par nom :
-     * Dans une structure non compilée, les clés de tous les tableaux 
+     * Dans un schéma non compilé, les clés de tous les tableaux 
      * (db.fields, db.indices, db.indices[x].fields, etc.) sont de simples
-     * numéros. Dans une structure compilée, les clés sont la version 
+     * numéros. Dans un schéma compilé, les clés sont la version 
      * minusculisée et sans accents du nom de l'item (la propriété name de 
      * l'objet)
      * 
@@ -1071,7 +1070,7 @@ class DatabaseStructure
      * (utilisation de db.lastId, coir ci-dessous).
      * Remarque : actuellement, un ID est un simple numéro commencant à 1, quel 
      * que soit le type d'objet. Les numéros sont attribués de manière consécutive,
-     * mais rien ne garantit que la structure finale a des numéros consécutifs
+     * mais rien ne garantit que le schéma final a des numéros consécutifs
      * (par exemple, si on a supprimé un champ, il y aura un "trou" dans les
      * id des champs, et l'ID du champ supprimé ne sera jamais réutilisé).   
      * 
@@ -1198,20 +1197,20 @@ class DatabaseStructure
     }
     
     /**
-     * Etablit la liste des modifications apportées entre la structure passée 
-     * en paramètre et la structure actuelle.
+     * Etablit la liste des modifications apportées entre le schéma passé 
+     * en paramètre et le schéma actuel.
      *
      * Remarque :
-     * Pour faire la comparaison, la structure actuelle et la structure 
-     * passée en paramètre doivent être compilées. La fonction appellera
-     * automatiquement la méthode {@link compile()} pour chacune des structures  
-     * si celles-ci ne sont pas déjà compilées.
+     * Pour faire la comparaison, le schéma actuel et le schéma
+     * passé en paramètre doivent être compilées. La fonction appellera
+     * automatiquement la méthode {@link compile()} pour chacun des schémas 
+     * si ceux-ci ne sont pas déjà compilées.
      *   
-     * @param DatabaseStructure $old la structure à comparer (typiquement : une
-     * version plus ancienne de la structure actuelle).
+     * @param DatabaseSchema $old le schéma à comparer (typiquement : une
+     * version plus ancienne du schéma actuel).
      * 
-     * @return array un tableau listant les modifications apportées entre la
-     * structure passée en paramètre et la structure actuelle.
+     * @return array un tableau listant les modifications apportées entre le
+     * schéma passé en paramètre et le schéma actuel.
      * 
      * Chaque clé du tableau est un message décrivant la modification effectuée 
      * et la valeur associée à cette clé indique le "niveau de gravité" de la
@@ -1250,13 +1249,13 @@ class DatabaseStructure
      *          echo 'Il faut réindexer la base';
      * </code>
      * 
-     * La fonction retourne un tableau vide si les deux structures sont 
+     * La fonction retourne un tableau vide si les deux schémas sont 
      * identiques.
      * 
      */
-    public function compare(DatabaseStructure $old)
+    public function compare(DatabaseSchema $old)
     {
-        // Compile les deux structures si nécessaire
+        // Compile les deux schémas si nécessaire
         $old->compile();
         $new=$this;
         $new->compile();
@@ -1656,30 +1655,30 @@ class DatabaseStructure
 
 
 /**
- * Exception générique générée par {@link DatabaseStructure}
+ * Exception générique générée par {@link DatabaseSchema}
  * 
  * @package     fab
  * @subpackage  database
  */
-class DatabaseStructureException extends RuntimeException { };
+class DatabaseSchemaException extends RuntimeException { };
 
 /**
- * Exception générée lorsqu'un fichier xml représentant une structure de base
+ * Exception générée lorsqu'un fichier xml représentant un schéma de base
  * de données contient des erreurs
  * 
  * @package     fab
  * @subpackage  database
  */
-class DatabaseStructureXmlException extends DatabaseStructureException { };
+class DatabaseSchemaXmlException extends DatabaseSchemaException { };
 
 /**
- * Exception générée lorsqu'un fichier xml représentant une structure de base
+ * Exception générée lorsqu'un fichier xml représentant un schéma de base
  * de données contient un noeud incorrect
  * 
  * @package     fab
  * @subpackage  database
  */
-class DatabaseStructureXmlNodeException extends DatabaseStructureXmlException
+class DatabaseSchemaXmlNodeException extends DatabaseSchemaXmlException
 {
     public function __construct(DOMNode $node, $message)
     {
@@ -1698,13 +1697,4 @@ class DatabaseStructureXmlNodeException extends DatabaseStructureXmlException
         parent::__construct(sprintf('Erreur dans le fichier xml pour ' . $path . ' : %s', $message));
     }
 }
-
-//$dbs=new DatabaseStructure();
-//$dbs->indexstopwords='fhdsjkhfdsk';
-//$dbs->fields[]=new stdClass();
-//
-//var_export($dbs->validate());
-//die();
-
-
 ?>

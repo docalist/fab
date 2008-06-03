@@ -175,15 +175,15 @@ class TaskManager extends DatabaseModule
         {
             $path=Runtime::$fabRoot
                 . 'data'              . DIRECTORY_SEPARATOR
-                . 'DatabaseTemplates' . DIRECTORY_SEPARATOR
+                . 'schemas' . DIRECTORY_SEPARATOR
                 . 'tasks.xml';
 
             try
             {
                 if (! file_exists($path))
-                    throw new Exception("Structure tasks.xml non trouvée");
+                    throw new Exception("Schéma tasks.xml non trouvée");
     
-                $dbs=new DatabaseStructure(file_get_contents($path));
+                $dbs=new DatabaseSchema(file_get_contents($path));
                 Database::create($database, $dbs, 'xapian2');
                 if (!@mkdir($path=self::getOutputDirectory(), 0777))
                     throw new Exception("Impossible de créer le répertoire $path");

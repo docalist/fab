@@ -128,10 +128,10 @@ div.help dt
 
         /* Choisit si la liste des noms de champ est triée ou non */
         <if test="{Config::get('sortfields', true)}">
-            <def name="fields" value="{Utils::ksort($this->selection->getStructure()->fields)}" />
+            <def name="fields" value="{Utils::ksort($this->selection->getSchema()->fields)}" />
         </if>
         <else>
-            <def name="fields" value="{$this->selection->getStructure()->fields}" />
+            <def name="fields" value="{$this->selection->getSchema()->fields}" />
         </else>
 
         /* Supprime de la liste les champs à ignorer définis dans la config */

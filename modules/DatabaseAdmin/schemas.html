@@ -1,5 +1,5 @@
-<h1>Modèles de structures de bases de données</h1>
-<p>Cette page permet de modifier un modèle de structure de base de données et d'en créer de nouveaux.</p>
+<h1>Schémas de bases de données</h1>
+<p>Cette page permet de modifier un schéma et d'en créer de nouveaux.</p>
 
 <opt>
     <p style="color: red"><strong>$error</strong></p>
@@ -10,7 +10,7 @@
         <ul>
             <loop on="$templates" as="$name,$template">
                 <li>
-                    <a href="EditStructure?template=$name"><strong>$name</strong><opt> - {$template->label}</opt></a>
+                    <a href="EditSchema?template=$name"><strong>$name</strong><opt> - {$template->label}</opt></a>
                     <opt>
                         <br />
                         <small>
@@ -23,7 +23,7 @@
         </ul>
     </if>
     <else>
-        <p>Aucun modèle de structure n'est disponible.</p>
+        <p>Aucun schéma n'est disponible.</p>
     </else>
     <ul>
         <li>
@@ -35,7 +35,7 @@
                 \{
                     var name=prompt('Entrez le nom du modèle à créer :', 'nouveau nom.xml');
                     if (name)
-                        window.location='EditStructure?new=1&amp;template='+escape(name);
+                        window.location='EditSchema?new=1&amp;template='+escape(name);
                     return false;
                 \}
             </script>

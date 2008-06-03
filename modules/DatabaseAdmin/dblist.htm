@@ -31,8 +31,8 @@
             <td>$name</td>
             <td>{$db['type']}</td>
             <td>{$db['path']}</td>
-            <td><button title="Modifier la structure..."><img src="/fabweb/images/dblist/database_edit.png" alt="Modifier" /></button></td>
-            <td><button title="Enregistrer la structure comme modèle..."><img src="/fabweb/images/dblist/database_save.png" alt="Modèle" /></button></td>
+            <td><button title="Modifier le schéma..."><img src="/fabweb/images/dblist/database_edit.png" alt="Modifier" /></button></td>
+            <td><button title="Enregistrer le schéma comme modèle..."><img src="/fabweb/images/dblist/database_save.png" alt="Modèle" /></button></td>
             <td><button title="Supprimer la base..."><img src="/fabweb/images/dblist/cancel.png" alt="-" /></button></td>
             <td><button>Renommer la base...</button></td>
         </tr>    
@@ -48,7 +48,7 @@
     <submit label="Créer une nouvelle base" />
 </form>
 
-<p style="margin: 3em;"><a href="EditStructure">Editeur de structure</a></p>
+<p style="margin: 3em;"><a href="EditSchema">Editeur de schéma</a></p>
 
 <hr />
 <form action="/DatabaseAdmin/newdatabase" method="get" style="width: 30em;">
@@ -61,7 +61,7 @@
         </loop>
     </fieldset>
     <div class="buttons">
-    <submit label="Modifier la structure..." />
+    <submit label="Modifier le schéma..." />
     <submit label="Enregistrer comme modèle..." />
     <submit label="Supprimer la base..." />
     <submit label="Renommer la base..." />

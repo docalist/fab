@@ -128,7 +128,7 @@ abstract class Database implements ArrayAccess, Iterator
      * 
      * @param string $database alias ou path de la base de données à créer.
      * 
-     * @param DatabaseStructure $structure tableau structure de la base
+     * @param DatabaseSchema $schema tableau le schéma de la base de données
      * 
      * @param string $type type de la base de données à créer. Ignoré si
      * $database désigne un alias (dans ce cas, c'est le type indiqué dans la
@@ -138,15 +138,15 @@ abstract class Database implements ArrayAccess, Iterator
      * options disponibles dépendent du backend utilisée. Chaque backend ignore
      * silencieusement les options qu'il ne reconnait pas ou ne sait pas gérer.
      */
-    final public static function create($database, /* DS DatabaseStructure */ $structure, $type=null, $options=null)
+    final public static function create($database, /* DS DatabaseSchema */ $schema, $type=null, $options=null)
     {
 /* DS
-        // Vérifie que la structure de la base de données est correcte
-        if (true !== $t=$structure->validate())
-            throw new Exception('La structure de base passée en paramètre contient des erreurs : ' . implode('<br />', $t));
+        // Vérifie que le schéma de la base de données est correcte
+        if (true !== $t=$schema->validate())
+            throw new Exception('Le schéma passé en paramètre contient des erreurs : ' . implode('<br />', $t));
 
-        // Compile la structure
-        $structure->compile();
+        // Compile le schéma
+        $schema->compile();
 */        
         // Utilise /config/db.config pour convertir l'alias en chemin et déterminer le type de base
 //        $type=Config::get("db.$database.type", $type);
@@ -161,19 +161,19 @@ abstract class Database implements ArrayAccess, Iterator
             case 'bis':
                 //require_once dirname(__FILE__).'/BisDatabase.php';
                 $db=new BisDatabase();
-                $db->doCreate($database, $structure, $options);
+                $db->doCreate($database, $schema, $options);
                 break;
                 
             case 'xapian':
                 //require_once dirname(__FILE__).'/XapianDatabase.php';
                 $db=new XapianDatabaseDriver();
-                $db->doCreate($database, $structure, $options);
+                $db->doCreate($database, $schema, $options);
                 break;
                 
             case 'xapian2':
                 //require_once dirname(__FILE__).'/XapianDatabase2.php';
                 $db=new XapianDatabaseDriver2();
-                $db->doCreate($database, $structure, $options);
+                $db->doCreate($database, $schema, $options);
                 break;
                 
             default:
@@ -191,24 +191,24 @@ abstract class Database implements ArrayAccess, Iterator
      * 
      * @param string $database alias ou path de la base de données à créer.
      * 
-     * @param DatabaseStructure $structure définition de la structure de la base.
-     * Lorsque cette méthode est appellée, la structure a d'ores et déjà été 
+     * @param DatabaseSchema $schema le schéma de la base de données.
+     * Lorsque cette méthode est appellée, le schéma a d'ores et déjà été 
      * validée et compilée.
      * 
      * @param array $options tableau contenant des options supplémentaires. Les
      * options disponibles dépendent du backend utilisée. Chaque backend ignore
      * silencieusement les options qu'il ne reconnait pas ou ne sait pas gérer.
      */
-    abstract protected function doCreate($database, /* DS DatabaseStructure */ $structure, $options=null);
+    abstract protected function doCreate($database, /* DS DatabaseSchema */ $schema, $options=null);
     
 
     /**
-     * Modifie la structure d'une base de données en lui appliquant une nouvelle
-     * structure.
+     * Modifie la structure d'une base de données en lui appliquant un nouveau
+     * schéma.
      * 
-     * @param DatabaseStructure $newStructure la nouvelle structure de la base.
+     * @param DatabaseSchema $newSchema la nouvelle structure de la base.
      */
-    public function setStructure(DatabaseStructure $newStructure)
+    public function setSchema(DatabaseSchema $newSchema)
     {
         
     }

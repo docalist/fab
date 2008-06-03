@@ -19,12 +19,11 @@ class XapianDatabaseDriver2 extends Database
 {
 
     /**
-     * La structure de la base de données, telle que retournée par 
-     * {@link DatabaseStructure->getStructure()}
+     * Le schéma de la base de données (cf {@link getSchema()}).
      *
-     * @var Object 
+     * @var DatabaseSchema 
      */
-    private $structure=null;
+    private $schema=null;
     
     
     /**
@@ -197,13 +196,13 @@ class XapianDatabaseDriver2 extends Database
     private $defaultOp=null;
     
     /**
-     * Retourne la structure de la base de données
+     * Retourne le schéma de la base de données
      *
-     * @return DatabaseStructure
+     * @return DatabaseSchema
      */
-    public function getStructure()
+    public function getSchema()
     {
-        return unserialize($this->xapianDatabase->get_metadata('fab_structure_php'));
+        return unserialize($this->xapianDatabase->get_metadata('schema_object'));
         //return $this->structure;
     }
     
@@ -215,60 +214,60 @@ class XapianDatabaseDriver2 extends Database
      * Crée une nouvelle base xapian
      *
      * @param string $path le path de la base à créer
-     * @param DatabaseStructure $structure la structure de la base à créer
+     * @param DatabaseSchema $schema le schéma de la base à créer
      * @param array $options options éventuelle, non utilisé
      */
-    protected function doCreate($path, /* DS DatabaseStructure */ $structure, $options=null)
+    protected function doCreate($path, /* DS DatabaseSchema */ $schema, $options=null)
     {
         /* DS A ENLEVER */ 
-        // Vérifie que la structure de la base de données est correcte
-        if (true !== $t=$structure->validate())
-            throw new Exception('La structure de base passée en paramètre contient des erreurs : ' . implode('<br />', $t));
+        // Vérifie que le schéma de la base de données est correcte
+        if (true !== $t=$schema->validate())
+            throw new Exception('Le schéma passé en paramètre contient des erreurs : ' . implode('<br />', $t));
 
-        // Compile la structure
-        $structure->compile();
+        // Compile le schéma
+        $schema->compile();
         
         // Crée la base xapian
         $this->xapianDatabase=new XapianWritableDatabase($path, Xapian::DB_CREATE_OR_OVERWRITE); // todo: remettre à DB_CREATE
         
-        // Enregistre la structure de la base
-        $this->xapianDatabase->set_metadata('fab_structure', $structure->toXml());
-        $this->xapianDatabase->set_metadata('fab_structure_php', serialize($structure));
+        // Enregistre le schema dans la base
+        $this->xapianDatabase->set_metadata('schema', $schema->toXml());
+        $this->xapianDatabase->set_metadata('schema_object', serialize($schema));
 
         // Initialise les propriétés de l'objet
-        $this->structure=$structure;
+        $this->schema=$schema;
         $this->initDatabase(true);
     }
 
     /**
-     * Modifie la structure d'une base de données en lui appliquant la
-     * structure passée en paramêtre.
+     * Modifie la structure d'une base de données en lui appliquant le
+     * schéma passé en paramêtre.
      * 
-     * La fonction se contente d'enregistrer la nouvelle structure dans 
+     * La fonction se contente d'enregistrer le nouveau schéma dans 
      * la base : selon les modifications apportées, il peut être nécessaire
      * ensuite de lancer une réindexation complète (par exemple pour créer les
      * nouveaux index ou pour purger les champs qui ont été supprimés). 
      * 
-     * @param DatabaseStructure $newStructure la nouvelle structure de la base.
+     * @param DatabaseSchema $newSchema le nouveau schéma de la base.
      */
-    public function setStructure(DatabaseStructure $structure)
+    public function setSchema(DatabaseSchema $schema)
     {
         if (! $this->xapianDatabase instanceOf XapianWritableDatabase)
-            throw new LogicException('Impossible de modifier la structure d\'une base ouverte en lecture seule.');
+            throw new LogicException('Impossible de modifier le schéma d\'une base ouverte en lecture seule.');
               
-        // Vérifie que la structure de la base de données est correcte
-        if (true !== $t=$structure->validate())
-            throw new Exception('La structure de base passée en paramètre contient des erreurs : ' . implode('<br />', $t));
+        // Vérifie que le schéma de la base de données est correct
+        if (true !== $t=$schema->validate())
+            throw new Exception('Le schéma passé en paramètre contient des erreurs : ' . implode('<br />', $t));
 
-        // Compile la structure
-        $structure->compile();
+        // Compile le schéma
+        $schema->compile();
         
-        // Enregistre la structure de la base
-        $this->xapianDatabase->set_metadata('fab_structure', $structure->toXml());
-        $this->xapianDatabase->set_metadata('fab_structure_php', serialize($structure));
+        // Enregistre le schéma dans la base
+        $this->xapianDatabase->set_metadata('schema', $schema->toXml());
+        $this->xapianDatabase->set_metadata('schema_object', serialize($schema));
 
         // Initialise les propriétés de l'objet
-        $this->structure=$structure;
+        $this->schema=$schema;
         $this->initDatabase(true);
     }
 
@@ -328,10 +327,10 @@ class XapianDatabaseDriver2 extends Database
 //            echo 'Base ouverte en écriture au bout de ', $i, ' essai(s). Temps total : ', (microtime(true)-$starttime), ' sec.<br />', "\n";
         }
             
-        // Charge la structure de la base
-        $this->structure=unserialize($this->xapianDatabase->get_metadata('fab_structure_php'));
-        if (! $this->structure instanceof DatabaseStructure)
-            throw new Exception("Impossible d'ouvrir la base, structure non gérée'");
+        // Charge le schéma de la base
+        $this->schema=unserialize($this->xapianDatabase->get_metadata('schema_object'));
+        if (! $this->schema instanceof DatabaseSchema)
+            throw new Exception("Impossible d'ouvrir la base, schéma non géré'");
         
         // Initialise les propriétés de l'objet
         $this->initDatabase($readOnly);
@@ -346,40 +345,40 @@ class XapianDatabaseDriver2 extends Database
     private function initDatabase($readOnly=true)
     {
         // Crée le tableau qui contiendra la valeur des champs
-        $this->fields=array_fill_keys(array_keys($this->structure->fields), null);
+        $this->fields=array_fill_keys(array_keys($this->schema->fields), null);
 
         // Crée l'objet DatabaseRecord
-        $this->record=new XapianDatabaseRecord2($this->fields, $this->structure);
+        $this->record=new XapianDatabaseRecord2($this->fields, $this->schema);
         
-        foreach($this->structure->fields as $name=>$field)
+        foreach($this->schema->fields as $name=>$field)
             $this->fieldById[$field->_id]=& $this->fields[$name];
 
-        foreach($this->structure->indices as $name=>&$index) // fixme:
+        foreach($this->schema->indices as $name=>&$index) // fixme:
             $this->indexById[$index->_id]=& $index;
 
-        foreach($this->structure->lookuptables as $name=>&$lookuptable) // fixme:
+        foreach($this->schema->lookuptables as $name=>&$lookuptable) // fixme:
             $this->lookuptableById[$lookuptable->_id]=& $lookuptable;
             
         // Les propriétés qui suivent ne sont initialisées que pour une base en lecture/écriture
 //        if ($readOnly) return;
         
         // Mots vides de la base
-        $this->structure->_stopwords=array_flip(Utils::tokenize($this->structure->stopwords));
+        $this->schema->_stopwords=array_flip(Utils::tokenize($this->schema->stopwords));
 
         // Crée la liste des champs de type AutoNumber + mots-vides des champs
-        foreach($this->structure->fields as $name=>$field)
+        foreach($this->schema->fields as $name=>$field)
         {
             // Champs autonumber
-            if ($field->_type === DatabaseStructure::FIELD_AUTONUMBER)
+            if ($field->_type === DatabaseSchema::FIELD_AUTONUMBER)
                 $this->autoNumberFields[$name]='fab_autonumber_'.$field->_id;
 
             // Mots vides du champ
             if ($field->defaultstopwords)
             {
                 if ($field->stopwords==='')
-                    $field->_stopwords=$this->structure->_stopwords;
+                    $field->_stopwords=$this->schema->_stopwords;
                 else
-                    $field->_stopwords=array_flip(Utils::tokenize($field->stopwords.' '.$this->structure->stopwords));
+                    $field->_stopwords=array_flip(Utils::tokenize($field->stopwords.' '.$this->schema->stopwords));
             }
             else
             {
@@ -501,7 +500,7 @@ class XapianDatabaseDriver2 extends Database
         
         // Edition terminée
         $this->editMode=0;
-//        pre($this->structure);
+//        pre($this->schema);
 //        die('here');
 
         // Retourne le docid du document créé ou modifié
@@ -668,7 +667,7 @@ class XapianDatabaseDriver2 extends Database
 
         // Met à jour chacun des index
         $position=0;
-        foreach ($this->structure->indices as $index)
+        foreach ($this->schema->indices as $index)
         {
             // Détermine le préfixe à utiliser pour cet index
             $prefix=$index->_id.':';
@@ -680,7 +679,7 @@ class XapianDatabaseDriver2 extends Database
                 $data=(array) $this->fields[$name];
 
                 // Initialise la liste des mots-vides à utiliser
-                $stopwords=$this->structure->fields[$name]->_stopwords;
+                $stopwords=$this->schema->fields[$name]->_stopwords;
 
                 // Index chaque article
                 $count=0;
@@ -711,7 +710,7 @@ class XapianDatabaseDriver2 extends Database
                         $this->addTerm($term, $prefix, $field->global, $field->weight, $field->phrases?$position:null);
                         
                         // Correcteur orthographique
-                        if (false && $field->spelling) // fixme: ajouter à la structure
+                        if (false && $field->spelling) // fixme: ajouter au schema
                             $this->xapianDatabase->add_spelling($term);
 
                         // Incrémente la position du terme en cours
@@ -740,7 +739,7 @@ class XapianDatabaseDriver2 extends Database
         }
 
         // Tables de lookup
-        foreach ($this->structure->lookuptables as $lookupTable)
+        foreach ($this->schema->lookuptables as $lookupTable)
         {
             // Détermine le préfixe à utiliser pour cette table
             $prefix='T'.$lookupTable->_id.':';
@@ -752,7 +751,7 @@ class XapianDatabaseDriver2 extends Database
                 $data=(array) $this->fields[$name];
                 
                 // Initialise la liste des mots-vides à utiliser
-                $stopwords=$this->structure->fields[$name]->_stopwords;
+                $stopwords=$this->schema->fields[$name]->_stopwords;
 
                 // Index chaque article
                 $count=0;
@@ -784,7 +783,7 @@ class XapianDatabaseDriver2 extends Database
             
         // Clés de tri
         // FIXME : faire un clear_value avant. Attention : peut vire autre chose que des clés de tri. à voir
-        foreach($this->structure->sortkeys as $sortkeyname=>$sortkey)
+        foreach($this->schema->sortkeys as $sortkeyname=>$sortkey)
         {
             foreach($sortkey->fields as $name=>$field)
             {
@@ -848,7 +847,7 @@ class XapianDatabaseDriver2 extends Database
         $this->xapianQueryParser=new XapianQueryParser();
         
         // Indique au QueryParser la liste des index de base
-        foreach($this->structure->indices as $name=>$index)
+        foreach($this->schema->indices as $name=>$index)
         {
 //            if($index->boolean)
 //                $this->xapianQueryParser->add_boolean_prefix($name, $index->_id.':');
@@ -857,20 +856,20 @@ class XapianDatabaseDriver2 extends Database
         }
         
         // Indique au QueryParser la liste des alias
-        foreach($this->structure->aliases as $aliasName=>$alias)
+        foreach($this->schema->aliases as $aliasName=>$alias)
         {
             foreach($alias->indices as $name=>$index)
             {
 //                if(false)//($name==='date' || $name==='type')
-//                    $this->xapianQueryParser->add_boolean_prefix($aliasName, $this->structure->indices[$name]->_id.':');
+//                    $this->xapianQueryParser->add_boolean_prefix($aliasName, $this->schema->indices[$name]->_id.':');
 //                else
-                    $this->xapianQueryParser->add_prefix($aliasName, $this->structure->indices[$name]->_id.':');
+                    $this->xapianQueryParser->add_prefix($aliasName, $this->schema->indices[$name]->_id.':');
             }
         }
         
         // Initialise le stopper (suppression des mots-vides)
         $this->stopper=new XapianSimpleStopper();
-        foreach ($this->structure->_stopwords as $stopword=>$i)
+        foreach ($this->schema->_stopwords as $stopword=>$i)
             $this->stopper->add($stopword);
         $this->xapianQueryParser->set_stopper($this->stopper); // fixme : stopper ne doit pas être une variable locale, sinon segfault
     
@@ -878,13 +877,13 @@ class XapianDatabaseDriver2 extends Database
         $this->xapianQueryParser->set_database($this->xapianDatabase); // indispensable pour FLAG_WILDCARD
         
         // Expérimental : autorise un value range sur le champ REF s'il existe une clé de tri nommée REF
-        foreach($this->structure->sortkeys as $name=>$sortkey)
+        foreach($this->schema->sortkeys as $name=>$sortkey)
         {
             if (!isset($sortkey->type)) $sortkey->type='string'; // FIXME: juste en attendant que les bases asco soient recréées
             if ($sortkey->type==='string')
             {
                 // todo: xapian ne supporte pas de préfixe pour les stringValueRangeProcessor
-                // $this->vrp=new XapianStringValueRangeProcessor($this->structure->sortkeys['ref']->_id);
+                // $this->vrp=new XapianStringValueRangeProcessor($this->schema->sortkeys['ref']->_id);
             }
             else
             {
@@ -1009,7 +1008,7 @@ class XapianDatabaseDriver2 extends Database
     private function idToName($matches)
     {
         $id=(int)$matches[1];
-        foreach($this->structure->indices as $index)
+        foreach($this->schema->indices as $index)
             if ($index->_id===$id) return $index->name.'=';
         return $matches[1];
     }
@@ -1018,7 +1017,7 @@ class XapianDatabaseDriver2 extends Database
 
   AMELIORATIONS A APPORTER AU SYSTEME DE RECHERCHE, REFLEXION 21/12/2007
 
-- Dans la structure de la base (DatabaseStructure, DbEdit) ajouter pour
+- Dans le schéma de la base (DatabaseSchema, DbEdit) ajouter pour
   chaque index (que ce soit un vrai index ou un alias) une propriété
   "type d'index" qui peut prendre les valeurs "index probablistique" ou
   "filtre".
@@ -1274,11 +1273,11 @@ class XapianDatabaseDriver2 extends Database
 
                     // Vérifie que la clé de tri existe dans la base
                     $key=strtolower($key);
-                    if (! isset($this->structure->sortkeys[$key]))
+                    if (! isset($this->schema->sortkeys[$key]))
                         throw new Exception('Impossible de trier par : ' . $key);
                     
                     // Récupère l'id de la clé de tri (= le value slot number à utiliser)
-                    $id=$this->structure->sortkeys[$key]->_id;
+                    $id=$this->schema->sortkeys[$key]->_id;
                     
                     // Trie sur cette valeur
                     $this->xapianEnquire->set_sort_by_value($id, !$forward);
@@ -1343,11 +1342,11 @@ class XapianDatabaseDriver2 extends Database
                         
                         // Vérifie que la clé de tri existe dans la base
                         $key=strtolower($key);
-                        if (! isset($this->structure->sortkeys[$key]))
+                        if (! isset($this->schema->sortkeys[$key]))
                             throw new Exception('Impossible de trier par : ' . $key);
                         
                         // Récupère l'id de la clé de tri (= le value slot number à utiliser)
-                        $id=$this->structure->sortkeys[$key]->_id;
+                        $id=$this->schema->sortkeys[$key]->_id;
 
                         // Ajoute cette clé au sorter
                         $this->sorter->add($id, $forward);
@@ -1383,9 +1382,9 @@ class XapianDatabaseDriver2 extends Database
         if ($table)
         {
             $key=Utils::ConvertString($table, 'alphanum');
-            if (!isset($this->structure->lookuptables[$key]))
+            if (!isset($this->schema->lookuptables[$key]))
                 throw new Exception("La table de lookup '$table' n'existe pas");
-            $prefix='T' . $this->structure->lookuptables[$key]->_id . ':';
+            $prefix='T' . $this->schema->lookuptables[$key]->_id . ':';
         }
 
         $rset=new XapianRset();
@@ -1454,8 +1453,8 @@ class XapianDatabaseDriver2 extends Database
         if (is_null($this->xapianDocument))
             throw new Exception('Pas de document courant');
           
-//        $indexName=array_flip($this->structure['index']);
-//        $entryName=array_flip($this->structure['entries']);
+//        $indexName=array_flip($this->schema['index']);
+//        $entryName=array_flip($this->schema['entries']);
           
         $result=array();
         
@@ -1834,9 +1833,9 @@ class XapianDatabaseDriver2 extends Database
             '                                                0123456789      @abcdefghijklmnopqrstuvwxyz      abcdefghijklmnopqrstuvwxyz                                                                     aaaaaaaceeeeiiiidnooooo 0uuuuy saaaaaaaceeeeiiiidnooooo  uuuuyby';
 
         $key=Utils::ConvertString($table, 'alphanum');
-        if (!isset($this->structure->lookuptables[$key]))
+        if (!isset($this->schema->lookuptables[$key]))
             throw new Exception("La table de lookup '$table' n'existe pas");
-        $prefix='T' . $this->structure->lookuptables[$key]->_id . ':';
+        $prefix='T' . $this->schema->lookuptables[$key]->_id . ':';
         
         $begin=$this->xapianDatabase->allterms_begin();
         $end=$this->xapianDatabase->allterms_end();
@@ -1993,7 +1992,7 @@ class XapianDatabaseDriver2 extends Database
             throw new Exception("Le répertoire $pathTmp contient déjà des données (réindexation précédente interrompue ?). Examinez et videz ce répertoire puis relancez la réindexation.");
 
         // Crée la nouvelle base dans './tmp'
-        $tmp=Database::create($pathTmp, $this->getStructure(), 'xapian2');
+        $tmp=Database::create($pathTmp, $this->getSchema(), 'xapian2');
         
         // Crée le répertoire 'old' s'il n'existe pas déjà
         $pathOld=$path.DIRECTORY_SEPARATOR.'old';
@@ -2316,7 +2315,7 @@ class XapianDatabaseRecord2 extends DatabaseRecord
      */
     private $fields=null;
     
-    private $structure=null;
+    private $schema=null;
     
     /**
      * Lors d'un parcours séquentiel, numéro de l'élément de tableau
@@ -2332,10 +2331,10 @@ class XapianDatabaseRecord2 extends DatabaseRecord
      * 
      * @param Array $fields la liste des champs de la base
      */
-    public function __construct(& $fields, DatabaseStructure $structure)
+    public function __construct(& $fields, DatabaseSchema $schema)
     {
         $this->fields= & $fields;
-        $this->structure= $structure;
+        $this->schema= $schema;
     }
 
     /* <ArrayAccess> */
@@ -2352,10 +2351,10 @@ class XapianDatabaseRecord2 extends DatabaseRecord
             throw new DatabaseFieldNotFoundException($offset);
             
         // Vérifie que la valeur concorde avec le type du champ
-        switch ($this->structure->fields[$key]->_type)
+        switch ($this->schema->fields[$key]->_type)
         {
-            case DatabaseStructure::FIELD_AUTONUMBER:
-            case DatabaseStructure::FIELD_INT:
+            case DatabaseSchema::FIELD_AUTONUMBER:
+            case DatabaseSchema::FIELD_INT:
                 /*
                  * Valeurs stockées telles quelles :
                  *      null -> null
@@ -2379,9 +2378,9 @@ class XapianDatabaseRecord2 extends DatabaseRecord
                     $value=null; 
                     break;
                 }
-                throw new DatabaseFieldTypeMismatch($offset, $this->structure->fields[$key]->type, $value);
+                throw new DatabaseFieldTypeMismatch($offset, $this->schema->fields[$key]->type, $value);
                 
-            case DatabaseStructure::FIELD_BOOL:
+            case DatabaseSchema::FIELD_BOOL:
                 /*
                  * Valeurs stockées telles quelles :
                  *      null -> null
@@ -2405,7 +2404,7 @@ class XapianDatabaseRecord2 extends DatabaseRecord
                         $value=(bool) $value;
                         break;
                     }
-                    throw new DatabaseFieldTypeMismatch($offset, $this->structure->fields[$key]->type, $value);
+                    throw new DatabaseFieldTypeMismatch($offset, $this->schema->fields[$key]->type, $value);
                 }
                 if (is_string($value))
                 { 
@@ -2429,9 +2428,9 @@ class XapianDatabaseRecord2 extends DatabaseRecord
                             break 2;
                     }
                 }
-                throw new DatabaseFieldTypeMismatch($offset, $this->structure->fields[$key]->type, $value);
+                throw new DatabaseFieldTypeMismatch($offset, $this->schema->fields[$key]->type, $value);
                 
-            case DatabaseStructure::FIELD_TEXT:
+            case DatabaseSchema::FIELD_TEXT:
                 if (is_null($value) || is_string($value)) break;
                 if (is_scalar($value))
                 {
@@ -2442,7 +2441,7 @@ class XapianDatabaseRecord2 extends DatabaseRecord
                         break;
                     }
                 }
-                throw new DatabaseFieldTypeMismatch($offset, $this->structure->fields[$key]->type, $value);
+                throw new DatabaseFieldTypeMismatch($offset, $this->schema->fields[$key]->type, $value);
                 break;
         }
         
@@ -2493,7 +2492,7 @@ class XapianDatabaseRecord2 extends DatabaseRecord
 
     public function key()
     {
-        return $this->structure->fields[key($this->fields)]->name;
+        return $this->schema->fields[key($this->fields)]->name;
         /*
          * On ne retourne pas directement key(fields) car sinon on récupère
          * un nom en minu sans accents qui sera ensuite utilisé dans les boucles,
@@ -2501,7 +2500,7 @@ class XapianDatabaseRecord2 extends DatabaseRecord
          * Si un callback a le moindre test du style if($name='Aut'), cela ne marchera
          * plus. 
          * On fait donc une indirection pour retourner comme clé le nom exact du
-         * champ tel que saisi par l'utilisateur dans la structure de la base.
+         * champ tel que saisi par l'utilisateur dans le schéma.
          */ 
     }
 

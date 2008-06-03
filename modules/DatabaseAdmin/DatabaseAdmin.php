@@ -93,10 +93,10 @@ class DatabaseAdmin extends Module
     }
     
     /**
-     * Construit la liste des modèles de structure de bases de données disponibles
+     * Construit la liste des schémas disponibles
      *
-     * @return array(DatabaseStructure) un tableau contenant la structure de
-     * chacun des modèles disponibles
+     * @return array(DatabaseSchema) un tableau contenant tous les schémas 
+     * disponibles.
      */
     private static function getTemplates()
     {
@@ -105,7 +105,7 @@ class DatabaseAdmin extends Module
         // Construit la liste
         foreach(array(Runtime::$fabRoot, Runtime::$root) as $path)
         {
-            $path.='data/DatabaseTemplates/';
+            $path.='data/schemas/';
             if (false === $files=glob($path.'*.xml')) continue;
 
             foreach($files as $file)
@@ -113,7 +113,7 @@ class DatabaseAdmin extends Module
                 try
                 {
                     $name=basename($file);
-                    $templates[basename($file)]=new DatabaseStructure(file_get_contents($file));
+                    $templates[basename($file)]=new DatabaseSchema(file_get_contents($file));
                 }
                 catch(Exception $e)
                 {
@@ -133,17 +133,18 @@ class DatabaseAdmin extends Module
      * Crée une nouvelle base de données
      * 
      * - aucun paramètre : affiche un formulaire "saisie du nom, choix du template"
-     * - les deux : crée la base, redirige vers EditStructure?type=db&name=xxx
+     * - les deux : crée la base, redirige vers EditSchema?type=db&name=xxx
      * 
      * @param string name le nom de la base de données à créer
-     * @param string def le nom du modèle de structure de base de données
+     * @param string def le nom du schéma contenant la structure de la base de 
+     * données à créer
      * 
      * @throws Exception s'il existe déjà une base de données ayant le nom
      * indiqué ou si le template spécifié n'existe pas
      */
     public function actionNewDatabase()
     {
-        $dir='data/DatabaseTemplates/';
+        $dir='data/schemas/';
         $fabDir=Runtime::$fabRoot.$dir;
         $appDir=Runtime::$root.$dir;
         
@@ -170,7 +171,7 @@ class DatabaseAdmin extends Module
                 $errors[]='Impossible de trouver le modèle indiqué';
             else
             {
-                $dbs=new DatabaseStructure(file_get_contents($template));
+                $dbs=new DatabaseSchema(file_get_contents($template));
             }
             
             // Aucune erreur : crée la base
@@ -214,31 +215,31 @@ class DatabaseAdmin extends Module
         );
     }
     
-    public function actionSetStructure($database, $structure, $confirm=false)
+    public function actionSetSchema($database, $schema, $confirm=false)
     {
-        // Détermine le path exact de la structure indiquée
-        $structure=Utils::defaultExtension($structure, '.xml');
+        // Détermine le path exact du schéma indiqué
+        $schema=Utils::defaultExtension($schema, '.xml');
         $path=Utils::searchFile
         (
-            'data/DatabaseTemplates/' . $structure,
+            'data/schemas/' . $schema,
             Runtime::$root, 
             Runtime::$fabRoot
         );
         
         if ($path === false)
-            throw new Exception("Impossible de trouver le modèle de structure $structure");
+            throw new Exception("Impossible de trouver le schéma indiqué : $schema");
             
-        // Charge la structure
-        $newDbs=new DatabaseStructure(file_get_contents($path));
+        // Charge le schéma
+        $newDbs=new DatabaseSchema(file_get_contents($path));
         
-        // Ouvre la base de données et récupère la structure actuelle de la base
+        // Ouvre la base de données et récupère le schéma actuel de la base
         $this->selection=Database::open($database, !$confirm); // confirm=false -> readonly=true, confirm=true->readonly=false
-        $oldDbs=$this->selection->getStructure();
+        $oldDbs=$this->selection->getSchema();
         
-        // Compare l'ancienne et la nouvelle structure
+        // Compare l'ancien et la nouveau schémas
         $changes=$newDbs->compare($oldDbs);
 
-        // variables utilitaires pour avoir de liens sur le nom de la base et de la structure
+        // variables utilitaires pour avoir des liens sur le nom de la base et du schéma
         $linkDatabase=sprintf
         (
             '<a href="%s" title="%s"><strong>%s</strong></a>',
@@ -246,18 +247,18 @@ class DatabaseAdmin extends Module
             'Inspecter...', 
             $database
         );
-        $linkStructure=sprintf
+        $linkSchema=sprintf
         (
             '<a href="%s" title="%s"><strong>%s</strong></a>',
-            Routing::linkFor('/DatabaseAdmin/EditStructure?template=' . $structure), 
+            Routing::linkFor('/DatabaseAdmin/EditSchema?template=' . $schema), 
             'Editer...', 
-            $structure
+            $schema
         );
         
         // Affiche une erreur si aucune modification n'a été apportée
         if (count($changes)===0)
         {
-            echo "<p>La base de données $linkDatabase et le modèle $linkStructure",
+            echo "<p>La base de données $linkDatabase et le modèle $linkSchema",
                  ' ont la même structure, aucune modification n\'est nécessaire.</p>';
             return;
         }
@@ -273,10 +274,10 @@ class DatabaseAdmin extends Module
                 (
                     'confirm'=>$confirm, 
                     'database'=>$database, 
-                    'structure'=>$structure, 
+                    'schema'=>$schema, 
                     'changes'=>$changes,
                     'linkDatabase'=>$linkDatabase,
-                    'linkStructure'=>$linkStructure
+                    'linkSchema'=>$linkSchema
                 )
             );
             
@@ -284,7 +285,7 @@ class DatabaseAdmin extends Module
         }
         
         // Applique la nouvelle structure à la base
-        $this->selection->setStructure($newDbs);
+        $this->selection->setSchema($newDbs);
         
         // Affiche le résultat et propose (éventuellement) de réindexer
         Template::run
@@ -294,10 +295,10 @@ class DatabaseAdmin extends Module
             (
                 'confirm'=>$confirm, 
                 'database'=>$database, 
-                'structure'=>$structure, 
+                'schema'=>$schema, 
                 'changes'=>$changes,
                 'linkDatabase'=>$linkDatabase,
-                'linkStructure'=>$linkStructure
+                'linkSchema'=>$linkSchema
             )
         );
     }
@@ -306,15 +307,15 @@ class DatabaseAdmin extends Module
     {
         //header('content-type: text/plain;charset=ISO-8859-1;');
         
-        $dir=Runtime::$root . 'data/DatabaseTemplates/';
+        $dir=Runtime::$root . 'data/schemas/';
         
         $old=Utils::defaultExtension($old, '.xml');
         $new=Utils::defaultExtension($new, '.xml');
         
-        echo '<h1>Comparaison des structures ', $old, ' et ', $new, '</h1>';
+        echo '<h1>Comparaison des schémas ', $old, ' et ', $new, '</h1>';
         
-        $old=new DatabaseStructure(file_get_contents($dir.$old));
-        $new=new DatabaseStructure(file_get_contents($dir.$new));
+        $old=new DatabaseSchema(file_get_contents($dir.$old));
+        $new=new DatabaseSchema(file_get_contents($dir.$new));
         
         $changes=$new->compare($old);
         
@@ -351,13 +352,13 @@ class DatabaseAdmin extends Module
     }
     
     /**
-     * Crée ou édite un fichier modèle de structure de base de données
+     * Crée ou édite un schéma
      *
      * @return unknown
      */
-    public function actionEditStructure($template='', $new=false)
+    public function actionEditSchema($template='', $new=false)
     {
-        $dir='data/DatabaseTemplates/';
+        $dir='data/schemas/';
         $fabDir=Runtime::$fabRoot.$dir;
         $appDir=Runtime::$root.$dir;
 
@@ -373,14 +374,14 @@ class DatabaseAdmin extends Module
                 $template=Utils::defaultExtension($template, '.xml');
                 if (file_exists($appDir.$template))
                 {
-                    $errors[]="Il existe déjà un modèle de structure de base de données portant ce nom : '" . $template . '"';
+                    $errors[]="Il existe déjà un schéma portant ce nom : '" . $template . '"';
                 }
                 else
                 {
-                    $dbs=new DatabaseStructure();
+                    $dbs=new DatabaseSchema();
                     file_put_contents($appDir.$template,$dbs->toXml());
                 }
-                $title='Création du modèle de structure '.$template;
+                $title='Création du schéma '.$template;
             }
             
             // Cas 2 : édition d'un modèle existant
@@ -389,7 +390,7 @@ class DatabaseAdmin extends Module
                 // Cas 2.1 : on édite un modèle de l'application
                 if (file_exists($appDir.$template))
                 {
-                    $dbs=new DatabaseStructure(file_get_contents($appDir.$template));
+                    $dbs=new DatabaseSchema(file_get_contents($appDir.$template));
                 }
     
                 else
@@ -397,7 +398,7 @@ class DatabaseAdmin extends Module
                     // Cas 2.2 : c'est un template de fab, on le recopie dans app
                     if (file_exists($fabDir.$template))
                     {
-                        $dbs=new DatabaseStructure(file_get_contents($fabDir.$template));
+                        $dbs=new DatabaseSchema(file_get_contents($fabDir.$template));
                         file_put_contents($appDir.$template,$dbs->toXml());
                     }
                     else
@@ -405,7 +406,7 @@ class DatabaseAdmin extends Module
                         $errors[]='Le fichier indiqué n\'existe pas : "' . $template . '"';
                     }
                 }
-                $title='Modification du modèle de structure '.$template;
+                $title='Modification du schéma '.$template;
             }
         }
                 
@@ -414,7 +415,7 @@ class DatabaseAdmin extends Module
         {
             return Template::run
             (
-                'DatabaseTemplates.html',
+                'schemas.html',
                 array
                 (
                     'templates'=>self::getTemplates(),
@@ -424,17 +425,17 @@ class DatabaseAdmin extends Module
             );
         }
         
-        // Redresse la structure de la base, ignore les éventuelles erreurs
+        // Valide et redresse le schéma, ignore les éventuelles erreurs
         $dbs->validate();
 
-        // Charge la structure dans l'éditeur
+        // Charge le schéma dans l'éditeur
         Template::run
         (
             'dbedit.html',
             array
             (
-                'structure'=>$dbs->toJson(), // hum.... envoie de l'utf-8 dans une page html déclarée en iso-8859-1...
-                'saveUrl'=>'SaveStructure',
+                'schema'=>$dbs->toJson(), // hum.... envoie de l'utf-8 dans une page html déclarée en iso-8859-1...
+                'saveUrl'=>'SaveSchema',
                 'saveParams'=>"{template:'$template'}",
                 'title'=>$title
             )
@@ -442,31 +443,31 @@ class DatabaseAdmin extends Module
     }
     
     /**
-     * Vérifie et sauvegarde la structure d'une base de données.
+     * Vérifie et sauvegarde le schéma.
      * 
-     * Cette action permet d'enregistrer une structure de base de données 
-     * modifiée avec l'éditeur de structure.
+     * Cette action permet d'enregistrer un schéma modifié avec l'éditeur de 
+     * structure.
      * 
-     * Elle commence par valider la structure passée en paramètre. Si des 
+     * Elle commence par valider le schéma passé en paramètre. Si des 
      * erreurs sont détectées, une réponse au format JSON est générée. Cette
      * réponse contient un tableau contenant la liste des erreurs rencontrées.
-     * La réponse sera interprétée par l'éditeur de structure qui affiche la
+     * La réponse sera interprétée par l'éditeur de schéma qui affiche la
      * liste des erreurs à l'utilisateur.
      * 
-     * Si aucune erreur n'a été détectée, la structure va être enregistrée.
-     * L'endroit où la structure va être enregistrée va être déterminé par les
+     * Si aucune erreur n'a été détectée, le schéma va être enregistré.
+     * L'endroit où le schéma va être enregistrée va être déterminé par les
      * variables passées en paramètre. Pour éviter de faire apparaître des 
      * path complets dans les url (ce qui présenterait un risque de sécurité),
      * la destination est déterminée par deux variables (type et name) qui sont 
-     * détaillées ci-dessous. Une fois la nouvelle structure enregistrée, une
+     * détaillées ci-dessous. Une fois le nouveau schéma enregistré, une
      * chaine de caractères au format JSON est retournée à l'éditeur. Elle 
      * indique l'url vers laquelle l'utilisateur va être redirigé. 
      * 
-     * @param string json une chaine de caractères au format JSON contenant la
-     * structure de base de données à valider et à enregistrer.
+     * @param string json une chaine de caractères au format JSON contenant le
+     * schéma à valider et à enregistrer.
      * 
-     * @param string type le type du fichier dans lequel la structure sera 
-     * enregistrée si elle est correcte. 
+     * @param string type le type du fichier dans lequel le schéma sera 
+     * enregistré si il est correct. 
      * 
      * Type peut prendre les valeurs suivantes :
      * <li>'fab' : un modèle de fab</li>
@@ -475,13 +476,13 @@ class DatabaseAdmin extends Module
      * @param string name le nom du fichier dans lequel le modèle sera enregistré. 
      *
      */
-    public function actionSaveStructure()
+    public function actionSaveSchema()
     {
-        $json=Utils::get($_POST['structure']);
+        $json=Utils::get($_POST['schema']);
         
-        $dbs=new DatabaseStructure($json);
+        $dbs=new DatabaseSchema($json);
         
-        // Valide la structure et détecte les erreurs éventuelles
+        // Valide le schéma et détecte les erreurs éventuelles
         $result=$dbs->validate();
         
         // S'il y a des erreurs, retourne un tableau JSON contenant la liste
@@ -492,14 +493,14 @@ class DatabaseAdmin extends Module
             return;
         }
         
-        // Compile la structure (attribution des ID, etc.)
+        // Compile le schéma (attribution des ID, etc.)
         $dbs->compile();
         
         // Met à jour la date de dernière modification (et de création éventuellement)
         $dbs->setLastUpdate();
         
-        // Aucune erreur : sauvegarde la structure
-        $dir='data/DatabaseTemplates/';
+        // Aucune erreur : sauvegarde le schéma
+        $dir='data/schemas/';
         $fabDir=Runtime::$fabRoot.$dir;
         $appDir=Runtime::$root.$dir;
             
@@ -510,12 +511,12 @@ class DatabaseAdmin extends Module
         if (!file_exists($appDir.$template))
             throw new Exception('Le fichier indiqué n\'existe pas');
         
-        // Enregistre la structure
+        // Enregistre le schéma
         file_put_contents($appDir.$template, $dbs->toXml());
         
         // Retourne l'url vers laquelle on redirige l'utilisateur
         header('Content-type: application/json; charset=iso-8859-1');
-        echo json_encode('EditStructure');
+        echo json_encode('EditSchema');
     }
 
 
@@ -529,7 +530,7 @@ class DatabaseAdmin extends Module
         echo 'Création de la base xapian dans ', DB_PATH, '<br />';
 //        $xapianDb=Database::open(DB_PATH, false);
 
-        $dbs=new DatabaseStructure(file_get_contents(Runtime::$root . 'data/DatabaseTemplates/ascodocpsy.xml'));
+        $dbs=new DatabaseSchema(file_get_contents(Runtime::$root . 'data/schemas/ascodocpsy.xml'));
         $xapianDb=Database::create(DB_PATH, $dbs, 'xapian2');
         
         
@@ -671,7 +672,7 @@ class DatabaseAdmin extends Module
      * @param string $database le nom de la base à réindexer
      * @param boolean $confirm le flag de confirmation
      */
-    public function actionReindex($database, $confirm=false)
+    public function NUactionReindex($database, $confirm=false)
     {
         // Si on est en ligne de commande, lance la réindexation proprement dite
         if (User::hasAccess('cli'))

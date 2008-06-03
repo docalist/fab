@@ -1,9 +1,9 @@
 <if test="$confirm">
-    <h1>La structure de la base $database a été modifiée.</h1>
+    <h1>Le schéma $linkSchema a été enregistré dans la base $database.</h1>
     
     <p>
-        La base $linkDatabase a maintenant la structure définie dans le modèle
-        $linkStructure.
+        La base $linkDatabase a maintenant la structure définie dans le schéma
+        $linkSchema.
     </p>
     
     <def name="level" value="{max($changes)}" />
@@ -71,11 +71,11 @@
         color: #fff;
     \}
     </style>
-    <h1>Modification de la structure de la base $database</h1>
+    <h1>Modification du schéma de la base $database</h1>
     
     <p>
-        Vous allez remplacer la structure actuelle de la base de données 
-        $linkDatabase par la structure définie dans le modèle $linkStructure. 
+        Vous allez remplacer le schéma actuel de la base de données 
+        $linkDatabase par la structure définie dans le modèle $linkSchema. 
     </p>
     
     <p>
@@ -90,7 +90,7 @@
     
     <table id="changes">
         <tr>
-            <th>Modification apportée à la structure</th>
+            <th>Modification apportée au schéma</th>
             <th>Ré-indexation</th>
         </tr>
         <loop on="$changes" as="$change,$level">
@@ -131,10 +131,10 @@
      
      <p>Voulez-vous modifier la structure de la base $linkDatabase ?</p>
     <form>
-        <button>Modifier la structure de la base</button>
+        <button>Appliquer le nouveau schéma</button>
         <button onclick="history.back(); return false;">Annuler</button>
         <hidden name="database" value="$database" />
-        <hidden name="structure" value="$structure" />
+        <hidden name="schema" value="$schema" />
         <hidden name="confirm" value="true" />
     </form>
 </else>

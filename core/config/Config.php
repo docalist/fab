@@ -386,7 +386,7 @@ class Config
 
             Cela fonctionne, mais il subsiste dans la config des clés précédées
             d'un slash qui ne devrait pas apparaître (par exemple dans la config
-            de l'action EditStructure de DatabaseAdmin). Dans la pratique, ce 
+            de l'action EditSchema de DatabaseAdmin). Dans la pratique, ce 
             n'est pas forcément génant parce que la config finale de premier 
             niveau n'a pas de slash, donc ça marche.
 

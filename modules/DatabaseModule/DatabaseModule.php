@@ -72,7 +72,7 @@ class DatabaseModule extends Module
      */
     public function actionSearchForm()
     {        
-        // Ouvre la base de données : permet au formulaire de recherche de consulter la structure
+        // Ouvre la base de données : permet au formulaire de recherche de consulter le schéma
         $this->openDatabase();
         
         // Détermine le template à utiliser
@@ -1035,11 +1035,11 @@ class DatabaseModule extends Module
         if ($equation !=='') $equation='(' . $equation . ')';
         
         // Combine en OU tous les paramètres qui sont des noms d'index/alias et combine en ET avec l'équation précédente
-        $structure=$this->selection->getStructure();
+        $schema=$this->selection->getSchema();
         foreach($this->request->getParameters() as $name=>$value)
         {
             if (is_null($value) || $value==='') continue;
-            if (isset($structure->indices[strtolower($name)]) || isset($structure->aliases[strtolower($name)]))
+            if (isset($schema->indices[strtolower($name)]) || isset($schema->aliases[strtolower($name)]))
             {
                 $h='';
                 $addBrackets=false;

@@ -47,7 +47,7 @@ class DatabaseInspector extends DatabaseModule
     
     public function guessLookupTable($indexOrAlias)
     {
-        $dbs=$this->selection->getStructure();
+        $dbs=$this->selection->getSchema();
         $bestnb=0;
         $besttable='';
         

@@ -2,7 +2,7 @@
 
 <h1>{Config::get('title')} - recherche dans la base $database</h1>
 
-<form action="search" method="GET">
+<form action="Search" method="GET">
     <hidden name="database" value="$database" />
 
     <p class="toolbar" style="text-align: right; margin: 0;">
@@ -22,7 +22,7 @@
     <fieldset id="aliases" style="display: none">
         <legend>Liste des alias</legend>
         
-        <loop on="{$this->selection->getStructure()->aliases}" as="$alias">
+        <loop on="{$this->selection->getSchema()->aliases}" as="$alias">
             
             <def name="lookup" value="{$this->guessLookupTable($alias)}" />
             
@@ -50,7 +50,7 @@
     <fieldset id="indices" style="display: none">
         <legend>Liste des index</legend>
         
-        <loop on="{$this->selection->getStructure()->indices}" as="$index">
+        <loop on="{$this->selection->getSchema()->indices}" as="$index">
             <def name="lookup" value="{$this->guessLookupTable($index)}" />
             
             <div style="margin-bottom: 1em;">

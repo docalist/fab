@@ -45,6 +45,23 @@ class Tools extends Module
         phpinfo();
     }
 
+    public function actionSetSchema($db, $schema)
+    {
+        require_once Runtime::$fabRoot . 'lib/xapian/xapian.php';
+        
+        $schema=new DatabaseSchema(file_get_contents($schema));
+        $schema->compile();
+
+        $db=new XapianWritableDatabase($db, Xapian::DB_OPEN);
+        
+        $db->set_metadata('fab_structure', '');
+        $db->set_metadata('fab_structure_php', '');
+        
+        $db->set_metadata('schema', $schema->toXml());
+        $db->set_metadata('schema_object', serialize($schema));
+        
+        
+    }
 }
 
 ?>
