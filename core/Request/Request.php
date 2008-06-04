@@ -112,7 +112,13 @@ class Request
      */
     public static function create(array $parameters=array())
     {
-        return new self($parameters);
+        $request=new Request();
+        $args=func_get_args();
+        foreach($args as $arg)
+        {
+            $request->addParameters($arg);
+        }
+        return $request;
     }
     
     /**
