@@ -299,7 +299,7 @@ class TemplateCompiler
         foreach((array)$files as $file)
         {
             if (false === $path=Utils::searchFile($file))
-                throw new Exception("Impossible de trouver le fichier include $file spécifié dans la config, searchPath=".var_export(Utils::$searchPath));
+                throw new Exception("Impossible de trouver le fichier include $file spécifié dans la config, searchPath=".var_export(Utils::$searchPath,true));
 //            debug && Debug::log('Concaténation du fichier include %s au source du template.file=%s, searchpath=%s', $path, $file, print_r(Utils::$searchPath, true));
             $include=file_get_contents($path);
             // Supprime les commentaires en syntaxe C présents dans le include
