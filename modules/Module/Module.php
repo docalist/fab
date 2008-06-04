@@ -13,7 +13,7 @@
  * @package     fab
  * @subpackage  module
  */
-class Module
+abstract class Module
 {
     public $path;
     public $module;
@@ -374,6 +374,15 @@ Config::addArray($this->config);    // fixme: objectif : uniquement $this->confi
     public static function run(Request $request)
     {
         self::runAs($request, $request->getModule(), $request->getAction());
+    }
+    
+    public static function getModuleFor(Request $request)
+    {
+        Utils::clearSearchPath();
+        $module=self::loadModule($request->getModule());
+        $module->configureAction($request->getAction());
+        $module->request=$request;
+        return $module;
     }
     
     public static function runAs(Request $request, $module, $action)
