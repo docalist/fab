@@ -1729,5 +1729,45 @@ final class Utils
     {
         return str_replace('.', '', $matches[0]);
     }
+    
+    /**
+     * Retourne le type mime du fichier dont le nom est passé en
+     * paramètre en se basant sur l'extension.
+     *
+     * Retourne un type mime générique si l'extension est absente ou
+     * n'est pas reconnue.
+     * 
+     * @param string $path
+     * @return string
+     */
+    public static function mimeType($path)
+    {
+        // types mimes autorisés pour le site fab
+        $mimes=array
+        (
+            '.htm'      => 'text/html',
+            '.html'     => 'text/html',
+            
+            '.gif'      => 'image/gif',
+            '.jpg'      => 'image/jpeg',
+            '.png'      =>  'image/png',
+                       
+            '.css'      =>  'text/css',
+            
+            '.js'       =>  'application/x-javascript',
+        
+            '.php'      =>  'text/plain',
+            '.txt'      =>  'text/plain',
+        
+            '.xml'      =>  'text/xml',
+            '.config'   =>  'text/xml',
+        );
+        
+        $extension=strtolower(Utils::getExtension($path));
+        if (isset($mimes[$extension]))
+            return $mimes[$extension];
+            
+        return 'application/octet-stream';
+    }
 }
 ?>
