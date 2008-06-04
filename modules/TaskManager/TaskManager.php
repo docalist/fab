@@ -1055,8 +1055,7 @@ class TaskManager extends DatabaseModule
             if (! is_null($repeat))
                 $task->setRepeat($repeat);
                 
-            $request=new Request();
-            $request
+            $request=Request::create()
                 ->setModule('TaskManager')
                 ->setAction('TestTask');
             if (! is_null($parameters))

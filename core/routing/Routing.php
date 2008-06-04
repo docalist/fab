@@ -196,8 +196,7 @@ class Routing
             throw new Exception('Route not found');
 
         // Crée et initialise un nouvel objet Request
-        $request=new Request($_GET, $_POST, $route['args']);
-        $request
+        $request = Request::create($_GET, $_POST, $route['args'])
             ->setModule($route['module'])
             ->setAction($route['action']);
         

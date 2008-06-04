@@ -306,10 +306,9 @@ class ImportModule extends DatabaseModule
         if (! is_null($firstRef) && ! is_null($lastRef))
         {
             // Crée la requête
-            $request=new Request();
             $equation="REF:$firstRef";
             $equation.=$lastRef!==0 ? "..$lastRef" : '';
-            $request->setModule('DedupModule')->setAction('Dedup')->set('_equation',$equation);
+            $request=Request::create()->setModule('DedupModule')->setAction('Dedup')->set('_equation',$equation);
             
             // Titre de la tâche
             $label='Dédoublonnage ';

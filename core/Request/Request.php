@@ -77,16 +77,6 @@ class Request
     private $_check;
 
     /**
-     * Clone la requête en cours
-     *
-     * @return Request
-     */
-    public function copy()
-    {
-        return clone $this;
-    }
-
-    /**
      * Construit un nouvel objet Request avec les paramètres indiqués.
      * 
      * Des paramètres supplémentaires peuvent être ajoutés à la requête
@@ -107,6 +97,34 @@ class Request
         }
     }
     
+    /**
+     * Méthode statique permettant de créer un nouvel objet Request avec les 
+     * paramètres indiqués.
+     * 
+     * Php ne permet pas de chainer des méthodes après un appel à new :
+     * <code>$request=new Request()->setAction('/');</code> génère une erreur.
+     * 
+     * La méthode statique create permet de contourner le problème en écrivant :
+     * <code>$request=Request::create()->setAction('/');</code>
+     * 
+     * @param array $parameters ... des tableaux contenant les paramètres 
+     * initiaux de la requête.
+     */
+    public static function create(array $parameters=array())
+    {
+        return new self($parameters);
+    }
+    
+    /**
+     * Clone la requête en cours
+     *
+     * @return Request
+     */
+    public function copy()
+    {
+        return clone $this;
+    }
+
     /**
      * Ajoute un tableau de paramètres à la requête
      *
