@@ -107,8 +107,9 @@ class ExceptionManager extends Module
             // Fait en sorte que les templates soient recherchés par rapport à notre searchpath
             // et non pas par rapport au searchpath du module qui a généré l'exception
             // Inutile de sauvegarder le précédent : l'exécution va se terminer juste après
-            Utils::$searchPath=$this->searchPath;
-            
+            foreach($this->searchPath as $path)
+                Utils::addSearchPath($path);
+                
             // Recherche le path exact du template par rapport à notre searchPath
             if (false === $path=Utils::searchFile($template)) $path=$template;
             
