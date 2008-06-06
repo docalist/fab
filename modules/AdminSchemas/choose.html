@@ -1,0 +1,26 @@
+<!-- Path des images utilisées -->
+<def name="icons" value="/FabWeb/modules/AdminSchemas/images" />
+<def name="adminFiles" value="/FabWeb/modules/AdminFiles/images" />
+
+<def name="schemas" value="{AdminSchemas::getSchemas($fab)}" />
+
+<if test="$schemas">
+    <bigmenu>
+        <loop on="$schemas" as="$path,$file">
+            <def name="schema" value="{AdminSchemas::getSchema($file)}" />
+            
+            <item label="$file" img="{$this->getIcon()}" href="{sprintf($link, $path)}">
+                <if test="{$schema===false}">
+                    <p>Impossible de charger ce format.</p>
+                </if>
+                <else>
+                    <p><strong>{$schema->label}</strong></p>
+                    <p>{$schema->description}</p>
+                </else>
+            </item>
+        </loop>
+    </bigmenu>
+</if>
+<else>
+    <p>Aucun schéma n'a été défini dans l'application.</p>
+</else>
