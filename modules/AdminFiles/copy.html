@@ -1,0 +1,11 @@
+/* Attention : ce template est utilisé à la fois pour les action Copy et CopyFrom */ 
+<h1>{$this->getTitle()}</h1>
+<h2>Copier le fichier {basename($file)}</h2>
+<form action="/{$this->module}/{$this->action}">
+    <textbox name="newName" value="{$newName:basename($file)}" label="Nom du nouveau fichier :" size="40" />
+    <okcancel ok="Copier" />
+
+    <div test="$error" style="color: red">$error</div>
+
+    <hidden name="file" value="$file" />
+</form>

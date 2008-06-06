@@ -1,0 +1,13 @@
+<h1>{$this->getTitle()}</h1>
+<h2>Supprimer le fichier $file</h2>
+<form>
+    <p>
+        Vous allez supprimer le fichier $file. Les données 
+        seront immédiatement perdues.
+    </p> 
+
+    <okcancel ok="Supprimer définitivement" />
+
+    <hidden name="file" value="$file" />
+    <hidden name="confirm" value="true" />
+</form>

@@ -1,0 +1,25 @@
+<!-- Path des images utilisées -->
+<def name="icons" value="/FabWeb/modules/AdminFiles/images" />
+<h1>{$this->getTitle()}</h1>
+<autopara>{$this->getDescription()}</autopara>
+
+<bigmenu>
+    <loop on="$files" as="$path,$file">
+        <item label="$file" img="{$this->getFileIcon($file)}" href="Edit?file=$file">
+            <slot name="fileinfo" action="fileinfo.html" path="$path" />
+            <toolbar>
+                <item href="Edit?file=$file" img="$icons/page_edit.png">Modifier</item>
+                <separator />
+                <item href="Copy?file=$file" img="$icons/page_copy.png">Copier</item>
+                <item href="Rename?file=$file" img="$icons/textfield_rename.png">Renommer</item>
+                <item href="Delete?file=$file" img="$icons/page_delete.png">Supprimer</item>
+                <separator />
+                <item href="Download?file=$file" img="$icons/page_go.png">Télécharger</item>
+            </toolbar>
+        </item>
+    </loop>
+</bigmenu>
+
+<toolbar style="float: right">
+    <item href="/{$this->module}/New" img="$icons/page_add.png">Créer un nouveau fichier...</item>
+</toolbar>

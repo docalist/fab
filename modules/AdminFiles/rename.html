@@ -1,0 +1,10 @@
+<h1>{$this->getTitle()}</h1>
+<h2>Renommer le fichier $file</h2>
+<form>
+    <textbox name="newName" value="{$newName:$file}" label="Nouveau nom :" size="40" />
+    <okcancel ok="Renommer" />
+
+    <div test="$error" style="color: red">$error</div>
+
+    <hidden name="file" value="$file" />
+</form>
