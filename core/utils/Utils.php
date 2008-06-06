@@ -1518,7 +1518,7 @@ final class Utils
     {
         static $symbols = array('octets', 'Ko', 'Mo', 'Go', 'To', 'Po', 'Eo', 'Zo', 'Yo');
         
-        if (0 === $bytes=(int)$bytes) return '';
+        if (0 === $bytes=(int)$bytes) return '0';
         $exp = floor(log($bytes)/log(1024));
     
         return round($bytes/pow(1024, floor($exp)),2) . ' ' . $symbols[$exp];
@@ -1756,7 +1756,7 @@ final class Utils
             
             '.js'       =>  'application/x-javascript',
         
-            '.php'      =>  'text/plain',
+            '.php'      =>  'text/php',
             '.txt'      =>  'text/plain',
         
             '.xml'      =>  'text/xml',
