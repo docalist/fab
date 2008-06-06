@@ -1,0 +1,13 @@
+/*
+    Ce template englobe automatiquement son contenu dans des balises
+    <p>...</p> si celui-ci ne contient que du texte et génère le contenu sans
+    rien changer si celui-ci contient des tags. 
+    
+    Exemple :
+    <autopara>test</autopara>               -> <p>test</p>
+    <autopara>test <em>2</em></autopara>    -> <p>test <em>2</em></p>
+    <autopara><p>test</p></autopara>        -> <p>test</p>
+    <autopara><div>test</div></autopara>    -> <div>test</div>
+*/
+<template match="//autopara"><if test="{select('text()')}"><p>{select('node()')}</p></if>
+<else>{select('node()')}</else></template>

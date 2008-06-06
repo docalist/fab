@@ -1,0 +1,21 @@
+/*
+    BigMenu permet de définir un "gros" (!) menu dont chaque item contient :
+    - un libellé
+    - un lien
+    - une image
+    - un contenu
+    
+    Exemple :
+    <bigmenu>
+        <item label="Afficher" img="show.png" href="Show">Affiche la notice complète</item>
+        <item label="Modifier" img="edit.png" href="Load">Permet de modifier la notice</item>
+        <item label="Supprimer" img="delete.png" href="Delete">Supprime la notice.<br /><em>définitivement.</em></item>
+    </bigmenu>
+*/
+<template match="//bigmenu//item" label="" href="" img="" title="">
+    <li><h2><a href="$href" title="$title"><img src="$img" alt="" />$label</a></h2>{select('@*')}{select('node()')}</li>
+</template>
+
+<template match="//bigmenu" img="">
+    <ul class="bigmenu">{select('node()')}{select('@*')}</ul>
+</template>
