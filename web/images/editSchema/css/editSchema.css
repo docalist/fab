@@ -1,0 +1,138 @@
+@CHARSET "ISO-8859-1";
+
+#SchemaEditor
+{
+/*    display: none;*/
+/*    font-size: 76%;*/
+    font-family: verdana,tahoma,helvetica;
+/*    width: 70em;*/ 
+    margin: auto auto;  
+    background-color: ButtonFace;
+    border: 2px outset ThreeDFace;
+    padding: 0.5em;
+}
+input.text, textarea
+{
+    font-family: verdana;
+    font-size: 100%;
+}
+fieldset input.fullwidth,
+fieldset textarea.fullwidth    
+{
+    width: 46em;
+}
+fieldset fieldset input.fullwidth,
+fieldset fieldset textarea.fullwidth
+{
+    width: 32em;
+}
+fieldset
+{
+    margin-bottom: 1em;
+    padding: 0.5em;
+    border: 2px ridge ThreeDFace;
+}
+
+legend
+{
+    font-weight: bold;
+    padding: 0 0.5em;
+    color: Highlight;
+}
+
+label.text, label.select, label.textarea
+{
+    width: 7em;
+    clear: both;
+    float: left;
+    text-align: right;
+    padding-right: 0.3em;
+    color: Highlight;
+}
+
+/* Style et icones de la liste des champs */
+select
+{
+    
+}
+
+option
+{
+    color: WindowText;
+    background-color: #fff;
+    padding: 0.1em;
+    border-bottom: 1px dotted ThreeDShadow;
+}
+
+option.index
+{
+    background: url(../images/editSchema/bullet_key.png) no-repeat 5px 0;
+}
+option.entries
+{
+    background: url(../images/editSchema/table.png) no-repeat 1px 0;
+}
+option.index.entries, option.entries.index
+{
+    background: url(../images/editSchema/table_key.png) no-repeat 2px 0;
+}
+
+/* Boutons */
+div.buttons
+{
+    text-align: right;
+    
+}
+
+/* tableaux */
+table
+{
+    border-collapse : collapse;
+    background: InfoBackground;
+    border: 1px solid Highlight;
+    font-size: 0.9em;
+}
+th
+{
+        background-color:HighLight;
+        color:HighLightText;
+        padding:0.2em;
+}
+td
+{
+        border-bottom: dotted 1px ThreeDShadow;
+        text-align: center;
+        padding:0.2em;
+}
+/* La zone d'affichage des erreurs */
+div#errors
+{
+    display: none;
+    background-color: ButtonFace;
+    border: 3px solid ActiveCaption;
+    -moz-border-radius:9px;
+    padding: 1em;
+    position: fixed;
+    width: 50%;
+    left: 25%;
+}
+
+div#errors .title
+{
+    font-size: 100%;
+    padding: 0.3em;
+    margin: -1em -1em 1em -1em;
+    color: CaptionText;
+    background-color: ActiveCaption;
+}
+
+div#errors ul
+{
+    border: 1px inset ThreeDFace;
+    background-color: Window;
+    color: WindowText;
+    padding: 1em 1em 1em 2em;
+    margin: 0;
+    height: 15em; 
+    overflow-y: auto;
+}
