@@ -634,7 +634,11 @@ class TemplateCode
                 'dechex',
                 'utf8_encode',
                 'get_class',
-                'max'
+                'max',
+                'filemtime',
+                'filesize',
+                'filectime',
+                'basename',
             ));
             $runtimeFunctions=array_flip(array
             (
