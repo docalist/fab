@@ -2,7 +2,7 @@
 /**
  * @package     fab
  * @subpackage  runtime
- * @author 		Daniel Ménard <Daniel.Menard@bdsp.tm.fr>
+ * @author      Daniel Ménard <Daniel.Menard@bdsp.tm.fr>
  * @version     SVN: $Id: Runtime.php 235 2006-12-20 09:02:07Z dmenard $
  */
 
@@ -122,7 +122,7 @@ class Runtime
     // et que la configuration de php est "correcte"
     public static function checkRequirements()
     {
-    	// Options qu'on vérifie mais qu'on ne peut poas modifier (magic quotes, etc...)
+        // Options qu'on vérifie mais qu'on ne peut poas modifier (magic quotes, etc...)
         if (ini_get('short_open_tag'))
             throw new Exception("Impossible de lancer l'application : l'option 'short_open_tag' de votre fichier 'php.ini' est à 'on'");
         
@@ -423,8 +423,8 @@ class Runtime
         // TODO: écrire un class manager pour ne pas inclure systématiquement tout (voir du coté du gestionnaire de modules)
         //require_once self::$fabRoot.'core/database/Database.php';
 //        require_once self::$fabRoot.'modules'.DIRECTORY_SEPARATOR.'DatabaseModule/DatabaseModule.php';
-//		require_once self::$fabRoot.'modules'.DIRECTORY_SEPARATOR.'CartModule/CartModule.php';
-//		
+//      require_once self::$fabRoot.'modules'.DIRECTORY_SEPARATOR.'CartModule/CartModule.php';
+//      
 //        require_once self::$fabRoot.'modules'.DIRECTORY_SEPARATOR.'TaskManager/TaskManager.php';
 //        require_once self::$fabRoot.'core/helpers/TextTable/TextTable.php';
 
@@ -700,7 +700,9 @@ $fab_init_time=microtime(true);
             'Template'=>'core/template/Template.php',
             'User'=>'core/user/User.php',
             'Module'=>'modules/Module/Module.php',
-            'AdminModule'=>'modules/AdminModule/AdminModule.php',
+            'Admin'=>'modules/Admin/Admin.php',
+            'AdminFiles'=>'modules/AdminFiles/AdminFiles.php',
+            'AdminSchemas'=>'modules/AdminSchemas/AdminSchemas.php',
             'NoSecurity'=>'modules/NoSecurity/NoSecurity.php',
 //            'ExceptionManager'=>'core/exception/ExceptionManager.php',
             'Database'=>'core/database/Database.php',
