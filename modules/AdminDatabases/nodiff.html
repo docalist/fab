@@ -1,0 +1,14 @@
+<!-- Path des images utilisées -->
+<def name="icons" value="/FabWeb/modules/AdminDatabases/images" />
+
+<h1>{$this->getTitle()}</h1>
+<h2>Modification du schéma de la base $database</h2>
+
+<p>
+    La base de données <strong>$database</strong> et le schéma 
+    <strong>{basename($schema)}</strong> ont la même structure, aucune 
+    modification n'est nécessaire.
+</p>
+<form action="index">
+    <okcancel cancel="false" />
+</form>

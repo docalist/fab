@@ -1,0 +1,144 @@
+<h1>{$this->getTitle()}</h1>
+<if test="$confirm">
+    <h2>Le schéma {basename($schema)} a été enregistré dans la base $database.</h2>
+    
+    <p>
+        La base $database a maintenant la structure définie dans le schéma
+        {basename($schema)}.
+    </p>
+    
+    <def name="level" value="{max($changes)}" />
+    
+    <switch test="$level">
+        <case test="0">
+            <p>
+                Il est inutile de réindexer la base.
+            </p>
+            <form action="index">
+                <okcancel cancel="false" />
+            </form>
+        </case>
+        <case test="1">
+            <p>
+                Pour purger la base des données qui ne sont plus utiles, <strong>nous 
+                vous conseillons de lancer une réindexation complète de la 
+                base</strong>.
+            </p>
+        </case>
+        <case test="2">
+            <p>
+                Pour que les index, les tables et les clés de tri que vous avez 
+                créés ou modifiés fonctionnent correctement, <strong>vous devez
+                lancer une réindexation complète de la base</strong>.
+            </p>
+        </case>
+    </switch>
+
+    <form action="Reindex" test="$level">
+        <okcancel ok="Lancer la réindexation maintenant..." cancel="Ne pas réindexer maintenant" />
+        <hidden name="database" value="$database" />
+    </form>
+</if>
+
+<else>
+    <style>
+    table#changes
+    \{
+        border: 1px solid #444;
+        border-collapse: collapse;
+        width: 100%;
+    \}
+    
+    table#changes tr.level0
+    \{
+        background-color: #ECF8E0;
+    \}
+    table#changes tr.level1
+    \{
+        background-color: #F7BE81;
+    \}
+    table#changes tr.level2
+    \{
+        background-color: #F78181;
+        color: #000;
+    \}
+    table#changes td, table#changes th
+    \{
+        padding: 0.3em;
+        border-left: 1px dotted #000;
+    \}
+    
+    table#changes th
+    \{
+        border-bottom: 1px solid #000;
+        background-color: #000;
+        color: #fff;
+    \}
+    </style>
+    <h2>Modification du schéma de la base $database</h2>
+    
+    <p>
+        Vous allez remplacer le schéma actuel de la base de données 
+        <strong>$database</strong> par la structure définie dans le modèle 
+        <strong>{basename($schema)}</strong>. 
+    </p>
+    
+    <p>
+        Selon la nature des modifications à apporter, vous devrez peut-être  
+        lancer ensuite une réindexation complète de la base (par exemple pour
+        constituer un nouvel index, il faut réindexer toutes les notices présentes).
+    </p>
+    
+    <p>
+        Dans le cas présent, voici la liste des modifications qui seront effectuées : 
+    </p>    
+    
+    <table id="changes">
+        <tr>
+            <th>Modification apportée au schéma</th>
+            <th>Ré-indexation</th>
+        </tr>
+        <loop on="$changes" as="$change,$level">
+            <tr class="level$level">
+                <td>$change</td>
+                <td>
+                    <switch test="$level">
+                        <case test="0">inutile</case>
+                        <case test="1">conseillée</case>
+                        <case test="2">obligatoire</case>
+                    </switch>
+                </td>
+            </tr>
+        </loop>
+    </table>
+    <switch test="{max($changes)}">
+        <case test="0">
+            <p>
+                Toutes ces modifications vont pouvoir être appliquées 
+                immédiatement, il ne sera pas nécessaire de réindexer la base.
+            </p>
+        </case>
+        <case test="1">
+            <p>
+                Les modifications vont prendre effet immédiatement, mais pour 
+                purger la base des données qui ne sont plus utiles, <strong>nous 
+                vous conseillons de lancer ensuite une réindexation complète de 
+                la base</strong>.
+            </p>
+        </case>
+        <case test="2">
+            <p>
+                Pour que toutes vos modifications prennent effet, <strong>vous 
+                devrez ensuite lancer une réindexation complète de la base</strong>.
+            </p>
+        </case>
+    </switch>
+     
+     <p>Voulez-vous modifier la structure de la base <strong>$database</strong> ?</p>
+    <form style="float: right">
+        <okcancel ok="Appliquer le nouveau schéma" />
+        <hidden name="database" value="$database" />
+        <hidden name="schema" value="$schema" />
+        <hidden name="confirm" value="true" />
+    </form>
+</else>
