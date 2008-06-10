@@ -1,0 +1,32 @@
+<def name="type" value="{is_dir($this->getDirectory().$file) ? 'dossier' : 'fichier'}" />
+
+<h1>{$this->getTitle()}</h1>
+<h2>Supprimer le $type "$file" du cache</h2>
+
+<form action="/{$this->module}/{$this->action}">
+    <p>
+        Vous allez supprimer le $type <strong>$file</strong>.
+    </p>
+
+    <okcancel ok="Supprimer définitivement" cancelurl="{$this->getBackUrl($file)}" />
+
+    <hidden name="directory" value="{$this->request->get('directory')}" />
+    <hidden name="file" value="$file" />
+    <hidden name="confirm" value="true" />
+    
+    <fieldset label="Remarque" style="margin-top: 2em;">
+        <p>
+            Les fichiers et répertoires qui composent le cache sont
+            recréés en permanence dès que de nouvelles requêtes sont adressées
+            au serveur.
+        </p>
+        <p>
+            Il se peut donc que vous supprimiez un fichier ou un dossier et que 
+            celui-ci soit immédiatement recréé par une autre requête adressée
+            par vous ou par un autre utilisateur.
+        </p>
+        <p>
+            Ce comportement est normal.
+        </p>
+    </fieldset>
+</form>
