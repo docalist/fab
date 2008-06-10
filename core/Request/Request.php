@@ -734,7 +734,7 @@ class Request
 
     
     /**
-     * Validation : vérifie un booléen
+     * Validation : vérifie un entier
      * 
      * int() reconnaît les entiers mais aussi les chaines représentant un entier
      * (les espaces de début ou de fin éventuels sont ignorés).
