@@ -639,6 +639,10 @@ class TemplateCode
                 'filesize',
                 'filectime',
                 'basename',
+                'is_dir',
+                'is_file',
+                'is_link',
+                'dirname'
             ));
             $runtimeFunctions=array_flip(array
             (
