@@ -291,7 +291,9 @@ class DedupModule extends Module
             }
             else
             {
-                echo '<p>Aucun doublon trouvé</p>';
+                // Message affiché si on est dans le cas de données passées en paramètre (format1 est null)
+                if (is_null($format1))
+                    echo '<p>Aucun doublon trouvé</p>';
             }
             
             TaskManager::progress($rank, $nbRecord);
