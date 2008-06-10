@@ -3,23 +3,61 @@
 <h1>{$this->getTitle()}</h1>
 <autopara>{$this->getDescription()}</autopara>
 
-<bigmenu>
-    <loop on="$files" as="$path,$file">
-        <item label="$file" img="{$this->getFileIcon($file)}" href="Edit?file=$file">
-            <slot name="fileinfo" action="fileinfo.html" path="$path" />
-            <toolbar>
-                <item href="Edit?file=$file" img="$icons/page_edit.png">Modifier</item>
-                <separator />
-                <item href="Copy?file=$file" img="$icons/page_copy.png">Copier</item>
-                <item href="Rename?file=$file" img="$icons/textfield_rename.png">Renommer</item>
-                <item href="Delete?file=$file" img="$icons/page_delete.png">Supprimer</item>
-                <separator />
-                <item href="Download?file=$file" img="$icons/page_go.png">Télécharger</item>
-            </toolbar>
-        </item>
-    </loop>
-</bigmenu>
+<def name="parent" value="{$this->getParentDirectory()}" />
 
+<def name="request" value="{$this->request->copy()->keepOnly('directory')}" />
 <toolbar style="float: right">
-    <item href="/{$this->module}/New" img="$icons/page_add.png">Créer un nouveau fichier...</item>
+    <if test="{$parent!==false}">
+        <item href="index?directory=$parent" img="$icons/arrow_up.png">Dossier parent</item>
+        <separator />
+    </if>
+    <item href="{$request->setAction('NewFile')}" img="$icons/page_add.png">Nouveau fichier...</item>
+    <separator />
+    <item href="{$request->setAction('NewFolder')}" img="$icons/folder_add.png">Nouveau dossier...</item>
 </toolbar>
+
+<br style="clear: both" />
+
+<if test="{count($files)===0}">
+    <bigmenu>
+        <item label="Ce dossier est vide." img="$icons/information.png">Utilisez les boutons ci-dessus pour créer un nouveau fichier ou un nouveau dossier</item>
+    </bigmenu>
+</if>
+<else>
+    <bigmenu>
+        /* <item label="Répertoire parent" img="" href="index?directory=$parent" /> */
+    
+        <loop on="$files" as="$path,$file">
+            <def name="request" value="{$request->set('file', $file)}" />
+    
+            <if test="{is_dir($path)}">
+                <a name="$file" />
+                <item label="$file" img="{$this->getFileIcon($path)}" href="index?directory={Utils::makePath($this->request->get('directory'),$file)}">
+                    <slot name="fileinfo" action="fileinfo.html" path="$path" />
+                    <toolbar>
+                        <item href="index?directory={Utils::makePath($this->request->get('directory'),$file)}" img="$icons/folder_go.png">Ouvrir</item>
+                        <separator />
+                        <item href="{$request->setAction('Copy')}" img="$icons/page_copy.png">Copier</item>
+                        <item href="{$request->setAction('Rename')}" img="$icons/folder_edit.png">Renommer</item>
+                        <item href="{$request->setAction('Delete')}" img="$icons/folder_delete.png">Supprimer</item>
+                    </toolbar>
+                </item>
+            </if>
+            <else>
+                <a name="$file" />
+                <item label="$file" img="{$this->getFileIcon($path)}" href="{$request->setAction('Edit')}">
+                    <slot name="fileinfo" action="fileinfo.html" path="$path" />
+                    <toolbar>
+                        <item href="{$request->setAction('Edit')}" img="$icons/page_edit.png">Modifier</item>
+                        <separator />
+                        <item href="{$request->setAction('Copy')}" img="$icons/page_copy.png">Copier</item>
+                        <item href="{$request->setAction('Rename')}" img="$icons/textfield_rename.png">Renommer</item>
+                        <item href="{$request->setAction('Delete')}" img="$icons/page_delete.png">Supprimer</item>
+                        <separator />
+                        <item href="{$request->setAction('Download')}" img="$icons/page_save.png">Télécharger</item>
+                    </toolbar>
+                </item>
+            </else>
+        </loop>
+    </bigmenu>
+</else>
