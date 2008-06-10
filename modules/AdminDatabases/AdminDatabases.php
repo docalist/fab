@@ -242,5 +242,108 @@ class AdminDatabases extends Admin
         );
     }
     
+    
+    /**
+     * Crée une nouvelle base de données.
+     * 
+     * 1. Demande à l'utilisateur le nom de la base à créer, génère
+     * une erreur s'il existe déjà une base portant ce nom.
+     * 2. Demande à l'utilisateur le nom du schéma à utiliser.
+     * 3. Crée la base. 
+     *
+     * @param string $database le nom de la base à créer.
+     * @param string $schema le path du schéma à utiliser pour
+     * la structure initiale de la base de données.
+     */
+    public function actionNew($database='', $schema='')
+    {
+        $error='';
+        
+        // Vérifie le nom de la base indiquée
+        if ($database !== '')
+        {
+            if (! is_null(Config::get('db.'.$database)))
+                $error="Il existe déjà une base de données nommée $database. ";
+            else
+            {
+                $path=Runtime::$root . 'data/db/' . $database;
+                if (is_dir($path))
+                    $error="Il existe déjà un dossier $database dans le répertoire data/db de l'application.";
+            }
+        }
+        
+        // Demande le nom de la base à créer
+        if ($database === '' || $error !== '')
+        {
+            Template::run
+            (
+                'new.html',
+                array
+                (
+                    'database' => $database,
+                    'error'=>$error
+                )
+            );
+            return;
+        }
+
+        // Vérifie le nom du schéma indiqué
+        if ($schema !== '')
+        {
+            if (! file_exists($schema))
+                $error = 'Le schéma <strong>' . basename($schema) . "</strong> n'existe pas.";
+            else
+            {
+                $dbs=new DatabaseSchema(file_get_contents($schema));
+                if (true !== $errors=$dbs->validate())
+                    $error = "Impossible d'utiliser le schéma <strong>" . basename($schema) . "</strong> :<br />" . implode('<br />', $errors);
+            }
+        }
+        
+        // Affiche le template si nécessaire
+        if ($schema === '' || $error !== '')
+        {
+            Template::run
+            (
+                'newChooseSchema.html',
+                array
+                (
+                    'database' => $database,
+                    'schema' => $schema,
+                    'error'=>$error
+                )
+            );
+            return;
+        }
+        
+        // OK, on a tous les paramètres et ils sont tous vérifiés
+
+        
+        // Crée la base
+        Database::create($path, $dbs, 'xapian2');
+
+        // Charge le fichier de config db.config
+        $pathConfig=Runtime::$root.'config' . DIRECTORY_SEPARATOR . 'db.config';
+        if (file_exists($pathConfig))
+            $config=Config::loadXml(file_get_contents($pathConfig));
+        else
+            $config=array();
+            
+        // Ajoute un alias
+        $config[$database]=array
+        (
+            'type'=>'xapian2',
+            'path'=>$database // $path ?
+        );
+        
+        // Sauvegarde le fichier de config
+        ob_start();
+        Config::toXml('config', $config);
+        $data=ob_get_clean();
+        file_put_contents($pathConfig, $data);
+        
+        // Redirige vers la page d'accueil
+        Runtime::redirect('/'.$this->module);
+    }
 }
 ?>

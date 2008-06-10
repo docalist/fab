@@ -4,6 +4,12 @@
 <h1>{$this->getTitle()}</h1>
 <autopara>{$this->getDescription()}</autopara>
 
+<toolbar style="float: right">
+    <item href="New" img="$icons/database_add.png">Créer une nouvelle base de données...</item>
+</toolbar>
+
+<br style="clear: both" />
+
 <bigmenu>
     <loop on="$databases" as="$db">
         <def name="info" value="{AdminDatabases::getDatabaseInfo($db)}" />
@@ -37,6 +43,3 @@
         </item>
     </loop>
 </bigmenu>
-<toolbar style="float: right">
-    <item href="New" img="$icons/database_add.png">Créer une nouvelle base de données...</item>
-</toolbar>
