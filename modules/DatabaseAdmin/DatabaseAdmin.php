@@ -34,7 +34,7 @@ class DatabaseAdmin extends Module
      * affiche la liste des bases de données référencées dans db.config
      * et un bouton permettant de créer une nouvelle base
      */
-    public function actionIndex()
+    public function NUactionIndex()
     {
         
         Template::run
@@ -57,7 +57,7 @@ class DatabaseAdmin extends Module
      * 
      * @return array
      */
-    private function getDatabases()
+    private function NUgetDatabases()
     {
         $databases=array();
         
@@ -98,7 +98,7 @@ class DatabaseAdmin extends Module
      * @return array(DatabaseSchema) un tableau contenant tous les schémas 
      * disponibles.
      */
-    private static function getTemplates()
+    private static function NUgetTemplates()
     {
         $templates=array();
         
@@ -142,7 +142,7 @@ class DatabaseAdmin extends Module
      * @throws Exception s'il existe déjà une base de données ayant le nom
      * indiqué ou si le template spécifié n'existe pas
      */
-    public function actionNewDatabase()
+    public function NUactionNewDatabase()
     {
         $dir='data/schemas/';
         $fabDir=Runtime::$fabRoot.$dir;
@@ -215,7 +215,7 @@ class DatabaseAdmin extends Module
         );
     }
     
-    public function actionSetSchema($database, $schema, $confirm=false)
+    public function NUactionSetSchema($database, $schema, $confirm=false)
     {
         // Détermine le path exact du schéma indiqué
         $schema=Utils::defaultExtension($schema, '.xml');
@@ -356,7 +356,7 @@ class DatabaseAdmin extends Module
      *
      * @return unknown
      */
-    public function actionEditSchema($template='', $new=false)
+    public function NUactionEditSchema($template='', $new=false)
     {
         $dir='data/schemas/';
         $fabDir=Runtime::$fabRoot.$dir;
@@ -476,7 +476,7 @@ class DatabaseAdmin extends Module
      * @param string name le nom du fichier dans lequel le modèle sera enregistré. 
      *
      */
-    public function actionSaveSchema()
+    public function NUactionSaveSchema()
     {
         $json=Utils::get($_POST['schema']);
         
