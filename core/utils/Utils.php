@@ -1601,7 +1601,7 @@ final class Utils
             if (is_dir($item)) 
             { 
                 if ($item==='.' || $item==='..') continue;
-                $total += self::dirSize($path . '/' . $item);
+                $size += self::dirSize($path . '/' . $item);
             }
             else 
             { 
@@ -1609,7 +1609,8 @@ final class Utils
             }   
         }
         return $size;
-    }    
+    }  
+      
     public static function ksort(array $array)
     {
         ksort($array);
