@@ -407,11 +407,22 @@ class Routing
     public static function linkFor($url, $absolute=false)
     {
         $url=(string)$url; // au cas où on nous passe autre chose qu'une chaine (par exemple un objet Request)
+        
         // Si ce n'est pas une fab url, on retourne l'url telle quelle
         if (preg_match('~^(?:[a-z]{3,10}:|\?|#)~',$url))  // commence par un nom de protocole, une query string ou un hash (#)
             return $url;
 
         $ori=$url;
+        
+        // Supprime l'ancre éventuelle
+        $pt=strpos($url, '#');
+        if ($pt === false)
+            $anchor='';
+        else
+        {
+            $anchor=substr($url, $pt);
+            $url=substr($url, 0, $pt);
+        }
         
         // Analyse la query string, initialise $args()
         $args=array();
@@ -451,7 +462,7 @@ class Routing
             
             // Crée une url absolue si ça a été demandé
             if ($absolute)
-                $link=Utils::getHost() . $link;
+                $link=Utils::getHost() . $link . $anchor;
             return $link;
         }
         
@@ -479,7 +490,7 @@ class Routing
             // l'existence du répertoire de plus haut niveau (ie $module).
             if (file_exists(Runtime::$webRoot . $module))
             {
-                return ($absolute ? Utils::getHost() : '') . Runtime::$realHome . $url;
+                return ($absolute ? Utils::getHost() : '') . Runtime::$realHome . $url . $anchor;
             }
         }
 
@@ -511,7 +522,7 @@ class Routing
             
         // Retourne le résultat
 //        debug && Debug::log('linkFor(%s)=%s', $url, $link);
-        return $link;
+        return $link . $anchor;
     }
     
     private static function linkForRoute($module, $action, array $args=array())
