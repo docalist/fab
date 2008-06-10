@@ -110,7 +110,7 @@ class Config
      * @param mixed $data données du tag en cours
      * @param string $indent indentation en cours
      */
-    private static function toXml($name, $data, $indent='')
+    public static function toXml($name, $data, $indent='')
     {
         // Encode la clé en UTF8 une bonne fois pour toute
         $name=utf8_encode($name);
@@ -164,7 +164,7 @@ class Config
      * @param string $source
      * @return array
      */
-    private static function loadXml($source) 
+    public static function loadXml($source) 
     {
         // Crée un document XML
         $xml=new domDocument();
