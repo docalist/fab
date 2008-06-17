@@ -270,7 +270,7 @@ class TemplateCompiler
 //echo '</pre>';
 //echo $source;        
         // Supprime les commentaires de templates : /* xxx */
-        $source=preg_replace('~/\*\s.*?\s\*/~ms', null, $source);
+        $source=preg_replace('~/\*[ \t\n\r\f].*?[ \t\n\r\f]\*/~ms', null, $source);
         
         // Ajoute si nécessaire une déclaration xml au template
         if (substr($source, 0, 6)==='<?xml ')
