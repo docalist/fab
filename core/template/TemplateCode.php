@@ -642,7 +642,8 @@ class TemplateCode
                 'is_dir',
                 'is_file',
                 'is_link',
-                'dirname'
+                'dirname',
+                'array_reverse'
             ));
             $runtimeFunctions=array_flip(array
             (
