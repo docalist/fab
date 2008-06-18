@@ -7,19 +7,18 @@
  */
 
 /**
- * Module d'administration du site.
- * Page d'accueil du site d'administration d'une application fab et classe de 
- * base pour tous les autres modules d'administration.
- *  
- * Admin représente le 
+ * Module d'administration de l'application.
+ * 
+ * Le module Admin constitue le 
  * {@link http://fr.wikipedia.org/wiki/Back_office_(informatique) 'BackOffice'} 
- * de l'application. C'est un point d'entrée unique vers les différents modules
- * d'administration disponibles dans l'application.
+ * de l'application : il ne comporte {@link actionIndex() qu'une seule action} 
+ * qui correspond à la page d'accueil du site d'administration de l'application
+ * et qui affiche la liste des modules d'administration disponibles.
  * 
- * Il ne comporte {@link actionIndex() qu'une seule action} qui affiche la
- * liste des modules d'administration disponibles.
+ * La classe Admin est également la classe ancêtre de tous les autres modules 
+ * d'administration disponibles.
  * 
- * C'est également la classe ancêtre de tous les modules d'administration.
+ * Cliquez ici pour accéder au {@link /Admin site d'administration de l'application}.
  *  
  * @package     fab
  * @subpackage  Admin
@@ -27,7 +26,19 @@
 class Admin extends Module
 {
     /**
-     * Retourne le titre à du module d'administration
+     * Retourne le titre du module d'administration.
+     * 
+     * Cette méthode est appellée automatiquement par {@link actionIndex()}
+     * pour afficher la liste des moduels d'administration disponibles.
+     * 
+     * Elle retourne le titre indiqué dans la clé
+     * <code>title</code> de la configuration.
+     * 
+     * Si aucun titre n'est indiqué, elle retourne le nom de la classe en cours.
+     * 
+     * Cette méthode peut être surchargée par les modules d'administration
+     * descendants de cette classe si une implémentation différente est 
+     * souhaitée.
      * 
      * @return string
      */
@@ -37,21 +48,48 @@ class Admin extends Module
         if ($title) return $title;
         return get_class($this);
     }
+
     
     /**
-     * Retourne le menu du module d'administration
+     * Retourne la description du module d'administration.
      * 
-     * @return string
+     * Cette méthode est appellée automatiquement par {@link actionIndex()}
+     * pour afficher la liste des moduels d'administration disponibles.
+     * 
+     * Le but est d'indiquer à l'utilisateur, en quelques lignes, le rôle
+     * de chacun des modules d'administration.
+     * 
+     * Par défaut, <code>getDescription()</code> retourne le contenu de la clé
+     * <code>description</code> de la configuration ou null si aucune 
+     * description n'est disponible.
+     * 
+     * Cette méthode peut être surchargée par les modules d'administration
+     * descendants de cette classe pour générer une description spécifique.
+     * 
+     * @return null|string
      */
     public function getDescription()
     {
         return Config::get('description');
     }
     
+    
     /**
-     * Retourne l'url de l'icone à afficher pour ce module d'administration
+     * Retourne l'url du logo à afficher pour ce module d'administration.
      * 
-     * @return string
+     * Cette méthode est appellée automatiquement par {@link actionIndex()}
+     * pour afficher la liste des moduels d'administration disponibles.
+     * 
+     * La méthode récupère le nom de l'image indiqué dans la clé 
+     * <code>icon</code> du fichier de configuration.
+     * 
+     * S'il s'agit d'un chemin relatif, celui-ci est transformé en chemin de la
+     * forme <code>/FabWeb/modules/<nom du module>/images/<nom du logo></code>.
+     * 
+     * Si aucun logo n'est indiqué dans la configuration, la méthode 
+     * retourne null.
+     *  
+     * @return null|string
      */
     public function getIcon()
     {
@@ -59,8 +97,11 @@ class Admin extends Module
         if ($icon && Utils::isRelativePath($icon)) // fixme: ne pas faire ça ici, intégrer dans le routing
             $icon='/FabWeb/modules/' . __CLASS__ . '/images/' . $icon;
         
+        // fixme: ne marche pas si le module d'administration fait partie de l'application
+        
         return $icon;
     }
+
     
     /**
      * Affiche la liste des modules d'administration disponibles.
@@ -69,9 +110,12 @@ class Admin extends Module
      * <code>modules</code> du fichier de configuration et construit un tableau 
      * qui pour chacun des modules trouvés indique :
      * 
-     * - <code>title</code> : le titre du module d'administration ;
-     * - <code>description</code> : sa description ;
-     * - <code>icon</code> : l'url de l'icone à afficher pour ce module ;
+     * - <code>title</code> : le titre du module d'administration tel que 
+     *   retourné par la méthode {@link getTitle()} de ce module ;
+     * - <code>description</code> : la description telle que retourné par la 
+     *   méthode {@link getDescription()} de ce module;
+     * - <code>icon</code> : l'url de l'icone à afficher pour ce module, telle
+     *   que retournée par la méthode {@link getIcon()} de ce module ;
      * - <code>link</code> : l'url de l'action index de ce module.
      * 
      * Elle appelle ensuite le template indiqué dans la clé 
