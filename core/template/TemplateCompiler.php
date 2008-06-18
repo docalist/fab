@@ -1190,8 +1190,10 @@ private static $line=0, $column=0;
 
         // Génère le début du tag ouvrant
         echo '<', $name;    // si le tag a un préfixe, il figure déjà dans name (e.g. <test:h1>)
-//        if ($node->namespaceURI !== $node->parentNode->namespaceURI)
-//            echo ' xmlns="', $node->namespaceURI, '"'; 
+
+        // cas particulier de l'attribut xmlns
+        if ($node->namespaceURI !== $node->parentNode->namespaceURI)
+            echo ' xmlns="', $node->namespaceURI, '"'; 
             
         // Accès aux attributs xmlns : cf http://bugs.php.net/bug.php?id=38949
         // apparemment, fixé dans php > 5.1.6, à vérifier
@@ -1203,7 +1205,7 @@ private static $line=0, $column=0;
             foreach ($node->attributes as $key=>$attribute)
             {
                 $value=$attribute->value;
-                if ($value ==='') continue;
+                //if ($value ==='') continue;
                 $attr=$attribute->nodeName;
                 
                 // Teste si ce tag contient des attributs qu'il faut router
