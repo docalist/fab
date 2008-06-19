@@ -18,6 +18,8 @@
 
 <br style="clear: both" />
 
+<def name="files" value="{$this->getFiles()}" />
+
 <if test="{count($files)===0}">
     <bigmenu>
         <item label="Ce dossier est vide." img="$icons/information.png">Utilisez les boutons ci-dessus pour créer un nouveau fichier ou un nouveau dossier</item>
