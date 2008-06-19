@@ -162,10 +162,31 @@ abstract class Module
             if (isset($config['module']))
             {
                 // Charge le module correspondant
-                $object=self::loadModule($config['module']);
+                $parent=self::loadModule($config['module']);
 
                 // Applique la config du pseudo-module à la config du module
-                Config::mergeConfig($object->config, $config);
+                Config::mergeConfig($parent->config, $config);
+                
+                eval
+                (
+                    sprintf
+                    (
+                        '
+                            /**
+                              * %1$s est un pseudo-module qui hérite de {@link %2$s}.
+                              */
+                            class %1$s extends %2$s
+                            {
+                            }
+                        ',
+                        $module, 
+                        $config['module']
+                    )
+                );
+                
+                $object=new $module();
+                $object->config=$parent->config;
+                $object->searchPath=$parent->searchPath;
             }
             else
             {
