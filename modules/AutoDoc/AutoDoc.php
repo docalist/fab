@@ -2,6 +2,9 @@
 class AutoDoc extends Module
 {
     static $errors=array();
+    static $class='';
+    static $reflectionClass=null;
+    static $reflectionMethod=null;
     
     public static $flags=array('inherited'=>false, 'private'=>false, 'protected'=>false, 'public'=>true, 'errors'=>false, 'sort'=>false);
     
@@ -104,7 +107,8 @@ class AutoDoc extends Module
             $module=Module::loadModule($class);    
         }
 
-        $reflClass=new ReflectionClass($class);
+        AutoDoc::$reflectionClass=$reflClass=new ReflectionClass($class);
+        $class=AutoDoc::$class=$reflClass->getName();
         
         $pseudoMethods=array();
         
@@ -118,7 +122,7 @@ class AutoDoc extends Module
                     $parents[$parent]=Module::loadModule($parent);
             }
             
-            // Détermine la liste des psudo actions de ce module
+            // Détermine la liste des pseudo actions de ce module
             foreach($module->config as $pseudo=>$config)
             {
 
@@ -593,8 +597,10 @@ class MethodDoc extends ElementDoc
     public $return;
     public $inheritedFrom='';
     public $overwrites='';
+    
     public function __construct($class, ReflectionMethod $method)
     {
+        AutoDoc::$reflectionMethod=$method;
         $doc=$method->getDocComment();
         if ($doc===false)
             $this->docError('aucune documentation pour la méthode', $method->getName());
@@ -1116,7 +1122,7 @@ class DocBlock extends DocItem
     
     public function inlineTags(& $doc)
     {
-        $doc=preg_replace_callback('~\{@([a-z]+)\s(.*?)}~', array($this, 'parseInlineTag'), $doc);
+        $doc=preg_replace_callback('~\{@([a-z]+)(?:\s(.*?))?}~', array($this, 'parseInlineTag'), $doc);
         //$doc=preg_replace('~\$[a-z_0-9]+~i', '<span class="var">$0</span>', $doc);
         $doc=$this->admonitions($doc);        
         
@@ -1125,6 +1131,7 @@ class DocBlock extends DocItem
 //        $doc=str_replace(array_keys($this->replacement),array_values($this->replacement), $doc);
     }
     
+    // fixme : fusionner ce link là avec AutoDoc::link
     private function link($link, $text)
     {
         // Url absolue (http:, ftp:, etc.)
@@ -1189,7 +1196,7 @@ class DocBlock extends DocItem
         // 1 le nom du tag ({@link xxx} -> 'link'
         // 2 le reste -> 'xxx'
         $tag=$match[1];
-        $text=$match[2];
+        $text=isset($match[2]) ? $match[2] : '';
         
         switch($tag)
         {
@@ -1214,6 +1221,24 @@ class DocBlock extends DocItem
                 
                 // Transforme l'url et crée le lien
                 return $this->link($link,$text);
+                
+            case 'inheritdoc':
+                $parent=AutoDoc::$reflectionClass->getParentClass();
+                if (is_null($parent)) return '';
+                
+                $name=AutoDoc::$reflectionMethod->getName();
+                if (! $parent->hasMethod($name)) return '';
+                
+                $doc=$parent->getMethod($name)->getDocComment();
+                if ($doc===false) return '';
+
+                $doc=new DocBlock($doc);
+                
+                $doc=$doc->longDescription;
+                
+                $doc=str_replace('href="#', 'href="?class='.$parent->getName().'#', $doc);
+
+                return $doc;
                 
             default:
                 echo 'tag inconnu : ', $match[0], '<br />';
