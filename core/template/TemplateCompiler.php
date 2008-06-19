@@ -1192,7 +1192,7 @@ private static $line=0, $column=0;
         echo '<', $name;    // si le tag a un préfixe, il figure déjà dans name (e.g. <test:h1>)
 
         // cas particulier de l'attribut xmlns
-        if ($node->namespaceURI !== $node->parentNode->namespaceURI)
+        if ($node->parentNode && $node->namespaceURI !== $node->parentNode->namespaceURI)
             echo ' xmlns="', $node->namespaceURI, '"'; 
             
         // Accès aux attributs xmlns : cf http://bugs.php.net/bug.php?id=38949
