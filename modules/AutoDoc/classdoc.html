@@ -7,62 +7,112 @@
         <default>$group ???</default>
     </switch>
 </template>
+<template match="//annotations" a="">
+    <if test="$a">
+        <loop on="$a" as="$tag,$item">
+            <switch test="{strtolower($tag)}">
+                <case test="throws">
+                    <h4>{str_replace('(s)', count($item)==1 ? '' : 's', 'Exception(s) générée(s) :')}</h4>
+                    <ul>
+                        <loop on="$item" as="$doc">
+                            <li><p><span class="type">{AutoDoc::link($doc->name)}</span> {$doc->shortDescription}</p>{$doc->longDescription}</li>
+                        </loop>
+                    </ul>
+                </case>
+                
+                <case test="see">
+                    <h4>Voir aussi :</h4>
+                    <ul>
+                        <loop on="$item" as="$doc">
+                            <li><p><span class="type">{AutoDoc::link($doc->name)}</span> {$doc->shortDescription}</p>{$doc->longDescription}</li>
+                        </loop>
+                    </ul>
+                </case>
 
-<div test="{$errors and Config::get('show.errors')}" style="color: red; border: 1px solid red; background: yellow;">
-    <p>Erreurs et problèmes rencontrés dans la documentation : </p>
-    <ul>
-        <loop on="$errors" as="$error">
-            <li>$error</li>
+                <case test="tutorial">
+                    <h4>Voir aussi :</h4>
+                    <ul>
+                        <loop on="$item" as="$doc">
+                            <li><p><a href="?filename={$doc->name}">{$doc->shortDescription ? $doc->shortDescription :$doc->name}</a></p>{$doc->longDescription}</li>
+                        </loop>
+                    </ul>
+                </case>
+
+                <case test="var">
+                    <loop on="$item" as="$doc">
+                        {$doc->shortDescription} {$doc->longDescription}
+                        <p>
+                            Type : <span class="type">{$doc->name}.</span>
+                        </p>
+                    </loop>
+                </case>
+                
+                <case test="todo">
+                    <div class="warning">
+                    <div class="title">Evolution prévue</div>
+                        <loop on="$item" as="$doc">
+                            <p>{$doc->name} {$doc->shortDescription}</p>{$doc->longDescription}
+                        </loop>
+                    </div>
+                </case>
+                
+                <default>
+                    <h4>$tag</h4>
+                    <ul>
+                        <loop on="$item" as="$doc">
+                            <li><p><span>{$doc->name}</span> {$doc->shortDescription}</p>{$doc->longDescription}</li>
+                        </loop>
+                    </ul>
+                </default>
+            </switch>
         </loop>
-    </ul>
-</div>
+    </if>
+</template>
+
+<form action="" style="border: 1px solid #008; background-color: #eee; padding: 5px; float: right; width: 70px; font-size: 11px;">
+    <div>
+        Afficher : <br />
+        <hidden name="class" value="{$class->name}" />
+        <loop on="{$this->getFlags()}" as="$flag,$defaultValue">
+            <checkbox name="$flag" value="true" label="$flag" checked="{Config::get('show.'.$flag) ? 'checked' : ''}"/><br />
+        </loop>
+        <submit label="»»»" />
+    </div>
+</form>
 
 <div class="sect1">
     <h1>Documentation {$class->isModule() ? 'du module' : 'de la classe'} {$class->name}</h1>
 
-    <opt><p><strong>{$class->summary}</strong></p></opt>
-    
-    <if test="{$class->ancestors}">
-        <div class="hierarchy">
-            <span style="border: double #444; background: yellow; padding: 0.5em; font-weight: bold;">{$class->name}</span>
-            <loop on="{$class->ancestors}" as="$ancestor">
-                <code>&lt;---</code>
-                <span style="border: 1px solid #444; background: #eee; padding: 0.5em;">
-                    {AutoDoc::link($ancestor)}
-                </span>
-            </loop>
-        </div>
-    </if>
-    
+    <opt><div style="font-weight: bold; font-size: 120%;">{$class->summary}</div></opt>
+
     {$class->description}
 
-    <ul test="{$class->annotations}">
-        <loop on="{$class->annotations}" as="$tag,$item">
-            <loop on="$item" as="$doc">
-                <li>@$tag {$doc->name} {$doc->shortDescription} {$doc->longDescription}</li>
-            </loop>
-        </loop>
-    </ul>
+    <annotations a="{$class->annotations}" />
     
-    <form action="" style="border: 1px solid #008; background-color: #eee; padding: 0.5em; float: right; width: 10em;">
-        Afficher : <br />
-        <hidden name="class" value="{$class->name}" />
-        <loop on="{$this->getFlags()}" as="$flag,$defaultValue">
-            <checkbox name="$flag" value="true" label="$flag" checked="{Config::get('show.'.$flag) ? 'checked' : ''}"/> <br />
-        </loop>
-        <submit label="»»»" />
-    </form>
-             
+    <if test="{$class->ancestors}">
+        <h4>Diagramme d'héritage de cette classe</h4>
+        <div class="hierarchy">
+            <def name="fontsize" value="100" />
+            <loop on="{array_reverse($class->ancestors)}" as="$ancestor">
+                <span style="border: 1px solid #444; background: #eee; padding: 0.5em; font-size: $fontsize%">
+                    {AutoDoc::link($ancestor)}
+                </span>
+                <code style="background-color: transparent; padding: 0 0.5em;">---&gt;</code>
+                <def name="fontsize" value="{$fontsize+30}" />
+            </loop>
+            <span style="border: double #444; background: yellow; padding: 0.5em; font-weight: bold; font-size: $fontsize%;">{$class->name}</span>
+        </div>
+    </if>
+
     <div class="sect2" test="{$class->constants}">
         <h2>Constantes définies par la classe</h2>
         <dl>
             <loop on="{$class->constants}" as="$constant">
-                <dt>
-                    <a name="{$constant->name}" />
+                <dt id="{$constant->name}">
                     <span class="keyword">Const</span>
                     <span class="value" style="font-weight: bold;">{$constant->name}</span>
                     <span class="operator">=</span>
-                    <code>{$constant->value}</code>
+                    <code>{htmlspecialchars($constant->value)}</code>
                     ({$constant->type})
                 </dt>
                 <dd>
@@ -81,7 +131,7 @@
                         <dt>
                             <a href="#{$property->name}">{$property->name}</a>
                         </dt>
-                        <dd>
+                        <dd> 
                             {$property->summary}
                         </dd>
                     </loop>
@@ -96,9 +146,9 @@
             <div class="sect3">
                 <h3><groupname group="$group" /></h3>
                 <dl>
-                    <loop on="{$methods}" as="$method">
+                    <loop on="{$methods}" as="$name,$method">
                         <dt>
-                            <a href="#{$method->name}">{$method->name}</a>
+                            <a href="#$name">$name</a>
                         </dt>
                         <dd>
                             {$method->summary}
@@ -116,15 +166,9 @@
             <hr />
             <loop on="{$properties}" as="$property">
                 <div class="sect2">
-                    <h2><a name="{$property->name}" />{$property->name}</h2>
+                    <h2 id="{$property->name}">{$property->name}</h2>
                     {$property->summary}{$property->description}
-                    <ul test="{$property->annotations}">
-                        <loop on="{$property->annotations}" as="$tag,$item">
-                            <loop on="$item" as="$doc">
-                                <li>@$tag {$doc->name} {$doc->shortDescription} {$doc->longDescription}</li>
-                            </loop>
-                        </loop>
-                    </ul>
+                    <annotations a="{$property->annotations}" />
                 </div>
             </loop>
         </loop>
@@ -135,7 +179,7 @@
             <hr />
             <groupname group="$group" prefix="Détail des méthodes" />
             <hr />
-            <loop on="{$methods}" as="$method">
+            <loop on="{$methods}" as="$name,$method">
                 <div class="sect2">
                     <if test="{$method->inheritedFrom}">
                         <span style="float: right">Héritée de {AutoDoc::link($method->inheritedFrom, $method->name)}</span>
@@ -143,9 +187,7 @@
                     <elseif test="{$method->overwrites}">
                         <span style="float: right">Surcharge {AutoDoc::link($method->overwrites, $method->name, $method->overwrites.'::'.$method->name.'()')}</span>
                     </elseif>                    
-                    <h2>
-                        <a name="{$method->name}" />{$method->name}()
-                    </h2>
+                    <h2 id="$name">$name()</h2>
                     
                     <div class="programlisting">{$method->signature}</div>
                     {$method->summary}{$method->description}
@@ -168,27 +210,33 @@
                     
                     <if test="{$method->return}">
                         <h4>Valeur de retour : </h4>
-                        <ul><li>
-                        <p>
-                            <span class="type">{$method->return->type}</span>
-                            <opt>: {$method->return->summary}</opt>
-                             </p>
-                        {$method->return->description}
-                        </li></ul>
+                        <ul>
+                            <li>
+                                <p>
+                                    <span class="type">{$method->return->type}</span>
+                                    <opt>: {$method->return->summary}</opt>
+                                 </p>
+                                {$method->return->description}
+                            </li>
+                        </ul>
                     </if>
                     
-                    <ul test="{$method->annotations}">
-                        <loop on="{$method->annotations}" as="$tag,$item">
-                            <loop on="$item" as="$doc">
-                                <li>@$tag {$doc->name} {$doc->shortDescription} {$doc->longDescription}</li>
-                            </loop>
-                        </loop>
-                    </ul>
+                    <annotations a="{$method->annotations}" />
                 </div>
             </loop>
         </loop>
     </if>
 </div>
+
+<div test="{$errors and Config::get('show.errors')}" style="color: red; border: 1px solid red; background: yellow;">
+    <h2>Erreurs rencontrées lors de la génération de cette documentation : </h2>
+    <ul>
+        <loop on="$errors" as="$error">
+            <li>$error</li>
+        </loop>
+    </ul>
+</div>
+
 <p style="text-align: center; color: #888; border-top: 1px solid #888; font-size: 0.8em;">
     Documentation générée le {date('d/m/Y à H:i:s')}.
     Dernière modification le {date('d/m/Y à H:i:s', $class->lastModified)}.

@@ -53,7 +53,7 @@
 <template match="//sect4/title"><h4>{select('node()|@*')}</h4></template>
 <template match="//sect4"><div class="sect4">{select('node()|@*')}</div></template>
 
-/* Admonitions*/
+/* Admonitions */
 <template match="//note/title"><div class="title">{select('node()|@*')}</div></template>
 <template match="//note"><div class="note">{select('node()|@*')}</div></template>
 
@@ -73,6 +73,7 @@
 <template match="//caution"><div class="caution">{select('node()|@*')}</div></template>
 
 /* Tables (à mettre plus haut ?) */
+
 <template match="//table/tgroup/thead/row/entry"><th>{select('node()|@*')}</th></template>
 <template match="//table/tgroup/thead/row"><tr>{select('node()|@*')}</tr></template>
 <template match="//table/tgroup/tbody/row/entry"><td>{select('node()|@*')}</td></template>
@@ -83,8 +84,8 @@
 <template match="//table"><div class="table">{select('node()|@*')}</div></template>
  
 /* Blocs de code */
-<template match="//programlisting"><div class="programlisting">{select('node()|@*')}</div></template>
-<template match="//screen"><div class="screen">{select('node()|@*')}</div></template>
+<template match="//programlisting"><div class="programlisting">{htmlspecialchars(select('string(node())|@*'))}</div></template>
+<template match="//screen"><div class="screen">{htmlspecialchars(select('string(node())|@*'))}</div></template>
 
 /* Paragraphes */
 <template match="//para"><p>{select('node()|@*')}</p></template>
@@ -114,7 +115,4 @@
 <template match="//filename"><span class="filename">{select('node()|@*')}</span></template>
  
 
-<!-- 
-<template match="//code"><code>{select('node()|@*')}</code></template>
-aucun intérêt...
- -->
+<template match="//code"><code>{htmlspecialchars(select('string(node())|@*'))}</code></template>
