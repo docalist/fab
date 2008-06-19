@@ -503,6 +503,14 @@ class ClassDoc extends ElementDoc
             }
         }
                 
+        // Méthodes
+        foreach($class->getMethods() as $method)
+        {
+            $group=$this->getGroup($method, $class);
+            if (! is_null($group))
+                $this->methods[$group][$method->getName()]=new MethodDoc($class->getName(), $method);
+        }
+        
         // Pseudo méthodes
         if ($pseudoMethods)
         {
@@ -512,13 +520,6 @@ class ClassDoc extends ElementDoc
             }
         }
         
-        // Méthodes
-        foreach($class->getMethods() as $method)
-        {
-            $group=$this->getGroup($method, $class);
-            if (! is_null($group))
-                $this->methods[$group][$method->getName()]=new MethodDoc($class->getName(), $method);
-        }
         if ($this->methods)
         {
             if (Config::get('show.sort'))
