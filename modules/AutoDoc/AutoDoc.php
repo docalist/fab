@@ -1123,7 +1123,13 @@ class DocBlock extends DocItem
     public function inlineTags(& $doc)
     {
         $doc=preg_replace_callback('~\{@([a-z]+)(?:\s(.*?))?}~', array($this, 'parseInlineTag'), $doc);
-        //$doc=preg_replace('~\$[a-z_0-9]+~i', '<span class="var">$0</span>', $doc);
+        
+        // le replace ci-dessus peut générer des <p><p>...</p></p> pour le tag
+        // @inheritoc. On les vire ici.
+        $doc=preg_replace('~<p>\s<p>~i', '<p>', $doc);
+        $doc=preg_replace('~</p>\s</p>~i', '<p>', $doc);
+        
+        
         $doc=$this->admonitions($doc);        
         
 //        $this->replacement=array();
@@ -1246,7 +1252,5 @@ class DocBlock extends DocItem
                 
         }
     }
-    
 }
-
 ?>
