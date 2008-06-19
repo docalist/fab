@@ -6,10 +6,70 @@
  * @version     SVN: $Id$
  */
 
-
-
 /**
- * Le gestionnaire de cache
+ * Gestionnaire de cache.
+ * 
+ * Fab intègre un système de cache qui permet de stocker sous forme de fichier
+ * la version compilée des {@link Config fichiers de configuration} et des 
+ * {@link Template templates} utilisés dans l'application.
+ * 
+ * Ce système améliore grandement les performances de fab : charger un fichier 
+ * xml, le valider et extraire les valeurs indiquées est une opération qui prend
+ * du temps. Les performances obtenues seraient médiocres si ce traitement 
+ * devait être fait à chaque fois, pour chaque requête et pour chacun des 
+ * fichiers de configuration utilisés.
+ * 
+ * Il en va de même pour les templates qui peuvent contenir toute une variété
+ * de tags et de variables différents, des templates match, des slots, etc.
+ *    
+ * Avec le gestionnaire de cache de fab, lorsqu'un fichier est utilisé pour la 
+ * première fois, il est chargé, analysé et compilé pour produire un fichier 
+ * contenant du code source PHP optimisé contenant la même information que celle 
+ * figurant dans le fichier d'origine.
+ * 
+ * Lors des utilisations suivantes, l'application regarde si la version compilée
+ * du fichier demandé figure ou non dans le cache. Si c'est le cas, et que 
+ * celui-ci est à jour, le fichier PHP est directement utilisé avec un simple
+ * {@link http://php.net/include include}.
+ * 
+ * Remarque : 
+ * Le fonctionnement de ce système de cache a été conçu pour être compatible 
+ * avec des accélérateurs de code PHP tels que {@link http://php.net/apc APC},
+ * ce qui permet d'améliorer encore plus les performances.
+ * Dans ce cas, dès la première utilisation, le 
+ * {@link http://fr.wikipedia.org/wiki/Bytecode byte code} de la version compilée 
+ * sera stocké en mémoire partagée par l'accélérateur de code et sera 
+ * immédiatement utilisable par les requêtes suivantes, sans qu'il soit 
+ * nécessaire de charger le fichier php.
+ * 
+ * Par défaut, le système de cache vérifie systématiquement que le fichier 
+ * original n'a pas été modifié depuis la dernière compilation.
+ * 
+ * Configuration :
+ * - La configuration du système de cache se trouve dans le fichier 
+ *   {@link /AdminFiles/Edit?directory=config&file=config.php config.php}
+ *   du répertoire {@link /AdminConfig /config}.
+ * 
+ * Emplacement et hiérarchie du cache : 
+ * - Par défaut, fab détermine automatiquement le path du répertoire dans lequel
+ *   seront stockés les fichiers compilés mais il est possible d'indiquer un 
+ *   répertoire dans la clé <code>path</code> du fichier de config.
+ * 
+ * - Au sein de ce répertoire, fab va créer un répertoire pour chacun des 
+ *   environnements existants pour l'application (normal, debug, test, etc.)
+ * 
+ * - Chacun de ces répertoires contient ensuite un répertoire pour les fichiers
+ *   de fab (répertoire <code>fab</code>) et un répertoire pour les fichiers 
+ *   de l'application (répertoire <code>app</code>).
+ * 
+ * - On retrouve ensuite la même hiérarchie de fichiers que dans l'application
+ *   et dans fab (le cache utilise le chemin relatif du fichier à compiler pour
+ *   déterminer le path exact du fichier mis en cache).
+ * 
+ * Remarque :
+ * fab dispose d'un {@link /AdminCache module d'administration} nommé 
+ * {@link AdminCache} qui permet de visualiser et d'effacer tout ou partie des 
+ * fichiers présents dans le cache.
  * 
  * @package     fab
  * @subpackage  cache
@@ -21,15 +81,16 @@ final class Cache
      * La liste des caches gérés par le gestionnaire de cache.
      * 
      * Chaque item du tableau est un tableau contenant deux éléments :
-     * <li>le répertoire racine des fichiers qui seront mis en cache
-     * <li>le répertoire à utiliser pour la version en cache des fichiers
+     * - le répertoire racine des fichiers qui seront mis en cache ;
+     * - le répertoire à utiliser pour la version en cache des fichiers.
      * 
      * @var array 
      */
     private static $caches=array();
     
+    
     /**
-     * constructeur
+     * Constructeur.
      * 
      * Le constructeur est privé : il n'est pas possible d'instancier la
      * classe. Utilisez directement les méthodes statiques proposées.
@@ -38,18 +99,19 @@ final class Cache
     {
     }
 
+    
     /**
-     * Crée un nouveau cache
+     * Crée un nouveau cache.
      * 
      * @param string $root la racine des fichiers qui pourront être stockés
-     * dans ce cache. Seuls les fichiers dont le path commence par $root
+     * dans ce cache. Seuls les fichiers dont le path commence par <code>$root</code>
      * pourront être stockés.
      * 
      * @param string $cacheDir le path du répertoire dans lequel les fichiers
      * de cache seront stockés.
      * 
-     * @return bool true si le cache a été créé, false si les droits sont 
-     * insuffisants
+     * @return bool true si le cache a été créé, false dans le cas contraire
+     * (droits insuffisants pour créer le répertoire, chemin erroné...)
      */
     public static function addCache($root, $cacheDir)
     {
@@ -68,14 +130,20 @@ final class Cache
         return true;
     }
     
+    
     /**
-     * Retourne le path de la version en cache du fichier dont le nom est 
-     * passé en paramètre
+     * Retourne le path de la version en cache du fichier dont le path est 
+     * passé en paramètre.
      * 
-     * @param string $path le path du fichier qui sera lu ou écrit dans le cache
+     * @param string $path le path du fichier qui sera lu ou écrit dans le cache.
+     * 
      * @param int $cacheNumber une variable optionnelle permettant de récupérer
-     * le numéro interne du cache contenant le path indiqué
+     * le numéro interne du cache contenant le path indiqué.
+     * 
      * @return string le path de la version en cache de ce fichier.
+     * 
+     * @throws Exception si le fichier indiqué ne peut pas figurer dans le
+     * cache.
      */
     public static function getPath($path, &$cacheNumber=null)
     {
@@ -88,13 +156,17 @@ final class Cache
         throw new Exception("Le fichier '$path' ne peut pas figurer dans le cache");
     }
 
+    
     /**
      * Indique si un fichier figure ou non dans le cache et s'il est à jour.
      * 
-     * @param string $path le path du fichier à tester
-     * @param int $minTime date/heure minimale du fichier présent dans le cache 
-     * pour qu'il soit considéré comme à jour.
-     * @return bool true si le fichier est dans le cache, false sinon
+     * @param string $path le path du fichier à tester.
+     * 
+     * @param timestamp $minTime date/heure minimale du fichier présent dans le 
+     * cache pour qu'il soit considéré comme à jour.
+     * 
+     * @return bool true si le fichier est dans le cache et est à jour, false 
+     * sinon.
      */
     public static function has($path, $minTime=0)
     {
@@ -102,27 +174,35 @@ final class Cache
         return ($minTime==0) || (filemtime($path) > $minTime);
     }
 
+    
     /**
-     * Retourne la date de dernière modification d'un fichier en cache
+     * Retourne la date de dernière modification d'un fichier présent dans le 
+     * cache.
      * 
-     * @param string $path le path du fichier dont on veut la date
-     * @return int la date/heure de dernière modification du fichier ou zéro
-     * si le fichier n'est pas présent dans le cache
+     * @param string $path le path du fichier dont on veut connaître la date de
+     * dernière modification.
+     * 
+     * @return timestamp la date/heure de dernière modification du fichier ou 
+     * zéro si le fichier n'est pas présent dans le cache.
      */
     public static function lastModified($path)
     {
         return (file_exists($path=self::getPath($path)) ? filemtime($path) : 0);
     }
 
+    
     /**
-     * Stocke des données en cache
+     * Stocke la version compilée d'un fichier dans le cache.
      * 
      * Le path indiqué peut contenir des noms de répertoires, ceux-ci seront 
      * créés s'il y a lieu.
      *  
-     * @param string $path le path du fichier à écrire
-     * @param string $data les données à écrire
-     * @return bool true si le fichier a été mis en cache, false sinon
+     * @param string $path le path du fichier à stocker.
+     * 
+     * @param string $data le contenu du fichier à stocker.
+     * 
+     * @return bool true si le fichier a été mis en cache, false sinon (erreur
+     * d'écriture, droits insuffisants...)
      */
     public static function set($path, $data)
     {
@@ -139,11 +219,13 @@ final class Cache
         return (false !== @file_put_contents($path, $data, LOCK_EX));
     }
 
+    
     /**
-     * Charge des données depuis le cache
+     * Charge la version compilée d'un fichier à partir du cache.
      * 
-     * @param string $path le path du fichier à lire
-     * @return string les données lues ou FALSE si le fichier n'existe
+     * @param string $path le path du fichier à charger.
+     * 
+     * @return string les données lues ou false si le fichier n'existe
      * pas ou ne peut pas être lu.
      */
     public static function get($path)
@@ -151,14 +233,17 @@ final class Cache
         return @file_get_contents(self::getPath($path));
     }
 
+    
     /**
-     * Supprime du cache le fichier indiqué
-     * Aucune erreur n'est générée si le fichier n'était pas en cache.
+     * Supprime un fichier du cache.
      * 
-     * La fonction supprime également tous les répertoires de path, dès lors 
+     * Aucune erreur n'est générée si le fichier indiqué ne figure pas dans 
+     * le cache.
+     * 
+     * La fonction essaie également de supprimer tous les répertoires, dès lors 
      * que ceux-ci sont vides.
      * 
-     * @param string $path le path du fichier à supprimer du cache
+     * @param string $path le path du fichier à supprimer du cache.
      */
     public static function remove($path)
     {
@@ -178,6 +263,7 @@ final class Cache
         }
     }
 
+    
     /**
      * Vide le cache
      * 
