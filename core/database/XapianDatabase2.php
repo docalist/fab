@@ -330,7 +330,7 @@ class XapianDatabaseDriver2 extends Database
         // Charge le schéma de la base
         $this->schema=unserialize($this->xapianDatabase->get_metadata('schema_object'));
         if (! $this->schema instanceof DatabaseSchema)
-            throw new Exception("Impossible d'ouvrir la base, schéma non géré'");
+            throw new Exception("Impossible d'ouvrir la base, schéma non géré");
         
         // Initialise les propriétés de l'objet
         $this->initDatabase($readOnly);
