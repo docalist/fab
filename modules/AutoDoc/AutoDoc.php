@@ -103,35 +103,102 @@ class AutoDoc extends Module
         {
             $module=Module::loadModule($class);    
         }
+
+        $reflClass=new ReflectionClass($class);
         
         $pseudoMethods=array();
+        
         if ($module)
         {
-            foreach($module->config as $key=>$value)
+            // Charge tous les modules parents de ce module pour pouvoir examiner leur config
+            $parents=array($class=>$module);
+            foreach(array_values(class_parents($class, true)) as $parent)
             {
-                if (strpos($key, 'action') !== 0) continue;
-                if (! isset($value['action'])) continue;
-                foreach(class_parents($class,true) as $parent)
+                if ($parent !== 'Module') 
+                    $parents[$parent]=Module::loadModule($parent);
+            }
+            
+            // Détermine la liste des psudo actions de ce module
+            foreach($module->config as $pseudo=>$config)
+            {
+
+                // Ne garde que le pseudo actions
+                if (strpos($pseudo, 'action') !== 0) continue;
+                if (! isset($config['action'])) continue;
+                $method=$action=$config['action'];
+                
+                //echo '<hr />', $pseudo, ' -&gt; ', $action, '<br />';
+                $inheritedFrom='';
+                $overwrites='';
+                $doc=null;                
+                foreach($parents as $name=>$parent)
                 {
-                    $r=new ReflectionClass($parent);
-                    if ($r->hasMethod($value['action']))
+                    if ($doc!==null && $overwrites!=='' && $inheritedFrom !=='') break;
+                    //echo 'Recherche dans ', $name, '<br />';                
+                    if ($inheritedFrom==='' && $name !== $class && isset($parent->config[$pseudo]))
                     {
-                        $doc=new MethodDoc($key, $r->getMethod($value['action']));
-
-                        $doc->signature=str_replace($value['action'], $key, $doc->signature);
-                        $doc->summary='<p>Pseudo action.</p>';
-
-                        $doc->description='';
-                        
-                        $doc->overwrites=$doc->inheritedFrom;
-                        $doc->inheritedFrom=null;
-                        $pseudoMethods[$key]=$doc;
-                        break;    
+                        //echo 'héritée de ', $name, '<br />';
+                        if (Config::get('show.inherited'))
+                            $inheritedFrom=$name;
+                        else
+                        {
+                            //echo 'héritées non affichées, pseudo suivante<br />';
+                            continue 2;
+                        } 
+                    }
+                    
+                    $r=new ReflectionClass($parent);
+                    if ($r->hasMethod($method))
+                    {
+                        $r=$r->getMethod($method)->getDeclaringClass();
+                        $name=$r->getName();    
+                        //echo 'la classe ', $name, ' contient la méthode ', $method, ', création de $doc<br />';
+                        $doc=new MethodDoc($pseudo, $r->getMethod($method));
+                        if ($overwrites==='')
+                        {
+                            //echo '1. surcharge la méthode ', $name, '::', $method, '()<br />';
+                            $overwrites=$name;
+                        }
+                    }
+                    elseif (isset($parent->config[$method]['action']))
+                    {
+                        if ($overwrites==='')
+                        {
+                            //echo 'surcharge la pseudo action ', $name, '::', $method, '()<br />';
+                            $overwrites=$name;
+                        }
+                        $method=$parent->config[$method]['action'];
+                        //echo 'nouvelle méthode recherchée : ', $method, '<br />';
+                        if ($r->hasMethod($method))
+                        {
+                            if ($overwrites==='')
+                            {
+                                //echo '2. surcharge la méthode ', $name, '::', $method, '()<br />';
+                                $overwrites=$name;
+                            }
+                            //echo 'la classe ', $name, ' contient la méthode ', $method, ', création de $doc<br />';
+                            $doc=new MethodDoc($pseudo, $r->getMethod($method)->getDeclaringClass()->getMethod($method));
+                        }
                     }
                 }
+                //$doc->name=$pseudo;
+                $doc->signature=str_replace($method, $pseudo, $doc->signature);
+                $doc->summary="<p>Pseudo action basée sur l'action ".self::link($overwrites, $method, $method);
+                if ($overwrites !== $class) $doc->summary.= " du module $overwrites";
+                $doc->summary.= '.</p>';
+                
+                //$doc->description='';
+                
+                $doc->overwrites=$overwrites;
+                $doc->inheritedFrom=$inheritedFrom;
+                $pseudoMethods[$pseudo]=$doc;
+                
+                //echo 'inheritedFrom=', $inheritedFrom, ', overwrites=', $overwrites, ', methode=', $doc->signature, '<br />';
+                
             }
         }
-        $doc=new ClassDoc(new ReflectionClass($class), $pseudoMethods);
+        
+        $doc=new ClassDoc($reflClass, $pseudoMethods);
         return $doc;
     }
     

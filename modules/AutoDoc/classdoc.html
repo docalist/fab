@@ -181,16 +181,19 @@
             <hr />
             <loop on="{$methods}" as="$name,$method">
                 <div class="sect2">
-                    <if test="{$method->inheritedFrom}">
-                        <span style="float: right">Héritée de {AutoDoc::link($method->inheritedFrom, $method->name)}</span>
-                    </if>
-                    <elseif test="{$method->overwrites}">
-                        <span style="float: right">Surcharge {AutoDoc::link($method->overwrites, $method->name, $method->overwrites.'::'.$method->name.'()')}</span>
-                    </elseif>                    
+                    <span style="float: right">
+                        <if test="{$method->inheritedFrom}">
+                            Héritée de {AutoDoc::link($method->inheritedFrom, $method->name)}
+                        </if>
+                        <if test="{$method->overwrites}">
+                            Surcharge {AutoDoc::link($method->overwrites, $method->name, $method->overwrites.'::'.$method->name.'()')}
+                        </if>                    
+                    </span>
                     <h2 id="$name">$name()</h2>
                     
                     <div class="programlisting">{$method->signature}</div>
-                    {$method->summary}{$method->description}
+                    <div style="font-weight: bold">{$method->summary}</div>
+                    {$method->description}
                     
                     <if test="{$method->parameters}">
                         <h4>Paramètre{count($method->parameters)==1 ? '' : 's'} : </h4>
