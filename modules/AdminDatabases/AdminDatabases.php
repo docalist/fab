@@ -8,12 +8,6 @@
  */
 
 /**
- * Module d'administration des bases de données
- * 
- * @package     fab
- * @subpackage  Admin
- */
-/**
  * Module d'administration permettant de gérer les bases de données de 
  * l'application. 
  * 
