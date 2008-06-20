@@ -13,19 +13,44 @@
  * @package     fab
  * @subpackage  Admin
  */
+/**
+ * Module d'administration permettant de gérer les bases de données de 
+ * l'application. 
+ * 
+ * Ce module permet de lister les bases de données de l'application et offre des 
+ * fonctions permettant de {@link actionNew() créer une nouvelle base}, de 
+ * {@link actionSetSchema() modifier la structure} d'une base existante en lui
+ * appliquant un nouveau {@link DatabaseSchema schéma} et de lancer une 
+ * {@link actionReindex() réindexation complète} de la base.
+ * 
+ * @package     fab
+ * @subpackage  Admin
+ */
 class AdminDatabases extends Admin
 {
     /**
+     * La base en cours.
+     * 
+     * Cette propriété n'est utilisée que par {@link actionReindex()} pour 
+     * permettre aux templates d'accéder à la base de données en cours
+     * (par exemple pour afficher le nombre de notices).
+     * 
      * @var XapianDatabaseDriver2
      */
     public $selection;
     
     
     /**
-     * Construit la liste des bases de données connues du système (i.e. 
-     * référencées dans le fichier de configuration db.config)
+     * Retourne la liste des bases de données connues du système.
      * 
-     * @return array un tableau contenant les noms des bases
+     * La méthode utilise le fichier de configuration 
+     * {@link /AdminConfig#db.config db.config} pour établir la liste des bases 
+     * de données.
+     * 
+     * @return array|null un tableau contenant le nom des bases référencées dans 
+     * le fichier de configuration. Le tableau obtenu est trié par ordre 
+     * alphabétique. La méthode retourne <code>null</code> si aucune base n'est 
+     * définie. 
      */
     public static function getDatabases()
     {
@@ -44,20 +69,22 @@ class AdminDatabases extends Admin
     /**
      * Retourne des informations sur la base dont le nom est passé en paramètre.
      *  
+     * @param string $name le nom de la base à examiner.
+     *
      * @return StdClass un objet contenant les propriétés suivantes :
-     * - type : le type de base de données
-     * - path : le path exact de la base
-     * - count : le nombre total d'enregistrements dans la base  
-     * - error : un message d'erreur si la base de données indiquée n'existe
-     *   pas ou ne peut pas être ouverte
+     * - <code>type</code> : le type de base de données
+     * - <code>path</code> : le path exact de la base
+     * - <code>count</code> : le nombre total d'enregistrements dans la base  
+     * - <code>error</code> : un message d'erreur si la base de données indiquée
+     *   n'existe pas ou ne peut pas être ouverte
      */
     public static function getDatabaseInfo($name)
     {
         $info=new StdClass();
-        $info->error=null;
         $info->type=Config::get("db.$name.type");
         $info->path=null;
         $info->count=null;
+        $info->error=null;
 
         try
         {
@@ -78,11 +105,16 @@ class AdminDatabases extends Admin
         return $info;
     }
 
+    
     /**
      * Page d'accueil du module d'administration des bases de données.
      * 
-     * Affiche la liste des bases de données référencées dans le fichier
-     * de configuration <code>db.config</code>.
+     * Affiche la liste des bases de données de l'application.
+     * 
+     * La méthode exécute le template définit dans la clé
+     * <code><template></code> du fichier de configuration en lui passant
+     * en paramètre une variable <code>$database</code> contenant la liste
+     * des bases telle que retournée par {@link getDatabases()}.
      */
     public function actionIndex()
     {
@@ -102,14 +134,25 @@ class AdminDatabases extends Admin
      * comment fonctionne la réindexation et lui demandant de confirmer son
      * choix.
      * 
-     * Dans un second temps (une fois qu'on a la confirmation), on crée une 
-     * tâche au sein du gestionnaire de tâches.
+     * La page affichée correspond au template indiqué dans la clé
+     * <code><template></code> du fichier de configuration. Celui-ci est
+     * appellé avec une variable <code>$database</code> qui indique le nom
+     * de la base de données à réindexer.
      * 
-     * Enfin, la réindexation a proprement parler est exécutée par le 
-     * {@link TaskManager}.
+     * Ce template doit réappeller l'action Reindex en passant en paramètre
+     * la valeur <code>true</code> pour le paramètre <code>$confirm</code>.
+     * 
+     * La méthode crée alors une {@link Task tâche} au sein du 
+     * {@link /TaskManager gestionnaire de tâches} qui se charge d'effectuer 
+     * la réindexation.
+     * 
+     * Remarque :
+     * Si la base de données est vide (aucun document), la méthode Reindex
+     * refusera de lancer la réindexation et affichera un message d'erreur
+     * indiquant que c'est inutile.
      *
-     * @param string $database le nom de la base à réindexer
-     * @param boolean $confirm le flag de confirmation
+     * @param string $database le nom de la base à réindexer.
+     * @param bool $confirm le flag de confirmation.
      */
     public function actionReindex($database, $confirm=false)
     {
@@ -158,6 +201,58 @@ class AdminDatabases extends Admin
         Runtime::redirect('/TaskManager/TaskStatus?id='.$id);
     }
     
+
+    /**
+     * Modifie la structure d'une base de données existante en lui appliquant
+     * un nouveau {@link DatabaseSchema schéma}.
+     * 
+     * La méthode commence par afficher le template 
+     * <code>chooseSchema.html</code> avec une variable <code>$database</code> 
+     * qui indique le nom de la base de données à modifier.
+     * 
+     * Ce template contient des slots qui utilisent l'action 
+     * {AdminSchemas::actionChoose()} pour présenter à l'utilisateur la liste 
+     * des schémas disponibles dans l'application et dans fab.
+     * 
+     * L'utilisateur choisit alors le schéma qu'il souhaite appliquer à la base.
+     * 
+     * La méthode va alors effectuer une comparaison entre le schéma actuel
+     * de la base de données et le schéma choisi par l'utilisateur.
+     * 
+     * Si les schémas sont identiques, le template <code>nodiff.html</code>
+     * est affiché.
+     * 
+     * Dans le cas contraire, la méthode va afficher la liste de toutes les
+     * modifications apportées (champs ajoutés, supprimés...) et va demander
+     * à l'utilisateur de confirmer qu'il veut appliquer ce nouveau schéma à
+     * la base.
+     * 
+     * Elle exécute pour cela le template indiqué dans la clé 
+     * <code><template></code> du fichier de configuration en lui passant en 
+     * paramètre :
+     * - <code>$database</code> : le nom de la base qui va être modifiée ;
+     * - <code>$schema</code> : le nom du nouveau schema qui va être appliqué à 
+     *   la base ;
+     * - <code>$changes</code> : la liste des différences entre le schéma actuel
+     *   de la base de données et le nouveau schéma. Cette liste est établie
+     *   en appellant la méthode {@link DatabaseSchema::compare()} du nouveau 
+     *   schéma.
+     * - <code>$confirm</code> : la valeur <code>false</code> indiquant que 
+     *   la modification de la base n'a pas encore été effectuée. 
+     * 
+     * Si l'utilisateur confirme son choix, la méthode va alors appliquer le 
+     * nouveau schéma à la base puis va réafficher le même template avec cette
+     * fois-ci la variable <code>$confirm</code> à <code>true</code>.
+     * 
+     * Ce second appel permet d'afficher à l'utilisateur un réacapitulatif de
+     * ce qui a été effectué et de lui proposer de lancer une 
+     * {@link actionReindex() réindexation complète de la base} s'il y a lieu.
+     *
+     * @param string $database le nom de la base à réindexer.
+     * @param string $schema le nom du schema à appliquer.
+     * @param bool $confirm un flag indiquant si l'utilisateur a confirmé
+     * don choix.
+     */
     public function actionSetSchema($database, $schema='', $confirm=false)
     {
         // Choisit le schéma à appliquer à la base
@@ -169,8 +264,7 @@ class AdminDatabases extends Admin
                 'chooseSchema.html',
                 array
                 (
-                    'database' => $database,
-                    'schemas'=>$schemas
+                    'database' => $database
                 )
             );
             return;
@@ -246,10 +340,31 @@ class AdminDatabases extends Admin
     /**
      * Crée une nouvelle base de données.
      * 
-     * 1. Demande à l'utilisateur le nom de la base à créer, génère
-     * une erreur s'il existe déjà une base portant ce nom.
-     * 2. Demande à l'utilisateur le nom du schéma à utiliser.
-     * 3. Crée la base. 
+     * La méthode commence par demander à l'utilisateur le nom de la base
+     * de données à créer et vérifie que ce nom est correct.
+     * 
+     * Elle utilise pour cela le template <code>new.html</code> qui est appellé
+     * avec une variable <code>$database</code> contenant le nom de la base
+     * à créer et une variable <code>$error</code> qui contiendra un message
+     * d'erreur si le nom de la base indiquée n'est pas correct (il existe déjà
+     * une base de données ou un dossier portant ce nom).
+     * 
+     * Elle demande ensuite le nom du {@link DatabaseSchema schéma} à utiliser
+     * et vérifie que celui-ci est correct.
+     * 
+     * Elle utilise pour cela le template <code>newChooseSchema.html</code> qui 
+     * est appellé avec une variable <code>$database</code> contenant le nom de 
+     * la base à créer, une variable <code>$schema</code> contenant le nom
+     * du schéma choisi et une variable <code>$error</code> qui contiendra un 
+     * message d'erreur si une erreur est trouvée dans le schéma (schéma
+     * inexistant, non valide, etc.)
+     * 
+     * Si tout est correct, la méthode crée ensuite la base de données dans le 
+     * répertoire <code>/data/db/</code> de l'application puis crée un nouvel
+     * alias dans le fichier {@link /AdminConfig#db.config db.config} de l'application.
+     *
+     * Enfin, l'utilisateur est redirigé vers la {@link actionIndex() page 
+     * d'accueil} du module sur la base de données créée.
      *
      * @param string $database le nom de la base à créer.
      * @param string $schema le path du schéma à utiliser pour
