@@ -295,6 +295,12 @@ code.configkey
     border:1px solid #008800;
     color: #444;
 }
+code.var
+{
+    /*background-color:transparent;*/
+    color: #008;
+    /*font-weight: bold;*/
+}
 
 
 /* tables : code inspiré des feuilles de styles de firefox (/res/html.css) */
@@ -464,6 +470,7 @@ code.configkey span.operator
     color: #A00;
     padding: 0 0.1em;
 }
+
 span.type
 {
     color: #004;

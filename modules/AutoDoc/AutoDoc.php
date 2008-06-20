@@ -522,9 +522,9 @@ class ClassDoc extends ElementDoc
         
         if ($this->methods)
         {
+            ksort($this->methods);
             if (Config::get('show.sort'))
             {
-                ksort($this->methods);
                 foreach($this->methods as & $group)
                     ksort($group);
                 unset($group);
@@ -1080,12 +1080,17 @@ class DocBlock extends DocItem
             $code=htmlspecialchars(substr($code, 1, -1));
             $result='<code class="configkey"><span class="operator">&lt;</span>' . $code . '<span class="operator">&gt;</span></code>';
         }
+        elseif (substr($code, 0, 1) === '$' && strpos($code, ' ') === false)
+        {
+            $code=htmlspecialchars($code);
+            $result='<code class="var">' . $code . '</code>';
+        }
         else
         {
             $code=htmlspecialchars($code);
-            $result="<code>" . $code . '</code>';
+            $result='<code>' . $code . '</code>';
         }
-
+        
         $md5=md5($result);
         $this->replacement[$md5]=$result;
         return $md5;    
