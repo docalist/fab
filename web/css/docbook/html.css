@@ -289,10 +289,12 @@ span.command
     color: #fff;
     padding: 0 0.5em;
 }
-
-
-
-
+code.configkey
+{
+    background-color:#CEF6CE;
+    border:1px solid #008800;
+    color: #444;
+}
 
 
 /* tables : code inspiré des feuilles de styles de firefox (/res/html.css) */
@@ -455,7 +457,12 @@ span.element
 span.operator
 {
     color: #444;
-/*    font-weight: bold;*/
+}
+
+code.configkey span.operator
+{
+    color: #A00;
+    padding: 0 0.1em;
 }
 span.type
 {

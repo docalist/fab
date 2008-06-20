@@ -1074,12 +1074,18 @@ class DocBlock extends DocItem
     
     private function codeInlineCallback($matches)
     {
-        $code=$matches[1];
-        $code=htmlspecialchars($code);
-        //echo 'HERE[',$code,']';
+        $code=trim($matches[1]);
+        if (substr($code, 0, 1) === '<' && substr($code, -1) === '>')
+        {
+            $code=htmlspecialchars(substr($code, 1, -1));
+            $result='<code class="configkey"><span class="operator">&lt;</span>' . $code . '<span class="operator">&gt;</span></code>';
+        }
+        else
+        {
+            $code=htmlspecialchars($code);
+            $result="<code>" . $code . '</code>';
+        }
 
-        //$code=Utils::highlight($code);
-        $result='<code>' . $code . '</code>';
         $md5=md5($result);
         $this->replacement[$md5]=$result;
         return $md5;    
@@ -1088,7 +1094,8 @@ class DocBlock extends DocItem
     private function codeBlockCallback($matches)
     {
         $code=$matches[1];
-
+        $code=htmlspecialchars($code);
+        
         // Supprime les lignes vides et les blancs de fin
         $code=rtrim($code);
 
