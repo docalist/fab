@@ -28,8 +28,10 @@ class Admin extends Module
     /**
      * Retourne le titre du module d'administration.
      * 
-     * Cette méthode est appellée automatiquement par {@link actionIndex()}
-     * pour afficher la liste des moduels d'administration disponibles.
+     * Cette méthode est appellée automatiquement par la 
+     * {@link Admin::actionIndex() page d'accueil} du 
+     * {@link /Admin site d'administration} pour afficher la liste des modules 
+     * d'administration disponibles.
      * 
      * Elle retourne le titre indiqué dans la clé
      * <code><title></code> de la configuration.
@@ -53,9 +55,11 @@ class Admin extends Module
     /**
      * Retourne la description du module d'administration.
      * 
-     * Cette méthode est appellée automatiquement par {@link actionIndex()}
-     * pour afficher la liste des moduels d'administration disponibles.
-     * 
+     * Cette méthode est appellée automatiquement par la 
+     * {@link Admin::actionIndex() page d'accueil} du 
+     * {@link /Admin site d'administration} pour afficher la liste des modules 
+     * d'administration disponibles.
+     *  
      * Le but est d'indiquer à l'utilisateur, en quelques lignes, le rôle
      * de chacun des modules d'administration.
      * 
@@ -77,8 +81,10 @@ class Admin extends Module
     /**
      * Retourne l'url du logo à afficher pour ce module d'administration.
      * 
-     * Cette méthode est appellée automatiquement par {@link actionIndex()}
-     * pour afficher la liste des moduels d'administration disponibles.
+     * Cette méthode est appellée automatiquement par la 
+     * {@link Admin::actionIndex() page d'accueil} du 
+     * {@link /Admin site d'administration} pour afficher la liste des modules 
+     * d'administration disponibles.
      * 
      * La méthode récupère le nom de l'image indiqué dans la clé 
      * <code><icon></code> du fichier de configuration.
