@@ -105,7 +105,7 @@ class AdminFiles extends Admin
      * 
      * @throws Exception si le path contient des séquences interdites. 
      */
-    private function checkPath($path, $what)
+    protected function checkPath($path, $what)
     {
          // Vérifie qu'on n'a pas de séquences /../ dans le path
         if (strpos($path, '..'.DIRECTORY_SEPARATOR) !== false)
