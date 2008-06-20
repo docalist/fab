@@ -48,7 +48,7 @@ class AdminFiles extends Admin
      * 
      * Le path retourné est construit à partir des élements suivants :
      * - le répertoire racine de l'application ({@link Runtime::$root})
-     * - le répertoire indiqué dans la clé <code>directory</code> de la config
+     * - le répertoire indiqué dans la clé <code><directory></code> de la config
      * - le répertoire éventuel indiqué dans le paramètre <code>directory</code>
      *   indiqué en query string
      * 
@@ -876,7 +876,7 @@ class AdminFiles extends Admin
      * contenu (<code>content</code>).
      * 
      * Actuellement, l'éditeur de code ne sait gérer que des fichiers encodés
-     * en ISO-8859-1. Si la clé <code>utf8</code> du fichier de configuration 
+     * en ISO-8859-1. Si la clé <code><utf8></code> du fichier de configuration 
      * est à <code>true</code> (ce qui signifie "les fichiers du répertoire de
      * travail sont encodés en utf-8"), le contenu du fichier sera ré-encodé en 
      * ISO-8859-1 avant d'être fournit au template (la fonction 
@@ -921,7 +921,7 @@ class AdminFiles extends Admin
      * La méthode vérifie que le fichier indiqué existe puis sauvegarde le 
      * contenu passé en paramètre dans ce fichier.
      * 
-     * Si la clé <code>utf8</code> du fichier de configuration est à 
+     * Si la clé <code><utf8></code> du fichier de configuration est à 
      * <code>true</code> (ce qui signifie "les fichiers du répertoire de
      * travail sont encodés en utf-8"), le contenu du fichier sera encodé en 
      * utf-8 avant d'être sauvegardé (la fonction 
