@@ -32,7 +32,7 @@ class Admin extends Module
      * pour afficher la liste des moduels d'administration disponibles.
      * 
      * Elle retourne le titre indiqué dans la clé
-     * <code>title</code> de la configuration.
+     * <code><title></code> de la configuration.
      * 
      * Si aucun titre n'est indiqué, elle retourne le nom de la classe en cours.
      * 
@@ -60,7 +60,7 @@ class Admin extends Module
      * de chacun des modules d'administration.
      * 
      * Par défaut, <code>getDescription()</code> retourne le contenu de la clé
-     * <code>description</code> de la configuration ou null si aucune 
+     * <code><description></code> de la configuration ou null si aucune 
      * description n'est disponible.
      * 
      * Cette méthode peut être surchargée par les modules d'administration
@@ -81,7 +81,7 @@ class Admin extends Module
      * pour afficher la liste des moduels d'administration disponibles.
      * 
      * La méthode récupère le nom de l'image indiqué dans la clé 
-     * <code>icon</code> du fichier de configuration.
+     * <code><icon></code> du fichier de configuration.
      * 
      * S'il s'agit d'un chemin relatif, celui-ci est transformé en chemin de la
      * forme <code>/FabWeb/modules/<nom du module>/images/<nom du logo></code>.
@@ -107,7 +107,7 @@ class Admin extends Module
      * Affiche la liste des modules d'administration disponibles.
      * 
      * Cette action charge chacun des modules indiqués dans la clé 
-     * <code>modules</code> du fichier de configuration et construit un tableau 
+     * <code><modules></code> du fichier de configuration et construit un tableau 
      * qui pour chacun des modules trouvés indique :
      * 
      * - <code>title</code> : le titre du module d'administration tel que 
@@ -119,7 +119,7 @@ class Admin extends Module
      * - <code>link</code> : l'url de l'action index de ce module.
      * 
      * Elle appelle ensuite le template indiqué dans la clé 
-     * <code>template</code> du fichier de configuration en lui passant en 
+     * <code><template></code> du fichier de configuration en lui passant en 
      * paramètre une variable <code>modules</code> contenant le tableau obtenu.
      * 
      * @throws LogicException Une exception est générée si la configuration 
