@@ -1,101 +1,10 @@
 <?php
-/*
-$h='simple texte';
-TemplateCompiler::findCode($h, $matches);
-var_export($matches);
-echo "\n";
-preg_match_all(TemplateCompiler::$reCode, $h, $matches, PREG_OFFSET_CAPTURE);
-var_export($matches[0]);
-echo "\n";
-
-$h='a $x b $y c $z';
-TemplateCompiler::findCode($h, $matches);
-var_export($matches);
-echo "\n";
-preg_match_all(TemplateCompiler::$reCode, $h, $matches, PREG_OFFSET_CAPTURE);
-var_export($matches[0]);
-echo "\n";
-
-$h='$x b $y c $z';
-TemplateCompiler::findCode($h, $matches);
-var_export($matches);
-echo "\n";
-preg_match_all(TemplateCompiler::$reCode, $h, $matches, PREG_OFFSET_CAPTURE);
-var_export($matches[0]);
-echo "\n";
-
-$h='a \$x b \$x c';
-TemplateCompiler::findCode($h, $matches);
-var_export($matches);
-echo "\n";
-preg_match_all(TemplateCompiler::$reCode, $h, $matches, PREG_OFFSET_CAPTURE);
-var_export($matches[0]);
-echo "\n";
-
-$h='a $4 $_$é b';
-TemplateCompiler::findCode($h, $matches);
-var_export($matches);
-echo "\n";
-preg_match_all(TemplateCompiler::$reCode, $h, $matches, PREG_OFFSET_CAPTURE);
-var_export($matches[0]);
-echo "\n";
-
-$h='a {autoId()} b {autoId()} c {autoId()} d';
-TemplateCompiler::findCode($h, $matches);
-var_export($matches);
-echo "\n";
-preg_match_all(TemplateCompiler::$reCode, $h, $matches, PREG_OFFSET_CAPTURE);
-var_export($matches[0]);
-echo "\n";
-
-$h='a $x b {autoId()} c';
-TemplateCompiler::findCode($h, $matches);
-var_export($matches);
-echo "\n";
-preg_match_all(TemplateCompiler::$reCode, $h, $matches, PREG_OFFSET_CAPTURE);
-var_export($matches[0]);
-echo "\n";
-
-$h="a {'{essai}'} b";
-TemplateCompiler::findCode($h, $matches);
-var_export($matches);
-echo "\n";
-preg_match_all(TemplateCompiler::$reCode, $h, $matches, PREG_OFFSET_CAPTURE);
-var_export($matches[0]);
-
-$h='a $x b {autoId()';
-TemplateCompiler::findCode($h, $matches);
-var_export($matches);
-echo "\n";
-preg_match_all(TemplateCompiler::$reCode, $h, $matches, PREG_OFFSET_CAPTURE);
-var_export($matches[0]);
-echo "\n";
-
-
-$h="a {'{test}'} b {\"'{test}\"} c {'{te\'st}'} ";
-TemplateCompiler::findCode($h, $matches);
-var_export($matches);
-preg_match_all(TemplateCompiler::$reCode, $h, $matches, PREG_OFFSET_CAPTURE);
-var_export($matches);
-
-die();
-*/
 /**
  * @package     fab
  * @subpackage  template
  * @author      Daniel Ménard <Daniel.Menard@bdsp.tm.fr>
  * @version     SVN: $Id$
  */
-
-//echo "en ISO-8859-1 : Résumé<br />";
-//echo "en UTF-8 : ", utf8_encode('Résumé'), "<br />";
-//echo "double UTF-8 : ", utf8_encode(utf8_encode('Résumé')), "<br />";
-//echo "décodé : ", utf8_decode('Résumé'), "<br />";
-//die();
-//
-//require_once(dirname(__FILE__).'/TemplateCode.php');
-//require_once(dirname(__FILE__).'/TemplateEnvironment.php');
-
 
 /**
  * Compilateur de templates
@@ -110,7 +19,10 @@ die();
  * loop, switch...) compileNode() appelle la fonction correspondante (cf {@link compileIf()}, 
  * {@link CompileLoop()}, {@link CompileSwitch()}, ...).
  * Le code est généré par de simples echos. L'ensemble de la sortie est bufferisé pour être
- * retourné à l'appellant. 
+ * retourné à l'appellant.
+ * @package     fab
+ * @subpackage  template
+ *   
  */
 class TemplateCompiler
 {
@@ -233,42 +145,11 @@ class TemplateCompiler
     public static function compile($source, $env=null)
     {
         self::$env=new TemplateEnvironment($env);
-
-//$t=array
-//(
-//'a',
-//'{true}',
-//'$varA',
-//
-//'a $varAut b {trim("c")} {trim("c2")} d {trim($varA)}$varA e {trim("e2")} {trim("e3")}nll{null}f',
-//);
-//
-//foreach($t as $hsav)
-//{
-//    echo 'Source : <code>', $hsav, '</code><br />';
-//    
-//    $h=$hsav;
-//    $r=self::parse($h,true);
-//    echo 'asExpression returns ', var_export($r,true), ' : <code>', htmlentities($h), '</code><br />';
-//    
-//    $h=$hsav;
-//    self::parse($h,false);
-//    echo 'asCode returns ', var_export($r,true), ' : <code>', htmlentities($h), '<code><br />';
-//    echo '<hr />';
-//}
-//die();
         
         // Fait un reset sur les ID utilisés
         self::$usedId=array(); // HACK: ne fonctionnera pas avec des fonctions include
         // il ne faudrait faire le reset que si c'est un template de premier niveau (pas un include)
-//echo 'Source avant at<pre>*',htmlentities($source),'*</pre>';
 
-//        self::addCodePosition($source);
-//echo 'Source après at<pre>',htmlentities($source),'</pre>';
-//        echo '<pre>';
-//echo (htmlspecialchars($source));        
-//echo '</pre>';
-//echo $source;        
         // Supprime les commentaires de templates : /* xxx */
         $source=preg_replace('~/\*[ \t\n\r\f].*?[ \t\n\r\f]\*/~ms', null, $source);
         
@@ -293,22 +174,21 @@ class TemplateCompiler
         
         // Ajoute les fichiers auto-include dans le source
         $files=Config::get('templates.autoinclude');
-
-        // TODO: tester que le fichier existe et est lisible et générer une exception sinon 
         $h='';
         foreach((array)$files as $file)
         {
             if (false === $path=Utils::searchFile($file))
                 throw new Exception("Impossible de trouver le fichier include $file spécifié dans la config, searchPath=".var_export(Utils::$searchPath,true));
-//            debug && Debug::log('Concaténation du fichier include %s au source du template.file=%s, searchpath=%s', $path, $file, print_r(Utils::$searchPath, true));
+
             $include=file_get_contents($path);
+            
             // Supprime les commentaires en syntaxe C présents dans le include
-            $include=preg_replace('~/\*\s.*?\s\*/~ms', null, $include);
+            $include=preg_replace('~/\*[ \t\n\r\f].*?[ \t\n\r\f]\*/~ms', null, $include);
             
         	$h.=$include;
         }
-        if ($h) $source=str_replace('</root>', '<div test="{false}">'.$h.'</div></root>', $source);
-//        if (Template::getLevel()==0) file_put_contents(dirname(__FILE__).'/dm.xml', $source);
+        if ($h)
+            $source=str_replace('</root>', '<div test="{false}">'.$h.'</div></root>', $source);
 
         // Crée un document XML
         $xml=new domDocument();
@@ -327,10 +207,6 @@ class TemplateCompiler
         libxml_clear_errors(); // >PHP5.1
         libxml_use_internal_errors(true);// >PHP5.1
 
-//echo 'Source xml à compiler :<pre>';
-//echo htmlentities($source);
-//echo '</pre>';
-        
         if (! $xml->loadXML($source)) // options : >PHP5.1
         {
             $h="Impossible de compiler le template, ce n'est pas un fichier xml valide :<br />\n"; 
@@ -340,29 +216,10 @@ class TemplateCompiler
             throw new Exception($h);
         }
         unset($source);
-//        self::walkDOM($xml);
-//        die();
-//self::collapseNodes($xml);
-//        self::dumpNodes($xml, 'Source original');
 
         // Instancie tous les templates présents dans le document
        self::compileMatches($xml);        
-//echo 'Après instanciation des templates match :<pre>';
-//echo htmlentities($xml->saveXml());
-////echo $xml->saveXml();
-//echo '</pre>';
 
-//        if (Template::getLevel()==2) 
-//        {
-//            $ret=$xml->save(dirname(__FILE__).'/aftermatch.xml');
-//            file_put_contents(__FILE__ . '.trace2', print_r(debug_backtrace(),true));
-//            if ($ret===false)
-//                echo "IMPOSSIBLE DE SAUVER LE XML";
-//            else
-//                echo "SAVED";	
-//        }
-
-//die();
         // Normalize le document
 //        $xml->normalize();        
         self::removeEmptyTextNodes($xml->documentElement);
@@ -386,8 +243,6 @@ class TemplateCompiler
         // Fusionne les blocs php adjacents en un seul bloc php  
         self::mergePhpBlocks($result);
         
-//        $result=str_replace(self::PHP_END_TAG."\n", self::PHP_END_TAG."\n\n", $result);
-
      // Nettoyage
      // si la balise de fin de php est \r, elle est mangée (cf http://fr2.php.net/manual/fr/language.basic-syntax.instruction-separation.php)
         $result=str_replace(self::PHP_END_TAG."\r", self::PHP_END_TAG."\r\r", $result);
@@ -463,10 +318,6 @@ class TemplateCompiler
             if (preg_match_all(TemplateCompiler::$reCode, $text, $matches, PREG_PATTERN_ORDER|PREG_OFFSET_CAPTURE)>0)
                 foreach(array_reverse($matches[0]) as $match)
                     $text=substr_replace($text, '{setCurrentPosition('.($line+1).','.($match[1]+1).')}',$match[1],0);   
-
-//            if (preg_match_all('~<([A-Za-z][A-Za-z0-9]*)[^>]*/{0,1}>~', $text, $matches, PREG_PATTERN_ORDER|PREG_OFFSET_CAPTURE)>0)
-//                foreach(array_reverse($matches[0]) as $match)
-//                    $text=substr_replace($text, '{setCurrentPosition('.($line+1).','.($match[1]+1).')}',$match[1],0);   
         }
         $template=implode("\n", $lines);
     }
@@ -503,7 +354,6 @@ class TemplateCompiler
     private static function WalkDOM(DOMNode $node)
     {
         echo self::nodeType($node), '(', $node->nodeType, ') ';
-//        echo ' nodeValue=', htmlentities($node->nodeValue);
         echo htmlentities($node->nodeName);
         
         if ($node instanceof DOMCharacterData || $node instanceof DOMProcessingInstruction) // #text, #comment...
@@ -520,7 +370,6 @@ class TemplateCompiler
                 self::walkDOM($attribute);
                 echo '</blockquote>';
             }
-//            	echo ' ', $name, '="', $attribute->value, '"';
         }	
         echo "<br />";
 
@@ -608,62 +457,83 @@ private static $matchTemplate=null;
         $templates=$xpath->query('//template'); // , $xml->documentElement
         if ($templates->length ==0) return;
 
-        // On enlève tous les templates du document xml
-        // - pour qu'ils n'apparaissent pas dans la sortie générée (non valable comme raison : on a test="false")
-        // - pour que le code d'un template ne soit pas modifié par un autre template (à étudier : toujours valide
-        foreach($templates as $template) // todo: à garder ?
-            $template->parentNode->removeChild($template);
-
-        // Exécute chaque template dans l'ordre
-        foreach($templates as $template)
+        // Exécute tous les templates n fois
+        for($j=0; $j<10; $j++)
         {
-            // Récupère l'expression xpath du template
-            $expression=$template->getAttribute('match');
-            if ($expression==='')
-                throw new Exception
-                (
-                    "L'attribut match d'un tag template est obligatoire" .
-                    htmlentities($template->ownerDocument->saveXml($template))
-                );
-                    
-            // Exécute la requête xpath pour obtenir la liste des noeuds sélectionnés par ce template
-            if (false === $nodes=$xpath->query($expression))
-            throw new Exception("Erreur dans l'expression xpath [$expression]");
-                
-            // Aucun résultat : rien à faire
-            if ($nodes->length==0) 
-                continue;	   
-
-            // Remplace chacun des noeuds sélectionnés par la version instanciée du template
-            foreach($nodes as $node)
+            $hasMatch=false;
+            
+	        // On travaille en ordre inverse pour exécuter les match les plus spécifiques en premier
+            for ($i = $templates->length-1 ; $i >= 0 ; $i--)
             {
-                // Clone le template pour créer le noeud résultat 
-                $result=$template->cloneNode(true);
+                $template = $templates->item($i);
+                
+                 // Récupère l'expression xpath du template
+                $expression=$template->getAttribute('match');
 
-                // Stocke le template et le noeud en cours d'instanciation (utilisé par select())
-                self::$matchNode=$node;
-                self::$matchTemplate=$template;
-                
-                // Instancie le noeud
-                self::instantiateMatch($result);
-                
-                // result est maintenant un tag <template> instancié
-                // on va remplacer node (le noeud matché) par le contenu de result
-                
-                // on ne peut pas travailler directement sur childNodes car
-                // dès qu'on fait un ajout de fils, la liste est modifiée.
-                // On commence donc par faire la liste de tous les noeuds
-                // à insérer.
-                $childs=array();
-                foreach($result->childNodes as $child)
-                    $childs[]=$child;
-                
-                foreach($childs as $child)
-                    $node->parentNode->insertBefore($child, $node);
+                // Lors de la première itération, supprime le template de l'arbre xml pour empêcher un template de modifier son propre code (exemple : //fieldset)
+                if ($j===0) 
+                {
+                    // self::unindent($template); // DMINDENT
+                    $template->parentNode->removeChild($template);
+                }
+                            
+                if ($expression==='')
+                    throw new Exception
+                    (
+                        "L'attribut match d'un tag template est obligatoire" .
+                        htmlentities($template->ownerDocument->saveXml($template))
+                    );
+                        
+                // Exécute la requête xpath pour obtenir la liste des noeuds sélectionnés par ce template
+                if (false === $nodes=$xpath->query($expression))
+                    throw new Exception("Erreur dans l'expression xpath [$expression]");
                     
-                // supprime le noeud <template> désormais vide qui reste
-                $node->parentNode->removeChild($node);
+                // Aucun résultat : rien à faire
+                if ($nodes->length==0) 
+                    continue;	   
+    
+                // Remplace chacun des noeuds sélectionnés par la version instanciée du template
+                $hasMatch=true;
+                foreach($nodes as $node)
+                {
+                    // Clone le template pour créer le noeud résultat 
+                    $result=$template->cloneNode(true);
+    
+                    // Stocke le template et le noeud en cours d'instanciation (utilisé par select())
+                    self::$matchNode=$node;
+                    self::$matchTemplate=$template;
+                    
+                    // Instancie le noeud
+                    self::instantiateMatch($result);
+                    
+                    // DMINDENT                    
+//                    if ($result->firstChild->nodeType===XML_TEXT_NODE && $result->firstChild->isWhitespaceInElementContent())
+//                        $result->removeChild($result->firstChild);
+//                    if ($result->lastChild->nodeType===XML_TEXT_NODE && $result->lastChild->isWhitespaceInElementContent())
+//                        $result->removeChild($result->lastChild);
+//                    self::indent($result, self::getIndent($node));
+                    
+                    // result est maintenant un tag <template> instancié
+                    // on va remplacer node (le noeud matché) par le contenu de result
+                    
+                    // on ne peut pas travailler directement sur childNodes car
+                    // dès qu'on fait un ajout de fils, la liste est modifiée.
+                    // On commence donc par faire la liste de tous les noeuds
+                    // à insérer.
+                    $childs=array();
+                    foreach($result->childNodes as $child)
+                        $childs[]=$child;
+                    
+                    foreach($childs as $child)
+                        $node->parentNode->insertBefore($child, $node);
+                        
+                    // supprime le noeud <template> désormais vide qui reste
+                    $node->parentNode->removeChild($node);
+                }
             }
+            
+            // Plus aucun match, inutile de continuer à boucler
+            if (! $hasMatch) break;
         }
     }
     
@@ -686,7 +556,6 @@ private static $matchTemplate=null;
             
             // la fonction DOIT retourner de l'ascii, pas de l'utf-8 (cf commentaires dans instantiateMatch)
             $var=utf8_decode($var);
-//            echo 'handleMatchVar : ', $attr, '=', $var, '<br />';
             return false;
         }
         
@@ -719,7 +588,7 @@ private static $line=0, $column=0;
     }
     
     /**
-     * Instancie récurcivement un noeud sélectionné par un template match.
+     * Instancie récursivement un noeud sélectionné par un template match.
      * 
      * L'instanciation consiste à :
      * 
@@ -815,11 +684,9 @@ private static $line=0, $column=0;
         if ($node instanceof DOMCharacterData) // #text, #comment... pour les PI :  || $node instanceof DOMProcessingInstruction
         {
             $matches=null;
-//            if (preg_match_all(self::$reCode, utf8_decode($node->data), $matches, PREG_PATTERN_ORDER|PREG_OFFSET_CAPTURE)>0)
             if (self::findCode(utf8_decode($node->data), $matches))
-            { 
+            {
                 // Evalue toutes les expressions dans l'ordre où elles apparaissent
-//                foreach($matches[0] as & $match)
                 foreach($matches as & $match)
                 {
                 	// Initialement, $match contient : 
@@ -834,7 +701,7 @@ private static $line=0, $column=0;
 
                     // Evalue l'expression
                     self::$selectNodes=null; // si select() est utilisée, on aura en sortie les noeuds sélectionnés
-//                    echo 'Code avant parseExpression: ', $code, '<br />';
+
                     $canEval=TemplateCode::parseExpression
                     (
                         $code, 
@@ -847,29 +714,23 @@ private static $line=0, $column=0;
                             'lastid'=>null,
                         )
                     );
-//                    echo 'Code après parseExpression: ', $code, '<br />';
                     
                     if ($canEval) $code=TemplateCode::evalExpression($code);
-//                    echo 'Code après evalExpression: ', $code, '<br />';
                     
                     // Stocke le résultat
                     $match[2]=$code;
                     $match[3]=self::$selectNodes; // les noeuds éventuels retournés par select et qu'il faut insérer
                 }
-
+ 
                 // Remplace l'expression par sa valeur et insère les noeuds sélectionnés par select()
                 
                 // On travaille en ordre inverse pour deux raisons :
                 // - l'offset de l'expression reste valide jusqu'à la fin
                 // - après un splitText, le noeud en cours ne change pas
-//                foreach(array_reverse($matches[0]) as $match)
                 foreach(array_reverse($matches) as $match)
                 {
                 	// Remplace l'expression par sa valeur
-//                    echo 'Node before <pre>',$node->nodeValue,'</pre>';
-//                    echo 'replaceData, offset=', $match[1], ', len=', strlen($match[0]), ', replacewith=', $match[2], "\n";
                     $node->replaceData($match[1], strlen($match[0]), utf8_encode($match[2]));
-//                    echo 'Node after <pre>',$node->nodeValue,'</pre>';
                     
                     // Si select a été appellée et a retourné des noeuds, on les insère devant l'expression
                     if (! is_null($match[3]))
@@ -879,6 +740,7 @@ private static $line=0, $column=0;
                         {
                             // Utiliser splittext sur le noeud en cours et insère tous les noeuds à insérer devant le noeud créé
                             $newNode=$node->splitText($match[1]);
+//                            $indent=self::getIndent($newNode); // DMINDENT
                             foreach($match[3] as $nodeToInsert)
                             {
                                 // Si le noeud à insérer est un attribut, on l'ajoute au parent du noeud en cours
@@ -893,7 +755,8 @@ private static $line=0, $column=0;
                                 // Sinon on clone le noeud sélectionné et on l'insère devant l'expression
                                 else
                                 {
-                                    $newNode->parentNode->insertBefore($nodeToInsert->cloneNode(true), $newNode);
+                                    $n=$newNode->parentNode->insertBefore($nodeToInsert->cloneNode(true), $newNode);
+                                    // self::unindent($n); // DMINDENT
                                 }
                             }
                         }
@@ -913,9 +776,22 @@ private static $line=0, $column=0;
         
         // Traite les descendants
         if ($node->hasChildNodes())
+        {
+            // Lors de l'instantiation d'un match, on va peut être créer de
+            // nouveaux noeuds dans la liste des fils du match. Du coup, on
+            // ne peut pas faire un foreach travailler directement sur $node->childNodes
+            // car la liste va changer dynamoquement (risque de boucle infinie).
+            // On commence donc par faire une liste statique de tous les fils,
+            // puis on fait leur instantiation.  
+            $childNodes=array();
             foreach ($node->childNodes as $child)
+                $childNodes[]=$child;
+                
+            foreach ($childNodes as $child)
                 self::instantiateMatch($child);
+        }
     }
+
 
     /**
      * Exécute les appels à 'select()' présents dans un template match.
@@ -1210,7 +1086,6 @@ private static $line=0, $column=0;
                 
                 // Teste si ce tag contient des attributs qu'il faut router
                 if (isset($attrToRoute[$name]) && isset($attrToRoute[$name][$attr]))
-//                if (isset($attrToRoute[$name]) && isset($attrToRoute[$name][$attr]) && (substr($value, 0, 1) === '/'))
                 {
                     $value=self::route($value);
                     echo ' ', $attr, '="', $value, '"';
@@ -1738,41 +1613,62 @@ echo "Source desindente :\n",  $xml->saveXml($xml), "\n-------------------------
     }
     
     // ajoute la chaine indent à l'indentation du noeud et de tous ses descendants
-    private static function indent(DOMNode $node, $indent, $isChild=false)
+    private static function indent(DOMNode $node, $indent)
     {
-        // ajoute indent au noeud texte qui précède le tag d'ouverture (node->previousSibling)
-        // pas de previous = node est le premier noeud de l'arbre
-        // previous != TEXT_NODE = <elem><node> : ne pas indenter
-        if (! $isChild)
+        if (! $node->hasChildNodes()) return;
+        
+        foreach($node->childNodes as $child)
         {
-            $previous=$node->previousSibling;
-            if (is_null($previous))
+            if ($child->nodeType===XML_TEXT_NODE )//&& $child !== $node->lastChild)
+                $child->data=str_replace("\n", "\n$indent", $child->data);
+
+            if ($child->hasChildNodes()) self::indent($child, $indent);
+        }
+    }   
+    
+    private static function getIndent(DOMNode $node)
+    {
+        if (is_null($previous=$node->previousSibling)) return '';
+        if ($previous->nodeType !== XML_TEXT_NODE) return '';
+        $indent=strstr($previous->data, "\n");
+        if ($indent !== false) $indent=substr($indent,1);
+        return $indent; //strtr($indent, ' ', '·');
+    }
+    
+    private static function unindent(DOMNode $node, $indent=false)
+    {
+        if (! $node->hasChildNodes()) return;
+        
+        // Détermine l'indentation du premier tag présent dans les fils
+        if ($indent===false)
+        {
+            foreach($node->childNodes as $child)
             {
-                $node->parentNode->insertBefore($node->ownerDocument->createTextNode($indent), $node);
-            }
-            else
-            {
-                if ($previous->nodeType===XML_TEXT_NODE)
-                {
-                    if (rtrim(strrchr($previous->data, 10), "\n\t- ")==='')
-                        $previous->data .= $indent;
-                }
+                if ($child->nodeType !== XML_ELEMENT_NODE) continue;
+                if (is_null($previous=$child->previousSibling)) return;
+                if ($previous->nodeType !== XML_TEXT_NODE) return;
+                $indent=strstr($previous->data, "\n");
+                if ($indent !== false) $indent=substr($indent,1);
+                break;
             }
         }
                 
-        // Indente tous les fils
-        
-        if ($node->hasChildNodes()) foreach($node->childNodes as $child)
+        foreach($node->childNodes as $child)
         {
             if ($child->nodeType===XML_TEXT_NODE)
-                $child->data=str_replace("\n", "\n".$indent, $child->data);
+            {
+                if (strpos($child->data, "\n")!== false)
+                    $child->data=str_replace("\n".$indent, "\n", $child->data, $nb);
+                elseif (strpos($child->data, $indent)===0 )
+                    $child->data=substr($child->data, strlen($indent));
+            }
             
-            if ($child->hasChildNodes()) self::indent($child, $indent, true);
+            if ($child->hasChildNodes()) self::unindent($child, $indent);
         }
+        
     }   
-     
-    // supprime la chaine indent à l'indentation du noeud et de tous ses descendants
-    private static function unindent(DOMNode$node, $indent, $isChild=false)
+    
+    private static function unindentold(DOMNode$node, $indent, $isChild=false)
     {
         // ajoute indent au noeud texte qui précède le tag d'ouverture (node->previousSibling)
         // pas de previous = node est le premier noeud de l'arbre
