@@ -1,0 +1,586 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE sect1 PUBLIC "-//OASIS//DTD DocBook XML V4.5//EN"
+"http://www.oasis-open.org/docbook/xml/4.5/docbookx.dtd">
+<?xml-stylesheet href="../web/css/docbook/dm.css" type="text/css"?>
+<sect1 id="config">
+    <sect1info>
+        <releaseinfo>$Id$</releaseinfo>
+    </sect1info>
+
+    <title>Fichiers de configuration</title>
+
+    <toc></toc>
+
+    <sect2 id="fab.config.introduction">
+        <title>Introduction</title>
+
+        <para>L'ensemble du code de fab est écrit de manière à être très
+        facilement paramétrable et adaptable aux besoins des applications, le
+        but étant de permettre la plus grande réutilisation possible du code
+        sans avoir à modifier quoi que ce soit à ce code.</para>
+
+        <para>Certains des modules standards de fab sont écrit uniquement dans
+        ce but : le module <ulink
+        url="?class=DatabaseModule">DatabaseModule</ulink>, par exemple, n'est
+        pas utilisable tel quel (il ne sait pas avec quelle base de données il
+        doit travailler, ni quels templates utiliser pour les différents
+        affichages), mais en définissant quelques valeurs dans la
+        configuration (le nom de la base et des templates à utiliser), on va
+        obtenir un module complètement opérationnel, sans avoir à écrire ou à
+        modifier une seule ligne de code PHP.</para>
+
+        <para>Fab dispose d'un système très souple de configuration en cascade
+        basé sur des fichiers au format <ulink
+        url="http://fr.wikipedia.org/wiki/Xml">xml</ulink>. Ce système est mis
+        en oeuvre dans la classe <ulink url="?class=Config">Config</ulink> qui
+        offre les méthodes permettant de manipuler la configuration de
+        l'application.</para>
+
+        <para>Chaque module peut avoir son propre fichier de configuration. Le
+        nom d'un fichier de configuration correspond toujours au nom du module
+        auquel est ajoutée l'extension <code>.config</code> (par exemple le
+        fichier de configuration du module <code>DatabaseModule</code>
+        s'appellera toujours <code>DatabaseModule.config</code>).</para>
+
+        <para>Il existe également des fichiers de configuration génériques
+        (<code>general.config</code>, <code>routing.config</code>,
+        <code>db.config</code>...), indépendants des modules, qui servent à
+        définir la configuration générale du site.</para>
+
+        <para>Tous ces fichiers de configuration sont regroupés dans le
+        répertoire <ulink url="/AdminConfig">/config</ulink> de
+        l'application.</para>
+
+        <para>Fab dispose également de ses propres fichiers de configuration
+        qui fournissent des options par défaut pour quasiment toutes les
+        options. Cela permet, dans l'application, de ne définir que les
+        options que l'on souhaite changer et non pas d'avoir à définir toutes
+        les options possibles.</para>
+
+        <para>Le mécanisme de configuration en cascade permet à l'application
+        d'hériter de la configuration de fab, puis à un module d'hériter de la
+        configuration de l'application et enfin à une action d'hériter de
+        celle du module.</para>
+
+        <para>Enfin, il est possible de définir des environnements de travail
+        différents (par exemple un environnement 'normal' utilisé pour le site
+        en exploitation et un environnement 'debug' utilisé pendant le
+        développement de l'application) en indiquant une configuration
+        spécifique à chaque environnement.</para>
+    </sect2>
+
+    <sect2 id="fab.config.format">
+        <title>Format des fichiers de configuration</title>
+
+        <para>Comme indiqué plus haut, un fichier de configuration est un
+        fichier texte au format xml dont la racine est un noeud
+        <code>&lt;config&gt;</code>.</para>
+
+        <para>Chaque option de configuration est définie par une
+        <emphasis>clé</emphasis> et une <emphasis>valeur</emphasis> : pour
+        chaque tag présent dans le fichier xml, le nom du tag représente la
+        clé de l'option et le contenu du tag correspond à la valeur.</para>
+
+        <sect3 id="fab.config.format.exemple">
+            <title>Exemple</title>
+
+            <programlisting role="xml">&lt;?xml version="1.0" encoding="UTF-8" standalone="yes"?&gt;
+&lt;config&gt;
+    &lt;title&gt;Exemple de site&lt;/title&gt;
+    &lt;version&gt;1.0&lt;/version&gt;
+    &lt;debug&gt;false&lt;/debug&gt;
+&lt;/config&gt;</programlisting>
+
+            <para>Dans cet exemple, on a définit trois options de
+            configuration (<code>title</code>, <code>version</code> et
+            <code>debug</code>) dont on pourra récupérer la valeur en
+            utilisant la méthode <ulink url="?class=Config#get">get</ulink> de
+            la classe <ulink url="?class=Config">Config</ulink> :</para>
+
+            <programlisting role="php">\$title = Config::get('title');     /* retourne la chaine "Exemple de site" */
+\$version = Config::get('version'); /* retourne le réel 1.0 */
+\$debug = Config::get('debug');     /* retourne la valeur booléenne false */</programlisting>
+        </sect3>
+
+        <sect3 id="fab.config.format.keys">
+            <title>Clés</title>
+
+            <para>Les clés des options ne doivent contenir que des lettres et
+            le caractère "<code>_</code>" car ce sont les seuls <ulink
+            url="http://www.w3.org/TR/REC-xml/#NT-Name">caractères autorisé
+            dans un nom de tag</ulink>. Au sein d'une même section, chaque clé
+            doit être unique (dans l'exemple ci-dessus, on obtiendrait une
+            erreur si on avait définit deux fois la clé
+            <code>&lt;title&gt;</code>, par exemple).</para>
+
+            <warning>
+                <title>Casse des caractères</title>
+
+                <para>Les clés des options sont sensibles à la casse des
+                caractères : les clés <code>&lt;title&gt;</code> et
+                <code>&lt;Title&gt;</code> ne représentent pas la même option
+                et aucune erreur ne sera générée.</para>
+
+                <para>De même si une clé s'appelle <code>&lt;title&gt;</code>
+                dans le fichier de configuration et que vous appellez
+                <code>Config::get('Title')</code>, vous n'obtiendrez pas le
+                résultat escompté.</para>
+            </warning>
+        </sect3>
+
+        <sect3 id="fab.config.format.scalars">
+            <title>Valeurs simples</title>
+
+            <para>Les valeurs scalaires peuvent contenir n'importe quels
+            caractères. Techniquement, un fichier xml étant un simple fichier
+            texte, la valeur associée à une clé scalaire est toujours une
+            chaine de caractères. Néanmoins, fab va automatiquement attribuer
+            un type à la valeur en utilisant les règles suivantes :</para>
+
+            <itemizedlist>
+                <listitem>
+                    <para><code>true</code> et <code>false</code> : conversion
+                    en booléen (bool)</para>
+                </listitem>
+
+                <listitem>
+                    <para>suite de chiffres : conversion sous forme d'entier
+                    (int)</para>
+                </listitem>
+
+                <listitem>
+                    <para>nombre décimal (tel que reconnu par la fonction
+                    <ulink
+                    url="http://php.net/is_numeric">is_numeric()</ulink> de
+                    php : 3.14, +1e10...) : conversion sous forme de réel
+                    (float)</para>
+                </listitem>
+
+                <listitem>
+                    <para>autre valeur : pas de conversion (string)</para>
+                </listitem>
+            </itemizedlist>
+        </sect3>
+
+        <sect3 id="fab.config.format.arrays">
+            <title>Valeurs multiples : tableaux de valeurs</title>
+
+            <para>Une option peut également être multivaluée et contenir
+            plusieurs valeurs qui dans ce cas seront retournées à
+            l'application sous la forme d'un tableau numérique (les clés du
+            tableau sont des entiers).</para>
+
+            <para>Dans ce cas, le tag xml indiquant la clé de l'option va
+            contenir une liste de tags <code>&lt;item&gt;</code> au lieu
+            d'indiquer une valeur scalaire :</para>
+
+            <programlisting role="xml">&lt;?xml version="1.0" encoding="UTF-8" standalone="yes"?&gt;
+&lt;config&gt;
+    &lt;css&gt;
+        &lt;item&gt;default.css&lt;/item&gt;
+        &lt;item&gt;print.css&lt;/item&gt;
+    &lt;/css&gt;
+    &lt;js&gt;
+        &lt;item&gt;site.js&lt;/item&gt;
+        &lt;item&gt;jquery.js&lt;/item&gt;
+    &lt;/js&gt;
+&lt;/config&gt;</programlisting>
+
+            <para>Dans cet exemple, nous avons définit deux options
+            (<code>css</code> et <code>js</code>) qui peuvent contenir une
+            liste de feuilles de styles css et de scripts javascript à
+            charger.</para>
+
+            <para>La méthode <ulink
+            url="?class=Config#get">Config::get</ulink> retournera alors les
+            tableaux pour ces options :</para>
+
+            <para><programlisting role="php">\$title=Config::get('css');  /* array(0=&gt;'default.css', 1=&gt;'print.css') */
+\$version=Config::get('js'); /* array(0=&gt;'site.js', 1=&gt;'jquery.js') */</programlisting></para>
+
+            <warning>
+                <title>Le nom 'item' est un nom réservé.</title>
+
+                <para>Le nom item sert uniquement à désigner les différentes
+                valeurs d'une option multivaluée. Vous ne pouvez pas avoir une
+                option nommée item dans vos fichiers de configuration.</para>
+            </warning>
+
+            <warning>
+                <title>Pas de mélange</title>
+
+                <para>Si une option contient des items, elle ne peut pas
+                contenir autre chose que des items : si vous avez à la fois
+                des tags <code>&lt;item&gt;</code> et des clés, une erreur
+                sera générée.</para>
+            </warning>
+        </sect3>
+
+        <sect3 id="fab.config.format.sections">
+            <title>Valeurs complexes : sections</title>
+
+            <para>Parfois, certaines options sont corrélées entre elles. Par
+            exemple, si on veut indiquer les coordonnées du webmaster du site
+            dans la configuration, on peut imaginer d'avoir dans la
+            configuration les clés suivantes :</para>
+
+            <programlisting role="xml">&lt;?xml version="1.0" encoding="UTF-8" standalone="yes"?&gt;
+&lt;config&gt;
+    &lt;adminname&gt;Le webmaster du site&lt;/adminname&gt;
+    &lt;adminemail&gt;webmaster@example.com&lt;/adminemail&gt;
+&lt;/config&gt;</programlisting>
+
+            <para>Le problème avec cette approche, c'est que rien dans cette
+            configuration n'indique que les deux options sont correlées (il
+            peut y avoir d'autres options qui viennent se glisser entre les
+            deux, les noms des clés sont compliqués donc sources d'erreur,
+            etc.)</para>
+
+            <para>Pour répondre à ce problème, les fichiers de configuration
+            de fab permettent de regrouper plusieurs options au sein d'une
+            section en utilisant la syntaxe suivante :</para>
+
+            <programlisting role="xml">&lt;?xml version="1.0" encoding="UTF-8" standalone="yes"?&gt;
+&lt;config&gt;
+    &lt;admin&gt;
+        &lt;name&gt;Le webmaster du site&lt;/name&gt;
+        &lt;email&gt;webmaster@example.com&lt;/email&gt;
+    &lt;/admin&gt;
+&lt;/config&gt;</programlisting>
+
+            <para>Dans ce cas, on a simplement définit une nouvelle option
+            <code>&lt;admin&gt;</code> dont la valeur n'est pas un scalaire ou
+            un tableau comme vu précédemment, mais une structure composée des
+            options indiquées.</para>
+
+            <para>Pour accéder à une section ou aux options présentes au sein
+            d'une section, c'est toujours la méthode <ulink
+            url="?class=Config#get">Config::get</ulink> qui sera utilisée,
+            mais on a maintenant deux options possibles.</para>
+
+            <para>On peut vouloir récupérer l'ensemble des coordonnées de
+            l'administrateur, c'est-à-dire la valeur de la clé
+            <code>&lt;admin&gt;</code>. Dans ce cas, la méthode va retourner
+            un tableau associatif (les clés du tableau sont des chaines)
+            contenant les options présentes dans la section :</para>
+
+            <programlisting role="php">\$title=Config::get('admin');
+/* 
+    Retourne le tableau suivant :
+    array
+    (
+        'name'=&gt;'Le webmaster du site',
+        'email'=&gt;'webmaster@example.com')
+    )
+*/</programlisting>
+
+            <para>On peut également vouloir accéder directement au nom ou à
+            l'adresse de l'administrateur. Dans ce cas,</para>
+
+            <para>on utilisera une clé comportant le nom des différents
+            niveaux à traverser, séparée par des points :</para>
+
+            <programlisting role="php">\$title=Config::get('admin.name');  /* retourne 'Le webmaster du site' */
+\$title=Config::get('admin.email'); /* retourne 'webmaster@example.com' */</programlisting>
+
+            <para>Les sections peuvent être imbriquées les unes dans les
+            autres. On peut ainsi créer toute une hiérarchie tout en
+            conservant la possibilité d'accéder aux options à n'importe quel
+            niveau.</para>
+
+            <para>Les sections et les tableaux peuvent aussi être utilisés
+            conjointements : on peut avoir une section qui définit une option
+            contenant un tableau d'items, chaque item étant une section
+            définissant des valeurs et ainsi de suite.</para>
+
+            <para>Les sections sont particulièrement utiles pour définir la
+            configuration propre à une action particulière d'un module. La
+            convention est alors de nommer chacune des sections avec le nom
+            exact de l'action. Ce mécanisme est beaucoup utilisé dans fab et,
+            de manière générale, on trouvera au sein du fichier de
+            configuration d'un module une section pour chacune des actions de
+            ce module, les autres clés présentes dans le tag
+            <code>&lt;config&gt;</code> représentant les options générales du
+            module.</para>
+
+            <para>Par exemple, la configuration pour un module de gestion de
+            contacts héritant du module standard <ulink
+            url="?class=DatabaseModule">DatabaseModule</ulink> de fab pourrait
+            ressembler à ça :</para>
+
+            <programlisting role="xml">&lt;?xml version="1.0" encoding="UTF-8" standalone="yes"?&gt;
+&lt;config&gt;
+    &lt;!-- database indique, pour l'ensemble du module, la base à utiliser --&gt;
+    &lt;database&gt;contacts&lt;/database&gt;
+
+    &lt;!-- Feuille de style à charger quelle que soit l'action exécutée --&gt;
+    &lt;css&gt;
+        &lt;item&gt;default.css&lt;/item&gt;
+    &lt;/css&gt;
+
+    &lt;!-- Configuration de l'action SearchForm (formulaire de recherche) --&gt;
+    &lt;actionSearchForm&gt;
+        &lt;!-- template à utiliser pour afficher le formulaire de recherche --&gt;
+        &lt;template&gt;searchform.html&lt;/template&gt;
+
+        &lt;!-- feuille de style spécifique (mise en forme du formulaire) --&gt;
+        &lt;css&gt;
+            &lt;item&gt;formulaire.css&lt;/item&gt;
+        &lt;css&gt;
+    &lt;/actionSearchForm&gt;
+
+    &lt;!-- Configuration de l'action Search (liste des réponses obtenues) --&gt;
+    &lt;actionSearch&gt;
+        &lt;!-- template à utiliser pour afficher les réponses --&gt;
+        &lt;template&gt;answers.html&lt;/template&gt;
+
+        &lt;!-- maximum 10 réponses par parge --&gt;
+        &lt;max&gt;10&lt;/max&gt;
+
+        &lt;!-- trier par nom du contact --&gt;
+        &lt;sort&gt;name&lt;/sort&gt;
+    &lt;/actionSearch&gt;
+&lt;/config&gt;</programlisting>
+
+            <para></para>
+        </sect3>
+    </sect2>
+
+    <sect2 id="fab.config.cascade">
+        <title>Héritage, mécanisme de cascade</title>
+
+        <para>Lorsqu'une action particulière d'un module est exécutée, la
+        configuration effective de cette action va être calculée en prenant en
+        compte à la fois la configuration de fab, la configuration générale de
+        l'application, la configuration du module invoqué et la configuration
+        spécifique à l'action demandée.</para>
+
+        <para>Le calcul de la configuration finale se fait par un mécanisme de
+        <emphasis>fusion</emphasis> des différents fichiers de configuration
+        rencontrés :</para>
+
+        <itemizedlist>
+            <listitem>
+                <para>initialement, la configuration en cours est vide (elle
+                ne contient aucune clé).</para>
+            </listitem>
+
+            <listitem>
+                <para>fab charge alors ses propres fichiers de configuration.
+                Ceux-ci vont être successivement fusionnés avec la
+                configuration existante.</para>
+            </listitem>
+
+            <listitem>
+                <para>la configuration générale de l'application est alors
+                chargée et chaque fichier est à sont tour fusionné avec la
+                configuration existante.</para>
+            </listitem>
+
+            <listitem>
+                <para>l'application charge alors la configuration du module
+                demandé qui a son tour est fusionnée.</para>
+            </listitem>
+
+            <listitem>
+                <para>enfin, la configuration spécifique à l'action demandée
+                est chargée et fusionnée.</para>
+            </listitem>
+        </itemizedlist>
+
+        <tip>
+            <para>Ce mécanisme de configuration en cascade, basé sur
+            l'héritage, est très similaire au mécanisme de cascade des <ulink
+            url="http://fr.wikipedia.org/wiki/Feuilles_de_style_en_cascade">feuilles
+            de styles CSS</ulink> (le style final d'un élément résulte des
+            styles en ligne de cet élément, des styles définis dans les
+            feuilles de style de la page, des styles par défaut du navigateur,
+            etc.)</para>
+        </tip>
+
+        <para>A chaque fois, il s'agit donc d'intégrer dans la configuration
+        en cours les options présentes dans un autre fichier de configuration.
+        Le mécanisme de fusion procède en énumérant toutes les clés présentes
+        dans le fichier et en appliquant à chacune le traitement
+        suivant :</para>
+
+        <itemizedlist>
+            <listitem>
+                <para>si cette clé n'existe pas déjà dans la configuration en
+                cours, elle est ajoutée avec la valeur associée.</para>
+            </listitem>
+
+            <listitem>
+                <para>sinon :</para>
+
+                <itemizedlist>
+                    <listitem>
+                        <para>si la valeur est un scalaire (chaine, entier,
+                        booléen...), la nouvelle valeur remplace le valeur
+                        existante ;</para>
+                    </listitem>
+
+                    <listitem>
+                        <para>si la valeur est un tableau, les éléments du
+                        tableau sont ajoutés aux éléments existants ;</para>
+                    </listitem>
+
+                    <listitem>
+                        <para>si la valeur est une section, la fusion se
+                        poursuit récursivement en appliquant les règles
+                        ci-dessus.</para>
+                    </listitem>
+                </itemizedlist>
+            </listitem>
+        </itemizedlist>
+
+        <example>
+            <title>fusion de fichiers de configuration</title>
+
+            <para>Configuration en cours :</para>
+
+            <programlisting role="xml">&lt;?xml version="1.0" encoding="UTF-8" standalone="yes"?&gt;
+&lt;config&gt;
+    &lt;chaine&gt;une chaine&lt;/chaine&gt;
+    &lt;entier&gt;10&lt;/entier&gt;
+    &lt;reel&gt;3.14&lt;/reel&gt;
+    &lt;autre&gt;autre option&lt;/autre&gt;
+
+    &lt;tableau&gt;
+        &lt;item&gt;valeur 10&lt;/item&gt;
+        &lt;item&gt;valeur 20&lt;/item&gt;
+        &lt;item&gt;valeur 30&lt;/item&gt;
+    &lt;/tableau&gt;
+
+    &lt;section1&gt;
+        &lt;option1&gt;1ère  option&lt;/option1&gt;
+        &lt;option2&gt;2nde option&lt;/option2&gt;
+    &lt;/section1&gt;
+&lt;/config&gt;</programlisting>
+
+            <para>Fichier à fusionner à la configuration en cours :</para>
+
+            <programlisting role="xml">&lt;?xml version="1.0" encoding="UTF-8" standalone="yes"?&gt;
+&lt;config&gt;
+    &lt;chaine&gt;une autre chaine&lt;/chaine&gt;
+    &lt;entier&gt;20&lt;/entier&gt;
+    &lt;reel&gt;1.61803399&lt;/reel&gt;
+
+    &lt;valeur&gt;une valeur&lt;/valeur&gt;
+
+    &lt;tableau&gt;
+        &lt;item&gt;valeur 15&lt;/item&gt;
+        &lt;item&gt;valeur 25&lt;/item&gt;
+        &lt;item&gt;valeur 35&lt;/item&gt;
+    &lt;/tableau&gt;
+
+    &lt;section1&gt;
+        &lt;option2&gt;option modifiée&lt;/option2&gt;
+        &lt;option3&gt;3ème option&lt;/option3&gt;
+    &lt;/section1&gt;
+&lt;/config&gt;</programlisting>
+
+            <para>Résultat :</para>
+
+            <programlisting role="xml">&lt;?xml version="1.0" encoding="UTF-8" standalone="yes"?&gt;
+&lt;config&gt;
+    &lt;chaine&gt;une autre chaine&lt;/chaine&gt;      &lt;!-- la nouvelle valeur remplace l'ancienne --&gt;
+    &lt;entier&gt;20&lt;/entier&gt;                    &lt;!-- la nouvelle valeur remplace l'ancienne --&gt;
+    &lt;reel&gt;1.61803399&lt;/reel&gt;                &lt;!-- la nouvelle valeur remplace l'ancienne --&gt;
+    &lt;autre&gt;autre option&lt;/autre&gt;            &lt;!-- inchangée --&gt;
+
+    &lt;valeur&gt;une valeur&lt;/valeur&gt;            &lt;!-- ajoutée --&gt;
+
+    &lt;tableau&gt;
+        &lt;item&gt;valeur 10&lt;/item&gt;
+        &lt;item&gt;valeur 20&lt;/item&gt;
+        &lt;item&gt;valeur 30&lt;/item&gt;
+        &lt;item&gt;valeur 15&lt;/item&gt;             &lt;!-- nouvel item ajouté aux items existants --&gt;
+        &lt;item&gt;valeur 25&lt;/item&gt;             &lt;!-- nouvel item ajouté aux items existants --&gt;
+        &lt;item&gt;valeur 35&lt;/item&gt;             &lt;!-- nouvel item ajouté aux items existants --&gt;
+    &lt;/tableau&gt;
+
+    &lt;section1&gt;
+        &lt;option1&gt;1ère option&lt;/option1&gt;     &lt;!-- inchangée --&gt;
+        &lt;option2&gt;option modifiée&lt;/option2&gt; &lt;!-- la nouvelle valeur remplace l'ancienne --&gt;
+        &lt;option3&gt;3ème option&lt;/option3&gt;     &lt;!-- ajoutée --&gt;
+    &lt;/section1&gt;
+&lt;/config&gt;</programlisting>
+        </example>
+    </sect2>
+
+    <sect2 id="fab.config.env">
+        <title>Environnements</title>
+
+        <para>Par défaut, l'application initialise fab en mode "normal". Il
+        est possible de définir un nouvel environnement en indiquant son nom
+        dans le contrôleur frontal utilisé pour l'application :</para>
+
+        <programlisting role="php">Runtime::setup('debug');</programlisting>
+
+        <para>Dans l'exemple ci-dessus, on a indiqué qu'on souhaitait lancer
+        l'application en mode "debug".</para>
+
+        <para>Lorsque fab est lancé avec un nom d'environnement spécifique, il
+        va rechercher, en plus des fichiers de configuration habituels, des
+        fichiers de configuration portant l'extension
+        <code>.&lt;env&gt;.config</code> (dans l'exemple ci-dessus, il va
+        essayer de charger les fichiers <code>general.debug.config</code>,
+        <code>db.debug.config</code>, <code>routes.debug.config</code>,
+        <code>DatabaseModule.debug.config</code>, etc.</para>
+
+        <para>Les fichiers de configuration spécifiques à un environnement
+        sont toujours chargé <emphasis>après</emphasis> les fichiers normaux
+        (ce qui revient à dire que les options qu'ils contiennent seront
+        prioritaires sur les options déjà définies).</para>
+
+        <para>Vous pouvez définir autant d'environnements que nécessaire en
+        écrivant autant de contrôleurs frontaux spécifiques (par exemple
+        <code>index.php</code>, <code>debug.php</code>, <code>test.php</code>,
+        etc.)</para>
+
+        <para>Par défaut, fab ne reconnaît que deux environnements : le mode
+        normal et le mode debug. Le mode debug permet à l'application de
+        générer une trace de son exécution et de recompiler automatiquement
+        tous les fichiers de configuration et les templates utilisés, ce qui
+        est pratique pendant la phase de développement de
+        l'application.</para>
+
+        <para>Lorsque vous créez un nouvel environnement, il se comportera
+        initialement comme le mode normal. Il vous appartient de créer les
+        fichiers de configuration spécifiques qui feront que ce nouvel
+        environnement est utile.</para>
+    </sect2>
+
+    <sect2 id="fab.config.cache">
+        <title>Système de cache</title>
+
+        <para>La classe <ulink url="?class=Config">Config</ulink> utilise
+        automatiquement le <ulink url="?class=Config">cache de fab</ulink>.
+        Les fichiers de configuration au format xml sont compilés lors de la
+        première utilisation et cette version compilée est ensuite stockée
+        dans le cache pour optimiser le fonctionnement de
+        l'application.</para>
+    </sect2>
+
+    <sect2 id="fab.config.links">
+        <title>Liens utiles</title>
+
+        <itemizedlist>
+            <listitem>
+                <para><ulink url="/AdminConfig/">Module d'administration de la
+                configuration</ulink> de cette application</para>
+            </listitem>
+
+            <listitem>
+                <para><ulink url="?class=Config">API de la classe
+                Config</ulink> de fab.</para>
+            </listitem>
+
+            <listitem>
+                <para><ulink url="?class=Cache">API de la classe Cache</ulink>
+                de fab.</para>
+            </listitem>
+        </itemizedlist>
+    </sect2>
+</sect1>

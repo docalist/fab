@@ -7,7 +7,20 @@
  */
 
 /**
- * Stocke les paramètres de configuration de l'application
+ * Gère la configuration de l'application.
+ * 
+ * <code>Config</code> est une classe classe statique qui offre des méthodes 
+ * permettant de gérer la configuration de l'application :
+ * - {@link load() chargement} des fichiers de configuration au format xml,
+ * - compilation,
+ * - {@link loadFile() stockage} en {@link Cache cache},
+ * - {@link mergeConfig() héritage},
+ * - {@link get() consultation} et {@link set() modification} des 
+ *   {@link getAll() options de configuration}. 
+ * 
+ * Consultez 
+ * {@tutorial config.xml l'introduction sur les fichiers de configuration de fab} 
+ * pour plus d'informations.
  * 
  * @package 	fab
  * @subpackage 	config
@@ -15,8 +28,7 @@
 class Config
 {
     /**
-     * @var array le tableau qui contient les paramètres de la configuration
-     * en cours
+     * @var array La configuration en cours.
      */
     private static $config = array
     (
@@ -31,8 +43,8 @@ class Config
     /**
      * Charge un fichier de configuration XML.
      * 
-     * loadFile charge le fichier indiqué, sans le fusionner avec la 
-     * configuration en cours.
+     * <code>loadFile</code> charge le fichier indiqué, sans le fusionner avec 
+     * la configuration en cours, et retourne le tableau obtenu.
      * 
      * Il est possible d'indiquer un callback chargé de valider ou de modifier 
      * le tableau.
@@ -104,7 +116,10 @@ class Config
     }
 
     /**
-     * Génère un fichier Xml à partir de la configuration en cours
+     * Génère un source Xml à partir de la configuration en cours.
+     * 
+     * La fonction écrit directement sur la sortie standard (echo). 
+     * Utilisé les fonctions de php pour capturer le source généré. 
      *
      * @param string $name nom du tag en cours
      * @param mixed $data données du tag en cours
@@ -159,7 +174,7 @@ class Config
     
     /**
      * Charge un tableau de configuration à partir du source xml passé en
-     * paramètre
+     * paramètre.
      *
      * @param string $source
      * @return array
@@ -192,10 +207,10 @@ class Config
     
     /**
      * Fonction utilitaire récursive utilisée par {@link loadXml()} pour
-     * convertit un noeud XML en valeur
+     * convertit un noeud XML en valeur.
      *
-     * @param DOMElement $node
-     * @return mixed
+     * @param DOMElement $node le noeud à convertir.
+     * @return mixed la valeur obtenue.
      */
     private static function fromXml(DOMElement $node)
     {
@@ -320,11 +335,12 @@ class Config
     
     /**
      * Charge un fichier de configuration et le fusionne avec la configuration
-     * en cours
+     * en cours.
      * 
      * @param string $path le fichier de configuration à charger
-     * @param string section la section dans laquelle le fichier sera chargé
-     * @param callback fonction de callback à appliquer au tableau de configuration
+     * @param string $section la section dans laquelle le fichier sera chargé
+     * @param callback $transformer fonction de callback à appliquer au tableau 
+     * de configuration
      */
     public static function load($path, $section='', array $transformer=null)
     {
@@ -337,6 +353,7 @@ class Config
      * 
      * @param array $parameters un tableau associatif contenant les
      * options à intégrer dans la configuration en cours.
+     * @param string $section la section dans laquelle le tableau sera chargé.
      */
     public static function addArray($parameters = array (), $section='')
     {
@@ -368,8 +385,9 @@ class Config
      * premier tableau avec celle du second. Mais si une clé commence par le 
      * caractère '!' (point d'exclamation), la fusion est désactivée et la valeur
      * associée vient purement et simplement remplacer la valeur existante. 
-     * 
-     * @access private
+     *
+     * @param array $t1 le tableau dans lequel la fusion va s'opérer.
+     * @param array $t2 le tableau contenant les options à fusionner.
      */
     public static function mergeConfig(&$t1,$t2)
     {
@@ -455,7 +473,7 @@ class Config
 
 
     /**
-     * Retourne la valeur d'une option de configuration
+     * Retourne la valeur d'une option de configuration.
      *
      * @param string $name le nom de l'option de configuration.
      * @param mixed  $default la valeur à retourner si l'option demandée
@@ -528,7 +546,7 @@ class Config
 
 
     /**
-     * Retourne la totalité de la configuration en cours
+     * Retourne la totalité de la configuration en cours.
      *
      * @return array un tableau associatif contenant les paramètres de 
      * configuration
@@ -540,9 +558,10 @@ class Config
 
 
     /**
-     * Réinitialise la configuration
+     * Réinitialise la configuration.
      *
-     * @return void
+     * @param string $name le nom de la section à vider (si <code>$name</code> 
+     * est absent ou vide, l'ensemble de la coniguration est réinitialisé). 
      */
     public static function clear($name='')
     {
