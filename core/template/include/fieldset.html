@@ -1,6 +1,6 @@
-<template match="//fieldset" label="" class="">
+<template match="//fieldset[@label]" label="" class="">
     <fieldset>
-        <legend test="$label" class="{rtrim('fieldset '.$class)}">$label</legend>
+        <legend class="{rtrim('fieldset '.$class)}">$label</legend>
         {select('./node()')}{select('@*')}
     </fieldset>
 </template>

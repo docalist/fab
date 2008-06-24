@@ -1,23 +1,22 @@
-<!--textbox multilignes (textarea)-->
-<template match="//textbox[@rows]" name="" label="" value="" class="" rows="" cols="20" id="">
-    <label test="$label" class="textarea{rtrim(' '.$class)}" for="{autoId($id:$name:'textarea')}">$label</label>
-    <textarea
-        name="$name"
-        title="{select('@title') : $label}"
-        class="textarea{rtrim(' '.$class)}"
-        rows="{$rows:3}"
-        cols="$cols"
-        id="{$label ? lastId() : $id}">{select('string(@value)')}{select('./node()')}{select('@*')}</textarea>
-</template>
-
-<!--textbox simple (input text)-->
-<template match="//textbox" name="" label="" value="" class="" id="">
-    <label test="$label" class="text{rtrim(' '.$class)}" for="{autoId($id:$name:'textbox')}">$label</label>
-    <input
-        type="text" 
-        name="$name" 
-        title="{select('@title') : $label}"
-        value="{select('@value')}{select('.//node()')}"
-        class="text{rtrim(' '.$class)}" 
-        id="{$label ? lastId() : $id}">{select('@*')}</input>
+<template match="//textbox" name="" label="" value="" class="" id="" rows="" cols="20" title="">
+    <if test="{$rows}">
+        <label test="$label" class="textarea{rtrim(' '.$class)}" for="{autoId($id:$name:'textarea')}">$label</label>
+        <textarea
+            name="$name"
+            title="{$title : $label}"
+            class="textarea{rtrim(' '.$class)}"
+            rows="$rows"
+            cols="$cols"
+            id="{$label ? lastId() : $id}">$value{select('node()|@*')}</textarea>
+    </if>
+    <else>
+        <label test="$label" class="text{rtrim(' '.$class)}" for="{autoId($id:$name:'textbox')}">$label</label>
+        <input
+            type="text" 
+            name="$name" 
+            title="{$title : $label}"
+            value="$value{select('node()')}"
+            class="text{rtrim(' '.$class)}" 
+            id="{$label ? lastId() : $id}">{select('@*')}</input>
+    </else>
 </template>
