@@ -509,7 +509,7 @@ Config::addArray($this->config);    // fixme: objectif : uniquement $this->confi
     }
     
     /**
-     * Fonction appellée avant l'exécution de l'action demandée.
+     * Fonction appelée avant l'exécution de l'action demandée.
      * 
      * Par défaut, preExecute vérifie que l'utilisateur dispose des droits
      * requis pour exécuter l'action demandée (clé 'access' du fichier de
@@ -517,13 +517,13 @@ Config::addArray($this->config);    // fixme: objectif : uniquement $this->confi
      * 
      * Les modules dérivés peuvent utiliser cette fonction pour
      * réaliser des pré- initialisations ou gérer des pseudo- actions. Si vous
-     * surchargez cette méthode, pensez à appeller parent::preExecute().
+     * surchargez cette méthode, pensez à appeler parent::preExecute().
      * 
-     * Une autre utilisation de cette fonction et d'interrompre le traitement en
-     * retournant 'true'. 
+     * Une autre utilisation de cette fonction est d'interrompre le traitement en
+     * retournant 'true'.
      * 
-     * @return bool true si l'exécution de l'action doit être interrompu, false
-     * pour continuer normallement.
+     * @return bool true si l'exécution de l'action doit être interrompue, false
+     * pour continuer normalement.
      */
     public function preExecute()
     {
