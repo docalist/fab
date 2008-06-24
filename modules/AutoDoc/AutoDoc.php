@@ -267,6 +267,7 @@ class AutoDoc extends Module
         // plutôt que dans la config car on ne veut pas les avoir pour les autres
         // templates susceptibles d'être exécutés par l'action index (classdoc.html, etc.) 
         Config::set('templates.autoinclude.docbook_to_html', 'templates.html');
+        Config::set('templates.autoinclude.docbook_toc', 'toc.html');
         Template::runSource($path, $source);
     }
     
