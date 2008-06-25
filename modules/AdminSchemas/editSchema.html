@@ -54,7 +54,7 @@
                 <fieldset>
                     <legend>Propriétés du champ</legend>
                     <textbox id="db_fields_name" size="50" class="fullwidth" onkeyup="SchemaEditor.updateFieldName()" label="Nom :" /><br />
-                    <select id="db_fields_type" src="array('autonumber', 'bool', 'int', 'text')" label="Type :" /><br />
+                    <select id="db_fields_type" src="{array('autonumber', 'bool', 'int', 'text')}" label="Type :" /><br />
                     <textbox id="db_fields_label" size="60" class="fullwidth" label="Libellé :" /><br />
                     <textbox id="db_fields_description" class="fullwidth" rows="3" cols="60" label="Description :" /><br />
                     
@@ -251,7 +251,7 @@
                     <textbox id="db_sortkeys_name" size="80" class="fullwidth" label="Nom :"/>
                     <textbox id="db_sortkeys_label" size="60" class="fullwidth" label="Libellé :" /><br />
                     <textbox id="db_sortkeys_description" class="fullwidth" rows="3" cols="60" label="Description :" /><br />
-                    <select label="Type de clé : " name="db_sortkeys_type" src="{array(array('code'=>'string', 'label'=>'string'),array('code'=>'number','label'=>'number'))}" />
+                    <select label="Type de clé : " name="db_sortkeys_type" src="{array('string','number')}" />
                 </fieldset>
                 <fieldset>
                     <legend>Champs (étudiés dans l'ordre, s'arrête au premier non vide)</legend>
