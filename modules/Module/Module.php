@@ -167,23 +167,26 @@ abstract class Module
                 // Applique la config du pseudo-module à la config du module
                 Config::mergeConfig($parent->config, $config);
                 
-                eval
-                (
-                    sprintf
+                if (! class_exists($module))
+                {
+                    eval
                     (
-                        '
-                            /**
-                              * %1$s est un pseudo-module qui hérite de {@link %2$s}.
-                              */
-                            class %1$s extends %2$s
-                            {
-                            }
-                        ',
-                        $module, 
-                        $config['module']
-                    )
-                );
-                
+                        sprintf
+                        (
+                            '
+                                /**
+                                  * %1$s est un pseudo-module qui hérite de {@link %2$s}.
+                                  */
+                                class %1$s extends %2$s
+                                {
+                                }
+                            ',
+                            $module, 
+                            $config['module']
+                        )
+                    );
+                }
+                                
                 $object=new $module();
                 $object->config=$parent->config;
                 $object->searchPath=$parent->searchPath;
