@@ -137,8 +137,6 @@ var SchemaEditor =
                 // Si on ne le trouve pas, on le signale 
                 if (select.length === 0)
                 {
-                    console.error('select' + id + prop + ' NON TROUVE');
-                    console.dir(this.db);
                     continue;
                 }
 
@@ -215,7 +213,6 @@ var SchemaEditor =
         // Toujours aucun élément : masque le panel de droite et affiche le message 'liste vide'
         if (this.selectedIndex === -1)
         {
-            console.log('Rien pour ', this.id, ' rightpanel masqué');
             jQuery('#' + this.id + '_rightpanel').hide();
             jQuery('#' + this.id + '_empty').show();
             return;
@@ -259,7 +256,6 @@ var SchemaEditor =
     {
         if (id.charAt(0) !== '#')
         {
-            console.error('appel de loadObject avec un id sans dièse initial : ', id);
             return;
         }
             
@@ -276,7 +272,6 @@ var SchemaEditor =
                 // Si la table n'existe pas, on le signale
                 if (table.length === 0)
                 {
-                    console.info('loadObject : tableau ', propid, ' non trouvée dans le contexte', context);
                     continue;
                 }
                 
@@ -334,7 +329,6 @@ var SchemaEditor =
                 // On signale si on ne le trouve pas
                 if (control.length === 0)
                 {
-                    console.info('loadObject : champ ', propid, ' non trouvé dans le contexte', context);
                     continue;
                 }
                     
@@ -378,7 +372,6 @@ var SchemaEditor =
                 // Si la table n'existe pas, on le signale
                 if (table.length === 0)
                 {
-                    console.info('saveObject : tableau ', propid, ' non trouvé dans le contexte', context);
                     continue;
                 }
                 
@@ -409,7 +402,6 @@ var SchemaEditor =
                 // On signale si on ne le trouve pas
                 if (control.length === 0)
                 {
-                    console.info('saveObject : champ ', propid, ' non trouvé dans le contexte', context);
                     continue;
                 }
                 
@@ -513,7 +505,6 @@ var SchemaEditor =
         // Initialise les propriétés de l'option avec leurs valeurs par défaut
         if (typeof SchemaEditor.defaults[select.id] === 'undefined')
         {
-            console.error('Impossible de trouver defaults[', select.id, ']');
             return;
         }
             
@@ -662,7 +653,6 @@ dans le select) donc on ne le fait que s'il existe déjà des options dans le sele
         //  et on ajoute un élément au tableau data[prop]
         if (typeof SchemaEditor.defaults[table.id] === 'undefined')
         {
-            console.error('Impossible de trouver defaults[', table.id, ']');
             return;
         }
         
@@ -750,7 +740,6 @@ dans le select) donc on ne le fait que s'il existe déjà des options dans le sele
                 // Si on ne le trouve pas, on le signale 
                 if (select.length === 0)
                 {
-                    console.error('select' + id + prop + ' NON TROUVE');
                     continue;
                 }
                 select=select.get(0);
@@ -775,7 +764,6 @@ dans le select) donc on ne le fait que s'il existe déjà des options dans le sele
                 // On signale si on ne le trouve pas
                 if (control.length === 0)
                 {
-                    console.info('saveObject : champ ', propid, ' non trouvé dans le contexte');
                     continue;
                 }
                 
@@ -790,7 +778,6 @@ dans le select) donc on ne le fait que s'il existe déjà des options dans le sele
                 
             }
         }
-        console.dir(this.db);
 
         // Masque la zone d'erreurs si elle est affichée
         jQuery('#errors').hide();
