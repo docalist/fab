@@ -562,19 +562,19 @@ $fab_init_time=microtime(true);
     private static function setupRoutes()
     {
         // Charge d'abord les routes de fab
-        Config::load(self::$fabRoot.'config' . DIRECTORY_SEPARATOR . 'routes.config', 'routes', array('Routing','transform'));
+        Config::load(self::$fabRoot.'config' . DIRECTORY_SEPARATOR . 'routing.config', 'routing', array('Routing','transform'));
         
         // Puis les routes de l'application
-        if (file_exists($path = self::$root.'config' . DIRECTORY_SEPARATOR . 'routes.config'))
-            Config::load($path, 'routes', array('Routing','transform'));
+        if (file_exists($path = self::$root.'config' . DIRECTORY_SEPARATOR . 'routing.config'))
+            Config::load($path, 'routing', array('Routing','transform'));
 
         // Puis les routes spécifiques à l'environnement en cours
         if (!empty(self::$env))
         {
-            if (file_exists($path=self::$fabRoot.'config'.DIRECTORY_SEPARATOR.'routes.' . self::$env . '.config'))
-                Config::load($path, 'routes', array('Routing','transform'));
-            if (file_exists($path=self::$root.'config'.DIRECTORY_SEPARATOR.'routes.' . self::$env . '.config'))
-                Config::load($path, 'routes', array('Routing','transform'));
+            if (file_exists($path=self::$fabRoot.'config'.DIRECTORY_SEPARATOR.'routing.' . self::$env . '.config'))
+                Config::load($path, 'routing', array('Routing','transform'));
+            if (file_exists($path=self::$root.'config'.DIRECTORY_SEPARATOR.'routing.' . self::$env . '.config'))
+                Config::load($path, 'routing', array('Routing','transform'));
         }
 
     }

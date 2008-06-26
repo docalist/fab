@@ -14,9 +14,9 @@
  * l'application (on commence toujours par Config::clear('routes')).
  * 
  * On utilise deux fichiers contenant des routes spécifiques à nos tests :
- * - routes.config : contient les routes par défaut de fab et des routes
+ * - routing.config : contient les routes par défaut de fab et des routes
  *   écrites spécifiquement pour les tests
- * - routes.blog.config : des routes pour un blog imaginaire ayant des urls 
+ * - routing.blog.config : des routes pour un blog imaginaire ayant des urls 
  *   très personnalisées (urls incluant le titre des articles ou encore urls
  *   de la forme /articles/tag/php+mvc+framework pour lancer une recherche en 
  *   ET sur les mots-clés indiqués)   
@@ -67,8 +67,8 @@ class RoutingTest extends AutoTestCase
     
     public function routeForCallback1($url)
     {
-        Config::clear('routes');
-        Config::load(dirname(__FILE__).DIRECTORY_SEPARATOR.'routes.config', 'routes', 'Routing::transform');
+        Config::clear('routing');
+        Config::load(dirname(__FILE__).DIRECTORY_SEPARATOR.'routing.config', 'routing', 'Routing::transform');
         return var_export(Routing::routeFor($url),true);
     }
 
@@ -79,8 +79,8 @@ class RoutingTest extends AutoTestCase
     
     public function routeForCallback2($url)
     {
-        Config::clear('routes');
-        Config::load(dirname(__FILE__).DIRECTORY_SEPARATOR.'routes.blog.config', 'routes', 'Routing::transform');
+        Config::clear('routing');
+        Config::load(dirname(__FILE__).DIRECTORY_SEPARATOR.'routes.blog.config', 'routing', 'Routing::transform');
         return var_export(Routing::routeFor($url),true);
     }
     
@@ -96,8 +96,8 @@ class RoutingTest extends AutoTestCase
 
     public function linkForCallback1($url)
     {
-        Config::clear('routes');
-        Config::load(dirname(__FILE__).DIRECTORY_SEPARATOR.'routes.config', 'routes', 'Routing::transform');
+        Config::clear('routing');
+        Config::load(dirname(__FILE__).DIRECTORY_SEPARATOR.'routing.config', 'routing', 'Routing::transform');
         $h=Routing::linkFor($url);
         if (strncmp($h, Runtime::$home, strlen(Runtime::$home))===0)
             $h='(home)' . substr($h, strlen(Runtime::$home)-1);
@@ -113,8 +113,8 @@ class RoutingTest extends AutoTestCase
 
     public function linkForCallback2($url)
     {
-        Config::clear('routes');
-        Config::load(dirname(__FILE__).DIRECTORY_SEPARATOR.'routes.blog.config', 'routes', 'Routing::transform');
+        Config::clear('routing');
+        Config::load(dirname(__FILE__).DIRECTORY_SEPARATOR.'routing.blog.config', 'routing', 'Routing::transform');
         $h=Routing::linkFor($url);
         if (strncmp($h, Runtime::$home, strlen(Runtime::$home))===0)
             $h='(home)' . substr($h, strlen(Runtime::$home)-1);

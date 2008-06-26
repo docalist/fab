@@ -11,7 +11,7 @@
  * Gestionnaire de routes.
  * 
  * Les gestionnaire de routes permet d'avoir des urls sémantiques. Il travaille
- * à partir d'un fichier de configuration (routes.config) qui pour chacune des
+ * à partir d'un fichier de configuration (routing.config) qui pour chacune des
  * urls que l'utilisateur peut appeller définit le module et l'action à
  * appeller ainsi que les paramètres à passer.
  * 
@@ -221,7 +221,7 @@ class Routing
     {
         return self::routeForRecurse
         (
-            Config::get('routes.urls'), // La partie "index par morceaux" des routes 
+            Config::get('routing.urls'), // La partie "index par morceaux" des routes 
             self::urlParts($url)        // L'url découpée en morceaux
         );        
     }
@@ -537,18 +537,18 @@ class Routing
         $lowerAction=strtolower($action);
         
         // Récupère la liste des routes possibles pour ce couple (module,action)
-        $routes=Config::get("routes.modules.$lowerModule-$lowerAction");
+        $routes=Config::get("routing.modules.$lowerModule-$lowerAction");
         if (is_null($routes))
         {
-            if(trace)echo 'Pas de routes pour ', "routes.modules.$lowerModule-$lowerAction", '<br />';
-            $routes=Config::get("routes.modules.\$-$lowerAction");
+            if(trace)echo 'Pas de routes pour ', "routing.modules.$lowerModule-$lowerAction", '<br />';
+            $routes=Config::get("routing.modules.\$-$lowerAction");
             if (is_null($routes))
             {
-                if(trace)echo 'Pas de routes pour ', "routes.modules.\$-$lowerAction", '<br />';
-                $routes=Config::get('routes.modules.$-$');
+                if(trace)echo 'Pas de routes pour ', "routing.modules.\$-$lowerAction", '<br />';
+                $routes=Config::get('routing.modules.$-$');
                 if (is_null($routes))
                 {
-                    if(trace)echo 'Pas de routes pour ', 'routes.modules.$-$', '<br />';
+                    if(trace)echo 'Pas de routes pour ', 'routing.modules.$-$', '<br />';
                     if(trace)echo '<pre>', var_export(Config::get('routes'), true), '</pre>';
                     if ($action==='index') $action='';
                     $url='/'.$module.'/'.$action.self::buildQueryString($args);
