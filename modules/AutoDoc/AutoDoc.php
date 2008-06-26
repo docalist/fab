@@ -10,104 +10,118 @@ class AutoDoc extends Module
     
 
     /**
-     * Affiche la documentation interne d'une classe ou d'un module
+     * Retourne le path exact du fichier docbook dont le nom ets passé en 
+     * paramètre.
      * 
-     * Les flags passés en paramètre permettent de choisir ce qui sera affiché.
+     * La méthode teste s'il existe un fichier docbook portant le nom
+     * indiqué dans le répertoire <code>/doc</code> de l'application ou de fab
+     * (elle ajoute l'extension .xml si nécessaire).
      * 
-     * @param string $class le nom de la classe pour laquelle il faut afficher
-     * la documentation
+     * Si c'est le cas, elle retourne le path exact du fichier docbook trouvé,
+     * sinon, elle génère une exception. 
      * 
-     * @param string $filename le nom du fichier docBook à afficher
+     * @param string $name le nom à tester.
      * 
-     * @param bool $inherited <code>true</code> pour afficher les propriétés 
-     * et les méthodes héritées, <code>false</code> sinon
+     * @returns path le path exact du fichier docbook trouvé.
      * 
-     * @param bool $private  <code>true</code> pour afficher les propriétés et 
-     * les méthodes privées, <code>false</code> sinon
-     * 
-     * @param bool $protected <code>true</code> pour afficher les propriétés et 
-     * les méthodes protégées, <code>false</code> sinon
-     * 
-     * @param bool $public <code>true</code> pour afficher les propriétés et 
-     * les méthodes publiques, <code>false</code> sinon.
-     * 
-     * Remarques :
-     * 
-     * - La documentation des actions est affichée même si 
-     *   <code>$public=false</code>, bien qu'il s'agisse de méthodes publiques.
-     *   Cela permet, en mettant tous les flags à false, de n'afficher que la 
-     *   documentation des actions.
-     * - Normallement, uniquement l'un des deux paramètres <code>$class</code>
-     *   ou <code>filename</code> doit être indiqué. Si vous indiquez les deux, 
-     *   <code>$class</code> est prioritaire.  
-     * 
-     * @see Template
-     * 
-     * @package fab
-     * @subpackage doc
-     * 
-     * @tutorial format.documentation
-     * 
+     * @throws Exception si le fichier indiqué n'existe pas.
      */
-    public function actionIndex($class='', $filename='', $inherited=true, $private=true, $protected=true, $public=true)
+    public function getDocbookPath($name)
     {
-        // Stocke dans la config les flags de visibilité passés en paramètre
-        foreach(self::$flags as $flag=>$default)
-            Config::set('show.'.$flag, $this->request->bool($flag)->defaults($default)->ok());
+        if (strcasecmp(substr($name, -4), '.xml') !== 0)
+            $name.='.xml';
 
-        if ($class) return $this->phpDoc($class);
-        if ($filename) return $this->docBook($filename);
-        $this->docBook('index'); // ni filename ni classe affiche le fichier index.xml (soit de l'application, soit de fab)
-        return;
+        $path=Utils::makePath(Runtime::$root, 'doc', $name);        
+        if (file_exists($path)) return $path;
         
-        // expérimental, essaie de dresser la liste de toutes les classes existantes
-        $this->includeClasses(Runtime::$fabRoot.'core');
-        $this->includeClasses(Runtime::$fabRoot.'modules');
-        $this->includeClasses(Runtime::$root.'modules');
-        //die();
-        $classes=get_declared_classes();
-        $lib=Runtime::$fabRoot.'lib';
-        foreach($classes as $class)
-        {
-            $reflex=new ReflectionClass($class);
-            if ($reflex->isUserDefined())
-            {
-                $path=$reflex->getFileName();
-                
-                if (strncmp($path, $lib, strlen($lib))===0) continue;
-                echo '<a href="?class='.$class.'">'.$class.' ('.$path.')'.'</a><br />';
-            }
-        }
-        echo'<pre>';
-        print_r($classes);
-        echo '</pre>';
-        die();
+        $path=Utils::makePath(Runtime::$fabRoot, 'doc', $name);        
+        if (file_exists($path)) return $path;
+
+        throw new Exception("Impossible de trouver le fichier docbook $name."); 
     }
 
-    public function actionApi()
+    
+    /**
+     * Retourne le titre du fichier docbook dont le nom est passé en paramètre.
+     * 
+     * La méthode retourne le contenu de la première balise 
+     * <code>title</code> trouvée dans les 1024 premiers caractères du 
+     * fichier.
+     * 
+     * @param string $name le nom du fichier docbook.
+     * @return string le titre du fichier docbook ou une chaine vide. 
+     */
+    public function getDocbookSummary($name)
     {
-        Template::run('api.html');    
+        $path=$this->getDocbookPath($name);
+        
+        $data=@file_get_contents($path, false, null, 0, 1024);
+        if ($data===false) return '';
+        
+        if (0===$result=preg_match( "~<title>(.*?)</title>~s", $data, $match )) return '';
+        return trim(strip_tags(utf8_decode($match[1])));
+    }
+    
+    
+    /**
+     * Retourne la description courte de la classe dont le nom est passé
+     * en paramètre.
+     * 
+     * @param string $name le nom de la classe recherchée.
+     * @return string le description courte de la classe.
+     */
+    public function getClassSummary($name)
+    {
+        $class=$this->getReflectionClass($name);
+        
+        $doc=$class->getDocComment();
+        if ($doc===false) return '';
+
+        $doc=new DocBlock($doc);
+        
+        return trim(strip_tags($doc->shortDescription));
+    }
+    
+    /**
+     * Retourne un objet ReflectionClass pour la classe dont le nom est passé
+     * en paramètre.
+     * 
+     * Si la classe indiquée est un module, crée une instance de ce module et
+     * le retourne dans le paramètre optionnel <code>$module</code>.
+     * 
+     * @param string $name le nom de la classe recherchée.
+     * @param Module $module le module chargé ou null si $class ne désigne pas
+     * un module.
+     * 
+     * @return ReflectionClass le description courte de la classe. 
+     * 
+     * @throws Exception si la classe demandée ne peut pas être chargée.
+     */
+    public function getReflectionClass($name, & $module=null)
+    {
+        $module=null;
+        
+        // Vérifie que la classe demandée existe
+        if (!class_exists($name, true))
+        {
+            // Essaie de charger la classe comme module
+            $module=Module::loadModule($name);    
+    
+            if (!class_exists($name, true))
+                throw new Exception('Impossible de trouver la classe '.$name);
+        }
+        elseif (is_subclass_of($name, 'Module'))
+        {
+            $module=Module::loadModule($name);    
+        }
+
+        return new ReflectionClass($name);
     }
     
     public function getClassDoc($class)
     {
         $module=null;
-        
-        // Vérifie que la classe demandée existe
-        if (!class_exists($class, true))
-        {
-            // Essaie de charger la classe comme module
-            $module=Module::loadModule($class);    
-    
-            if (!class_exists($class, true))
-                throw new Exception('Impossible de trouver la classe '.$class);
-        }
-        elseif (is_subclass_of($class, 'Module'))
-        {
-            $module=Module::loadModule($class);    
-        }
-
-        AutoDoc::$reflectionClass=$reflClass=new ReflectionClass($class);
+        AutoDoc::$reflectionClass=$reflClass=$this->getReflectionClass($class, $module);    
         $class=AutoDoc::$class=$reflClass->getName();
         
         $pseudoMethods=array();
@@ -205,6 +219,110 @@ class AutoDoc extends Module
         $doc=new ClassDoc($reflClass, $pseudoMethods);
         return $doc;
     }
+    
+    /**
+     * Affiche la documentation interne d'une classe ou d'un module
+     * 
+     * Les flags passés en paramètre permettent de choisir ce qui sera affiché.
+     * 
+     * @param string $class le nom de la classe pour laquelle il faut afficher
+     * la documentation
+     * 
+     * @param string $filename le nom du fichier docBook à afficher
+     * 
+     * @param bool $inherited <code>true</code> pour afficher les propriétés 
+     * et les méthodes héritées, <code>false</code> sinon
+     * 
+     * @param bool $private  <code>true</code> pour afficher les propriétés et 
+     * les méthodes privées, <code>false</code> sinon
+     * 
+     * @param bool $protected <code>true</code> pour afficher les propriétés et 
+     * les méthodes protégées, <code>false</code> sinon
+     * 
+     * @param bool $public <code>true</code> pour afficher les propriétés et 
+     * les méthodes publiques, <code>false</code> sinon.
+     * 
+     * Remarques :
+     * 
+     * - La documentation des actions est affichée même si 
+     *   <code>$public=false</code>, bien qu'il s'agisse de méthodes publiques.
+     *   Cela permet, en mettant tous les flags à false, de n'afficher que la 
+     *   documentation des actions.
+     * - Normallement, uniquement l'un des deux paramètres <code>$class</code>
+     *   ou <code>filename</code> doit être indiqué. Si vous indiquez les deux, 
+     *   <code>$class</code> est prioritaire.  
+     * 
+     * @see Template
+     * 
+     * @package fab
+     * @subpackage doc
+     * 
+     * @tutorial format.documentation
+     * 
+     */
+    public function actionIndex($class='', $filename='', $inherited=true, $private=true, $protected=true, $public=true)
+    {
+        // Stocke dans la config les flags de visibilité passés en paramètre
+        foreach(self::$flags as $flag=>$default)
+            Config::set('show.'.$flag, $this->request->bool($flag)->defaults($default)->ok());
+
+        if ($class) return $this->phpDoc($class);
+        if ($filename) return $this->docBook($filename);
+        $this->docBook('index'); // ni filename ni classe affiche le fichier index.xml (soit de l'application, soit de fab)
+        return;
+        
+        // expérimental, essaie de dresser la liste de toutes les classes existantes
+        $this->includeClasses(Runtime::$fabRoot.'core');
+        $this->includeClasses(Runtime::$fabRoot.'modules');
+        $this->includeClasses(Runtime::$root.'modules');
+        //die();
+        $classes=get_declared_classes();
+        $lib=Runtime::$fabRoot.'lib';
+        foreach($classes as $class)
+        {
+            $reflex=new ReflectionClass($class);
+            if ($reflex->isUserDefined())
+            {
+                $path=$reflex->getFileName();
+                
+                if (strncmp($path, $lib, strlen($lib))===0) continue;
+                echo '<a href="?class='.$class.'">'.$class.' ('.$path.')'.'</a><br />';
+            }
+        }
+        echo'<pre>';
+        print_r($classes);
+        echo '</pre>';
+        die();
+    }
+
+    public function actionApi()
+    {
+        // Détermine le template à utiliser
+        $template=Config::get('template');
+        
+        // En mode debug, ré-exécute systématiquement le template
+        if (debug)
+        {
+            Template::run($template);
+            return;        
+        }
+        
+        // En mode normal, stocke dans le cache la sortie générée par le template
+        $path=dirname(__FILE__) . DIRECTORY_SEPARATOR . 'result of ' . $template;
+        
+        // Si on a une copie fraiche en cache, on l'envoie direct
+        if (Cache::has($path, time()-3600))
+        {
+            readfile(Cache::getPath($path));
+            return;
+        }
+        
+        // Sinon on exécute le template et on stocke la sortie générée
+        ob_start();
+        Template::run($template);
+        Cache::set($path, ob_get_flush());    
+    }
+    
     
     
     private function includeClasses($path)

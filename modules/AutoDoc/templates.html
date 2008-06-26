@@ -1,10 +1,14 @@
+<template match="//sect1info" />
+
 /* SECT 1 */
 <template match="//sect1">
     <div class="sect1">{select('node()|@*')}</div>
-    <script language="javascript">prettyPrint();</script>
+    <div class="releaseinfo">
+        Version : 
+        {select('translate(//sect1info/releaseinfo/text(), "$", "")')}
+    </div>
 </template>
 <template match="//sect1/title"><h1>{select('node()|@*')}</h1></template>
-<template match="//sect1info"><div class="releaseinfo">{select('translate(releaseinfo/text(), "$", "")')}</div></template>
 
 /* SECT 2 */
 <template match="//sect2"><div class="sect2">{select('node()|@*')}</div></template>
@@ -42,11 +46,14 @@
 <template match="//caution/title"><div class="title">{select('node()|@*')}</div></template>
 
 /* Tables (à mettre plus haut ?) */
-<template match="//table"><div class="table">{select('node()|@*')}</div></template>
+<template match="//table[not(parent::div)]"><div class="table">{select('node()|@*')}</div></template>
 <template match="//table/title"><div class="title">{select('node()|@*')}</div></template>
 <template match="//table/tgroup"><table>{select('node()|@*')}</table></template>
 <template match="//table/tgroup/thead/row"><tr>{select('node()|@*')}</tr></template>
 <template match="//table/tgroup/thead/row/entry"><th>{select('node()|@*')}</th></template>
+<template match="//table/tgroup/tbody/row"><tr>{select('node()|@*')}</tr></template>
+<template match="//table/tgroup/tbody/row/entry"><td>{select('node()|@*')}</td></template>
+
  
 /* Blocs de code */
 <template match="//programlisting"><pre class="programlisting prettyprint">{htmlspecialchars(select('string(node())|@*'))}</pre></template>
@@ -71,8 +78,8 @@
 <template match="//ulink" url=""><a href="$url" class="external">{select('count(node())') ? select('node()') : $url}</a></template>
  
 /* Inline divers */
-<template match="//emphasis[@role='strong']" role=""><strong>{select('node()|@*')}</strong></template>
 <template match="//emphasis" role=""><em>{select('node()|@*')}</em></template>
+<template match="//emphasis[@role='strong']" role=""><strong>{select('node()|@*')}</strong></template>
 <template match="//command"><span class="command">{select('node()|@*')}</span></template>
 <template match="//filename"><span class="filename">{select('node()|@*')}</span></template>
  

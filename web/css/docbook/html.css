@@ -8,13 +8,10 @@
 */    
 
 /* débug */
-
-NU*
+html
 {
-    color: red;
-    background-color: pink;
-    /* affiche en rose tous les éléments inconnus */
-}    
+    font-size: 76%;
+}
 sect1, sect2, sect3, sect4, example, all,
 title, para, link, ulink,
 itemizedlist, orderedlist, listitem,
@@ -28,6 +25,82 @@ table, tgroup, thead, tbody, tfooter, row, entry
    background-color: red; /* repère en rouge les éléments inconnus qui ont un attribut role */
 }
 /* fin debug */
+
+
+/* Index des classes */
+div.index
+{
+    float: right;
+    width: 19em;
+    
+}
+
+div.index div.section
+{
+    background-color: #FFFFCC;
+    border: 1px dashed orange;
+    padding: 0.5em;
+    margin-bottom: 1em;
+}
+
+div.index h2
+{
+    margin: 0;
+    text-align: center;
+    padding: 0;
+    background-color: orange;
+    color: #fff;
+}
+
+div.index h3
+{
+    margin: 0.5em 0 0.2em 0;
+    color: darkorange;
+}
+
+div.index ul
+{
+    margin: 0;
+    padding: 0;
+    list-style-type: none;
+}
+
+div.index li
+{
+    list-style-type: none;
+    margin: 0 0 0.1em 0;
+    padding: 0;
+}
+
+div.index li li
+{
+    padding: 0 0 0 1em;
+}
+
+div.index li a
+{
+    text-decoration: none;
+}
+
+div.index li span
+{
+    display: block;
+}
+
+div.index li a:hover span,
+div.index li.selected span
+    {
+    background-color: orange;
+    color: #fff;
+    text-decoration: none;
+}
+
+div.index li.selected span
+{
+    font-weight: bold;
+}
+
+/* Fin Index des classes */
 
 *
 {
@@ -43,26 +116,26 @@ title
 }
 
 /* Sections et titres de section */
-div.sect1, div.sect2, div.sect3, div.sect4
+div.sect1
+{
+    /* max-width: 60em; */
+    margin: 0 20em 0 1em;
+    padding: 0;
+}
+
+div.sect1 h1
+{
+    font-size: 2.5em;
+    font-weight: bold;
+    margin-bottom: 2em;
+}
+
+div.sect2, div.sect3, div.sect4
 {
     padding: 1em 0 1em 1em;
     margin-bottom: 1em;
 }
 
-div.sect1
-{
-    font-size: 76%;
-    max-width: 60em;
-    margin: 0 auto;
-}
-
-div.sect1 h1
-{
-    font-size: 2em;
-    font-weight: bold;
-    text-align: right;
-    margin-bottom: 2em;
-}
 div.sect2 h2
 {
     font-size: 1.2em;
@@ -437,7 +510,7 @@ div.releaseinfo
     color: #AAA;
     background-color: transparent;
     font-size: 0.9em;
-    text-align: right;
+    text-align: center;
     margin-bottom: 1em;
 }
 
@@ -535,38 +608,6 @@ a.otherclass:hover, a.otherclass:active, a.otherclass:focus
     background-image: url(linkicons/note_a.gif);
 }
 
-div.tableofcontents
-{
-    background-color: #FFFFCC;
-    border:1px solid orange;
-    margin: 0.5em 0em 2em 2em;
-    padding: 0em;
-    -moz-border-radius: 5px;
-    float: right;
-    
-}
-div.tableofcontents div.title
-{
-    background-color: darkorange;
-    color: white;
-    display: block;
-    text-align: center;
-    font-weight: bold;
-    padding: 0.2em;
-}
-div.tableofcontents ul
-{
-    list-style-type: none;
-    list-style-image: url(none);
-    margin: 0;
-    padding: 0.1em 1em;
-}
-div.tableofcontents li
-{
-    list-style-type: none;
-    list-style-image: url(none);
-}
-    
 div.tableofcontents code,
 div.tableofcontents filename,
 div.tableofcontents command,
@@ -580,3 +621,18 @@ div.tableofcontents emphasis
     text-decoration: none;
 }
   
+
+@MEDIA print
+{
+    div.index/*, div.tableofcontents */
+    {
+        display: none;
+    }
+    
+    html, body, div.sect1
+    {
+        margin: 0;
+        padding: 0;
+    }
+    
+}
