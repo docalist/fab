@@ -643,7 +643,8 @@ class TemplateCode
                 'is_file',
                 'is_link',
                 'dirname',
-                'array_reverse'
+                'array_reverse',
+                'strip_tags'
             ));
             $runtimeFunctions=array_flip(array
             (
