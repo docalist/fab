@@ -29,7 +29,7 @@ class AdminDatabases extends Admin
      * permettre aux templates d'accéder à la base de données en cours
      * (par exemple pour afficher le nombre de notices).
      * 
-     * @var XapianDatabaseDriver2
+     * @var XapianDatabaseDriver
      */
     public $selection;
     
@@ -429,7 +429,7 @@ class AdminDatabases extends Admin
 
         
         // Crée la base
-        Database::create($path, $dbs, 'xapian2');
+        Database::create($path, $dbs, 'xapian');
 
         // Charge le fichier de config db.config
         $pathConfig=Runtime::$root.'config' . DIRECTORY_SEPARATOR . 'db.config';
@@ -441,7 +441,7 @@ class AdminDatabases extends Admin
         // Ajoute un alias
         $config[$database]=array
         (
-            'type'=>'xapian2',
+            'type'=>'xapian',
             'path'=>$database // $path ?
         );
         

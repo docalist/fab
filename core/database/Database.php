@@ -169,13 +169,7 @@ abstract class Database implements ArrayAccess, Iterator
                 $db=new XapianDatabaseDriver();
                 $db->doCreate($database, $schema, $options);
                 break;
-                
-            case 'xapian2':
-                //require_once dirname(__FILE__).'/XapianDatabase2.php';
-                $db=new XapianDatabaseDriver2();
-                $db->doCreate($database, $schema, $options);
-                break;
-                
+
             default:
                 throw new Exception("Impossible de créer la base '$database' : le type de base '$type' n'est pas supporté.");
         }
@@ -260,20 +254,12 @@ abstract class Database implements ArrayAccess, Iterator
         switch($type=strtolower($type))
         {
             case 'bis':
-                //require_once dirname(__FILE__).'/BisDatabase.php';
                 $db=new BisDatabase();
                 $db->doOpen($path, $readOnly);
                 break;
                 
             case 'xapian':
-                //require_once dirname(__FILE__).'/XapianDatabase.php';
                 $db=new XapianDatabaseDriver();
-                $db->doOpen($path, $readOnly);
-                break;
-                
-            case 'xapian2':
-                //require_once dirname(__FILE__).'/XapianDatabase2.php';
-                $db=new XapianDatabaseDriver2();
                 $db->doOpen($path, $readOnly);
                 break;
                 

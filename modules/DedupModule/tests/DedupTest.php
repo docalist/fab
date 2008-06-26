@@ -8,7 +8,7 @@ class DedupTest extends AutoTestCase
     
     public function __construct()
     {
-        $this->db=new XapianDatabaseDriver2;
+        $this->db=new XapianDatabaseDriver;
     }
     
     function testDedupTokens()

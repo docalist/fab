@@ -15,7 +15,7 @@ require_once Runtime::$fabRoot . 'lib/xapian/xapian.php';
  * @package     fab
  * @subpackage  database
  */
-class XapianDatabaseDriver2 extends Database
+class XapianDatabaseDriver extends Database
 {
 
     /**
@@ -348,7 +348,7 @@ class XapianDatabaseDriver2 extends Database
         $this->fields=array_fill_keys(array_keys($this->schema->fields), null);
 
         // Crée l'objet DatabaseRecord
-        $this->record=new XapianDatabaseRecord2($this->fields, $this->schema);
+        $this->record=new XapianDatabaseRecord($this->fields, $this->schema);
         
         foreach($this->schema->fields as $name=>$field)
             $this->fieldById[$field->_id]=& $this->fields[$name];
@@ -1992,7 +1992,7 @@ class XapianDatabaseDriver2 extends Database
             throw new Exception("Le répertoire $pathTmp contient déjà des données (réindexation précédente interrompue ?). Examinez et videz ce répertoire puis relancez la réindexation.");
 
         // Crée la nouvelle base dans './tmp'
-        $tmp=Database::create($pathTmp, $this->getSchema(), 'xapian2');
+        $tmp=Database::create($pathTmp, $this->getSchema(), 'xapian');
         
         // Crée le répertoire 'old' s'il n'existe pas déjà
         $pathOld=$path.DIRECTORY_SEPARATOR.'old';
@@ -2308,7 +2308,7 @@ class XapianDatabaseDriver2 extends Database
  * @package     fab
  * @subpackage  database
  */
-class XapianDatabaseRecord2 extends DatabaseRecord
+class XapianDatabaseRecord extends DatabaseRecord
 {
     /**
      * @var Array Liste des champs de cet enregistrement

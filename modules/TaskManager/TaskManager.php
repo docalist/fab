@@ -168,7 +168,7 @@ class TaskManager extends DatabaseModule
         // Indique à toutes les actions de ce module où et comment ouvrir la base tasks
         $database=self::getDatabasePath();
         Config::set('database', $database);
-        Config::set("db.$database.type", 'xapian2');
+        Config::set("db.$database.type", 'xapian');
         
         // Si la base tasks n'existe pas encore, on essaie de la créer de façon transparente
         if (!file_exists($database))
@@ -184,7 +184,7 @@ class TaskManager extends DatabaseModule
                     throw new Exception("Schéma tasks.xml non trouvée");
     
                 $dbs=new DatabaseSchema(file_get_contents($path));
-                Database::create($database, $dbs, 'xapian2');
+                Database::create($database, $dbs, 'xapian');
                 if (!@mkdir($path=self::getOutputDirectory(), 0777))
                     throw new Exception("Impossible de créer le répertoire $path");
             }

@@ -26,7 +26,7 @@ define('BIS_PATH', Runtime::$root.'data/db/ascodocpsy.bed');
 class DatabaseAdmin extends Module
 {
     /**
-     * @var XapianDatabaseDriver2
+     * @var XapianDatabaseDriver
      */
     public $selection;
     
@@ -178,13 +178,13 @@ class DatabaseAdmin extends Module
             if (!$errors)
             {
                 // Crée la base
-                $db=Database::create($path, $dbs, 'xapian2');
+                $db=Database::create($path, $dbs, 'xapian');
 
                 // Ajoute un alias dans db.yaml
                 throw new Exception('Non implementé : ajouter un alias dans le fichier xml db.config');
                 $configPath=Runtime::$root.'config' . DIRECTORY_SEPARATOR . 'db.yaml';
                 $t=Config::loadFile($configPath);
-                $t[$name]=array('type'=>'xapian2', 'path'=>$path);
+                $t[$name]=array('type'=>'xapian', 'path'=>$path);
                 Utils::saveYaml($t, $configPath);
                 
                 // Ok
@@ -531,7 +531,7 @@ class DatabaseAdmin extends Module
 //        $xapianDb=Database::open(DB_PATH, false);
 
         $dbs=new DatabaseSchema(file_get_contents(Runtime::$root . 'data/schemas/ascodocpsy.xml'));
-        $xapianDb=Database::create(DB_PATH, $dbs, 'xapian2');
+        $xapianDb=Database::create(DB_PATH, $dbs, 'xapian');
         
         
         // Importe des notices de la base bis dans la base xapian
@@ -650,7 +650,7 @@ class DatabaseAdmin extends Module
     public function actionDeleteAllRecords()
     {
         set_time_limit(0);
-        $xapianDb=Database::open(DB_PATH, false, 'xapian2');
+        $xapianDb=Database::open(DB_PATH, false, 'xapian');
         $xapianDb->deleteAllRecords();
         echo 'done';
     }
@@ -744,7 +744,7 @@ class DatabaseAdmin extends Module
     
     public function actionDumpTerms()
     {
-        $db=Database::open(DB_PATH, true, 'xapian2');
+        $db=Database::open(DB_PATH, true, 'xapian');
         $prefix=$_SERVER['QUERY_STRING'];
         $db->dumpTerms($prefix);
     	

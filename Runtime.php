@@ -712,7 +712,6 @@ $fab_init_time=microtime(true);
             'TextTable'=>'core/helpers/TextTable/TextTable.php',
             'BisDatabase'=>'core/database/BisDatabase.php',
             'XapianDatabaseDriver'=>'core/database/XapianDatabase.php',
-            'XapianDatabaseDriver2'=>'core/database/XapianDatabase2.php',
             'DatabaseSchema'=>'core/database/DatabaseSchema.php',
             'TemplateCompiler'=>'core/template/TemplateCompiler.php',
             'TemplateCode'=>'core/template/TemplateCode.php',
@@ -720,7 +719,8 @@ $fab_init_time=microtime(true);
             'TaskManager'=>'modules/TaskManager/TaskManager.php',
             'Task'=>'modules/TaskManager/Task.php',
             'Request'=>'core/Request/Request.php',
-            
+            'ThesaurusCindoc'=>'modules/ThesaurusModule/ThesaurusCindoc.php',
+        
             'ImportModule'=>'modules/ImportModule/ImportModule.php',
             // remarque : ImportModule est nécessaire pour permettre au module ImportAsco de faire "extends ImportModule"
             // sur le fond, ne devrait pas être là : le autoload devrait pouvoir charger tout seul n'importe quel module

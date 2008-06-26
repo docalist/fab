@@ -234,7 +234,7 @@ class Task
             {
                 // Ouvre la base de données (readonly)
                 $database=TaskManager::getDatabasePath();
-                $tasks=Database::open($database, true, 'xapian2');
+                $tasks=Database::open($database, true, 'xapian');
                 
                 // Recherche la tâche indiquée
                 if( !$tasks->search('ID='.$id))
@@ -318,7 +318,7 @@ class Task
     {
         // Ouvre la base de données (read/write)
         $database=TaskManager::getDatabasePath();
-        $tasks=Database::open($database, false, 'xapian2');
+        $tasks=Database::open($database, false, 'xapian');
         
         // Nouvelle tâche jamais enregistrée (ie n'a pas d'ID) : addRecord
         if (is_null($this->id))
