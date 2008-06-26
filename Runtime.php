@@ -111,6 +111,7 @@ class Runtime
     
     public static $queryString=''; // initialisé par repairgetpost
     
+    public static $baseConfig=null;
     /**
      * La requête correspondant à l'url demandée par le navigateur
      *
@@ -459,6 +460,7 @@ class Runtime
         // Dispatch l'url
 $fab_init_time=microtime(true);
         debug && Debug::log("Lancement de l'application");
+        self::$baseConfig=Config::getAll(); // hack pour permettre à runSlot de repartir de la bonne config
         Routing::dispatch(self::$url);
 
         self::shutdown();
