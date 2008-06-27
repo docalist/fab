@@ -1,0 +1,35 @@
+<def name="current" value="{strtolower($this->request->get('class'):$this->request->get('filename'))}" />
+
+<loop on="{array('api'=>'Ascoweb', 'fabapi'=>'Fab')}" as="$key,$title">
+    /* Liste des classes à afficher, regroupées en chapitre */
+    <def name="chapters" value="{Config::get($key)}" />
+    
+    /* Affiche tous les chapitres et les classes de chaque chapitre */
+    <if test="$chapters">
+        <div class="section">
+            <h2>$title</h2>
+        
+            <ul>
+                <loop on="$chapters" as="$num, $chapter">
+                    <li>
+                        <h3>{$num+1}. {$chapter['description']:'Item sans description'}</h3>
+                        <def name="names" value="{Utils::get($chapter['doc'])}" />
+                        <ul test="$names">
+                            <loop on="$names" as="$name">
+                                <def name="selected" value="{strtolower($name) === $current}" />
+                                <li class="{$selected ? 'selected' : ''}">
+                                    <if test="{Utils::getExtension($name)===''}">
+                                        <a strip="$selected" href="/{$this->module}?class=$name" title="{Utils::lcFirst($this->getClassSummary($name))}"><span>$name</span></a>
+                                    </if>
+                                    <else>
+                                        <a strip="$selected" href="/{$this->module}?filename=$name"><span>{$this->getDocbookSummary($name)}</span></a>
+                                    </else>
+                                </li>
+                            </loop>
+                        </ul>
+                    </li>
+                </loop>
+            </ul>
+        </div>
+    </if>
+</loop>
