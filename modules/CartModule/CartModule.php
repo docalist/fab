@@ -6,7 +6,7 @@
  */
 
 /**
- * Ce module permet de gérer un panier
+ * Module de gestion d'un panier.
  * 
  * @package     fab
  * @subpackage  modules
@@ -74,6 +74,10 @@ class CartModule extends Module
      * Ajoute un ou plusieurs éléments dans le panier, en précisant la quantité.
      * Si une catégorie est précisée, l'élément sera ajouté à cette catégorie.
      * 
+     * L'action affiche ensuite le template indiqué dans la clé <code><template></code>
+     * du fichier de configuration, en utilisant le callback indiqué dans la clé
+     * <code><callback></code> du fichier de configuration.
+     * 
      * Pour l'ajout de plusieurs éléments :
      * - On suppose que les navigateurs respectent l'ordre dans lequel les paramètres 
      * sont passés. On obtient ainsi 3 tableaux (item, category, quantity).
@@ -84,8 +88,7 @@ class CartModule extends Module
      * @param array $item l'(les) élément(s) à ajouter
      * @param int|array $quantity la quantité de chaque élément à ajouter
      * @param string|array $category la catégorie de chaque élément à ajouter
-     */ 
-//    public function actionAdd()
+     */
 	public function actionAdd(array $item, $quantity=1, $category=null)
     {
         /*
@@ -126,15 +129,6 @@ class CartModule extends Module
          * Ils doivent être adaptés pour tester à la place 'if(count(item)>1)'
          */
 	    
-	    // Récupère la catégorie
-		// $category=Utils::get($_REQUEST['category']);
-		
-		// Récupère l'item à ajouter
-		// $item=Utils::get($_REQUEST['item']);
-		
-		// Récupère la quantité
-		// $quantity=Utils::get($_REQUEST['quantity'],1);
-		
         // Fait des vérifications sur la quantité
         $this->request->int('quantity')->min(1)->max(100)->ok();
         
@@ -198,6 +192,10 @@ class CartModule extends Module
 	 * Supprime un ou plusieurs éléments du panier, en précisant la quantité.
 	 * Si une catégorie a été précisée, supprime l'élément, de cette catégorie.
 	 * 
+     * L'action affiche ensuite le template indiqué dans la clé <code><template></code>
+     * du fichier de configuration, en utilisant le callback indiqué dans la clé
+     * <code><callback></code> du fichier de configuration.
+     * 
 	 * Pour la suppression de plusieurs éléments :
 	 * - On suppose que les navigateurs respectent l'ordre dans lequel les paramètres 
 	 * sont passés. On obtient ainsi 3 tableaux (item, category, quantity).
@@ -211,15 +209,6 @@ class CartModule extends Module
 	 */
 	public function actionRemove(array $item, $quantity=1, $category=null)
 	{
-//		// Récupère la catégorie
-//		$category=Utils::get($_REQUEST['category']);
-//		
-//		// Récupère l'item à supprimer
-//		$item=Utils::get($_REQUEST['item']);
-//		
-//		// Récupère la quantité
-//		$quantity=Utils::get($_REQUEST['quantity'],1);
-
 	    // Fait des vérifications sur la quantité
 	    $this->request->int('quantity')->min(1)->max(100)->ok();
 	    
@@ -266,13 +255,18 @@ class CartModule extends Module
 	}
 	
 	/**
-	 * Vide la totalité du panier ou supprime une catégorie d'éléments du panier
+	 * Vide la totalité du panier ou supprime une catégorie d'éléments du panier.
+	 * 
+     * Après la suppression des éléments du panier, l'action affiche le template 
+     * indiqué dans la clé <code><template></code> du fichier de configuration, 
+     * en utilisant le callback indiqué dans la clé <code><callback></code> 
+     * du fichier de configuration.
+     * 
+	 * @param string|null $category la catégorie d'éléments à supprimer ou null
+	 * pour vider la totalité du panier.
 	 */
 	public function actionClear($category=null)
 	{
-        // Récupère la catégorie
-//        $category=Utils::get($_REQUEST['category']);
-
 		// Vide la catégorie ou vide le panier si pas de catégorie
 		$this->clear($category);
         
@@ -291,7 +285,14 @@ class CartModule extends Module
 	}
 	
 	/**
-	 * Affiche le panier
+	 * Affiche le panier.
+	 *
+	 * Affiche le panier en utilisant le template indiqué dans la clé 
+	 * <code><template></code> du fichier de configuration et le callback
+     * indiqué dans la clé <code><callback></code> du fichier de configuration.
+	 * 
+	 * @param string|null $category la catégorie des éléments à afficher ou null
+	 * pour afficher tout le panier.
 	 */
 	public function actionShow($category=null)
 	{
