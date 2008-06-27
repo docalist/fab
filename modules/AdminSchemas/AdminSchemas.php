@@ -13,6 +13,43 @@
  * @package     fab
  * @subpackage  Admin
  */
+/**
+ * Module d'administration permettant de gérer les {@link DatabaseSchema schémas 
+ * de bases de données de l'application}. 
+ * 
+ * Les schémas de bases de données sont des fichiers 
+ * {@link http://fr.wikipedia.org/wiki/Xml xml} stockés dans le répertoire 
+ * <code>/data/schemas</code> de l'application et qui définissent la structure
+ * d'une base de données (liste des champs, des index, paramètres, etc.)
+ * 
+ * Ce module permet de lister tous les schémas de l'application ainsi que les 
+ * {@link /AdminSchemas modèles de schémas proposés par fab}.
+ * 
+ * Il hérite du module {@link AdminFiles} et dispose donc des actions 
+ * de base permettant de {@link AdminFiles::actionCopy() copier}, 
+ * {@link AdminFiles::actionRename() renommer}, 
+ * {@link AdminFiles::actionDelete() supprimer} et 
+ * {@link AdminFiles::actionDownload() télécharger} un fichier de schéma ainsi
+ * que de la possibilité {@link actionEdit() d'éditer le code xml} d'un schéma
+ * ou de {@link AdminFiles::copyFrom() créer un nouveau schéma à partir d'un 
+ * modèle proposé par fab}.
+ * 
+ * <code>AdminSchemas</code> introduit un éditeur spécifique qui permet de
+ * {@link actionNew() créer}, {@link actionEditSchema() modifier} et 
+ * {@link actionSaveSchema() sauvegarder} un schéma de façon plus intuitive
+ * qu'en intervenant sur le code xml sous-jacent et dispose d'une fonction de
+ * validation intégrée qui empêche la création d'un 
+ * {@link DatabaseSchema::validate() schéma invalide}.
+ * 
+ * Pour plus d'informations, vous pouvez consulter :
+ * - La documentation de l'action {@link AdminDatabases::actionSetSchema SetSchema} 
+ *   du module d'administration {@link /AdminDatabases AdminDatabases} qui permet 
+ *   d'appliquer un schéma à une base de données.
+ * - {@link DatabaseSchema l'API de la classe DatabaseSchema}.
+ * 
+ * @package     fab
+ * @subpackage  Admin
+ */
 class AdminSchemas extends AdminFiles
 {
     /**
@@ -219,6 +256,13 @@ class AdminSchemas extends AdminFiles
         Runtime::redirect('/'.$this->module);
     }
     
+    /**
+     * Slot permettant à un autre module de choisir un schéma.
+     * 
+     * @param string $link le lien à appliquer à chaque schéma.
+     * @param bool $fab true pou afficher les schémas de l'application,
+     * false pour afficher ceux de fab.
+     */
     public function actionChoose($link='Edit?file=%s', $fab=false)
     {
         Template::run
