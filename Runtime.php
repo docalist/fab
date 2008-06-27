@@ -725,6 +725,7 @@ $fab_init_time=microtime(true);
             // remarque : ImportModule est nécessaire pour permettre au module ImportAsco de faire "extends ImportModule"
             // sur le fond, ne devrait pas être là : le autoload devrait pouvoir charger tout seul n'importe quel module
             // sans qu'on ait à lui donner le path exact. (supprimerait aussi de la liste DatabaseModule, TaskManager, NoSecurity, etc.)
+            'CartModule'=>'modules/CartModule/CartModule.php',
         
         );
         if (!isset($dir[$class])) return;
