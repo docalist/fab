@@ -1,0 +1,272 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE sect1 PUBLIC "-//OASIS//DTD DocBook XML V4.5//EN"
+"http://www.oasis-open.org/docbook/xml/4.5/docbookx.dtd">
+<?xml-stylesheet href="../web/css/docbook/dm.css" type="text/css"?>
+<sect1 id="fab.application">
+    <sect1info>
+        <releaseinfo>$Id$</releaseinfo>
+    </sect1info>
+
+    <title>Applications *</title>
+
+    <toc></toc>
+
+    <sect2 id="fab.application.introduction">
+        <title>Qu'est-ce qu'une application fab ?</title>
+
+        <para>Une application est un site web dynamique basé sur fab qui se
+        compose de <ulink url="?filename=fab.modules">modules</ulink>
+        indépendants travaillant ensemble pour offrir à l'application les
+        fonctionnalités dont elle a besoin et s'exécute dans le contexte d'un
+        serveur http tel que <ulink
+        url="http://fr.wikipedia.org/wiki/Apache_HTTP_Server">Apache</ulink>,
+        <ulink
+        url="http://fr.wikipedia.org/wiki/Internet_Information_Services">Internet
+        Information Services (IIS)</ulink> ou <ulink
+        url="http://fr.wikipedia.org/wiki/Lighttpd">Lighttp</ulink>.</para>
+
+        <para>Chaque module comporte une ou plusieurs <ulink
+        url="?filename=fab.actions">actions</ulink> qui correspondent aux
+        pages et aux commandes auxquelles les utilisateurs vont pouvoir
+        accéder. L'ensemble de l'interface (tout ce que voit l'utilisateur)
+        est géré par le biais de <ulink
+        url="?filename=fab.templates">templates</ulink> qui se chargent de
+        générer le code html qui sera envoyé au navigateur.</para>
+
+        <para>Des <ulink url="?filename=fab.config">fichiers de
+        configuration</ulink> permettent de paramétrer l'application, les
+        modules et les actions comme on le souhaite.</para>
+
+        <para>Lorsque l'utilisateur accède à une page du site, un <ulink
+        url="?filename=fab.controlers">contrôleur d'entrée</ulink> va
+        déterminer en fonction de l'url demandée le module qu'il convient de
+        charger et, au sein de ce module, quelle action exécuter. Ce mécanisme
+        qui consiste à associer un couple "module-action" à une url donnée
+        s'appelle le <ulink
+        url="?filename=fab.routing">routage</ulink>.</para>
+
+        <para>En combinant des contrôleurs et des fichiers de configuration
+        spécifiques, il est possible de définir des <ulink
+        url="?filename=fab.environments">environnements</ulink> qui vont
+        permettre d'exécuter l'application dans des contextes différents (par
+        exemple un mode debug fournissant des informations de
+        dégogage).</para>
+
+        <para>Des <ulink url="?filename=fab.security">droits d'accès
+        spécifiques</ulink> peuvent être affectés à un module ou à une
+        application pour restreindre certaines fonctionnalités à certains
+        d'utilisateurs.</para>
+
+        <para>todo : un mot sur le taskmanager.</para>
+    </sect2>
+
+    <sect2 id="fab.application.parts">
+        <title>Partie publique, partie privée</title>
+
+        <para>Une application fab comporte deux parties : une partie publique
+        qui contient les fichiers auxquels l'utilisateur est susceptible
+        d'accéder via son navigateur (<ulink
+        url="?filename=fab.controlers">contrôleurs d'entrée</ulink>, images,
+        feuilles de styles CSS, code javascript, etc.) et une partie privée
+        qui contient tout le reste (le code source des modules et des actions,
+        les templates utilisés, les fichiers de configuration, etc.)</para>
+
+        <para>Cette séparation permet de sécuriser l'application. Dans une
+        application traditionnelle, tous les fichiers composants l'application
+        sont susceptibles d'être appellés directement par l'utilisateur. Il
+        faut alors "penser" à mettre en place des sécurités spécifiques au
+        serveur http utilisé (restrictions à base de fichiers <ulink
+        url="http://fr.wikipedia.org/wiki/.htaccess">.htaccess</ulink>, par
+        exemple) pour protéger tous les fichiers sensibles (mots de passes,
+        scripts de connexion aux bases de données, paramètres de boutique
+        marchande, etc.)</para>
+
+        <para>La séparation imposée par fab permet de garantir cette sécurité
+        : seuls les fichiers auxquels l'utilisateur a besoin d'accéder
+        pourront être appellés. Tous les autres fichiers sont situés en dehors
+        du répertoire utilisé comme racine du serveur http utilisé.</para>
+
+        <para>Par convention, la partie visible d'une application se situe
+        dans le sous-répertoire <code>/web</code> de l'application.</para>
+    </sect2>
+
+    <sect2 id="fab.application.structure">
+        <title>Structure d'une application</title>
+
+        <para>Tous les fichiers composant une application sont stockés au sein
+        d'un même répertoire appellé "racine de l'application", lui-même
+        organisé en sous répertoires qui remplissent chacun un rôle précis (le
+        répertoire <code>config</code> ne contient <emphasis>que</emphasis>
+        des fichiers de configuration, le répertoire <code>modules</code> ne
+        contient <emphasis>que</emphasis> des modules, et ainsi de suite).
+        Certains répertoires sont obligatoires (vous les trouverez dans toutes
+        les applications fab), d'autres sont optionnels (en général, il s ne
+        seront créés que si l'application en a besoin).</para>
+
+        <para>Cette structuration standardisée permet d'éviter toute
+        confusion : lorsqu'on veut modifier quelque chose, il devient facile
+        de savoir sur quel fichier intervenir et où trouver ce fichier dans
+        l'arborescence de l'application.</para>
+
+        <sect3 id="fab.application.structure.root">
+            <title>Répertoire de l'application</title>
+
+            <para>La structure typique d'une application fab est la suivante
+            (les répertoires obligatoires sont indiqués en <emphasis
+            role="strong"><code>gras</code></emphasis>) :</para>
+
+            <table>
+                <title>Structure d'une application</title>
+
+                <tgroup cols="2">
+                    <tbody>
+                        <row>
+                            <entry><para><emphasis
+                            role="strong"><code>/</code></emphasis></para></entry>
+
+                            <entry><para>Répertoire racine de
+                            l'application.</para></entry>
+                        </row>
+
+                        <row>
+                            <entry><para><emphasis
+                            role="strong"><code>/config</code></emphasis></para></entry>
+
+                            <entry><para><ulink url="fab.config">Fichiers de
+                            configuration</ulink> de l'application
+                            (configuration générale du site, configuration des
+                            modules, routes, nom des bases de données utilisées,
+                            etc.)</para></entry>
+                        </row>
+
+                        <row>
+                            <entry><para><emphasis
+                            role="strong"><code>/data</code></emphasis></para></entry>
+
+                            <entry><para>Ce répertoire contient toutes les
+                            données de l'application (schémas, bases de
+                            données...).</para></entry>
+                        </row>
+
+                        <row>
+                            <entry><para><code>/doc</code></para></entry>
+
+                            <entry><para>(optionnel) Ce répertoire contient les
+                            fichiers de documentation au format docbook de
+                            l'application.</para></entry>
+                        </row>
+
+                        <row>
+                            <entry><para><emphasis
+                            role="strong"><code>/modules</code></emphasis></para></entry>
+
+                            <entry><para>Ce répertoire contient tous les modules
+                            de l'application. Chaque module fait l'objet d'un
+                            sous-répertoire au sein de ce
+                            répertoire.</para></entry>
+                        </row>
+
+                        <row>
+                            <entry><para><code>/themes</code></para></entry>
+
+                            <entry><para>(optionnel) Ce répertoire contient les
+                            thèmes et les layouts spécifiques au site (un
+                            sous-répertoire par thème).</para></entry>
+                        </row>
+
+                        <row>
+                            <entry><para><emphasis
+                            role="strong"><code>/web</code></emphasis></para></entry>
+
+                            <entry><para>Partie publique du site. Ce répertoire
+                            contiendra tous les fichiers auxquels l'utilisateur
+                            est susceptible d'accéder via son
+                            navigateur.</para></entry>
+                        </row>
+                    </tbody>
+                </tgroup>
+            </table>
+        </sect3>
+
+        <sect3 id="fab.application.structure.web">
+            <title>Structure de la partie publique (/web)</title>
+
+            <para><table>
+                    <title>Structure de la partie publique</title>
+
+                    <tgroup cols="2">
+                        <tbody>
+                            <row>
+                                <entry><para><emphasis
+                                role="strong"><code>/web</code></emphasis></para></entry>
+
+                                <entry><para>Répertoire racine de la partie publique
+                                de l'application.</para></entry>
+                            </row>
+
+                            <row>
+                                <entry><para><code>/web/css</code></para></entry>
+
+                                <entry><para>(optionnel) feuilles de styles
+                                CSS.</para></entry>
+                            </row>
+
+                            <row>
+                                <entry><para><code>/web/images</code></para></entry>
+
+                                <entry><para>(optionnel) images.</para></entry>
+                            </row>
+
+                            <row>
+                                <entry><para><code>/web/js</code></para></entry>
+
+                                <entry><para>(optionnel) fichiers
+                                javascript.</para></entry>
+                            </row>
+
+                            <row>
+                                <entry><para><code>/web/modules</code></para></entry>
+
+                                <entry><para>(optionnel) Ce répertoire contient la
+                                partie publique de chacun des modules présents dans
+                                le répertoire /modules de l'application (un
+                                sous-répertoire par module ayant une partie publique
+                                spécifique).</para></entry>
+                            </row>
+                        </tbody>
+                    </tgroup>
+                </table></para>
+        </sect3>
+    </sect2>
+
+    <sect2 id="fab.application.fabweb">
+        <title>Accès aux composants publics de fab</title>
+
+        <para>Fab est lui-même structuré comme une application et, à ce titre,
+        dispose d'une partie publique contenant des themes, des librairies,
+        des images, etc. fréquemment utilisés.</para>
+
+        <para>Pour permettre aux application d'utiliser ces fichiers, fab
+        dispose d'un module spécialisé : <ulink
+        url="?class=FabWeb">FabWeb</ulink>.</para>
+    </sect2>
+
+    <sect2>
+        <title>Administration d'une application</title>
+
+        <para>Fab dispose d'un <ulink url="/Admin">module
+        d'administration</ulink> qui permet de gérer et de modifier tous les
+        fichiers composants une application.</para>
+    </sect2>
+
+    <sect2>
+        <title>Droits des répertoires</title>
+
+        <para>Fab a besoin de pouvoir modifier tous les fichiers de
+        l'application (notamment pour permettre au site d'administration de
+        fonctionner correctement). Pour ces raisons, il faut que le répertoire
+        racine de l'applidispose d'un <ulink url="/Admin">module
+        d'administration</ulink> qui permet de gérer et de modifier tous les
+        fichiers composants une application.</para>
+    </sect2>
+</sect1>

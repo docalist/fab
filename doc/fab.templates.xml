@@ -1,0 +1,1576 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE sect1 PUBLIC "-//OASIS//DTD DocBook XML V4.5//EN"
+"http://www.oasis-open.org/docbook/xml/4.5/docbookx.dtd">
+<?xml-stylesheet href="../web/css/docbook/dm.css" type="text/css"?>
+<sect1 id="fab.templates">
+    <sect1info>
+        <releaseinfo>$Id: template.introduction.xml 683 2008-04-17 16:12:49Z
+        daniel.menard.bdsp $</releaseinfo>
+    </sect1info>
+
+    <title>Templates *</title>
+
+    <toc></toc>
+
+    <sect2 id="fab.templates.introduction">
+        <title>Introduction</title>
+
+        <para>Fab dispose d'un système de templates qui permet d'avoir une
+        séparation nette entre la présentation du site et le code sous-jacent
+        (c'est la couche "vue" du modèle MVC). Les templates peuvent être
+        utilisés pour générer n'importe quelle sortie au format texte (texte
+        brut, xml, html, rtf, etc.)</para>
+
+        <para>Le système de templates mis en oeuvre vise plusieurs objectifs
+        :</para>
+
+        <itemizedlist>
+            <listitem>
+                <para><emphasis role="strong">Simplicité</emphasis> : la
+                syntaxe des templates est simple et facile à
+                comprendre.</para>
+            </listitem>
+
+            <listitem>
+                <para><emphasis role="strong">Gain de temps</emphasis> : les
+                templates permettent d'aller plus vite en simplifiant
+                l'écriture de code complexe et en réutilisant des bouts de
+                code existant.</para>
+            </listitem>
+
+            <listitem>
+                <para><emphasis role="strong">Rapidité</emphasis> :
+                l'exécution des templates est aussi rapide que l'exécution
+                d'une page codée manuellement.</para>
+            </listitem>
+
+            <listitem>
+                <para><emphasis role="strong">Sécurité</emphasis> : il est
+                impossible d'exécuter un template qui contient des erreurs
+                (structure invalide, utilisation de fonctions non autorisées,
+                variables inconnues, etc.)</para>
+            </listitem>
+
+            <listitem>
+                <para><emphasis role="strong">Respect des
+                standards</emphasis> : les templates sont basés sur le format
+                Xml et sur le language XPath. Le code xhtml généré a
+                obligatoirement une structure correcte.</para>
+            </listitem>
+
+            <listitem>
+                <para><emphasis role="strong">Evolutivité</emphasis> : le
+                mécanisme des templates match permet d'introduire une couche
+                d'abstraction dans les templates (en changeant un template
+                match, on fait évoluer instantanément tous les templates qui
+                utilisent ce template match). Ils permettent également de
+                créer de nouveaux tags et d'enrichir le language de
+                templates.</para>
+            </listitem>
+
+            <listitem>
+                <para><emphasis role="strong">Modularité</emphasis> : le
+                mécanisme des slots incite à la réutilisation du code existant
+                et permet de construire un template de façon modulaire en
+                aggrégeant ensemble des blocs unitaires.</para>
+            </listitem>
+
+            <listitem>
+                <para><emphasis role="strong">Compatibilité</emphasis> : les
+                templates peuvent être édités avec un simple éditeur de texte
+                ou avec un outil plus sophistiqué supportant le format xml (y
+                compris un outil wysiswyg tel que xxe). Le format xml des
+                templates permet également l'utilisation de tous les outils
+                xml existant (notamment xslt).</para>
+            </listitem>
+        </itemizedlist>
+    </sect2>
+
+    <sect2 id="fab.templates.configuration">
+        <title>Configuration</title>
+
+        <para>todo: décrire les options de configuration</para>
+
+        <itemizedlist>
+            <listitem>
+                <para>templates.autoinclude : liste des fichiers autoinclude
+                (templates match) à ajouter au template</para>
+            </listitem>
+
+            <listitem>
+                <para>templates.removeblanks</para>
+            </listitem>
+
+            <listitem>
+                <para>templates.resolveexternals</para>
+            </listitem>
+
+            <listitem>
+                <para>templates.removehtmlcomments</para>
+            </listitem>
+
+            <listitem>
+                <para>templates.forcecompile : recompiler systématiquement les
+                templates (mode debug)</para>
+            </listitem>
+
+            <listitem>
+                <para>templates.checktime : ne pas tester si les templates ont
+                été modifiés (mode normal optimisé)</para>
+            </listitem>
+
+            <listitem>
+                <para>slots : actions spécifiques à attribuer aux slots</para>
+            </listitem>
+        </itemizedlist>
+    </sect2>
+
+    <sect2 id="fab.templates.format">
+        <title>Format général</title>
+
+        <para>Un template doit être un fichier ou un fragment xml bien formé.
+        Fab ajoute automatiquent un tag racine au fichier s'il s'agit d'un
+        fragment xml. Cela permet d'avoir le même système de templates pour
+        des documents basés sur xml (xhtml, docbook...) et des templates ne
+        générant que du texte (texte brut, format csv, etc.)</para>
+
+        <tip>
+            <title>Blocs CDATA</title>
+
+            <para>Même si un template doit être au format xml, on peut vouloir
+            écrire du texte contenant des caractères qui ne soient pas
+            interprétés par le parser xml : il suffit pour cela de les inclure
+            dans un bloc CDATA :</para>
+
+            <programlisting role="xml">&lt;![CDATA[
+    Ce bloc peut contenir des caractères comme \$, &lt; et &gt;.
+    Ils ne seront pas interprétés par le parser xml
+]]&gt;</programlisting>
+        </tip>
+
+        <para>Le système de templates de fab comporte :</para>
+
+        <itemizedlist>
+            <listitem>
+                <para>Des <emphasis role="strong">zones de données</emphasis>
+                : il s'agit de balises représentant une variable (commence par
+                le signe <code>\$</code>) ou une expression (entourée par des
+                accolades : <code>\{...\}</code>) qui, lors de l'instanciation
+                du template, seront remplacées par leur valeur :</para>
+
+                <programlisting role="xml">&lt;h1&gt;\$titre&lt;/h1&gt;
+&lt;h1 class="\$class"&gt;\{\$Title:'document sans titre'\}&lt;/h1&gt;
+&lt;p&gt;Bonjour \{\$this-&gt;getName()\}&lt;/p&gt;</programlisting>
+            </listitem>
+
+            <listitem>
+                <para>des <emphasis role="strong">attributs
+                génériques</emphasis> (comme <code>test</code> ou
+                <code>strip</code>) qui peuvent être utilisés avec n'importe
+                quel tag :</para>
+
+                <programlisting role="xml">&lt;div id="adminBar" test="\{User::isAdmin()\}"&gt;
+    &lt;a href="#"&gt;Créer une nouvelle base de données&lt;/a&gt;
+&lt;/div&gt;
+&lt;a strip="\{!User::isAdmin()\}" href="#"&gt;Créer une nouvelle base de données&lt;/a&gt;</programlisting>
+            </listitem>
+
+            <listitem>
+                <para>des <emphasis role="strong">tags spécifiques</emphasis>
+                (tels que <code>if</code>, <code>loop</code>,
+                <code>switch</code>...) :</para>
+
+                <programlisting role="xml">&lt;loop on="{array(1,2,3)}"&gt;
+    &lt;!-- cette partie sera répêtée trois fois --&gt;
+&lt;/loop&gt;
+
+&lt;if test="\{User::isAdmin()\}"&gt;
+    &lt;-- ne s'affichera que si la condition indiquée dans test est validée --&gt;
+&lt;if&gt;
+
+&lt;switch test="\$year"&gt;
+    &lt;case test="2007"&gt;
+        ...
+    &lt;/case&gt;
+    &lt;default&gt;
+        ...
+    &lt;/default&gt;
+&lt;/switch&gt;</programlisting>
+            </listitem>
+
+            <listitem>
+                <para>des <emphasis role="strong">helpers</emphasis> tels que
+                autoid(), lastid(), select().</para>
+            </listitem>
+        </itemizedlist>
+    </sect2>
+
+    <sect2 id="fab.templates.comments">
+        <title>Commentaires</title>
+
+        <para>Pour améliorer la lisibilité du code d'un template et en
+        faciliter la maintenance, il est utile (et conseillé !) d'utiliser des
+        commentaires pour documenter le code et structurer les différentes
+        parties.</para>
+
+        <para>Les templates de fab acceptent deux types de commentaires</para>
+
+        <sect3 id="fab.templates.comments.xml">
+            <title>Commentaires xml</title>
+
+            <para>Les commentaires peuvent être indiqués en utilisant la
+            syntaxe xml :</para>
+
+            <programlisting role="xml">&lt;!-- commentaire --&gt;</programlisting>
+
+            <para>Les commentaires utilisant cette syntaxe seront conservés
+            dans la sortie générée par le template (autrement dit,
+            l'utilisateur les verra s'il regarde le source de la page affichée
+            dans son navigateur).</para>
+
+            <para>Il est néanmoins possible de les supprimer en activant
+            l'option de configuration
+            <code>&lt;templates.removehtmlcomments&gt;</code> dans la
+            configuration (elle est désactivée par défaut).</para>
+        </sect3>
+
+        <sect3 id="fab.templates.comments.php">
+            <title>Commentaires de code</title>
+
+            <para>Fab introduit un second type de commentaires utilisant la
+            même syntaxe qu'en C ou en PHP : <programlisting role="php">/* commentaire */</programlisting></para>
+
+            <para>Les commentaires utilisant cette syntaxe seront toujours
+            supprimés de la sortie (en fait ils ne figurent même pas dans la
+            version compilée du template).</para>
+
+            <para>Ce type de commentaire est très utile car il permet de
+            documenter abondamment le code source d'un template. Ces
+            commentaires ne seront visibles que des développeurs
+            (confidentialité) et n'influent absolument pas sur le poids de la
+            page qui sera envoyée au navigateur (efficacité).</para>
+        </sect3>
+    </sect2>
+
+    <sect2 id="fab.templates.data">
+        <title>Zones de données</title>
+
+        <para>Lors de l'instanciation du template, les zones de données
+        présentes dans la template sont évaluées en fonction des données
+        fournies au template (cf. la méthode <ulink
+        url="?class=Template#run">Template::Run()</ulink> de fab).</para>
+
+        <para>Il existe deux types de zones de données : <itemizedlist>
+                <listitem>
+                    <para>les variables (commencent par le signe
+                    <code>\$</code>) ;</para>
+                </listitem>
+
+                <listitem>
+                    <para>les expressions (entre accolades :
+                    <code>\{...\}</code>).</para>
+                </listitem>
+            </itemizedlist></para>
+
+        <sect3 id="fab.templates.data.variables">
+            <title>Variables</title>
+
+            <para>Exemple :</para>
+
+            <programlisting role="php">\$title</programlisting>
+
+            <para>Il s'agit d'une simple variable qui s'écrit, comme en php,
+            sous la forme d'un signe dollar suivi d'un identifiant.</para>
+
+            <para>Lors de l'exécution du template, fab examine les données
+            fournies au template et remplace la variable indiquée par la
+            valeur correspondante.</para>
+
+            <warning>
+                <para>Attention : les noms de variables sont sensibles à la
+                casse.</para>
+
+                <para><code>\$titre</code>, <code>\$Titre</code> et
+                <code>\$TITRE</code> ne désignent pas la même variable.</para>
+            </warning>
+        </sect3>
+
+        <sect3 id="fab.templates.data.expressions">
+            <title>Expressions</title>
+
+            <sect4 id="template.syntax.data.expression.introduction">
+                <title>Syntaxe</title>
+
+                <para>Une expression entre accolades peut comporter des
+                valeurs littérales, des constantes, des variables, des
+                opérateurs et des appels aux fonctions php autorisées ou aux
+                méthodes publiques présentes dans l'API de
+                l'application :</para>
+
+                <programlisting role="php">/* valeurs littérales et opérateurs */ 
+\{3.14 * 5^2\}
+\{"hello" . 'world'\}
+
+/* constantes */
+\{PHP_SELF\}
+\{PHP_INT_MAX\}
+
+/* Variables */
+\{\$titre\} /* fait la même chose que \$titre */
+\{\$TitFre:\$TitEng\}
+
+/* Appels de fonctions */
+\{trim(strtolower(\$titre))\}
+\{implode('-', array('a','b','c'))\}
+\{trim(\$title:'pas de titre')\}
+
+/* Appel de méthodes */
+\{Config::get('env')\}
+\{User::isAdmin()\}</programlisting>
+            </sect4>
+
+            <sect4 id="template.syntax.data.security">
+                <title>Sécurité</title>
+
+                <para>La syntaxe des expressions dans les templates de fab est
+                très proche de la syntaxe des expressions en PHP, mais cela ne
+                signifie pas que vous pouvez mettre n'importe quel code php
+                entre les accolades : une expression doit rester une
+                expression, c'est-à-dire qu'elle doit être évaluable et doit
+                retourner une valeur.</para>
+
+                <para>Dans Fab, une expression ne peut pas modifier
+                <emphasis>l'environnement d'exécution du
+                script</emphasis>.</para>
+
+                <para>Fab examinera soigneusement les expressions indiquées et
+                n'autorisera que les opérateurs et les fonctions qui ne
+                modifient ni les variables ni le reste de l'environnement
+                d'exécution du script.</para>
+
+                <para>Concrètement, cela signifie que les opérateurs
+                d'affectation (<code>=</code>, <code>+=</code>,
+                <code>*=</code>...) sont interdits et que seules certaines
+                fonctions PHP sont autorisées :</para>
+
+                <itemizedlist>
+                    <listitem>
+                        <para>Des fonctions comme <code>trim()</code>,
+                        <code>isset()</code>, <code>strpos()</code>,
+                        <code>urlencode()</code>, <code>sprintf()</code> ou
+                        même <code>file_get_contents()</code> sont <emphasis
+                        role="strong">autorisées</emphasis> parce qu'elles ne
+                        modifient pas l'environnement</para>
+                    </listitem>
+
+                    <listitem>
+                        <para>Des fonctions comme <code>print()</code>,
+                        <code>vprint()</code>, <code>ob_start()</code> ou
+                        <code>readfile()</code> sont <emphasis
+                        role="strong">interdites</emphasis> parce qu'elles
+                        modifient la sortie qui sera envoyée au
+                        navigateur.</para>
+                    </listitem>
+
+                    <listitem>
+                        <para>Des fonctions comme <code>strok()</code> qui
+                        stocke dans une variable statique la chaine qu'on lui
+                        passe en paramêtre ou <code>parse_str()</code> qui
+                        modifie les variables existantes sont <emphasis
+                        role="strong">interdites</emphasis>.</para>
+                    </listitem>
+
+                    <listitem>
+                        <para>Des fonctions telles que <code>fopen()</code>,
+                        <code>file_put_contents()</code>,
+                        <code>move_uploaded_file()</code> sont <emphasis
+                        role="strong">interdites</emphasis> parce qu'elles
+                        manipulent des ressources.</para>
+                    </listitem>
+
+                    <listitem>
+                        <para>Les instructions du langage telles que
+                        <code>die()</code>, <code>echo</code>,
+                        <code>__halt_compiler()</code> ou
+                        <code>require()</code> (ce ne sont pas réellement des
+                        fonctions) sont également <emphasis
+                        role="strong">interdites</emphasis>.</para>
+                    </listitem>
+                </itemizedlist>
+
+                <para>Ces sécurités permettent de garantir le respect du
+                modèle MVC : les actions préparent les données, les templates
+                se contentent de les présenter et de les afficher, elles ne
+                doivent pas pouvoir les modifier.</para>
+            </sect4>
+
+            <sect4 id="template.syntax.data.optimisations">
+                <title>Optimisations</title>
+
+                <para>Lors de la compilation d'un template, Fab applique des
+                principes de <ulink
+                url="http://fr.wikipedia.org/wiki/Transparence_r%C3%A9f%C3%A9rentielle">transparence
+                référentielle</ulink> et essaie d'optimiser toutes les
+                expressions qu'il rencontre : si une expression est évaluable
+                dès la phase de compilation et donne lieu à une valeur qui est
+                indépendante du contexte d'exécution du script, alors elle
+                sera directement remplacée par la valeur
+                correspondante.</para>
+
+                <para>Il en va de même pour certaines constructions du
+                language : si les conditions présentes dans un <code>if</code>
+                ou dans un <code>switch</code> peuvent être évaluées dès la
+                compilation, ceux-ci seront remplacés par le résultat de
+                l'évaluation.</para>
+
+                <example>
+                    <title>exemples d'optimisations</title>
+
+                    <programlisting role="php">\{4*3*2*1\}</programlisting>
+
+                    <para>Fab ne reconnaît pas qu'il s'agit d'une factorielle,
+                    par contre il détecte que cette expression ne dépend
+                    d'aucune variable et la remplacera par sa valeur
+                    (<code>24</code>).</para>
+
+                    <programlisting role="php">\{strtolower(trim('   hello WORLD   '))\}</programlisting>
+
+                    <para>Là c'est un peu plus compliqué parce que
+                    l'expression contient deux appels de fonctions. Néanmoins,
+                    fab sait que les fonctions php strtolower() et trim() sont
+                    des <ulink
+                    url="http://fr.wikipedia.org/wiki/Fonction_pure">fonctions
+                    pures</ulink> (c'est à dire qu'elle retournent toujours la
+                    même valeur pour les mêmes paramètres). Il va exécuter
+                    l'expression dès la phase de compilation et la remplacer
+                    par la valeur obtenue (la chaine de caractères
+                    '<code>hello world</code>').</para>
+
+                    <programlisting role="php">&lt;if test="\{false\}"&gt;
+    never
+&lt;/if&gt;</programlisting>
+
+                    <para>Ici il s'agit d'un bloc conditionnel dont la
+                    condition est toujours <code>false</code> : il ne sera
+                    jamais exécuté. Fab le détecte et supprime purement et
+                    simplement tout le bloc.</para>
+
+                    <programlisting role="php">&lt;switch test="2"&gt;
+    &lt;case "1"&gt;un&lt;/case&gt;
+    &lt;case "2"&gt;deux&lt;/case&gt;
+    &lt;case "3"&gt;trois&lt;/case&gt;
+&lt;/switch&gt;
+</programlisting>
+
+                    <para>Dans le bloc <code>switch</code> ci-dessus, on a un
+                    cas similaire : c'est toujours la seconde alternative qui
+                    sera exécutée. Fab remplace l'ensemble du bloc
+                    <code>switch</code> par le contenu de la seconde
+                    alternative (<code>deux</code>).</para>
+                </example>
+            </sect4>
+        </sect3>
+
+        <sect3 id="fab.templates.data.collar">
+            <title>Colliers d'expressions</title>
+
+            <para>Fab ajoute aux opérateurs standard de PHP un nouvel
+            opérateur, le signe deux points (<code>:</code>) qui permet de
+            créer un "collier" d'expressions.</para>
+
+            <para>C'est un opérateur très pratique qui prend comme opérandes
+            une suite d'expressions et retourne le résultat de la première
+            expression ayant une valeur non vide.</para>
+
+            <para>Exemple :</para>
+
+            <programlisting role="php">\{\$titreFre:\$titreEng:'document sans titre'\}</programlisting>
+
+            <para>Dans ce cas, la première expression
+            (<code>\$titreFre</code>) sera évaluée. Si elle retourne quelque
+            chose (i.e pas une chaine vide), l'évalutation de l'expression
+            s'arrête là et retourne cette valeur. Sinon, on passe à la seconde
+            expression présente dans le collier, et ainsi de suite.</para>
+
+            <para>Si aucune des expressions ne retourne une valeur, rien ne
+            sera affiché.</para>
+
+            <para>Chacune des expressions d'un collier peut être une variable
+            ou une expression plus complexe :</para>
+
+            <programlisting role="php">\{trim(\$titreFre):trim(\$titreEng):strtoupper('document sans titre')\}</programlisting>
+
+            <para>Remarque : le signe "deux-points" est également utilisé dans
+            <ulink
+            url="http://docs.php.net/manual/en/language.operators.comparison.php#language.operators.comparison.ternary">l'opérateur
+            ternaire de php</ulink> que fab supporte également (il saura faire
+            la différence entre l'opérateur ternaire et un collier). Par
+            contre, il est déconseillé d'utiliser les deux au sein de la même
+            expression, sauf à tout parenthéser, car l'expression obtenue est
+            peu lisible et son exécution dépendra des priorités respectives
+            des deux opérateurs (exemple <code>\{\$titleFre : \$titleEng ?
+            \$titleFre : \$titleEng : 'pas de titre'\}</code>).</para>
+        </sect3>
+
+        <sect3 id="fab.templates.data.remarks">
+            <title>Remarques</title>
+
+            <itemizedlist>
+                <listitem>
+                    <para>les zones de données sont utilisables dans du texte
+                    et dans la valeur d'un attribut d'un tag mais ne peuvent
+                    pas constituer un nom de tag ou un nom d'attribut (sinon,
+                    le template ne serait plus du xml bien formé). Vous pouvez
+                    donc écrire : <code>&lt;h1&gt;\$titre&lt;/h1&gt;</code> ou
+                    <code>&lt;h1 class="\$titre"
+                    id="\$id&gt;...&lt;/h1&gt;</code> mais pas <code>&lt;h1
+                    \$attr="un"&gt;...&lt;/h1&gt;</code> ou
+                    <code>&lt;\$tag&gt;...&lt;/\$tag&gt;</code> (le code xml
+                    du template ne serait plus valide).</para>
+                </listitem>
+
+                <listitem>
+                    <para>Lorsqu'une zones de données est utilisée comme
+                    valeur d'un attribut, et que la zone de données ne
+                    retourne pas de valeur, l'attribut devient automatiquement
+                    optionnel. Par exemple, si <code>\$class</code> n'est pas
+                    définit, le code
+                    <code>&lt;h1 class="\$class"&gt;...&lt;/h1&gt;</code>
+                    générera <code>&lt;h1&gt;...&lt;/h1&gt;</code> et non pas
+                    <code>&lt;h1 class=""&gt;...&lt;/h1&gt;</code>.</para>
+                </listitem>
+            </itemizedlist>
+        </sect3>
+    </sect2>
+
+    <sect2 id="fab.templates.attributes">
+        <title>Attributs génériques</title>
+
+        <para>Fab reconnaît un certain nombre d'attributs qui sont utilisables
+        dans n'importe quel tag xml du template.</para>
+
+        <sect3 id="fab.templates.attributes.test">
+            <title>test</title>
+
+            <para>L'attribut "<code>test</code>" peut être ajouté à n'importe
+            quel tag et permet de rendre ce tag optionnel. La valeur de
+            l'attribut est une expression qui sera évaluée et <ulink
+            url="http://docs.php.net/manual/en/language.types.boolean.php#language.types.boolean.casting">convertie
+            en booléen</ulink>. Si le résultat est <code>true</code>, le bloc
+            sera conservé (sans l'attribut <code>test</code>), sinon,
+            l'ensemble du bloc est supprimé.</para>
+
+            <para>Exemple :</para>
+
+            <programlisting role="xml">&lt;div test="\{User::isAdmin(\$user)\}" id="adminBar" &gt;...&lt;/div&gt;</programlisting>
+        </sect3>
+
+        <sect3 id="fab.templates.attributes.if">
+            <title>strip</title>
+
+            <para>L'attribut <code>strip</code> peut être ajouté à n'importe
+            quel tag et permet d'afficher tout le tag ou seulement son
+            contenu. La valeur de l'attribut est une expression qui sera
+            évaluée et <ulink
+            url="http://docs.php.net/manual/en/language.types.boolean.php#language.types.boolean.casting">convertie
+            en booléen</ulink>. Si le résultat est <code>true</code>, seul le
+            contenu du tag sera conservé, sinon l'ensemble du bloc est
+            conservé (sans l'attribut <code>strip</code>).</para>
+
+            <para>Exemple : le code
+            <code>&lt;a href="\$link" strip="\{!\$link\}"&gt;\$title&lt;/a&gt;</code>
+            générera un titre cliquable si la variable <code>\$link</code> est
+            renseignée (<code>&lt;a href="\$link"&gt;\$title&lt;/a&gt;</code>)
+            et n'affichera que le titre sinon (<code>\$title</code>).</para>
+
+            <tip>
+                <title>Remarques :</title>
+
+                <itemizedlist>
+                    <listitem>
+                        <para>On peut combiner, dans un même tag, les
+                        attributs <code>test</code> et
+                        <code>strip</code>.</para>
+                    </listitem>
+
+                    <listitem>
+                        <para>L'utilisation d'un tag <ulink
+                        url="#template.syntax.tags.if">if</ulink> autour du
+                        bloc permet de faire la même chose qu'un attribut
+                        <code>strip</code> ajouté à ce bloc (mais en général
+                        c'est plus simple en utilisant
+                        <code>strip</code>).</para>
+                    </listitem>
+                </itemizedlist>
+            </tip>
+        </sect3>
+    </sect2>
+
+    <sect2 id="fab.templates.tags">
+        <title>Tags</title>
+
+        <sect3 id="fab.templates.tags.def">
+            <title>def</title>
+
+            <para>Le tag <code>def</code> permet de définir une nouvelle
+            variable qui pourra être utilisée dans le reste du template. Il
+            prend deux attributs obligatoires :</para>
+
+            <itemizedlist>
+                <listitem>
+                    <para><code>name</code> : le nom de la variable à créer
+                    ;</para>
+                </listitem>
+
+                <listitem>
+                    <para><code>value</code> : la valeur initiale à lui
+                    affecter.</para>
+                </listitem>
+            </itemizedlist>
+
+            <para>Exemple :</para>
+
+            <programlisting role="xml">/* exemple simple */
+&lt;def name="title" value="Titre du document" /&gt;
+&lt;h1&gt;Titre : \$title&lt;/h1&gt;
+
+/* Exemple avec une expression : */
+&lt;def name="loggedAs" value="\{Utils::isAdmin() ? 'administrateur' : 'visiteur'\}" /&gt;
+&lt;p&gt;connecté comme \$loggedAs&lt;/h1&gt;
+</programlisting>
+
+            <para>Remarques :</para>
+
+            <itemizedlist>
+                <listitem>
+                    <para>La variable ne peut pas être utilisée avant d'avoir
+                    été définie : le tag <code>def</code> doit apparaître dans
+                    le source du template <emphasis>avant</emphasis> la toute
+                    première utilisation de la variable.</para>
+                </listitem>
+
+                <listitem>
+                    <para>Si vous donnez à la variable que vous créez le même
+                    nom qu'une source de données existante, celle-ci n'est
+                    plus accessible.</para>
+                </listitem>
+
+                <listitem>
+                    <para>La valeur de la variable peut être redéfinie à tout
+                    moment (il suffit de répêter le tag <code>def</code> en
+                    gardant le même attribut <code>name</code> mais en
+                    changeant l'attribut <code>value</code>).</para>
+                </listitem>
+            </itemizedlist>
+        </sect3>
+
+        <sect3 id="fab.templates.attributes.opt">
+            <title>opt</title>
+
+            <para>Le tag opt permet de définit un bloc optionnel : celui-ci ne
+            sera affiché que si les variables et les expressions qu'il
+            contient retournent une valeur.</para>
+
+            <para>Exemple :</para>
+
+            <programlisting role="xml">&lt;opt&gt;Le titre est \$titre&lt;br /&gt;&lt;/opt&gt;
+&lt;opt&gt;L'auteur est \$auteur&lt;br /&gt;&lt;/opt&gt;</programlisting>
+
+            <para>Le premier bloc ne s'affichera que si <code>\$titre</code>
+            est renseigné, le second seulement si <code>\$auteur</code>
+            l'est.</para>
+
+            <para>Les blocs opt peuvent être imbriqués les uns dans les
+            autres :</para>
+
+            <programlisting role="xml">&lt;opt&gt;
+    Titre/auteur :
+    &lt;opt&gt;Le titre est \$titre&lt;br /&gt;&lt;/opt&gt;
+    &lt;opt&gt;L'auteur est \$auteur&lt;br /&gt;&lt;/opt&gt;
+&lt;/opt&gt;</programlisting>
+
+            <para>Le bloc <code>opt</code> de premier niveau ne s'affichera
+            que si <code>\$titre</code> ou <code>\$auteur</code> sont
+            renseignés.</para>
+
+            <para>Il est possible d'indiquer le nombre minimum de variables
+            qui doivent être renseignées pour que le bloc s'affiche en
+            ajoutant au bloc <code>opt</code> un attribut
+            <code>min</code> :</para>
+
+            <programlisting role="xml">&lt;opt min="2"&gt;
+    Titre ET auteur :
+    &lt;opt&gt;Le titre est \$titre&lt;br /&gt;&lt;/opt&gt;
+    &lt;opt&gt;L'auteur est \$auteur&lt;br /&gt;&lt;/opt&gt;
+&lt;/opt&gt;</programlisting>
+
+            <para>Dans cet exemple, l'ensemble du bloc ne s'affichera que si
+            les deux variables sont renseignées.</para>
+        </sect3>
+
+        <sect3 id="fab.templates.attributes.if">
+            <title>if, else et elseif</title>
+
+            <para>Les tags <code>if</code>, <code>else</code> et
+            <code>elseif</code> permettent de n'exécuter certaines parties du
+            template que si certaines conditions sont remplies.</para>
+
+            <para>Exemple :</para>
+
+            <programlisting role="xml">&lt;if test="\{User::isAdmin()\}"&gt;
+    &lt;p&gt;Administrateur&lt;/p&gt;
+&lt;/if&gt;
+&lt;elseif test="\{User::isConnected()\}"&gt;
+    &lt;p&gt;Visiteur régulier&lt;/p&gt;
+&lt;/elseif&gt;
+&lt;else&gt;
+    &lt;p&gt;Anonyme&lt;/p&gt;
+&lt;/else&gt;</programlisting>
+
+            <para>Remarques :</para>
+
+            <itemizedlist>
+                <listitem>
+                    <para>Une erreur est générée si vous n'utilisez pas les
+                    tags dans le bon ordre.</para>
+                </listitem>
+
+                <listitem>
+                    <para>Seuls des blancs (espaces, retours à la ligne...)
+                    sont autorisés entre le tag de fermeture du if et du
+                    elseif et le tag d'ouverture suivant (elseif et
+                    else).</para>
+                </listitem>
+            </itemizedlist>
+        </sect3>
+
+        <sect3 id="fab.templates.attributes.switch">
+            <title>switch, case, default</title>
+
+            <para>Un tag <code>switch</code> est équivalent à une série de
+            tags <code>if</code>.</para>
+
+            <para>Exemple :</para>
+
+            <programlisting role="xml">&lt;switch test="\$style"&gt;
+    &lt;case test="dark"&gt;
+        &lt;def name="backgroundColor" value="black" /&gt;
+    &lt;/case&gt;
+    &lt;case test="light"&gt;
+        &lt;def name="backgroundColor" value="white" /&gt;
+    &lt;/case&gt;
+    &lt;default&gt;
+        &lt;def name="backgroundColor" value="grey" /&gt;
+    &lt;/default&gt;
+&lt;/switch&gt;</programlisting>
+        </sect3>
+
+        <sect3 id="fab.templates.attributes.loop">
+            <title>loop</title>
+
+            <para>Exemple :</para>
+
+            <programlisting role="xml">&lt;loop on="\$selection" as="\$i,\$j"&gt;
+    ...
+&lt;/loop&gt;</programlisting>
+
+            <para>Si l'attribut <code>as</code> ne spécifie qu'une seule
+            variable <code>\$var</code>, alors, dans le corps du
+            <code>loop</code>, <code>\$var</code> donnera accès à la valeur et
+            non à l'index en cours : équivalent à <code>\$j</code> dans
+            l'exemple précédent.</para>
+        </sect3>
+
+        <sect3 id="fab.templates.attributes.slot">
+            <title>Slots</title>
+
+            <para>todo : documentation à revoir et à détailler.</para>
+
+            <para>Permet d'inclure dans le template en cours le résultat de
+            l'exécution d'un autre template ou d'une action.</para>
+
+            <programlisting role="xml">&lt;slot name="header"&gt;
+    &lt;div id="defaultheader"&gt;
+        ...
+    &lt;/div&gt;            
+&lt;/slot&gt;</programlisting>
+
+            <para>En bref, un slot permet de définir :</para>
+
+            <itemizedlist>
+                <listitem>
+                    <para>Un slot vide : <code>&lt;slot name="toto"
+                    /&gt;</code> (permet de réserver un emplacement pour une
+                    évolution future) ;</para>
+                </listitem>
+
+                <listitem>
+                    <para>Un slot avec un contenu initial fixé en dur :
+                    <code>&lt;slot name="toto"&gt;bla bla &lt;/slot&gt;</code>
+                    (idem mais avec un contenu initial qui sera redéfinissable
+                    par les modules descendants) ;</para>
+                </listitem>
+
+                <listitem>
+                    <para>Un slot avec un contenu initial provenant d'un autre
+                    template : <code>&lt;slot name="toto" file="menu.html"
+                    /&gt;</code> (équivalent d'un include).</para>
+                </listitem>
+
+                <listitem>
+                    <para>Un slot avec un contenu provenant d'un module action
+                    :</para>
+
+                    <para><code>&lt;slot name="helpindex"
+                    action="/AutoDoc/Api" /&gt;</code> (un include
+                    dynamique) ;</para>
+                </listitem>
+            </itemizedlist>
+
+            <para>Chaque slot a un nom unique.</para>
+
+            <para>Un slot peut avoir les attributs standard "test" et "strip".
+            Ils sont définis et gérés de façon "absolue", c'est à dire que
+            même si le contenu du slot change, les conditions restent (en
+            fait, elles sont évaluées avant même qu'on commence à essayer
+            d'exécuter le slot).</para>
+
+            <para>L'action d'un slot peut être redéfinie via la
+            configuration :</para>
+
+            <programlisting role="xml">/* désactive le slot */
+&lt;slots&gt;
+    &lt;helpindex&gt;none&lt;/helpindex&gt;
+&lt;/slots&gt;
+
+/* change l'action d'un slot */
+&lt;slots&gt;
+    &lt;helpindex&gt;/AutoDoc/Api?showInternals=true&lt;/helpindex&gt;
+&lt;/slots&gt;</programlisting>
+        </sect3>
+
+        <sect3 id="fab.templates.attributes.template">
+            <title>Templates match : &lt;template&gt;</title>
+
+            <para>Le tag template permet de définir un template match. Les
+            templates match font l'objet d'une <ulink
+            url="#fab.templates.matchtemplates">documentation détaillée
+            </ulink>dans les chapitres suivants.</para>
+        </sect3>
+    </sect2>
+
+    <sect2 id="fab.templates.functions">
+        <title>Fonctions</title>
+
+        <sect3 id="fab.templates.functions.autoid">
+            <title><code>autoId()</code></title>
+
+            <para>Génère automatiquement un ID unique pour l'élément auquel il
+            est appliqué.</para>
+
+            <para>Fonctionnement :</para>
+
+            <itemizedlist>
+                <listitem>
+                    <para>prends l'id ou le 'name' du noeud en cours et
+                    remonte l'arbre comme ça jusqu'à la racine.</para>
+                </listitem>
+
+                <listitem>
+                    <para>Si on ne trouve rien, on prends le nom du tag du
+                    noeud en cours.</para>
+                </listitem>
+
+                <listitem>
+                    <para>Si cet id a déjà été utilisé, on numérote (typdoc,
+                    typdoc2, typdoc3...)</para>
+                </listitem>
+            </itemizedlist>
+        </sect3>
+
+        <sect3 id="fab.templates.functions.lastid">
+            <title><code>lastId()</code></title>
+
+            <para>Retourne le dernier id généré par autoId() ou vide si
+            autoId() n'a pas été appellé avant.</para>
+        </sect3>
+    </sect2>
+
+    <sect2 id="fab.templates.matchtemplates">
+        <title>Templates match</title>
+
+        <sect3 id="fab.templates.matchtemplates.introduction">
+            <title>Introduction</title>
+
+            <para>Le tag <code>&lt;template&gt;</code> permet de mettre en
+            oeuvre, au sein des fichiers templates, l'équivalent d'une
+            fonction dans un langage de programmation.</para>
+
+            <para>Il permet de définir un modèle, identifié par un nom unique,
+            qui sera exécuté à chaque fois qu'un tag portant le nom indiqué
+            sera rencontré dans le source du template.</para>
+
+            <para>Les templates match contituent un outil puissant permettant
+            (todo : à revoir) :</para>
+
+            <itemizedlist>
+                <listitem>
+                    <para>d'introduire une couche d'abstraction dans les
+                    templates (exemple : au lieu de coder un controle
+                    calendrier directement dans les templates, on va définir
+                    un template match "calendar" qu'on pourra ensuite modifier
+                    comme on le souhaite). ;</para>
+                </listitem>
+
+                <listitem>
+                    <para>de modifier automatquement le code d'un
+                    template ;</para>
+                </listitem>
+
+                <listitem>
+                    <para>de faire des conversions automatiquement (exemple :
+                    conversion docbook vers xml).</para>
+                </listitem>
+            </itemizedlist>
+
+            <tip>
+                <title>Vocabulaire</title>
+
+                <para>Pour simplifier le langage dans la documentation, les
+                termes <code>attribut</code>, <code>élément</code> et
+                <code>texte</code> sont utilisés pour désigner :</para>
+
+                <itemizedlist>
+                    <listitem>
+                        <para>un noeud xml de type attribut (un attribut
+                        composé d'un nom et d'une valeur)</para>
+                    </listitem>
+
+                    <listitem>
+                        <para>un noeud xml de type élément, identifié par un
+                        tag</para>
+                    </listitem>
+
+                    <listitem>
+                        <para>un noeud de type texte</para>
+                    </listitem>
+                </itemizedlist>
+            </tip>
+        </sect3>
+
+        <sect3 id="fab.templates.matchtemplates.syntax">
+            <title>Définition d'un template match</title>
+
+            <para>Comme indiqué plus haut, le tag
+            <code>&lt;template&gt;</code> permet de définir un modèle qui
+            pourra ensuite être réutilisé autant de fois que
+            nécessaire.</para>
+
+            <para>Ce modèle spécifie un masque (indiqué par un attribut match
+            contenant une expression xpath valide) qui définit l'ensemble des
+            éléments du fichier template auxquels ce modèle sera
+            automatiquement appliqué.</para>
+
+            <para>Le modèle peut également avoir des arguments (ce sont les
+            attributs supplémentaires indiqués dans le tag
+            <code>&lt;template&gt;</code>) et chaque argument a une valeur par
+            défaut (la valeur indiquée dans chacun des attributs),
+            éventuellement vide.</para>
+
+            <para>Exemple de template :</para>
+
+            <programlisting role="xml">&lt;template match="//copyright" year="2006"&gt;
+    &lt;hr /&gt;
+    Copyright \$year BDSP.
+&lt;/template&gt;</programlisting>
+
+            <para>Dans cet exemple, nous définissons un template qui
+            sélectionne automatiquement tous les éléments dont le nom de tag
+            est égal à <code>copyright</code> (c'est ce qu'indique
+            l'expression xpath indiquée dans l'attribut match).</para>
+
+            <para>Ce template spécifie un paramètre nommé <code>year</code>
+            dont la valeur par défaut est <code>2006</code>.</para>
+
+            <para>Le corps du template (ce qui figure entre les balises
+            <code>&lt;template&gt;</code> et <code>&lt;/template&gt;</code>)
+            spécifie le code XML qui sera généré lorsque ce template sera
+            utilisé.</para>
+
+            <para>On voit que le paramètre <code>year</code> qui figure dans
+            les attributs du template s'utilise comme une variable standard
+            (<code>\$year</code>).</para>
+
+            <para>Le corps du template peut contenir n'importe quoi : du
+            texte, d'autres tags, des instructions du système de template
+            (<code>if</code>, <code>loop</code>, <code>switch</code>...) et
+            peut également inclure tout ou partie du contenu des noeuds
+            auxquels il sera appliqué en utilisant la fonction
+            <code>select()</code> (voir plus bas).</para>
+
+            <tip>
+                <title>Pour plus d'informations sur le language
+                <code>xpath</code> :</title>
+
+                <para>Références : <itemizedlist>
+                        <listitem>
+                            <para>en anglais : <ulink
+                            url="http://www.w3.org/TR/xpath"></ulink></para>
+                        </listitem>
+
+                        <listitem>
+                            <para>en français : <ulink
+                            url="http://xmlfr.org/w3c/TR/xpath"></ulink></para>
+                        </listitem>
+                    </itemizedlist></para>
+
+                <para>Tutoriels : <itemizedlist>
+                        <listitem>
+                            <para>en anglais : <ulink
+                            url="http://www.zvon.org/xxl/XPathTutorial/General_fre/examples.html"></ulink></para>
+                        </listitem>
+
+                        <listitem>
+                            <para>en français : <ulink
+                            url="http://jerome.developpez.com/xmlxsl/xpath/"></ulink></para>
+                        </listitem>
+                    </itemizedlist></para>
+
+                <para>Outils en ligne permettant de tester des expressions
+                xpath : <itemizedlist>
+                        <listitem>
+                            <para><ulink
+                            url="http://www.whitebeam.org/library/guide/TechNotes/xpathtestbed.rhtm"></ulink></para>
+                        </listitem>
+
+                        <listitem>
+                            <para><ulink
+                            url="http://www.activsoftware.com/xml/xpath/"></ulink></para>
+                        </listitem>
+                    </itemizedlist></para>
+            </tip>
+        </sect3>
+
+        <sect3 id="fab.templates.matchtemplates.utilisation">
+            <title>Utilisation d'un template match</title>
+
+            <para>Pour utiliser un modèle, il suffit d'écrire un noeud qui
+            réponde aux critères spécifiés dans l'attribut match du modèle. Ce
+            noeud sera alors automatiquement remplacé par le contenu du
+            template.</para>
+
+            <para>Lorsqu'on appelle un template, on peut choisir d'utiliser
+            les valeurs par défaut des arguments du template, ou au contraire
+            spécifier des valeurs.</para>
+
+            <para>Exemple 1 :</para>
+
+            <programlisting role="xml">&lt;copyright /&gt;</programlisting>
+
+            <para>Ici, on a écrit le minimum nécessaire pour que le modèle
+            donné en exemple un peu plus haut soit instancié. Aucun paramètre
+            n'a été indiqué, et donc le modèle va être instancié tel quel, en
+            utilisant les valeurs par défaut de ses paramètres. On obtiendra
+            donc la sortie suivante :</para>
+
+            <programlisting role="xml">&lt;hr /&gt;
+Copyright 2006 BDSP.</programlisting>
+
+            <para>Exemple 2 :</para>
+
+            <programlisting role="xml">&lt;copyright year="1993-2007" /&gt;</programlisting>
+
+            <para>Ici, on a spécifié une valeur pour l'argument year. Cette
+            valeur va "écraser" la valeur par défaut du template, et on
+            obtiendra donc la sortie suivante :</para>
+
+            <programlisting role="xml">&lt;hr /&gt;
+Copyright 1993-2007 BDSP.</programlisting>
+        </sect3>
+
+        <sect3 id="fab.templates.matchtemplates.match">
+            <title>L'attribut match des templates match</title>
+
+            <para>Le tag template doit obligatoirement contenir l'attribut
+            match : une exception est générée si cet attribut est absent, s'il
+            est vide, ou s'il contient une expression xpath non valide.</para>
+
+            <para>Par contre, presque toutes les expression xpath valides sont
+            autorisées. Il est ainsi possible de sélectionner des noeuds en
+            fonction de leur tag, de leur position dans l'arbre XML du
+            document, des attributs qu'ils contiennent, de la valeur de ces
+            attributs ou même de faire des calculs plus complexes en utilisant
+            les fonctions et les opérateurs disponibles dans le langage
+            xpath.</para>
+
+            <para>Néanmoins, certaines expressions xpath, bien que valides, ne
+            peuvent pas être utilisées. Par exemple sélectionner le document
+            dans son entier, sélection récursive (un template qui se
+            sélectionne lui-même), etc. TODO : à analyser, mieux définir les
+            expressions qui généreront une erreur.</para>
+
+            <example>
+                <title>Exemples d'attributs match valides</title>
+
+                <itemizedlist>
+                    <listitem>
+                        <para><code>match="//div"</code> (qui est un raccourci
+                        de <code>match="/*/div"</code>) : tous les tags
+                        <code>&lt;div&gt;</code>, quel que soit leur
+                        emplacement dans l'arbre xml du document</para>
+                    </listitem>
+
+                    <listitem>
+                        <para><code>match="//form/fieldset/div"</code> : tous
+                        les éléments <code>&lt;div&gt;</code> qui sont des
+                        descendants directs d'un élément
+                        <code>&lt;fieldset&gt;</code> lui-même descendant
+                        direct d'un élément <code>&lt;form&gt;</code> présent
+                        n'importe où dans l'arbre xml</para>
+                    </listitem>
+
+                    <listitem>
+                        <para><code>match="//ul/li[1]"</code> (qui est un
+                        raccourci de
+                        <code>match="/*/ul/li[position()=1]"</code> : le
+                        premier élément <code>&lt;li&gt;</code> présent dans
+                        un élément <code>&lt;ul&gt;</code></para>
+                    </listitem>
+
+                    <listitem>
+                        <para><code>match="//a[@title]"</code> : tous les
+                        liens (tags <code>&lt;a&gt;</code>) qui ont un
+                        attribut <code>title</code></para>
+                    </listitem>
+
+                    <listitem>
+                        <para><code>match="//a[starts-with(@href,
+                        'mailto:')]"</code> : tous les liens (tags
+                        <code>&lt;a&gt;</code>) dont l'attribut
+                        <code>href</code> commence par
+                        <code>mailto:</code></para>
+                    </listitem>
+
+                    <listitem>
+                        <para><code>match="//form[(input[@type="checkbox"] or
+                        input[@type="radio"] and not(textarea)]"</code> : tous
+                        les formulaires qui contiennent au moins une case à
+                        cocher ou un bouton radio mais qui ne contiennent pas
+                        de textearea.</para>
+                    </listitem>
+
+                    <listitem>
+                        <para><code>match="//h1|//h2|//h3|//h4|//h5|//h6"</code>
+                        : tous les éléments titres</para>
+                    </listitem>
+
+                    <listitem>
+                        <para><code>match="//h1[text()]"</code> : le
+                        <emphasis>texte</emphasis> des titres de niveau
+                        1</para>
+                    </listitem>
+
+                    <listitem>
+                        <para><code>match="//a/@href"</code> : sélectionne les
+                        <emphasis>attributs</emphasis> <code>href</code> de
+                        tous les liens</para>
+                    </listitem>
+
+                    <listitem>
+                        <para><code>match="//*/@*"</code> : sélectionne tous
+                        les <emphasis>attributs</emphasis> de tous les noeuds
+                        de l'arbre xml (ça risque de faire du monde
+                        ...)</para>
+                    </listitem>
+                </itemizedlist>
+
+                <para>TODO : aucun des exemples ci-dessus n'a été testé pour
+                de vrai... à faire</para>
+            </example>
+
+            <para>Remarques</para>
+
+            <itemizedlist>
+                <listitem>
+                    <para>Les <code>//</code> du match sont nécessaires pour
+                    sélectionner tous les descendants quel que soit le niveau
+                    de descendance. Sans les <code>//</code>, on ne
+                    sélectionne que les descendants directs de l'élément
+                    racine.</para>
+                </listitem>
+
+                <listitem>
+                    <para>lorsque l'expression xpath contenue dans l'attribut
+                    match d'un template est exécutée, le contexte courant de
+                    xpath est la racine de l'arbre xml du document.</para>
+                </listitem>
+
+                <listitem>
+                    <para>utiliser dans un attribut match une expression xpath
+                    qui sélectionne des <emphasis>attributs</emphasis> et non
+                    pas des <emphasis>éléments</emphasis> de l'arbre xml
+                    <emphasis role="strong">est</emphasis> une opération
+                    valide.</para>
+
+                    <para>TODO : expliquer que dans ce cas, lors de
+                    l'instanciation, on fait un traitement spécial. En fait,
+                    on a sélectionné un attribut. La valeur de cet attribut va
+                    être remplacé par le corps du template. Mais le corps du
+                    template peut contenir n'importe quoi, par exemple toute
+                    une hiérarchie de tags. Or, on ne peut pas mettre des tags
+                    dans la valeur d'un attribut (<code>&lt;a
+                    href="&lt;b&gt;...&lt;/b&gt;"</code>), c'est interdit en
+                    xml. Le traitement spécial effectué, c'est que dans ce cas
+                    on obtiendra uniquement la version "texte seulement" du
+                    corps du template, c'est-à-dire ce qu'on obtient si on
+                    enlève tous les tags.</para>
+                </listitem>
+            </itemizedlist>
+        </sect3>
+
+        <sect3 id="fab.templates.matchtemplates.parameters">
+            <title>Paramètres d'un template match</title>
+
+            <para>Le template peut spécifier des paramètres. Pour cela il
+            suffit d'ajouter des attributs au tag
+            <code>&lt;template&gt;</code> utilisé.</para>
+
+            <para>Remarque : le nom d'attribut <code>match</code> est réservé,
+            il n'est pas possible de l'utiliser comme nom de paramètre.</para>
+
+            <para>Dans le corps du template, les paramètres deviennent
+            automatiquement de nouvelles sources de données. Elles sont du
+            coup utilisables comme n'importe quelle autre variable :
+            <code>\$arg</code>, <code>\{\$arg\}</code>, etc.</para>
+
+            <para>Les autres sources de données utilisées dans le corps du
+            template sont instanciées telles quelles.</para>
+
+            <para>Exemple :</para>
+
+            <programlisting role="xml">&lt;template match="//copyright" year="2005"&gt;
+    Copyright \$year \$name
+&lt;/template&gt;</programlisting>
+
+            <para>Dans cet exemple, <code>year</code> est un paramètre du
+            template. Lors de l'instanciation, <code>\$year</code> sera donc
+            remplacée par la valeur de ce paramètre, que ce soit la valeur par
+            défaut indiquée dans le template ou la valeur spécifiée par
+            l'appellant.</para>
+
+            <para>Par-contre, <code>name</code> n'est pas un argument du
+            template, donc lors de l'instanciation, il sera transmis tel
+            quel.</para>
+
+            <para>On obtient donc la sortie suivante :</para>
+
+            <programlisting role="xml">Copyright 2005 \$name</programlisting>
+
+            <warning>
+                <title>Remarques</title>
+
+                <para>si un template a un attribut portant le même nom qu'une
+                source de données existante passée à
+                <code>Template::run()</code>, l'attribut du template match est
+                prioritaire. Dans ce cas, de la même façon que pour une
+                fonction dans un langage de programmation, le paramètre a une
+                portée locale.</para>
+            </warning>
+        </sect3>
+
+        <sect3 id="fab.templates.matchtemplates.select">
+            <title>La fonction select()</title>
+
+            <sect4 id="fab.templates.matchtemplates.select.introduction">
+                <title>Introduction</title>
+
+                <para>Il existe une pseudo-fonction nommée
+                <code>select()</code>, qui peut être utilisée dans le corps
+                d'un template, et qui prends en argument une expression
+                xpath.</para>
+
+                <para>Cette fonction permet de récupérer tout ou partie du
+                contenu du noeud instancié :</para>
+
+                <itemizedlist>
+                    <listitem>
+                        <para>le texte :
+                        <code>\{select('text()')\}</code></para>
+                    </listitem>
+
+                    <listitem>
+                        <para>les éléments :
+                        <code>\{select('*')\}</code></para>
+                    </listitem>
+
+                    <listitem>
+                        <para>la valeur d'un ou de tous les attributs par
+                        exemple <code>\{select('@nomAttribut')\}</code> ou
+                        <code>\{select('@*')\}</code></para>
+                    </listitem>
+
+                    <listitem>
+                        <para>une combinaison de plusieurs de ces différents
+                        types de contenu en les séparant au moyen de
+                        l'opérateur <code>|</code> (barre verticale)</para>
+                    </listitem>
+                </itemizedlist>
+
+                <para>Lorsque cette fonction est exécutée, le contexte courant
+                de xpath est le noeud en cours d'instanciation.</para>
+            </sect4>
+
+            <sect4 id="fab.templates.matchtemplates.intext">
+                <title>Utiliser select() dans du texte</title>
+
+                <example>
+                    <title>convertir les tags
+                    <code>&lt;b&gt;...&lt;/b&gt;</code> en tags
+                    <code>&lt;strong&gt;...&lt;/strong&gt;</code></title>
+
+                    <programlisting role="xml">&lt;template match="//b"&gt;
+    &lt;strong&gt;\{select('text()')\}&lt;/strong&gt;
+&lt;/template&gt;</programlisting>
+
+                    <para>Ici, on a utilisé la fonction <code>select()</code>
+                    pour récupérer le texte présent dans les tags
+                    <code><code>&lt;b&gt;</code></code> sélectionnés par le
+                    template (remarque : pour rester simple, l'exemple donné
+                    ne récupère que le texte présent dans le tag
+                    <code><code>&lt;b&gt;</code></code>, pas les éventuels
+                    éléments présents).</para>
+                </example>
+
+                <example>
+                    <title>transformer une liste
+                    <code>&lt;ul&gt;...&lt;/ul&gt;</code> en liste
+                    <code>&lt;ol&gt;...&lt;/ol&gt;</code></title>
+
+                    <programlisting role="xml">&lt;template match="//ul"&gt;
+    &lt;ol&gt;\{select('*')\}&lt;/ol&gt;
+&lt;/template&gt;</programlisting>
+
+                    <para>Remarque : ici, on ne récupère que les éléments (les
+                    tags) présents dans le tag <code>&lt;ul&gt;</code>, pas le
+                    texte évenuel. Cela dis, un tag <code>&lt;ul&gt;</code>
+                    n'est pas censé contenir du texte (contrairement à un tag
+                    <code>&lt;li&gt;</code>).</para>
+                </example>
+            </sect4>
+
+            <sect4 id="fab.templates.matchtemplates.select.inattribute">
+                <title>Utiliser select() dans un attribut</title>
+
+                <para>La fonction <code>select()</code> peut également être
+                utilisée dans les attributs des éléments qui figurent dans le
+                corps du template.</para>
+
+                <para>Exemple :</para>
+
+                <programlisting role="xml">&lt;template match="//a"&gt;
+    &lt;a href="\{select('@href')\}"&gt;\{select('*|text()')\}&lt;/a&gt;
+&lt;/template&gt;</programlisting>
+
+                <para>Dans cet exemple, on réécrit les liens en ne conservant
+                que l'attribut href, à l'exclusion de tous les autres.</para>
+
+                <para>Remarque : dans un tel cas, on obtiendra une erreur si
+                l'expression xpath sélectionne des éléments ou plusieurs
+                attributs.</para>
+
+                <para>En fait, on a le droit de sélectionner soit un attribut
+                unique (dans ce cas, c'est la valeur de l'attribut sélectionné
+                qui sera utilisée), soit un élément de type texte qui est
+                utilisé tel quel : <itemizedlist>
+                        <listitem>
+                            <para><code>class="\{select('@class')\}"</code> :
+                            correct</para>
+                        </listitem>
+
+                        <listitem>
+                            <para><code>class="\{select('@*')\}"</code> : erreur
+                            si le noeud instancié contenait plusieurs
+                            attributs</para>
+                        </listitem>
+
+                        <listitem>
+                            <para><code>class="\{select('*')\}</code> :
+                            illlégal, on essaie de mettre des éléments dans la
+                            valeur d'un attribut</para>
+                        </listitem>
+
+                        <listitem>
+                            <para><code>class="\{select('text()')\}</code> :
+                            légal (bien que probablement peu utile), puisqu'on
+                            ne sélectionne que du texte</para>
+                        </listitem>
+                    </itemizedlist></para>
+            </sect4>
+
+            <sect4 id="fab.templates.matchtemplates.select.allattributes">
+                <title>Récupérer tous les attributs de l'élément
+                instancié</title>
+
+                <para>Il est possible d'utiliser dans le texte d'un élément
+                une instruction <code>select()</code> qui va sélectionner un
+                ou plusieurs attributs (c'est-à-dire non pas des éléments ou
+                du texte, mais bien un ou plusieurs attributs présents dans
+                des éléments). Dans ce cas, les attributs sélectionnés vont
+                être ajoutés à l'élément parent du texte et non pas dans le
+                texte : ça n'aurait pas de sens.</para>
+
+                <para>Ici, on utilise <code>\{select('@*')\}</code> dans le
+                texte de l'élément <code>&lt;a&gt;</code> présent dans le
+                corps du template pour récupérer tous les attributs du noeud
+                instancié. Les attributs obtenus ne seront pas "collé" dans le
+                texte (<code>&lt;a href="xxx"...</code>) mais ajoutés au
+                parent du texte qui contient l'appel à select (donc le tag
+                <code>&lt;a&gt;</code>) :</para>
+
+                <programlisting role="xml">&lt;a href="xxx" style="yyy" onclick="zzz"&gt;...&lt;/a&gt;</programlisting>
+
+                <para>En fait l'insertion des attributs se fait de manière
+                "intelligente" : d'une part, seuls les attributs qui ne
+                figurent pas déjà dans le parent sont insérés, d'autre part,
+                les attributs du noeud instancié qui correspondent à des
+                paramètres passés au template sont ignorés.</para>
+
+                <example>
+                    <title>ajouter la classe "external" aux liens
+                    sortants</title>
+
+                    <programlisting role="xml">&lt;a href="http://www.bdsp.tm.fr" style="color: blue" onclick="alert('à bientôt')"&gt;
+    Bdsp
+&lt;/a&gt;
+
+&lt;template match="//a[starts-with(@href, 'http://')]"&gt;
+    &lt;a class="\{select('@class')\} external" style="color: red"&gt;
+        \{select('@*')\}         /* récupère les attributs du noeud */
+        \{select('*|text()')\}   /* récupére le contenu du noeud */
+    &lt;/a&gt;
+&lt;/template&gt;</programlisting>
+
+                    <para>Sortie générée :</para>
+
+                    <programlisting role="xml">&lt;a class="external" href="http://www.bdsp.tm.fr" style="color: red" onclick="alert('à bientôt')"&gt;
+    Bdsp
+&lt;/a&gt;</programlisting>
+
+                    <para>Voila comment sont traités les attributs lorsque le
+                    <code>\{select('@*')\}</code> est exécuté :</para>
+
+                    <itemizedlist>
+                        <listitem>
+                            <para><code>name</code> est un paramètre de
+                            template, il n'est pas repris</para>
+                        </listitem>
+
+                        <listitem>
+                            <para><code>href</code> est repris (n'existe pas
+                            déjà dans le tag <code>&lt;a&gt;</code> et n'est pas
+                            un paramètre)</para>
+                        </listitem>
+
+                        <listitem>
+                            <para><code>style</code> existe déjà dans le tag
+                            <code>&lt;a&gt;</code> (<code>color : "red"</code>),
+                            le style existant dans le noeud d'origine est
+                            ignoré</para>
+                        </listitem>
+
+                        <listitem>
+                            <para><code>href</code> est repris (il n'existe pas
+                            déjà dans le tag <code>&lt;a&gt;</code> et n'est pas
+                            un paramètre)</para>
+                        </listitem>
+                    </itemizedlist>
+                </example>
+
+                <note>
+                    <para>Dans le template précédent, la ligne <code>&lt;a
+                    class="\{select('@class')] external"...</code> génère,
+                    pour notre lien, <code>class="external"</code> (sans
+                    espace) : les espaces inutiles sont supprimés
+                    automatiquement.</para>
+                </note>
+            </sect4>
+        </sect3>
+
+        <sect3 id="fab.templates.matchtemplates.defaulttemplates">
+            <title>autoinclude</title>
+
+            <para>Il est possible d'ajouter dans la config une clé autoinclude
+            qui contient une liste de fichiers dont le code source sera ajouté
+            à tous les templates.</para>
+
+            <para>Ce mécanisme permet d'ajouter automatiquement des templates
+            match à tous les templates.</para>
+
+            <para>Actuellement, Fab dispose de quelques templates matchs qui
+            sont systématiquement inclus.</para>
+
+            <para>todo : faire liste et détailler.</para>
+        </sect3>
+    </sect2>
+
+    <sect2 id="fab.templates.compilation">
+        <title>Annexe : compilation des templates</title>
+
+        <para>La compilation d'un template se déroule de la manière suivante
+        :</para>
+
+        <programlisting role="xml">1. Constitution du source xml
+=============================
+
+- suppression des commentaires de la forme /* ... */
+
+- ajout éventuel d'une déclaration &lt;?xml ... ?&gt; au début du fichier 
+
+- ajout d'une racine unique au document xml (tout le source est englobé dans
+  des tags &lt;root strip="{true}"&gt; ... &lt;/root&gt;)
+
+- insertion des fichiers "auto-includes" indiqués dans la configuration à la
+  fin du source xml (juste avant la balise de fin &lt;/root&gt;)
+
+
+2. Chargement du source xml dans le DOM de php
+==============================================
+
+- erreurs éventuelles "fichier xml non valide"
+
+
+3. Exécution des templates match
+================================
+
+- le code de chacun des templates match vient remplacer le code de chacun des
+  noeuds sélectionnés par le template
+
+- exécution des balises \{select('xxx')\} présentes dans les attributs
+
+- exécution des balises \{select('xxx')\} présentes dans les noeuds de type texte
+
+- normalisation du document et suppression des text nodes vides (générés par 
+  l'exécution des select)
+
+4. Génération du code de chacun des noeuds
+==========================================
+
+- Parcours descendant-gauche-droite de l'arbre xml et génération du code de
+  chaque noeud
+  
+- Remplacement des variables \$xxx par un &lt;?php echo binding(xxx) ?&gt;
+
+- Remplacement des blocs de type \{ xxx \} par un &lt;?php echo binding(xxx) ?&gt;
+
+5. Finalisation du code compilé
+===============================
+
+- Insertion en début de fichier des bindings établis à l'étape 5 
+
+- work-around pour le problème de php qui mange les \r qui suivent les balises 
+  de fin de bloc php
+
+6. Mise en cache du source compilé
+==================================</programlisting>
+    </sect2>
+</sect1>

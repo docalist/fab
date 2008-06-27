@@ -2,19 +2,19 @@
 <!DOCTYPE sect1 PUBLIC "-//OASIS//DTD DocBook XML V4.5//EN"
 "http://www.oasis-open.org/docbook/xml/4.5/docbookx.dtd">
 <?xml-stylesheet href="../web/css/docbook/dm.css" type="text/css"?>
-<sect1 id="routing">
+<sect1 id="fab.routing">
     <sect1info>
         <releaseinfo>$Id: routing.xml 587 2008-01-09 10:43:11Z
         daniel.menard.bdsp $</releaseinfo>
     </sect1info>
 
-    <title>Routing : personnalisation des urls</title>
+    <title>Routing *</title>
 
     <toc></toc>
 
-    <sect2 id="routing.introduction">
+    <sect2 id="fab.routing.introduction">
         <title>Introduction</title>
-<![CDATA[test $x $y {aaa} \$x test]]>
+
         <para>Dans un site web traditionnel, l'adresse des pages du site
         correspond en général à des fichiers qui existent sur le serveur
         :</para>
@@ -36,7 +36,7 @@ http://www.example.com/search.php</screen>
         <screen>http://www.example.com/search.php?query=health&amp;hitsperpage=10&amp;start=1</screen>
     </sect2>
 
-    <sect2 id="routing.faburls">
+    <sect2 id="fab.routing.faburls">
         <title>Les urls dans fab</title>
 
         <para>Dans fab, les urls utilisées ne désignent pas un fichier
@@ -132,7 +132,7 @@ http://www.example.com/search.php</screen>
         </example>
     </sect2>
 
-    <sect2 id="routing.admin.module">
+    <sect2 id="fab.routing.admin.module">
         <title>Module de configuration des routes de l'application</title>
 
         <para>Pour le moment, fab ne dispose pas de module d'administration
@@ -141,7 +141,7 @@ http://www.example.com/search.php</screen>
         fichiers de configuration.</para>
     </sect2>
 
-    <sect2 id="routing.config.format">
+    <sect2 id="fab.routing.config.format">
         <title>Fichier de configuration des routes</title>
 
         <caution>
@@ -229,7 +229,7 @@ http://www.example.com/search.php</screen>
         </itemizedlist>
     </sect2>
 
-    <sect2 id="routing.route.format">
+    <sect2 id="fab.routing.route.format">
         <title>Format des routes</title>
 
         <para>Chaque route peut avoir les propriétés suivants :</para>
@@ -293,7 +293,7 @@ http://www.example.com/search.php</screen>
             </tgroup>
         </table>
 
-        <sect3 id="routing.route.format.url">
+        <sect3 id="fab.routing.route.format.url">
             <title>Propriété <code>url</code></title>
 
             <para>Il s'agit d'une url qui identifie la route.</para>
@@ -379,7 +379,7 @@ http://www.example.com/search.php</screen>
             (cf ci-dessous).</para>
         </sect3>
 
-        <sect3 id="routing.route.format.module">
+        <sect3 id="fab.routing.route.format.module">
             <title>Propriété <code>module</code></title>
 
             <para>Il s'agit du nom du module à charger pour cette route. Il
@@ -410,7 +410,7 @@ http://www.example.com/search.php</screen>
             </tip>
         </sect3>
 
-        <sect3 id="routing.route.format.action">
+        <sect3 id="fab.routing.route.format.action">
             <title>Propriété <code>action</code></title>
 
             <para>Le nom de l'action à exécuter. En général, il s'agit d'une
@@ -433,7 +433,7 @@ http://www.example.com/search.php</screen>
             renseignée.</para>
         </sect3>
 
-        <sect3 id="routing.route.format.with">
+        <sect3 id="fab.routing.route.format.with">
             <title>Propriété <code>with</code></title>
 
             <para>La propriété <code>with</code> permet de définir le format
@@ -522,7 +522,7 @@ http://www.example.com/search.php</screen>
             </warning>
         </sect3>
 
-        <sect3 id="routing.route.format.add">
+        <sect3 id="fab.routing.route.format.add">
             <title>Propriété <code>add</code></title>
 
             <para>La propriété <code>add</code> d'une route permet de définir
@@ -595,7 +595,7 @@ http://www.example.com/search.php</screen>
         </sect3>
     </sect2>
 
-    <sect2 id="routing.routes.order">
+    <sect2 id="fab.routing.routes.order">
         <title>Ordre des routes</title>
 
         <para>todo: expliquer dans quels cas l'ordre des routes peut être
@@ -604,7 +604,7 @@ http://www.example.com/search.php</screen>
         <para>voir la section : "exemples d'utilisation avancée".</para>
     </sect2>
 
-    <sect2 id="routing.defaultroutes">
+    <sect2 id="fab.routing.defaultroutes">
         <title>Routes par défaut de fab</title>
 
         <para>Par défaut, fab inclue les routes suivantes :</para>
@@ -634,7 +634,7 @@ http://www.example.com/search.php</screen>
 &lt;/config&gt;</programlisting></para>
     </sect2>
 
-    <sect2 id="routing.examples">
+    <sect2 id="fab.routing.examples">
         <title>Exemples d'utilisation avancée</title>
 
         <para>Les routes suivantes proviennent d'un blog imaginaire :</para>
@@ -773,7 +773,7 @@ http://www.example.com/search.php</screen>
 &lt;/config&gt;</programlisting>
     </sect2>
 
-    <sect2 id="routing.remarks">
+    <sect2 id="fab.routing.remarks">
         <title>bonnes pratiques</title>
 
         <para>todo</para>
@@ -789,7 +789,7 @@ http://www.example.com/search.php</screen>
         liens (extérieurs) existant en changeant les routes.</para>
     </sect2>
 
-    <sect2 id="routing.linkfor">
+    <sect2 id="fab.routing.linkfor">
         <title>linkFor() : créer des liens à partir des routes</title>
 
         <para>todo</para>

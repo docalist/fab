@@ -1,0 +1,391 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE sect1 PUBLIC "-//OASIS//DTD DocBook XML V4.5//EN"
+"http://www.oasis-open.org/docbook/xml/4.5/docbookx.dtd">
+<?xml-stylesheet href="../web/css/docbook/dm.css" type="text/css"?>
+<sect1 id="fab.documentation">
+    <sect1info>
+        <releaseinfo>$Id: format.documentation.xml 683 2008-04-17 16:12:49Z
+        daniel.menard.bdsp $</releaseinfo>
+    </sect1info>
+
+    <title>Documentation *</title>
+
+    <toc></toc>
+
+    <sect2 id="fab.documentatio.introduction">
+        <title>Introduction</title>
+
+        <para>Fab dispose d'un <ulink url="?class=AutoDoc">système de
+        documentation intégrée</ulink> qui permet d'afficher en temps réel la
+        documentation <ulink url="http://www.phpdoc.org/">phpdoc</ulink>
+        présente dans le code source PHP de fab et de l'application complétée
+        de tutoriels et de didacticiels au format <ulink
+        url="http://www.docbook.org">docbook</ulink>.</para>
+
+        <tip>
+            <para>En fait, vous utilisez actuellement le module AutoDoc
+            :</para>
+
+            <para>la documentation que vous êtes en train lire est générée par
+            ce module.</para>
+        </tip>
+    </sect2>
+
+    <sect2 id="fab.documentation.api">
+        <title>Documentation de l'API</title>
+
+        <para>Toutes les classes, méthodes, propriétés (...) de fab sont
+        documentées directement dans le code source PHP en utilisant la
+        syntaxe <ulink url="http://www.phpdoc.org/">phpdoc</ulink>.</para>
+
+        <para>Le module <ulink url="?class=AutoDoc">AutoDoc</ulink> permet
+        d'afficher dynamiquement cette documentation (exemple : <ulink
+        url="?class=DatabaseModule">API de la classe
+        DatabaseModule</ulink>).</para>
+
+        <para>Nous vous conseillons de documenter le code de votre application
+        de la manière : cela vous permettra d'utiliser AutoDoc pour afficher
+        la documentation complète de votre application.</para>
+
+        <para>Consultez le site <ulink url="http://www.phpdoc.org"></ulink>
+        pour plus d'informations sur le format phpdoc.</para>
+    </sect2>
+
+    <sect2 id="fab.documentation.docbook">
+        <title>Tutoriels et didacticiels</title>
+
+        <para>AutoDoc permet également de compléter la documentation de l'API
+        via des tutoriels et des didacticiels écrits au format <ulink
+        url="http://www.docbook.org/">DocBook</ulink>.</para>
+
+        <para>Ce format est un schéma XML qui existe depuis 1991 et qui permet
+        de rédiger toutes sortes de documentation.</para>
+
+        <para>C'est un format très large, qui comporte beaucoup d'éléments,
+        mais dans la documentation de fab, nous n'employons que quelques uns
+        des éléments.</para>
+
+        <para>L'intérêt de ce format, c'est que une fois écrite en DocBook, la
+        documentation peut être traduite vers tout un tas de formats
+        différents (html, pdf, latex, chm, etc.) en utilisant <ulink
+        url="http://docbook.sourceforge.net/">les outils
+        existants</ulink>.</para>
+
+        <sect3 id="fab.documentation.docbook.directory">
+            <title>Emplacement des fichiers docbook</title>
+
+            <para>Tous les fichiers docbook sont stockés dans le répertoire
+            <code>/doc</code>.</para>
+
+            <para>Les fichiers docbook doivent être nommé de façon à éviter
+            tout conflit de nom.</para>
+        </sect3>
+
+        <sect3 id="fab.documentation.docbook.quickstart">
+            <title>Mise en route rapide</title>
+
+            <example>
+                <title>Un fichier de doc minimal</title>
+
+                <programlisting role="xml">&lt;?xml version="1.0" encoding="utf-8"?&gt;
+&lt;!DOCTYPE sect1 PUBLIC "-//OASIS//DTD DocBook XML V4.5//EN"
+    "http://www.oasis-open.org/docbook/xml/4.5/docbookx.dtd"&gt;
+&lt;?xml-stylesheet href="../web/styles/docbook/dm.css" type="text/css"?&gt;
+&lt;sect1 id="monmodule.introduction"&gt;
+
+    &lt;sect1info&gt;&lt;releaseinfo&gt;\$Id: format.documentation.xml 683 2008-04-17 16:12:49Z daniel.menard.bdsp \$&lt;/releaseinfo&gt;&lt;/sect1info&gt;
+    
+    &lt;title&gt;MonModule : introduction&lt;/title&gt;
+
+    &lt;toc /&gt;
+    
+    &lt;para&gt;Description de ce que fait le module...&lt;/para&gt;
+
+    &lt;sect2&gt;
+        &lt;title&gt;Configuration&lt;/title&gt;
+        &lt;para&gt;...&lt;/para&gt;
+    &lt;/sect2&gt;
+
+    &lt;sect2&gt;
+        &lt;title&gt;Utilisation avancée&lt;/title&gt;
+        &lt;para&gt;...&lt;/para&gt;
+    &lt;/sect2&gt;
+
+&lt;/sect1&gt;</programlisting>
+
+                <itemizedlist>
+                    <listitem>
+                        <para>Déclaration xml obligatoire en première ligne.
+                        Le fichier doit être encodé en
+                        <code>UTF-8</code>.</para>
+                    </listitem>
+
+                    <listitem>
+                        <para>Le doctype DocBook doit être indiqué.</para>
+                    </listitem>
+
+                    <listitem>
+                        <para>Il est conseillé de référencer la feuille de
+                        style <ulink
+                        url="../web/styles/docbook/dm.css">dm.css</ulink>.
+                        C'est une feuille de style qui permet d'afficher
+                        directement le fichier xml dans un navigateur comme
+                        firefox ou opera (fonctionne mal avec IE6 ou
+                        7).</para>
+                    </listitem>
+
+                    <listitem>
+                        <para>On a ensuite une section unique
+                        <code>sect1</code> qui contient une section
+                        <code>sect1info</code> avec la chaine d'identification
+                        de version du document injectée par subversion, un
+                        titre (balise <code>title</code>) et tout le reste du
+                        document.</para>
+                    </listitem>
+
+                    <listitem>
+                        <para>La balise toc permet de générer automatiquement
+                        la table des matières.</para>
+                    </listitem>
+
+                    <listitem>
+                        <para>On a ensuite autant de <code>sect2</code> que
+                        nécessaire, contenant chacune un chapitre.</para>
+                    </listitem>
+                </itemizedlist>
+            </example>
+        </sect3>
+
+        <sect3 id="fab.documentation.docbook.tags">
+            <title>Tags docbook utilisés</title>
+
+            <itemizedlist>
+                <listitem>
+                    <para><command>sect1, sect2, sect3, sect4</command> : les
+                    grandes sections du document. Chaque section doit
+                    commencer par un <code>title</code>.</para>
+                </listitem>
+
+                <listitem>
+                    <para><command>para</command> : un paragraphe</para>
+                </listitem>
+
+                <listitem>
+                    <para><command>link, ulink</command> : un lien (cf doc de
+                    docbook pour clarifier)</para>
+                </listitem>
+
+                <listitem>
+                    <para><command>note, tip, warning, important,
+                    example</command> : ce sont des sections qui permettent de
+                    faire un encart. Chaque section peut contenir un titre
+                    suivi de n'importe quel contenu (des paragraphes, un
+                    exemple de code, etc.).</para>
+
+                    <para>Voici quelques exemples :</para>
+
+                    <note>
+                        <title>Une note</title>
+
+                        <para>une note, une précision, une remarque,
+                        etc...</para>
+                    </note>
+
+                    <tip>
+                        <title>Une "tip"</title>
+
+                        <para>une astuce, un conseil, une recommendation, une
+                        suggestion, etc...</para>
+                    </tip>
+
+                    <warning>
+                        <title>Un "warning"</title>
+
+                        <para>Un avertissement, une chose à laquelle
+                        l'utilisateur doit faire attention.</para>
+                    </warning>
+
+                    <caution>
+                        <title>Une mise en garde ("caution")</title>
+
+                        <para>En général il s'agit d'indiquer un état
+                        d'erreur.</para>
+                    </caution>
+
+                    <important>
+                        <title>Un message "important"</title>
+
+                        <para>Un truc important...</para>
+                    </important>
+
+                    <example>
+                        <title>Un "example"</title>
+
+                        <para>Un exemple de code ou d'utilisation. En général,
+                        contiendra un <code>programlisting</code></para>
+                    </example>
+                </listitem>
+
+                <listitem>
+                    <para><command>programlisting</command> : un bout de code.
+                    Préciser le langage utilisé (php, xml...) dans l'attribut
+                    <code>role</code>.</para>
+                </listitem>
+
+                <listitem>
+                    <para><command>screen</command> : une variante de
+                    programlisting, plutôt pour afficher le résultat
+                    obtenu.</para>
+                </listitem>
+
+                <listitem>
+                    <para><command>itemizedlist, orderedlist,
+                    listitem</command> : des listes, numérotées ou non.</para>
+                </listitem>
+
+                <listitem>
+                    <para><command>emphasis, emphasis role="strong"</command>
+                    : pour "faire du gras et de l'italique"</para>
+                </listitem>
+
+                <listitem>
+                    <para><command>code, command, filename, tag</command> :
+                    pour afficher du "code" en ligne</para>
+                </listitem>
+
+                <listitem>
+                    <para><command>table, tgroup, row, col, colgroup, tbody,
+                    thead, tfoot, entry</command> : pour faire des tables.
+                    Exemple :</para>
+
+                    <table>
+                        <title>Exemple</title>
+
+                        <tgroup cols="2">
+                            <thead>
+                                <row>
+                                    <entry>Utilisateur</entry>
+
+                                    <entry>Accès</entry>
+                                </row>
+                            </thead>
+
+                            <tbody>
+                                <row>
+                                    <entry>Invité</entry>
+
+                                    <entry>Non</entry>
+                                </row>
+
+                                <row>
+                                    <entry>Admin</entry>
+
+                                    <entry>Oui</entry>
+                                </row>
+                            </tbody>
+                        </tgroup>
+                    </table>
+                </listitem>
+            </itemizedlist>
+
+            <tip>
+                <para>Le zend framework utilise également DocBook pour sa
+                documentation. Il peut être utile de consulter leurs consignes
+                : <ulink
+                url="http://framework.zend.com/wiki/display/ZFDEV/Zend+Framework+Guide+to+DocBook"></ulink></para>
+            </tip>
+        </sect3>
+
+        <sect3 id="fab.documentation.docbook.validation">
+            <title>Validité du document</title>
+
+            <itemizedlist>
+                <listitem>
+                    <para>Le document xml doit être validé : cela doit être du
+                    xml valide mais aussi du docbook valide.</para>
+                </listitem>
+
+                <listitem>
+                    <para>La commande <command>xmllint --valid --noout
+                    file.xml</command> permet de valider la conformité du
+                    document. Pour installer xmllint sous windows (et de
+                    manière générale toute la chaine d'outils libxml) : <ulink
+                    url="http://www.zlatkovic.com/libxml.en.html"></ulink>.</para>
+                </listitem>
+
+                <listitem>
+                    <para><ulink url="http://www.validome.org/xml/"></ulink>
+                    permet de vérifier la validité du document sans rien
+                    installer.</para>
+                </listitem>
+            </itemizedlist>
+        </sect3>
+
+        <sect3 id="fab.documentation.docbook.subversion">
+            <title>Annexe : paramétrage subversion</title>
+
+            <para>Pour que la documentation docbook puisse être consultée
+            directement à partir d'un dépôt svn, deux propriétés subversion
+            doivent être appliquées à chaque fichier xml composant la doc
+            :</para>
+
+            <itemizedlist>
+                <listitem>
+                    <para><command>propset svn:mime-type "text/xml"</command>
+                    pour que le serveur subversion retourne le fichier comme
+                    du xml et non pas comme du texte simple (faute de quoi on
+                    obtient le source xml et non pas la documentation mise en
+                    page)</para>
+                </listitem>
+
+                <listitem>
+                    <para><command>propset svn:keywords "HeadURL Id
+                    LastChangedBy LastChangedDate
+                    LastChangedRevision"</command> pour que le numéro de
+                    révision du fichier soit créé/mis à jour par subversion
+                    (tag releaseinfo au début des sect1)</para>
+                </listitem>
+            </itemizedlist>
+
+            <para>Il est possible de paramétrer subversion pour que ces
+            propriétés soient appliquées automatiquement aux nouveaux fichiers
+            créés :</para>
+
+            <itemizedlist>
+                <listitem>
+                    <para>Pour subclipse, modifier le chemin d'accès au
+                    fichier de configuration de subclipse : aller dans le menu
+                    <code>window/preferences/Team/SVN/Configuration
+                    location</code> et changer la valeur par défaut (<code>Use
+                    default config location</code>) pour pointer vers le
+                    fichier de configuration de TortoiseSVN
+                    (<code>c:\documents and settings\~user\Application
+                    Data\Subversion\</code>).</para>
+                </listitem>
+
+                <listitem>
+                    <para>Dans ce répertoire, éditer le fichier
+                    <filename>config</filename> en mettant la propriété
+                    <code>enable-auto-props</code> à <code>yes</code> et en
+                    modifiant le contenu de la section
+                    <code>[auto-props]</code> comme suit : <screen>*.css = svn:mime-type=text/css;svn:keywords=HeadURL Id LastChangedBy LastChangedDate LastChangedRevision
+*.xml = svn:mime-type=text/xml;svn:keywords=HeadURL Id LastChangedBy LastChangedDate LastChangedRevision
+*.php = svn:keywords=HeadURL Id LastChangedBy LastChangedDate LastChangedRevision
+*.png = svn:mime-type=image/png
+*.jpg = svn:mime-type=image/jpeg</screen></para>
+                </listitem>
+            </itemizedlist>
+        </sect3>
+    </sect2>
+
+    <sect2 id="fab.documentatio.api">
+        <title>Sommaire de la documentation</title>
+
+        <para>La liste des classes et des fichiers docbook que <ulink
+        url="?class=AutoDoc">AutoDoc</ulink> affiche figure dans le fichier de
+        configuration <ulink
+        url="/AdminConfig/View?file=AutoDoc.config">AutoDoc.config</ulink>
+        (clé <code>&lt;api&gt;</code> pour l'application, clé
+        <code>&lt;fabapi&gt;</code> pour fab).</para>
+    </sect2>
+</sect1>

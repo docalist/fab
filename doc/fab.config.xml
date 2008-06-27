@@ -7,7 +7,7 @@
         <releaseinfo>$Id$</releaseinfo>
     </sect1info>
 
-    <title>Fichiers de configuration</title>
+    <title>Configuration *</title>
 
     <toc></toc>
 
@@ -526,7 +526,7 @@
         fichiers de configuration portant l'extension
         <code>.&lt;env&gt;.config</code> (dans l'exemple ci-dessus, il va
         essayer de charger les fichiers <code>general.debug.config</code>,
-        <code>db.debug.config</code>, <code>routes.debug.config</code>,
+        <code>db.debug.config</code>, <code>routing.debug.config</code>,
         <code>DatabaseModule.debug.config</code>, etc.</para>
 
         <para>Les fichiers de configuration spécifiques à un environnement

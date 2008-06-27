@@ -1,0 +1,253 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE sect1 PUBLIC "-//OASIS//DTD DocBook XML V4.5//EN"
+"http://www.oasis-open.org/docbook/xml/4.5/docbookx.dtd">
+<?xml-stylesheet href="../web/css/docbook/dm.css" type="text/css"?>
+<sect1 id="fab.module">
+    <sect1info>
+        <releaseinfo>$Id$</releaseinfo>
+    </sect1info>
+
+    <title>Modules *</title>
+
+    <toc></toc>
+
+    <sect2 id="fab.module.?">
+        <title>Qu'est-ce qu'un module ?</title>
+
+        <para>Les modules constituent les briques fonctionnelles d'une <ulink
+        url="?fab.application">application fab</ulink>. Chaque module fait
+        l'objet d'un répertoire particulier dans le répertoire
+        <code>/modules</code> de l'application et, éventuellement, d'un
+        répertoire au sein du répertoire <code>/web/modules</code> de la
+        partie visible du site et dispose de son propre fichier de
+        configuration stocké dans le répertoire <code>/config</code> de
+        l'application.</para>
+
+        <para>Chaque module a un nom unique (lorsqu'on crée un nouveau module,
+        le nom choisit ne doit être ni un répertoire existant, ni le nom d'une
+        classe existante de fab ou de l'application) qui s'écrit en syntaxe
+        <ulink url="http://fr.wikipedia.org/wiki/CamelCase">CamelCase</ulink>.
+        Ce nom sera utilisé pour nommer le répertoire du module, son fichier
+        de configuration, la classe PHP contenant le code du module, et sera
+        également affiché, par défaut, dans les urls que verront les
+        utilisateurs.</para>
+
+        <para>Un module hérite obligatoirement d'un autre module qui existe
+        déjà dans fab ou dans l'application. Un module peut contenir du code
+        PHP (on parle alors de "vrai module") ou être une simple réutilisation
+        sous un nouveau nom d'un module existant auquel on va attribuer une
+        configuration particulière (on parle alors de "pseudo module").</para>
+
+        <para>Le but d'un module est de fournir des <ulink
+        url="?fab.actions">actions</ulink> à l'utilisateur. Ces actions
+        correspondent en général à une méthode particulière au sein de la
+        classe PHP du module. L'ensemble des méthodes et des actions d'un
+        module constitue l'API de ce module.</para>
+
+        <para>Un module dispose d'une partie publique et d'une partie
+        privée</para>
+
+        <para>todo.</para>
+
+        <para>de la config + du code + des templates + des tables</para>
+
+        <para>héritage</para>
+
+        <para>partie publique / partie privée</para>
+
+        <para>correspond à un répertoire dans /modules</para>
+    </sect2>
+
+    <sect2 id="fab.module.?">
+        <title>Création d'un module</title>
+
+        <para>Pour créer un nouveau module, il faut d'abord décider du nom
+        qu'on va lui attribuer (dans les exemples qui suivent, on considère
+        qu'on a décidé de nommer notre nouveau module
+        "<code>NouveauModule</code>").</para>
+
+        <para>L'ancêtre sera choisi parmi les modules disponibles dans fab et
+        dans l'application en privilégiant celui qui a les caractéristiques
+        les plus proches de ce qu'on veut faire (principe DRY). Dans ce qui
+        suit, on considère qu'on a choisit comme ancêtre un module fictif
+        nommé <code>AncestorModule</code>.</para>
+
+        <para>Une fois ces choix faits, la création complète d'un module
+        comporte en général les étapes suivantes :</para>
+
+        <itemizedlist>
+            <listitem>
+                <para>Créer un nouveau répertoire
+                (<code>NouveauModule/</code>)au sein du répertoire
+                <code>/modules</code> de l'application.</para>
+            </listitem>
+
+            <listitem>
+                <para>Créer un nouveau fichier php
+                (<code>NouveauModule.php</code>) avec une classe unique
+                (<code>NouveauModule</code>) qui hérite du module ancêtre
+                choisit (<code>AncestorModule</code>) :</para>
+
+                <programlisting role="php">&lt;?php
+/**
+ * NouveauModule
+ *
+ * Exemple de module pour la documentation de fab.
+ * 
+ * @package     Application
+ * @subpackage  Modules
+ */
+class NouveauModule extends AncestorModule \{ \}
+?&gt;</programlisting>
+            </listitem>
+
+            <listitem>
+                <para>A ce stade, votre nouveau module existe et il fonctionne
+                déjà. Il dispose de toutes les actions du module ancêtre dont
+                il a hérité et vous pouvez les appeller en utilisant des urls
+                de la forme :</para>
+
+                <screen>http://www.exemple.org/votresite/NouveauModule/action</screen>
+
+                <para>Il dispose également de sa propre documentation que vous
+                pouvez consulter en utilisant une url de la forme :</para>
+
+                <screen>http://www.exemple.org/votresite/AutoDoc?class=NouveauModule</screen>
+
+                <para>Par contre, il n'est pas très original : il a hérité tel
+                quel de la configuration de son module ancêtre, de son code et
+                de ses templates et il en constitue donc un clone
+                parfait.</para>
+            </listitem>
+
+            <listitem>
+                <para>Créer le fichier de configuration
+                (<code>NouveauModule.config</code>) de notre module dans le
+                répertoire <code>/config</code> de l'application (cette étape
+                est optionnelle si votre nouveau module n'a pas besoin d'une
+                configuration spécifique).</para>
+            </listitem>
+
+            <listitem>
+                <para>Ajouter des actions au module (cf. <ulink
+                url="?fab.actions">documentation sur les
+                actions</ulink>).</para>
+
+                <para>Cette étape est également optionnelle : il n'est pas
+                rare qu'un module complètement fonctionnel juste en changeant
+                la configuration (exemple : <ulink
+                url="?class=DatabaseModule">DatabaseModule</ulink>).</para>
+            </listitem>
+
+            <listitem>
+                <para>Créer des templates.</para>
+
+                <para>Si vous créez de nouvelles actions pour votre module,
+                vous aurez à créer de nouveaux templates. Placez simplement
+                ceux-ci dans le répertoire de votre module.</para>
+
+                <para>Pour les actions héritées du module ancêtre, vous pouvez
+                soit les utiliser tels quels soit les redéfinir en utilisant
+                l'une des deux approches suivantes :</para>
+
+                <itemizedlist>
+                    <listitem>
+                        <para>en créant dans le répertoire de votre module un
+                        template portant le même nom que le template existant
+                        (consultez la documentation et la configuration du
+                        module ancêtre pour connaître ce nom) ;</para>
+                    </listitem>
+
+                    <listitem>
+                        <para>en créant dans le répertoire de votre module un
+                        nouveau template et en changeant dans la configuration
+                        le nom du template à utiliser.</para>
+                    </listitem>
+                </itemizedlist>
+            </listitem>
+
+            <listitem>
+                <para>Certains modules peuvent avoir besoin d'utiliser des
+                images, des scripts ou des feuilles de styles particuliers.
+                Placez simplement ceux-ci dans la partie publique de votre
+                module (<code>/web/modules/NouveauModule</code>).</para>
+            </listitem>
+        </itemizedlist>
+
+        <para>Le figure ci-dessous schématise la structure obtenue :</para>
+
+        <screen>/                           &lt;- Racine de l'application
+|
++ config/
+| |
+| + NouveauModule.config    &lt;- fichier de configuration du module
+|
++ modules/
+| |
+| + NouveauModule/          &lt;- répertoire du module
+|   |
+|   + NouveauModule.php     &lt;- classe PHP contenant le code du module
+|     |
+|     + template1.html      &lt;- template utilisé par le module
+|     |
+|     + template2.html      &lt;- template utilisé par le module
++ web
+  |
+  + modules
+    |
+    + NouveauNom            &lt;- partie publique du module
+      |
+      + css                 &lt;- feuilles de style spécifiques utilisées par le module
+      | |
+      | + NouveauNom.css
+      | |
+      | + print.css
+      |
+      + images              &lt;- images utilisées par le module
+      | |
+      | + logo.png
+      | |
+      | + toolbar.gif
+      |
+      + js                  &lt;- fichiers javascript spécifiques utilisés par le module
+        |
+        + NouveauNom.js
+        |
+        + debug.js</screen>
+
+        <para>La création d'un nouveau module commence On crée un nouveau
+        module en créant un nouveau répertoire </para>
+    </sect2>
+
+    <sect2 id="fab.module.?">
+        <title>Pseudo-modules</title>
+
+        <para>todo.</para>
+
+        <warning>
+            <para>Les pseudo-modules posent un certain nombre de problèmes au
+            sein de l'architecture de fab pour un gain (ne pas avoir à créer
+            la classe PHP correspondante) qui reste limité.</para>
+
+            <para>Il se peut que la notion de pseudo-module soient purement et
+            simplement supprimée dans les versions futures de fab.</para>
+
+            <para>Pour les nouveaux modules que vous créez, nous vous
+            conseillons de toujours créer un vrai module.</para>
+        </warning>
+
+        <para></para>
+    </sect2>
+
+    <sect2 id="fab.module.?">
+        <title>SearchPath d'un module</title>
+
+        <para>todo.</para>
+    </sect2>
+
+    <sect2 id="fab.module.?">
+        <title>Accès aux composants publics de fab</title>
+
+        <para>todo. parler du module FabWeb.</para>
+    </sect2>
+</sect1>

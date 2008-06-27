@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE sect1 PUBLIC "-//OASIS//DTD DocBook XML V4.5//EN"
+"http://www.oasis-open.org/docbook/xml/4.5/docbookx.dtd">
+<?xml-stylesheet href="../web/css/docbook/dm.css" type="text/css"?>
+<sect1 id="fab.actions">
+    <sect1info>
+        <releaseinfo>$Id$</releaseinfo>
+    </sect1info>
+
+    <title>Droits d'accès *</title>
+
+    <toc></toc>
+
+    <sect2 id="fab.security.?">
+        <title>Introduction</title>
+
+        <para>Un droit est composé de deux parties :</para>
+
+        <itemizedlist>
+            <listitem>
+                <para>une partie rôle telle que <code>Admin</code>,
+                <code>Edit</code>, etc.</para>
+            </listitem>
+
+            <listitem>
+                <para>une partie 'objet' à laquelle s'applique le rôle
+                (<code>Bdsp</code>, <code>Webs</code>...)</para>
+            </listitem>
+        </itemizedlist>
+
+        <para>Chacune des deux parties doit commencer par une majuscule et ne
+        doit contenir ensuite que des minuscules. Les lettres accentuées et
+        autres signes sont interdits.</para>
+
+        <para>Le nom du droit est obtenu en concaténant les deux parties
+        :</para>
+
+        <itemizedlist>
+            <listitem>
+                <para>AdminBdsp : administrateur de l'objet bdsp</para>
+            </listitem>
+
+            <listitem>
+                <para>EditWebs : Editeur de l'objet webs</para>
+            </listitem>
+        </itemizedlist>
+
+        <para>Chacune des deux parties est optionnelle : l'absence de rôle
+        signifie "tous les rôles", l'absence d'objet signifie "tous les
+        objets". Ainsi, <code>Admin</code> tout seul signifie 'administrateur
+        de tout' et <code>Bdsp</code> tout seul signifie "n'importe quel droit
+        sur l'objet bdsp".</para>
+
+        <para>L'ensemble des noms de rôles et l'ensemble des noms d'objets
+        doivent être disjoints (on ne peut pas avoir le même mot pour désigner
+        un rôle et un objet). Par exemple il est interdit d'avoir à la fois un
+        rôle appellé <code>auteur</code> (quelqu'un qui aurait le droit
+        d'écrire quelque chose) et un objet <code>auteur</code> (par exemple
+        une base de données référençant tous les auteurs) car cela conduirait
+        à la possibilité d'avoir un droit nommé
+        <code>AuteurAuteur</code>.</para>
+
+        <para>Lorsqu'on requiert un droit (fonctions
+        <code>User::hasAccess()</code>, <code>User::checkAccess()</code>...)
+        les droits requis peuvent être indiqués de différentes façon :</para>
+
+        <itemizedlist>
+            <listitem>
+                <para>il peut s'agir d'un droit simple :
+                <code>User::hasAccess('admin')</code></para>
+            </listitem>
+
+            <listitem>
+                <para>il peut s'agit de plusieurs droits possibles, séparés
+                par une virgule : <code>hasAccess('admin, producteur')</code>.
+                Dans ce cas, l'utilisateur obtiendra l'accès s'il dispose de
+                l'un des droits indiqués</para>
+            </listitem>
+
+            <listitem>
+                <para>il peut s'agir d'une combinaison de droits, séparés par
+                un signe plus :
+                <code>hasAccess('producteur+gestionnaire')</code></para>
+            </listitem>
+        </itemizedlist>
+
+        <para>Il existe un pseudo-droit nommé <code>default</code> dont
+        dispose automatiquement tous les utilisateurs (i.e.
+        <code>User::hasAccess('default')</code> retourne toujours
+        <code>true</code>). <code>Default</code> est notamment utilisé dans
+        les fichiers de config.</para>
+    </sect2>
+
+    <sect2 id="fab.security.config">
+        <title>Définir les droits dans la config</title>
+
+        <para>Les droits d'accès requis peuvent être définis dans la
+        configuration au niveau d'un module ou d'une action : <programlisting
+        role="xml">&lt;actionSearch&gt;
+    &lt;access&gt;Default&lt;/access&gt;
+&lt;/actionSearch&gt;
+&lt;actionNew&gt;
+    &lt;access&gt;AdminBase,EditBase&lt;/access&gt;
+&lt;/actionNew&gt;
+           </programlisting></para>
+    </sect2>
+
+    <sect2 id="fab.security.api">
+        <title>API</title>
+
+        <para>Les droits peuvent être testés à partir d'une classe ou d'un
+        template : consultez <ulink url="?class=User">l'API de la classe
+        User</ulink> pour plus d'informations.</para>
+    </sect2>
+</sect1>
