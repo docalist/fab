@@ -1803,7 +1803,7 @@ class DatabaseModule extends Module
         }
 
         // Requête utilisée pour générer les liens
-        $request=Routing::linkFor($this->request->copy()->clearNull()->clear('_start'));
+        $request=Routing::linkFor(Runtime::$request->copy()->clearNull()->clear('_start'));
         $request.=(strpos($request,'?')===false ? '?' : '&') . '_start=';
         $request=htmlspecialchars($request);
         
