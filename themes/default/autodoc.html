@@ -10,6 +10,13 @@
 <body>
 <div class="index">
     <slot name="api" action="/AutoDoc/Api" />
+    <def name="current" value="{strtolower($this->request->get('class'):$this->request->get('filename')):'index.xml'}" />
+    HERE
+    <script test="$current">
+        jQuery('*[@id="$current"]').addClass('selected');
+        /* jQuery('#$current') ne marche pas : jquery a un pb avec les points */
+    </script>
+    
 </div>
 $contents 
 </body>
