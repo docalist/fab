@@ -35,7 +35,7 @@ class DatabaseSchema
      */
     private static $dtd=array       // NUPLM = non utilisé pour le moment 
     (
-        'database'=>array
+        'schema'=>array
         (
                                         // PROPRIETES GENERALES DE LA BASE
                                         
@@ -242,7 +242,7 @@ class DatabaseSchema
      */
     public function addDefaultProperties()
     {
-        self::defaults($this, self::$dtd['database']);
+        self::defaults($this, self::$dtd['schema']);
     }
     
     
@@ -315,7 +315,19 @@ class DatabaseSchema
         reset($dtd);
         $tag=key($dtd);
         if ($node->tagName !== $tag)
-            throw new DatabaseSchemaXmlNodeException($node, "élément non autorisé, '$tag' attendu");
+        {
+            if ($tag==='schema' && $node->tagName==='database')
+            {
+                // ok
+                // à supprimer plus tard : code temporaire le temps
+                // que tous les schémas ayant un tag racine "database" soient
+                // modifiés en tag racine "schéma"    
+            }
+            else
+            {
+                throw new DatabaseSchemaXmlNodeException($node, "élément non autorisé, '$tag' attendu");
+            }
+        }
         $dtd=array_pop($dtd);
                     
         // Crée un nouvel objet contenant les propriétés par défaut indiquées dans le dtd
@@ -433,8 +445,9 @@ class DatabaseSchema
      */    
     public function toXml()
     {
+        // FIXME : on devrait utiliser XMLWriter plutôt que de générer le xml "à la main"
         ob_start();
-        echo '<?xml version="1.0" encoding="iso-8859-1"?>', "\n";
+        echo '<?xml version="1.0" encoding="UTF-8"?>', "\n";
         self::nodeToXml(self::$dtd, $this);
         return ob_get_clean();
     }
@@ -504,9 +517,9 @@ class DatabaseSchema
             return;
             
         // Ecrit le début du tag et ses attributs
-        echo $indent, '<', $tag;
+        echo $indent, '<', utf8_encode($tag);
         foreach($attr as $prop)
-            echo ' ', $prop, '="', self::valueToXml($object->$prop), '"';
+            echo ' ', utf8_encode($prop), '="', self::valueToXml($object->$prop), '"';
             
         // Si le tag ne contient pas de noeuds fils, terminé
         if (count($simpleNodes)===0 && count($complexNodes)===0)
@@ -520,7 +533,7 @@ class DatabaseSchema
         
         // Ecrit en premier les noeuds simples qui n'ont pas de fils
         foreach($simpleNodes as $prop)
-            echo $indent, '    <', $prop, '>', self::valueToXml($object->$prop), '</', $prop, '>', "\n";
+            echo $indent, '    <', utf8_encode($prop), '>', self::valueToXml($object->$prop), '</', $prop, '>', "\n";
 
         // Puis toutes les propriétés 'objet'
         foreach($objects as $prop)
@@ -531,16 +544,16 @@ class DatabaseSchema
         // Puis tous les nouds qui ont des fils
         foreach($complexNodes as $prop)
         {
-            echo $indent, '    <', $prop, ">\n";
+            echo $indent, '    <', utf8_encode($prop), ">\n";
             foreach($object->$prop as $i=>$item)
             {
                 self::nodeToXml($dtd[$prop], $item, $indent.'        ');
             }
-            echo $indent, '    </', $prop, ">\n";
+            echo $indent, '    </', utf8_encode($prop), ">\n";
         } 
         
         // Ecrit le tag de fermeture
-        echo $indent, '</', $tag, ">\n";
+        echo $indent, '</', utf8_encode($tag), ">\n";
     }
 
     
@@ -560,7 +573,7 @@ class DatabaseSchema
 
         if (is_bool($value)) 
             return $value ? 'true' : 'false';
-        return htmlspecialchars($value, ENT_COMPAT);
+        return htmlspecialchars(utf8_encode($value), ENT_COMPAT);
     }
 
 
@@ -1111,7 +1124,7 @@ class DatabaseSchema
                 {
                     if (empty($item->_id))
                     {
-                        $type=key(self::$dtd['database'][$prop]);
+                        $type=key(self::$dtd['schema'][$prop]);
                         $item->_id = ++$this->_lastid->$type;
                     }
                 }
