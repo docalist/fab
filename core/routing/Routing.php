@@ -136,8 +136,8 @@ class Routing
                 {
                     $name=$arg[0];
                     $position=$arg[1]-1;// -1 = pour pointer sur le '$' et non pas sur le début du nom
-                    self::arrayAppendKey ($urlRoute['args'], $name, $index);    // arg=>index, ordre normal 
-                    self::arrayPrependKey($modRoute['args'], $name, $position); // arg=>position, ordre inverse
+                    Utils::arrayAppendKey ($urlRoute['args'], $name, $index);    // arg=>index, ordre normal 
+                    Utils::arrayPrependKey($modRoute['args'], $name, $position); // arg=>position, ordre inverse
                 }
             }
             $parts['@route']=$urlRoute;
@@ -296,7 +296,7 @@ class Routing
                                 $route[$name]=$vars[$index];
                         }
                         else
-                            self::arrayAppendKey($args, $name, $vars[$index]);
+                            Utils::arrayAppendKey($args, $name, $vars[$index]);
                     }
                 }
             }
@@ -305,7 +305,7 @@ class Routing
             {
                 foreach($route['add'] as $name=>$value)
                 {
-                    self::arrayAppendKey($args, $name, $value);
+                    Utils::arrayAppendKey($args, $name, $value);
                 }
             }
             
@@ -437,7 +437,7 @@ class Routing
                 foreach (explode('&', $query) as $arg)
                 {
                     list($name,$value)=array_pad(explode('=', $arg), 2, null);
-                    self::arrayAppendKey($args, $name, $value);
+                    Utils::arrayAppendKey($args, $name, $value);
                 }
             }            
             $url=substr($url, 0, $pt);
@@ -572,9 +572,9 @@ class Routing
             {
                 // Cas particulier : module et route sont définis par l'url, il faut les considérer comme des paramètres
                 if (isset($route['args']['module']))
-                    self::arrayPrependKey($args, 'module', $module);
+                    Utils::arrayPrependKey($args, 'module', $module);
                 if (isset($route['args']['action']))
-                    self::arrayPrependKey($args, 'action', $action);
+                    Utils::arrayPrependKey($args, 'action', $action);
                 
                 // On doit avoir au moins autant d'arguments que dans la route
                 if (count($args) < count($route['args']))
@@ -729,95 +729,6 @@ class Routing
             }
         }
         return $parts;
-    }
-    
-    /**
-     * Ajoute une clé et une valeur dans un tableau.
-     * 
-     * La fonction ajoute la clé et la valeur indiquées à la fin du tableau.
-     * Si la clé existe déjà dans le tableau, la valeur existante est convertie 
-     * en tableau et la valeur indiquée est ajoutée à la fin du tableau obtenu.
-     * 
-     * Cette fonction est utile pour gérer une liste de clés auxquelles peuvent 
-     * être associées une ou plusieurs valeurs. Le tableau obtenu contiendra
-     * toutes les clés indiquées, dans l'ordre dans lequel elles ont été 
-     * rencontrées pour la première fois, et chaque clé indiquera la ou les 
-     * valeurs associées. Pour chaque clé, count(value) indique le nombre de
-     * fois ou la clé a été rencontrée.
-     * 
-     * Remarque : la valeur doit être de type scalaire ou objet, cela ne 
-     * marchera pas si vous passez un tableau.
-     * 
-     * La fonction {@link arrayPrependKey()} est très similaire mais effectue
-     * les insertions en ordre inverse. 
-     * 
-     * @param array $array le tableau à modifier
-     * @param scalar $key la clé à ajouter au tableau
-     * @param scalar|object $value la valeur associée à la clé
-     */
-    private static function arrayAppendKey(array & $array, $key, $value)
-    {
-        // Si la clé n'existe pas déjà, on l'insère à la fin du tableau
-        if (!array_key_exists($key, $array))
-        {
-            $array[$key]=$value;
-            return;
-        }
-        
-        // La clé existe déjà
-        $item=& $array[$key];
-        
-        // Si c'est déjà un tableau, ajoute la valeur à la fin du tableau
-        if (is_array($item))
-            $item[]=$value;
-            
-        // Sinon, crée un tableau contenant la valeur existante et la valeur indiquée
-        else
-            $item=array($item, $value);
-    }
-    
-    /**
-     * Ajoute une clé et une valeur dans un tableau.
-     * 
-     * La fonction ajoute la clé et la valeur indiquées au début du tableau.
-     * Si la clé existe déjà dans le tableau, la valeur existante est convertie 
-     * en tableau et la valeur indiquée est ajoutée au début du tableau obtenu.
-     * 
-     * Cette fonction est utile pour gérer une liste de clés auxquelles peuvent 
-     * être associées une ou plusieurs valeurs. Le tableau obtenu contiendra
-     * toutes les clés indiquées, en ordre inverse de l'ordre dans lequel elles 
-     * ont été rencontrées pour la première fois, et chaque clé indiquera la ou 
-     * les valeurs associées (en ordre inverse également).
-     * 
-     * Remarque : la valeur doit être de type scalaire ou objet, cela ne 
-     * marchera pas si vous passez un tableau.
-     * 
-     * La fonction {@link arrayAppendKey()} est très similaire mais effectue
-     * les insertions en ordre normal. 
-     * 
-     * @param array $array le tableau à modifier
-     * @param scalar $key la clé à ajouter au tableau
-     * @param scalar|object $value la valeur associée à la clé
-     */
-    private static function arrayPrependKey(array & $array, $key, $value)
-    {
-        // Si la clé n'existe pas déjà, on l'insère au début du tableau
-        if (!array_key_exists($key, $array))
-        {
-            $array=array($key=>$value) + $array; // y-a-t-il un autre moyen ?
-            return;
-        }
-        
-        // La clé existe déjà
-        $item=& $array[$key];
-        
-        // Si c'est déjà un tableau, ajoute la valeur au début du tableau
-        if (is_array($item))
-            array_unshift($item, $value);
-            
-        // Sinon, crée un tableau contenant la valeur indiquée et la valeur existante
-        else
-            $item=array($value, $item);
     }
     
     /**
