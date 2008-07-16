@@ -163,7 +163,8 @@ class ThesaurusModule extends DatabaseModule
      */ 
     public function termToQuery($term, $asValue=true)
     {
-        $result = '((((((((((' . str_replace('  ', ' ', trim(strtr($term, '[]()&+-', '       '))) . '))))))))))';
+        $result = str_replace('  ', ' ', trim(strtr($term, '[]()&+-', '       ')));
+        $result=urlencode($result);
         if ($asValue) $result = '[' . $result . ']';
         return $result;
     }
