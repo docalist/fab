@@ -612,6 +612,7 @@ class TemplateCode
                 'count',
                 'is_null',
                 'is_array',
+                'is_string',
                 'array_sum',
                 'in_array',
                 'date',
