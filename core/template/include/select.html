@@ -9,12 +9,12 @@
             name="$name"
             size="$size"
             class="select{$size ? rtrim(' multiline '.$class) : rtrim(' '.$class)}"
-            id="{$label ? lastId() : ''}">{select('@*')}{select('./node()')}
-            <loop on="$src" as="$record">
+            id="{$label ? lastId() : $id}">{select('@*')}{select('./node()')}
+            <loop on="$src" as="$key,$record">
                 <if test="{is_array($record)}">
                     <option value="{$record['code'] === $record['label'] ? '' : $record['code']}">{$record['label']}</option>
                 </if>
-                <else><option>$record</option></else>
+                <else><option value="{is_string($key) ? $key : ''}">$record</option></else>
             </loop>
         </select>
 </template>
