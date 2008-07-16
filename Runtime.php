@@ -610,7 +610,7 @@ $fab_init_time=microtime(true);
         if (session_id()=='') // TODO : utiliser un objet global 'Session' pour le paramétrage
         {
             session_name(Config::get('sessions.id'));
-            session_set_cookie_params(Config::get('sessions.lifetime'), self::$home);
+            session_set_cookie_params(Config::userGet('sessions.lifetime'), self::$home);
             //session_set_cookie_params(Config::get('sessions.lifetime'));
             session_cache_limiter('none');
 
