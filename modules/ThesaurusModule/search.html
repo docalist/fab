@@ -18,9 +18,9 @@
 <ul>
     <loop on="$this->selection">
         <li>
-            <a href="Show?REF=$REF">$Fre</a>
+            <a href="Show?FRE={$this->termToQuery($FRE)}">$Fre</a>
             <if test="$EM">
-                <br />EM : <a href="Show?Fre=[{strtr($EM,'[]','  ')}]">$EM</a>
+                <br />EM : <a href="Show?Fre={$this->termToQuery($EM)}">$EM</a>
             </if>
         </li>
     </loop>

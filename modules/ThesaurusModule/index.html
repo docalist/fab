@@ -12,7 +12,7 @@
         <legend>Liste des champs sémantiques</legend>
         <ul>
             <loop on="$this->selection">
-                <li><a href="Show?REF=$REF">$Fre</a></li>
+                <li><a href="Hierarchy?FRE={$this->termToQuery($FRE)}">$Fre</a></li>
             </loop>
         </ul>
         <p style="color:#444; font-size:0.7em;">{$this->selection->count()} réponses</p>
@@ -24,7 +24,7 @@
         \{
             jQuery('#_equation').autocomplete
             (
-                '{Routing::linkFor("ThesoLookup")}?fre=[%s] or [%s*]',
+                '{Routing::linkFor("ThesoLookup")}?fre=[%s] OR [%s*]',
                 \{
                     asValue: true,
                     height: 300,

@@ -14,46 +14,46 @@
     <div class="term">
         <p class="FRE">
             <a
-                strip="{$EM}"   /* pas de lien si c'est un non descripteur */
+                strip="{$EM !='' || strpos($Fre,'[RE]')===0}"   /* pas de lien si c'est un non descripteur ou un terme relai */
                 title="Notices de la base SantéPsy indexées à ce terme"
-                href="/Base/Search?MotsCles=[$Fre]">
+                href="/Base/Search?MotsCles={$this->termToQuery($Fre)}">
                 $Fre
             </a>
         </p>
         
         <p test="$MT" class="MT">
             <span class="lib">domaine thématique :</span>
-            <a href="?Fre=[{strtr($MT,'[]','  ')}]">$MT</a>
+            <a href="?Fre={$this->termToQuery($MT)}">$MT</a>
         </p>
     
         <p test="$TG" class="TG">
             <span class="lib">terme générique :</span>
-            <a href="?Fre=[{strtr($TG,'[]','  ')}]">$TG</a>
+            <a href="?Fre={$this->termToQuery($TG)}">$TG</a>
         </p>
     
         <loop on="(array)$TS" as="$TS">
             <p class="TS">
                 <span class="lib">terme spécifique :</span>
-                <a href="?Fre=[{strtr($TS,'[]','  ')}]">$TS</a>
+                <a href="?Fre={$this->termToQuery($TS)}">$TS</a>
             </p>
         </loop>
     
         <loop on="(array)$TA" as="$TA">
             <p class="TA">
                 <span class="lib">voir aussi :</span>
-                <a href="?Fre=[{strtr($TA,'[]','  ')}]">$TA</a>
+                <a href="?Fre={$this->termToQuery($TA)}">$TA</a>
             </p>
         </loop>
     
         <p test="$EM" class="EM">
             <span class="lib">employer :</span>
-            <a href="?Fre=[{strtr($EM,'[]','  ')}]">$EM</a>
+            <a href="?Fre={$this->termToQuery($EM)}">$EM</a>
         </p>
     
         <loop on="(array)$EP" as="$EP">
             <p class="EP">
                 <span class="lib">employer pour :</span>
-                <a href="?Fre=[{strtr($EP,'[]','  ')}]">$EP</a>
+                <a href="?Fre={$this->termToQuery($EP)}">$EP</a>
             </p>
         </loop>
     
