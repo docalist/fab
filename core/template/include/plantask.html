@@ -1,0 +1,148 @@
+/*
+    start : pour le choix de l'heure d'exécution, heure minimale autorisée
+    
+    stop : pour le choix de l'heure d'exécution, heure maximale autorisée
+    
+    step  : pour le choix de l'heure d'exécution, afficher un horaire toutes
+    les step minutes.
+    
+    start et stop peuvent être inversés : 
+    8..16=entre 8h00 et 16h00, 22..4 : entre 22h00 et 04h00
+    
+    repeat : 'true','yes',1, ou true pour que le panel "répéter la tâche"
+    soit affiché.
+*/
+<template match="//plantask" start="0" end="23" step="15" repeat="true">
+    <script type="text/javascript" src="/FabWeb/js/plantask.js"></script>
+    
+    <style>
+        p.help
+        \{
+            color: #666; 
+            font-size: 90%
+        \}
+        
+        span.align
+        \{
+            display: block;
+            float: left;
+            width: 10em;   
+        \}
+    </style>
+    <div>
+        <radio id="taskRunNow" label="Maintenant" />
+    </div>
+    
+    <div>
+        <radio id="taskRunLater" label="À une date ultérieure" />
+        <div id="taskDateTime" style="margin-left: 5em; display: none;">
+            <datepicker id="taskDate" label="le : " />
+            <label for="taskTime">à : </label>
+            <select id="taskTime">
+                <if test="{$end &lt; $start}">
+                    <def name="end" value="{$end+24}" />
+                </if>
+                <loop on="{range($start, $end)}" as="$hour">
+                    <loop on="{range(0, 59,$step)}" as="$index,$min">
+                        <option value="{($hour)*3600+($index*$step)*60}">{sprintf('%02d:%02d', $hour%24,$min)}</option>
+                        /* valeur = horaire représentés en nb de secondes, label=HH:MM */
+                    </loop>
+                </loop>
+            </select>
+        </div>
+    </div>
+    
+    <div test="{in_array($repeat,array('true', 'yes', true, 1), true)}">
+        <checkbox id="taskRepeat" label="Exécution périodique" />
+        <div id="taskRepeatDetails" style="margin-left: 5em; display: none;">
+
+            <fill values="j.">
+                <select id="taskUnits" src="array('min.'=>'minutes','h.'=>'heures','j.'=>'jours','mois')" label="Périodicité : " />
+            </fill>
+            
+            <div id="taskMinutes">
+                <p>
+                    <loop on="range(0,59)" as="$index,$minute">
+                        <span class="align" style="width: 5em; {$index % 10 === 0 ? 'clear : both' : ''}"><checkbox value="$minute" label="$minute " id="min$index"/></span>
+                    </loop>
+                </p>
+                
+                <div style="clear: both"></div>
+                
+                <p class="help">
+                    Par défaut (aucune case cochée), la tâche sera exécutée 
+                    toutes les minutes. Pour limiter l'exécution de la tâche,
+                    cochez sur les minutes correspondantes (par exemple pour
+                    exécuter la tâche tous les quarts d'heure, cochez 0, 15,
+                    30 et 45).
+                </p>
+            </div>
+
+            <div id="taskHours">
+                <p>
+                    Plages horaires : <br />
+                    <loop on="range(0,23)" as="$index,$hour">
+                        <span class="align" style="{$index % 4 === 0 ? 'clear : both' : ''}"><checkbox value="$hour" label="{sprintf('%0dh-%0dh', $hour, ($hour+1)%24)}" id="hour$index"/></span>
+                    </loop>
+                </p>
+                                    
+                <div style="clear: both"></div>
+
+                <p class="help" style="clear: both">
+                    Par défaut (aucune case cochée), la tâche sera exécutée 
+                    toutes les heures. Pour n'exécuter la tâche qu'à certaines 
+                    plages horaires, cochez les cases correspondantes.
+                </p>
+            </div>
+            <div id="taskDays" class="align">
+                <p>
+                    Jours de la semaine : <br />
+                    <loop on="array('lundi','mardi','mercredi','jeudi','vendredi','samedi','dimanche')" as="$index,$day">
+                        <span class="align" style="width: 8em; {$index % 5 === 0 ? 'clear : both' : ''}"><checkbox value="$day" label="$day" id="wday$index"/></span>
+                    </loop>
+                </p>
+
+                <div style="clear: both"></div>
+
+                <p>
+                    Jours du mois : <br />
+                    <loop on="range(1,31)" as="$index,$day">
+                        <span class="align" style="width: 5em;{$index % 10 === 0 ? 'clear : both' : ''}"><checkbox value="$day" label="{sprintf('%02d', $day)}" id="day$index" /></span>
+                    </loop>
+                </p>
+
+                <div style="clear: both"></div>
+
+                <p class="help">
+                    Par défaut (aucune case cochée), la tâche sera exécutée tous les jours.
+                    Pour restreindre l'exécution à certains jours de la semaine ou du mois,
+                    cochez les cases correspondantes.
+                </p>
+                <p class="help">
+                    Si vous choisissez à la fois des jours de la semaine et des jours du mois, 
+                    la tâche sera exécutée lorsque l'une ou l'autre des conditions 
+                    sera remplie.
+                </p>
+            </div>
+
+            <div id="taskMonthes">
+                <p>
+                    <loop on="array('janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre')" as="$index,$month">
+                        <span class="align" style="width: 8em; {$index % 6 === 0 ? 'clear : both' : ''}"><checkbox value="$month" label="$month" id="month$index" /></span>
+                    </loop>
+                </p>
+                
+                <div style="clear: both"></div>
+
+                <p class="help" style="clear: both">
+                    Par défaut (aucune case cochée), la tâche sera exécutée tous les mois.
+                    Pour n'exécuter la tâche que certains mois de l'année,
+                    cochez les cases correspondantes.
+                </p>
+            </div>
+        </div>
+    </div>
+    
+    <hidden id="taskTimeResult" name="taskTime" />
+    <hidden id="taskRepeatResult" name="taskRepeat" />
+</template>
