@@ -21,7 +21,7 @@ class ImportModule extends DatabaseModule
     {
         // Filtre sur les fichiers qui n'ont pas encore été importés
         if (!$this->request->bool('done')->defaults(false)->ok())
-            $this->request->add('_filter', 'not status:(import_*)');
+            $this->request->add('_filter', 'NOT status:(import_*)');
     }
     
     public function actionDelete($confirm=0)
@@ -335,7 +335,7 @@ class ImportModule extends DatabaseModule
         $this->openDatabase(false);
 
         // Détermine le callback à utiliser pour la validation du fichier
-        $callback=$this->callback($this->configUserGet('validcallback'));
+        $callback=$this->callback(Config::userGet('validcallback'));
         
         // Répertoire dans lequel vont être stockés les fichiers uploadés
         $dir=Utils::makePath($this->selection->getPath(), 'files');
