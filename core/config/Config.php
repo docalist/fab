@@ -585,5 +585,53 @@ class Config
         // fonctionne pas : quand on fait unset d'un référence, on ne supprime que 
         // la référence, pas la variable référencée.         
     }
+    
+    
+    /**
+     * Retourne la valeur d'une option de configuration, en tenant compte des 
+     * droits de l'utilisateur en cours.
+     * 
+     * Dans le fichier de configuration, il est possible d'indiquer, pour l'option
+     * de configuration <code>$key</code> passée en paramètre, soit une valeur 
+     * scalaire, soit un tableau qui va permettre d'indiquer la valeur à utiliser 
+     * en fonction des droits de l'utilisateur en cours.
+     *
+     * Dans ce cas, les clés du tableau indiquent le droit à avoir et la valeur
+     * à utiliser.
+     * 
+     * Remarque : Vous pouvez utiliser le pseudo droit <code><default></code> pour 
+     * indiquer la valeur à utiliser lorsque l'utilisateur ne dispose d'aucun des
+     * droits indiqués.
+
+     * Si aucun droit utilisateur n'est précisé pour l'option de configuration 
+     * <code>$key</code> passée en paramètre, la méthode est équivalente à la 
+     * méthode {@link Config::get get} de la classe {@link Config}.
+     *  
+     * @param string $key le nom de l'option de configuration.
+     * @param mixed $default la valeur à retourner si l'option demandée
+     * n'existe pas.
+     * 
+     * @return mixed la valeur de l'option si elle existe ou la valeur par
+     * défaut passée en paramètre sinon.
+     */
+    public static function userGet($key, $default=null)
+    {
+        $value=self::get($key);
+        if (is_null($value))
+            return $default;
+
+        if (is_array($value))
+        {
+            foreach($value as $right=>$value)
+            {
+                if (User::hasAccess($right))
+                    return $value;
+            }
+            return $default;
+        }
+        
+        return $value;
+    }
+    
 }
 ?>
