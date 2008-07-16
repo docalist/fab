@@ -441,14 +441,21 @@ class DatabaseSchema
     /**
      * Retourne la version xml du schéma.
      * 
+     * @param bool $prolog indique s'il faut ou non générer le prologue
+     * xml (<?xml...), true par défaut.
+     * 
+     * @param string $indent permet d'indiquer l'indentation initiale du fichier
+     * xml généré. Par défaut, chaine vide (les premiers tags commenceront à la
+     * colonne 1).
+     * 
      * @return string
      */    
-    public function toXml()
+    public function toXml($prolog=true, $indent='')
     {
         // FIXME : on devrait utiliser XMLWriter plutôt que de générer le xml "à la main"
         ob_start();
-        echo '<?xml version="1.0" encoding="UTF-8"?>', "\n";
-        self::nodeToXml(self::$dtd, $this);
+        if ($prolog) echo '<?xml version="1.0" encoding="UTF-8"?>', "\n";
+        self::nodeToXml(self::$dtd, $this, $indent);
         return ob_get_clean();
     }
 
