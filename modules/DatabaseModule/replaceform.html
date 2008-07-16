@@ -30,7 +30,7 @@ div.help dt
     font-weight: bold;
 \}
 </style>
-<template match="//help">
+<template match="//srhelp">
     <div class="help">{select('node()|@*')}</div>
 </template>
 <slot name="header">
@@ -46,7 +46,7 @@ div.help dt
     
     <fieldset label="Rechercher :">
         <textbox name="search" style="width: 100%;" /><br />
-        <help>
+        <srhelp>
             <p>
                 Indiquez la chaîne à rechercher ou laissez cette zone vide pour 
                 sélectionner uniquement les champs qui sont vides.
@@ -55,23 +55,23 @@ div.help dt
                 Pour une utilisation avancée, consultez les astuces qui figurent 
                 <a href="#tips">ci-dessous</a>.
             </p>
-        </help>
+        </srhelp>
     </fieldset>
     
     <fieldset label="Remplacer par :">
         <textbox name="replace" style="width: 100%;" /><br />
-        <help>
+        <srhelp>
             <p>
                 Indiquez la chaîne qui viendra remplacer la chaîne recherchée ou 
                 laissez cette zone vide pour supprimer la valeur recherchée.
             </p>
-        </help>
+        </srhelp>
     </fieldset>
 
     <fieldset label="Options : ">
         <div>
             <checkbox name="ignoreCase" label="Insensible à la casse" value="true" checked="checked" /><br />
-            <help>
+            <srhelp>
                 <p>
                     Par défaut, la recherche tient compte de la casse des caractères, 
                     c'est-à-dire que les majuscules et les minuscules sont considérées
@@ -84,13 +84,13 @@ div.help dt
                     différents de la lettre non accentuée correspondante, que cette 
                     option soit cochée ou non.
                 </p>
-            </help>
+            </srhelp>
         </div>
         <div>
             <checkbox name="regexp" label="Expression régulière" value="true" 
                 onclick="jQuery('#word').attr('disabled', this.checked ? 'disabled' : '')"
             /><br />
-            <help>
+            <srhelp>
                 <p>
                     Une expression régulière permet de définir un motif décrivant un
                     ensemble de chaînes de caractères que l'on veut rechercher. Par 
@@ -102,26 +102,26 @@ div.help dt
                     -
                     <a href="http://www.regular-expressions.info/">Site de référence</a>.
                 </p>
-            </help>
+            </srhelp>
         </div>
         <div>
             <checkbox name="word" label="Mot entier" value="true" /><br />
-            <help>
+            <srhelp>
                 <p>Sans effet si l'option "Expression régulière" est sélectionnée.</p>
-            </help>
+            </srhelp>
         </div>
     </fieldset>
 
     <fieldset label="Dans les champs suivants : ">
     
-        <help>
+        <srhelp>
             <p>
                 Choisissez le ou les champ(s) dans lesquels vous souhaitez effectuer
                 le remplacement. Vous pouvez également cliquer sur la case à cocher 
                 qui figure dans l'entête du tableau pour sélectionner tous les champs
                 de la base.
             </p>    
-        </help>
+        </srhelp>
         
         /* flag utilisé pour alternater la couleur des lignes de la table */
         <def name="odd" value="{true}" />
@@ -172,7 +172,7 @@ div.help dt
     
     <slot name="formfooter" />
 </form>
-<help id="tips">
+<srhelp id="tips">
     <h2>Astuces, utilisation avancée</h2>
     <dl>
         <dt>Limiter le nombre de notices impactées</dt>
@@ -208,5 +208,5 @@ div.help dt
             </p>
         </dd>
     </dl>
-</help>
+</srhelp>
 <slot name="footer" />
