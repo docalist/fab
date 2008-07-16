@@ -613,6 +613,7 @@ class TemplateCode
                 'is_null',
                 'is_array',
                 'is_string',
+                'is_scalar',
                 'array_sum',
                 'in_array',
                 'date',
