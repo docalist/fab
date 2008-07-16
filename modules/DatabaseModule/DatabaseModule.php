@@ -164,7 +164,7 @@ class DatabaseModule extends Module
         );  
 
         // Ajoute la requête dans l'historique des équations de recherche
-        $history=$this->configUserGet('history', false);
+        $history=Config::userGet('history', false);
 
         if ($history===true) $history=10;
         elseif ($history===false) $history=0;
@@ -240,7 +240,7 @@ class DatabaseModule extends Module
         // Ajoute l'équation (à la fin)        
         $hist[$key]= array
         (
-            'user' =>$equation,
+            'user' =>preg_replace('~[\n\r\f]+~', ' ', $equation), // normalise les retours à la ligne sinon le clearHistory ne fonctionne pas
             'xapian'=>$xapianEquation,
             'count'=>$this->selection->count('environ '),
             'time'=>time(),
@@ -258,7 +258,7 @@ class DatabaseModule extends Module
      * Après avoir effacé l'historique, redirige l'utilisateur vers la page sur
      * laquelle il se trouvait.
      */
-    public function actionClearSearchHistory()
+    public function actionClearSearchHistory($_equation=null)
     {
         // Charge les sessions si ce n'est pas le cas (pas mis en config, comme ça la session n'est chargée que si on en a besoin)
         Runtime::startSession();
@@ -267,7 +267,22 @@ class DatabaseModule extends Module
         $historyKey='search_history_'.Config::get('database'); // no dry / loadSearchHistory
         
         // Récupère l'historique actuel
-        if (isset($_SESSION[$historyKey])) unset($_SESSION[$historyKey]);
+        if (isset($_SESSION[$historyKey]))
+        {
+            if (is_null($_equation))
+            {
+                unset($_SESSION[$historyKey]);
+            }
+            else
+            {
+                $_equation=array_flip((array)$_equation);
+                foreach($_SESSION[$historyKey] as $key=>$history)
+                {
+                    if (isset($_equation[$history['user']]))
+                        unset($_SESSION[$historyKey][$key]);
+                }
+            }
+        }
         
         Runtime::redirect($_SERVER['HTTP_REFERER']);
     }
@@ -563,10 +578,10 @@ class DatabaseModule extends Module
         }
         
         // Enregistre la notice
-        $REF=$this->selection->saveRecord();   // TODO: gestion d'erreurs
+        $this->selection->saveRecord();   // TODO: gestion d'erreurs
 
         // Récupère le numéro de la notice créée
-        //$REF=$this->selection['REF'];
+        $REF=$this->selection['REF'];
         debug && Debug::log('Sauvegarde de la notice %s', $REF);
 
         // Redirige vers le template s'il y en a un, vers l'action Show sinon
@@ -1101,7 +1116,7 @@ class DatabaseModule extends Module
         }
 
         // Détermine le nombre maximum de notices que l'utilisateur a le droit d'exporter
-        $max=$this->configUserGet("formats.$format.max",10);
+        $max=Config::userGet("formats.$format.max",10);
 
         // Ouvre la base de données
         $this->openDatabase();
@@ -1149,14 +1164,14 @@ class DatabaseModule extends Module
             else
             {
                 // Détermine le template à utiliser
-                if (! $template=$this->configUserGet("formats.$format.template"))
+                if (! $template=Config::userGet("formats.$format.template"))
                 {
                     if ($mail or $zip) Utils::endCapture(); // sinon on ne "verra" pas l'erreur
                     throw new Exception("Le template à utiliser pour l'export en format $format n'a pas été indiqué");
                 }
 
                 // Détermine le callback à utiliser
-                $callback=$this->configUserGet("formats.$format.callback"); 
+                $callback=Config::userGet("formats.$format.callback"); 
         
                 // Exécute le template
                 try
@@ -1241,7 +1256,7 @@ class DatabaseModule extends Module
 		$email = new Swift_Message($subject);
         
         // Crée le corps du message
-        $template=$this->configUserGet('mailtemplate');
+        $template=Config::userGet('mailtemplate');
         if (is_null($template))
         {
             $body=$message;
@@ -1503,6 +1518,10 @@ class DatabaseModule extends Module
             '_defaultop'=>
                 $this->request->defaults('_defaultop', Config::get('defaultop'))
                     ->ok(),
+                    
+            '_opanycase'=>
+                $this->request->defaults('_opanycase', Config::get('opanycase'))
+                    ->ok(),
         );
         return $this->selection->search($equation, $options);
     }
@@ -1592,7 +1611,7 @@ class DatabaseModule extends Module
      * getEquation() utilise la ou les équation(s) de recherche indiquée(s) 
      * dans la clé <code><equation></code> de la configuration (des équations par
      * défaut différentes peuvent être indiquées selon les droits de 
-     * l'utilisateur, voir {@link configUserGet()}).
+     * l'utilisateur, voir {@link Config::userGet()}).
      * 
      * Si aucune équation par défaut n'a été indiquée, la méthode retourne
      * null.
@@ -1657,7 +1676,7 @@ class DatabaseModule extends Module
         if ($equation !== '') return $equation;
         
         // L'équation par défaut indiquée dans la config sinon
-        return $this->configUserGet('equation', null);
+        return Config::userGet('equation', null);
     }
     
     /**
@@ -1675,7 +1694,7 @@ class DatabaseModule extends Module
      * 
      * - les filtres éventuels indiqués dans la clé <code><filter></code> de la
      *   configuration en cours (des filtres différents peuvent être indiqués
-     *   selon les droits de l'utilisateur, voir {@link configUserGet()}),
+     *   selon les droits de l'utilisateur, voir {@link Config::userGet()}),
      * 
      * - les filtres éventuels passés dans le paramètre <code>_filter</code> de la
      * {@link Request requête en cours}.
@@ -1689,7 +1708,7 @@ class DatabaseModule extends Module
     protected function getFilter()
     {
         // Charge les filtres indiqués dans la clé 'filter' de la configuration
-        $filters1=(array) $this->configUserGet('filter');
+        $filters1=(array) Config::userGet('filter');
                 
         // Charge les filtres indiqués dans les paramètres '_filter' de la requête
         $filters2=(array) $this->request->_filter;
@@ -1890,56 +1909,6 @@ class DatabaseModule extends Module
     {
         return true;
     }
-        
-    /**
-     * Retourne la valeur d'une option de configuration, en tenant compte des 
-     * droits de l'utilisateur en cours.
-     * 
-     * Dans le fichier de configuration, il est possible d'indiquer, pour l'option
-     * de configuration <code>$key</code> passée en paramètre, soit une valeur 
-     * scalaire, soit un tableau qui va permettre d'indiquer la valeur à utiliser 
-     * en fonction des droits de l'utilisateur en cours.
-     *
-     * Dans ce cas, les clés du tableau indiquent le droit à avoir et la valeur
-     * à utiliser.
-     * 
-     * Remarque : Vous pouvez utiliser le pseudo droit <code><default></code> pour 
-     * indiquer la valeur à utiliser lorsque l'utilisateur ne dispose d'aucun des
-     * droits indiqués.
-
-     * Si aucun droit utilisateur n'est précisé pour l'option de configuration 
-     * <code>$key</code> passée en paramètre, la méthode est équivalente à la 
-     * méthode {@link Config::get get} de la classe {@link Config}.
-     *  
-     * @param string $key le nom de l'option de configuration.
-     * @param mixed $default la valeur à retourner si l'option demandée
-     * n'existe pas.
-     * 
-     * @return mixed la valeur de l'option si elle existe ou la valeur par
-     * défaut passée en paramètre sinon.
-     * 
-     * @todo Cette méthode ne devrait pas figurer dans DatabaseModule, elle
-     * n'est pas spécifique. A l'avenir, elle sera transférée dans la classe
-     * {@link Config} (quelque chose de la forme <code>Config::userGet()</code>).
-     */
-    public function configUserGet($key, $default=null)
-    {
-        $value=Config::get($key);
-        if (is_null($value))
-            return $default;
-
-        if (is_array($value))
-        {
-            foreach($value as $right=>$value)
-            {
-                if (User::hasAccess($right))
-                    return $value;
-            }
-            return $default;
-        }
-        
-        return $value;
-    }
      
     /**
      * Retourne le template à utiliser pour l'action en cours ({@link $action}).
@@ -1988,8 +1957,8 @@ class DatabaseModule extends Module
      */
     protected function getTemplate($key='template')
     {
-        debug && Debug::log('%s : %s', $key, $this->configUserGet($key));
-        if (! $template=$this->configUserGet($key))
+        debug && Debug::log('%s : %s', $key, Config::userGet($key));
+        if (! $template=Config::userGet($key))
             return null;
             
         if (file_exists($h=$this->path . $template)) // fixme : template relatif à BisDatabase, pas au module hérité (si seulement config). Utiliser le searchPath du module en cours
@@ -2002,7 +1971,7 @@ class DatabaseModule extends Module
     /**
      * Retourne le callback à utiliser pour l'action en cours ({@link $action}).
      * 
-     * getCallback() appelle la méthode {@link configUserGet()} en passant la clé
+     * getCallback() appelle la méthode {@link Config::userGet()} en passant la clé
      * <code>callback</code> en paramètre. Retourne null si l'option de configuration
      * <code><callback></code> n'est pas définie.
      * 
@@ -2011,8 +1980,8 @@ class DatabaseModule extends Module
      */
     protected function getCallback()
     {
-        debug && Debug::log('callback : %s', $this->configUserGet('callback'));
-        return $this->configUserGet('callback');
+        debug && Debug::log('callback : %s', Config::userGet('callback'));
+        return Config::userGet('callback');
     }
      
     /**
@@ -2090,7 +2059,7 @@ class DatabaseModule extends Module
             {
                 if (!isset($format['label']))
                     Config::set("formats.$name.label", $name);
-                Config::set("formats.$name.max", $this->configUserGet("formats.$name.max",300));
+                Config::set("formats.$name.max", Config::userGet("formats.$name.max",300));
             }
         }
 
