@@ -1859,5 +1859,45 @@ final class Utils
         else
             $item=array($value, $item);
     }
+    
+    /**
+     * Convertit en octets une taille indiquée dans php.ini.
+     * 
+     * @size string une taille en 
+     * {@link http://fr.php.net/manual/fr/faq.using.php#faq.using.shorthandbytes "notation sténographique"}
+     * ( 2M, 2K, 3G...)
+     * 
+     * @return int la taille en octets.
+     */
+    private static function convertSize($size)
+    {
+        $size=trim($size);
+        switch(strtolower(substr($size,-1)))
+        {
+            // Le modifieur 'G' est disponible depuis PHP 5.1.0
+            case 'g':
+                $size *= 1024;
+            case 'm':
+                $size *= 1024;
+            case 'k':
+                $size *= 1024;
+        }
+        return $size;
+    }
+    
+    /*
+     * Retourne la taille maximale autorisé pour un fichier uploadé.
+     * 
+     * @return int la taille maximale en octets.
+     */
+    public static function uploadMaxSize()
+    {
+        $maxUpload=self::convertSize(ini_get('upload_max_filesize'));
+        $maxPost=self::convertSize(ini_get('post_max_size'));
+        $memoryLimit=self::convertSize(ini_get('memory_limit'));
+        if ($memoryLimit===-1) $memoryLimit=PHP_INT_MAX;
+        
+        return min($maxUpload, $maxPost, $memoryLimit);
+    }
 }
 ?>
