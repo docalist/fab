@@ -196,6 +196,15 @@ class XapianDatabaseDriver extends Database
     private $defaultOp=null;
     
     /**
+     * Indique si les opérateurs booléens (and, or, et, ou...) sont reconnus
+     * comme tels quelle que soit leur casse ou s'il ne doivent être reconnus
+     * que lorsqu'il sont en majuscules.
+     * 
+     * @var bool
+     */
+    private $opAnyCase=true;
+    
+    /**
      * Retourne le schéma de la base de données
      *
      * @return DatabaseSchema
@@ -932,17 +941,42 @@ class XapianDatabaseDriver extends Database
      * @param string $equation
      * @return string
      */
-    private static function frenchOperators($equation)
+    private function protectOperators($equation)
     {
         $t=explode('"', $equation);
         foreach($t as $i=>&$h)
         {
             if ($i%2==1) continue;
-            $h=preg_replace(array('~\bet\b~','~\bou\b~','~\bsauf\b~','~\bbut\b~'), array('AND', 'OR', 'NOT', 'NOT'), $h);
+            $h=preg_replace
+            (
+                array('~\b(ET|AND)\b~','~\b(OU|OR)\b~','~\b(SAUF|BUT|NOT)\b~'), 
+                array(':AND:', ':OR:', ':NOT:'), 
+                $h
+            );
+            
+            if ($this->opAnyCase)
+            {
+                $h=preg_replace
+                (
+                    array('~\b(et|and)\b~','~\b(ou|or)\b~','~\b(sauf|but|not)\b~'), 
+                    array('_and_', '_or_', '_not_'), 
+                    $h
+                );
+            }
         }
         return implode('"', $t);
     }
         
+    private function restoreOperators($equation)
+    {
+        return str_replace
+        (
+            array('_and_', '_or_', '_not_', ':and:', ':or:', ':not:'),
+            array('and', 'or', 'not', 'AND', 'OR', 'NOT'),
+            $equation
+        );
+    }
+    
     /**
      * Construit une requête xapian à partir d'une équation de recherche saisie
      * par l'utilisateur.
@@ -961,26 +995,32 @@ class XapianDatabaseDriver extends Database
             return new XapianQuery('');
             
         // Pré-traitement de la requête pour que xapian l'interprête comme on souhaite
-//        if (debug) echo 'Equation originale : ', var_export($equation,true), '<br />';
+//echo 'Equation originale : ', var_export($equation,true), '<br />';
+//echo 'opanycase : ', var_export($this->opAnyCase,true), '<br />';
         $equation=preg_replace_callback('~(?:[a-z0-9]\.){2,9}~i', array('Utils', 'acronymToTerm'), $equation); // sigles à traiter, xapian ne le fait pas s'ils sont en minu (a.e.d.)
-        $equation=Utils::convertString($equation, 'queryparser'); // FIXME: utiliser la même table que tokenize()
         $equation=preg_replace_callback('~\[(.*?)\]~', array($this,'searchByValueCallback'), $equation);
-        $equation=self::frenchOperators($equation);
-        //$equation=str_replace(array('[', ']'), array('"_','_"'), $equation);
+        $equation=$this->protectOperators($equation);
+        $equation=Utils::convertString($equation, 'queryparser'); // FIXME: utiliser la même table que tokenize()
+        $equation=$this->restoreOperators($equation);
         
-//        if (debug) echo 'Equation passée à xapian : ', var_export($equation,true), '<br />';
+//echo 'Equation passée à xapian : ', var_export($equation,true), '<br />';
     
-        // Construit la requête
-        $query=$this->xapianQueryParser->parse_Query
-        (
-            utf8_encode($equation),         // à partir de la version 1.0.0, les composants "texte" de xapian attendent de l'utf8 
+        $flags=
             XapianQueryParser::FLAG_BOOLEAN |
             XapianQueryParser::FLAG_PHRASE | 
             XapianQueryParser::FLAG_LOVEHATE |
-            XapianQueryParser::FLAG_BOOLEAN_ANY_CASE |
             XapianQueryParser::FLAG_WILDCARD |
             XapianQueryParser::FLAG_SPELLING_CORRECTION |
-            XapianQueryParser::FLAG_PURE_NOT
+            XapianQueryParser::FLAG_PURE_NOT;
+        
+        if ($this->opAnyCase)
+            $flags |= XapianQueryParser::FLAG_BOOLEAN_ANY_CASE;
+            
+        // Construit la requête
+        $query=$this->xapianQueryParser->parse_Query
+        (
+            utf8_encode($equation),         // à partir de la version 1.0.0, les composants "texte" de xapian attendent de l'utf8
+            $flags 
         );
 
 //        $h=utf8_decode($query->get_description());
@@ -1103,6 +1143,12 @@ class XapianDatabaseDriver extends Database
                         throw new Exception('Opérateur par défaut incorrect : '.$options['_defaultop']);
                 }
             }
+            
+            if (isset($options['_opanycase']))
+                $this->opAnyCase=(bool)$options['_opanycase'];
+            else
+                $this->opAnyCase=true;
+            
         }
         else
         {
