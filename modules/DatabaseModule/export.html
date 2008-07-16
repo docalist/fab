@@ -1,5 +1,5 @@
 <h1>Export {count($equations)===1 ? "d'un lot" : 'de '.count($equations).' lots'} de notices</h1>
-<form action="">
+<form action="{$this->action}">
 /* 
     Définit un slot qui pourra être utilisé par un module descendant pour
     "injecter" d'autres paramètres dans le formulaire de recherche.
@@ -42,7 +42,7 @@
                             name="_format" 
                             value="$name" 
                             id="$name" 
-                            checked="{$this->configUserGet('formats.'.$name.'.default') ? 'selected': ''}"
+                            checked="{Config::userGet('formats.'.$name.'.default') ? 'selected': ''}"
                             label="{$format['label'].(($format['max']!=-1) ? (' (maximum '.$format['max'].' notices)') : '')}"
                         />
                         <p test="{isset($format['description'])}">
