@@ -108,6 +108,50 @@ class Admin extends Module
         return $icon;
     }
 
+    /**
+     * Retourne un tableau permettant de construire un fil d'ariane 
+     * (breadcrumbs).
+     * 
+     * Les clés du tableau retourné contiennent les liens (non routés) des 
+     * différentes éléments composant le fil d'ariane. Les valeurs associées
+     * contiennent le libellé à afficher à l'utilisateur.
+     * 
+     * @return array
+     * @see getBreadCrumbs()
+     */
+    protected function getBreadCrumbsArray()
+    {
+        if (get_class($this)===__CLASS__)
+            return array
+            (
+                '/Admin' => 'Administration', 
+            );
+            
+        return array
+        (
+            '/Admin' => 'Administration', 
+            'index' => $this->getTitle()
+        );
+    }
+    
+    /**
+     * Retourne un tableau permettant de construire un fil d'ariane 
+     * (breadcrumbs).
+     * 
+     * Exemple : Administration » Gestion des fichiers » Modules
+     *
+     * La méthode retourne le même tableau que {@link getBreadCrumbsArray()}
+     * si ce n'est que le dernier élément n'a pas de lien (la clé correspondante
+     * est 0).
+     * 
+     * @return array
+     */ 
+    final public function getBreadCrumbs()
+    {
+        $breadCrumbs=$this->getBreadCrumbsArray();
+        array_push($breadCrumbs, array_pop($breadCrumbs));
+        return $breadCrumbs;
+    }
     
     /**
      * Affiche la liste des modules d'administration disponibles.

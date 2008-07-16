@@ -90,6 +90,40 @@ class AdminFiles extends Admin
         return $path;
     }
 
+    /**
+     * Retourne un tableau permettant de construire un fil d'ariane 
+     * (breadcrumbs).
+     * 
+     * {@inheritdoc}
+     * 
+     * La méthode ajoute au tableau retourné par la classe parente le nom du
+     * fichier éventuel passé en paramètre dans <code>$file</code>.
+     * 
+     * @return array
+     */
+    protected function getBreadCrumbsArray()
+    {
+        // Initialement : lien vers /admin et lien vers page index du module en cours
+        $breadCrumbs=parent::getBreadCrumbsArray();
+
+        // Ajoute chacun des dossiers composant le répertoire en cours  
+        $path=Utils::makePath($this->request->get('directory'));
+        $parts=preg_split('~'.preg_quote(DIRECTORY_SEPARATOR, '~').'~', $path, -1, PREG_SPLIT_NO_EMPTY);
+
+        // Pour chaque dossier, ajoute un lien vers le dossier
+        $dir='';
+        foreach($parts as $part)
+        {
+            $dir .= $part . DIRECTORY_SEPARATOR;
+            $breadCrumbs['index?directory='.$dir]=$part;
+        }
+
+        // Si on a un nom de fichier en paramêtre, on l'ajoute
+        if ($file=$this->request->get('file'))
+            $breadCrumbs[$this->request->getUrl()]=$file;
+        
+        return $breadCrumbs;    
+    }
     
     /**
      * Vérifie que le path indiqué en paramètre ne contient pas de séquences
