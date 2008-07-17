@@ -651,11 +651,10 @@ final class Utils
      * chaine contenant la valeur '0' ou pour un entier 0 ou pour un booléen
      * false.
      * 
-     * @param mixed $anyVar	la variable à examiner
+     * @param mixed $anyVar	la variable à examiner.
      * 
      * @param mixed $defaultValue la valeur par défaut à retourner si $anyVar
-     * 
-     * n'est pas définie (optionnel, valeur par défaut null)
+     * n'est pas définie (optionnel, valeur par défaut null).
      * 
      * @return mixed
      */
