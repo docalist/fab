@@ -1,0 +1,59 @@
+<!-- Path des images utilisées -->
+<def name="icons" value="/FabWeb/modules/AdminDatabases/images" />
+<h1>{$this->getTitle()}</h1>
+<h2>Restauration de la base $database à partir d'un fichier dump</h2>
+
+    <def name="request" value="{$this->request->copy()->keepOnly('database')}" />
+<if test="{count($files)===0}">
+    <p>
+        Aucun fichier de dump n'est disponible pour la base $database.
+    </p>
+</if>
+<else>
+    <bigmenu>
+        <loop on="$files" as="$path,$file">
+            <def name="request" value="{$request->set('file', $file)}" />
+    
+            <a name="$file" />
+            <item label="$file" img="$icons/dumplogo.png" href="{$request->getUrl()}">
+                <slot name="fileinfo" action="../AdminFiles/fileinfo.html" path="$path" />
+            </item>
+        </loop>
+    </bigmenu>
+</else>
+
+<if test="$otherFiles">
+    <toolbar>
+        <item img="$icons/add.png" onclick="jQuery('#otherFiles').toggle();">Autres fichiers...</item>
+    </toolbar>
+    
+    <div id="otherFiles" style="clear: both; display: none; padding-top: 3em;">
+        <div id="warning">
+            <p>
+                Les fichiers ci-dessous sont également des fichiers de dump mais 
+                qui ne correspondent pas, a priori, à la base $database.
+            </p>
+            <p>
+                Ces dumps peuvent être utiles si vous souhaitez restaurer dans
+                la base $database des données provenant d'une autre base de 
+                données.
+            </p>
+            <p>
+                N'utilisez ces fichiers de dump que si vous savez ce que vous 
+                faites...
+            </p> 
+        </div>
+        <div>
+            <bigmenu>
+                <loop on="$otherFiles" as="$path,$file">
+                    <def name="request" value="{$request->set('file', $file)}" />
+            
+                    <a name="$file" />
+                    <item label="$file" img="$icons/dumplogo.png" href="{$request->getUrl()}">
+                        <slot name="fileinfo" action="../AdminFiles/fileinfo.html" path="$path" />
+                    </item>
+                </loop>
+            </bigmenu>
+        </div>
+    </div>
+</if>

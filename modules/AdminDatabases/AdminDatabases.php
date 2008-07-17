@@ -696,6 +696,10 @@ class AdminDatabases extends Admin
         
         // Données
         $xml->startElement('records');     // <records>
+        
+        $xml->writeAttribute('count', $count);
+        
+        $start=microtime(true);
         foreach($selection as $i=>$record)
         {
             $xml->startElement('row');      // <row>
@@ -704,7 +708,13 @@ class AdminDatabases extends Admin
                 $this->xmlWriteField($xml, $field, $value);
             }
             $xml->endElement();             // </row>
-            TaskManager::progress($i, $count);
+            
+            $time=microtime(true);
+            if (($time-$start)>1)
+            {
+                TaskManager::progress($i, $count);
+                $start=$time;
+            }            
         }
         $xml->endElement();                 // </records>
         
@@ -875,62 +885,163 @@ class AdminDatabases extends Admin
         return $value;
     }
     
-    public function actionRestore($database, $filename=null)
+    public function actionRestore($database, $file='', $confirm=false)
     {
+        // Path du répertoire contenant les backups
+        $dir=Runtime::$root.'data' . DIRECTORY_SEPARATOR . 'backup' . DIRECTORY_SEPARATOR;
+        
+        // Choix du fichier de dump à restaurer
+        if ($file==='')
+        {
+            // Détermine la liste des dumps pour cette base
+            $files=array();
+            $otherFiles=array();
+            foreach(glob($dir . '*.xml.gz') as $path)
+            {
+                $file=basename($path);
+                if (stripos($file, $database) === 0)
+                    $files[$path]=basename($path);
+                else
+                    $otherFiles[$path]=basename($path);
+            }
+
+            // Trie les dumps par nom (et donc par date) décroissante
+            ksort($files, SORT_LOCALE_STRING);
+            ksort($otherFiles, SORT_LOCALE_STRING);
+            
+            // Demande à l'utilisateur de choisir le dump
+            Template::Run
+            (
+                'chooseDump.html', 
+                array
+                (
+                    'database'=>$database,
+                    'files'=>$files,
+                    'otherFiles'=>$otherFiles
+                )
+            );
+            return;
+        }
+        
+        // Détermine le path complet du fichier de dump et vérifie qu'il existe
+        $path=$dir . $file;
+        if (!file_exists($path))
+            throw new Exception('Le fichier de dump ' . $file . ' n\'existe pas');
+            
+        // Demande de confirmation
+        if (! $confirm)
+        {
+            // Demande à l'utilisateur de choisir le dump
+            Template::Run
+            (
+                'confirmRestore.html', 
+                array
+                (
+                    'database'=>$database,
+                    'file'=>$file
+                )
+            );
+            return;
+        }
+        
+        // Crée une tâche au sein du taskmanager
+        if (! User::hasAccess('cli'))
+        {
+            // 2. Crée la tâche
+            $id=Task::create()
+                ->setRequest($this->request)
+                ->setTime(0)
+                ->setRepeat(null)
+                ->setLabel('Restauration de la base ' . $database . ' à partir du fichier ' . $file)
+                ->setStatus(Task::Waiting)
+                ->save()
+                ->getId();
+    
+//            if ($taskTime===0 || abs(time()-$taskTime)<30)
+                Runtime::redirect('/TaskManager/TaskStatus?id='.$id);
+//            else
+//                Runtime::redirect('/TaskManager/Index');
+//            return;
+        }
+        
+        $gzPath='compress.zlib://'.$path;
+        
+        echo '<ol>';
+        
         // Ouvre le fichier
+        echo '<li>Ouverture du fichier ', $file, '...</li>';
         $xml=new XMLReader();
-        $xml->open(dirname(__FILE__).'/dump.xml');
+        $xml->open($gzPath);
         $xml->read();
-        echo 'initial : ', $xml->name,  '<br />';
         
         // <database>
         $this->expect($xml, 'database');
         $xml->read();
         
         // <schema>
+        echo '<li>Chargement du schéma de la base à partir du fichier dump...</li>';
         $this->expect($xml, 'schema');
-            
         $doc=new DOMDocument();
         $doc->appendChild($xml->expand());
         $dbs=new DatabaseSchema($doc->saveXML()); 
-        echo $dbs->validate() ? 'schéma valide' : 'schéma invalide', '<br />';
-        // var_export($dbs->toXml());
+        if (! $dbs->validate())
+            throw new Exception('Le schéma enregistré dans le fichier dump ' . $file . ' n\'est pas valide. Impossible de poursuivre la restauration de la base.');
+            
+        // Crée la base une fois qu'on a le schéma
+        echo '<li>Suppression de la base de données existante...</li>';
+        echo '<li>Création de la base ', $database, ' à partir du schéma du dump...</li>';
+        $db = Database::create($database, $dbs, 'xapian');
+        
         $xml->next();
         
         // <records>
         $this->expect($xml, 'records');
+        $count=$xml->getAttribute('count');
         $xml->read();
         
+        echo '<li>Chargement des ', $count, ' enregistrements présents dans le fichier de dump...</li>';
+        $i=0;
+        $start=microtime(true);
         while($xml->name !== 'records' || $xml->nodeType !== XMLReader::END_ELEMENT)
         {
             $this->expect($xml, 'row');
             $xml->read();
 
+            $db->addRecord();
             while($xml->name !== 'row' || $xml->nodeType !== XMLReader::END_ELEMENT)
             {
                 while($xml->nodeType !== XMLReader::ELEMENT) $xml->read();
                 
                 $field=$xml->name;
                 $value=$this->fieldValue($xml->expand());
-                if (is_array($value))
-                    echo "<b>$field</b>", ': ', var_export(implode('¤', $value),true), '<br />';
-                else
-                    echo "<b>$field</b>", ': ', var_export($value,true), '<br />';
+                
+                $db[$field]=$value;
                 $xml->next();
             }
-            echo '<hr />';
+
+            $db->saveRecord();
+            $i++;
+            
+            $time=microtime(true);
+            if (($time-$start)>1)
+            {
+                TaskManager::progress($i, $count);
+                $start=$time;
+            }            
             $xml->read();
             
         }
         $xml->read(); // </records>
-        echo $xml->name, ' : ', $this->nodeType($xml), ' = ', $xml->value, '<br />';
-        echo 'après records: ', $xml->name,  '<br />';
-        
         
         $xml->close();
         $xml=null;
-        die('ok');
+        $db=null;
+        echo '<li>Flush de la base...</li>';
         
+        TaskManager::progress();
+
+        echo '<li>La restauration est terminée.</li>';
+        echo '</ol>';
     }
     
 }

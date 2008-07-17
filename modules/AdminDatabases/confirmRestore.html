@@ -1,0 +1,37 @@
+<h1>{$this->getTitle()}</h1>
+<h2>Restauration de la base $database</h2>
+
+<p>
+    Vous allez lancer un restauration complète de la base 
+    <strong>$database</strong> à partir du fichier de dump <strong>$file</strong>.
+</p>
+
+<p>
+    La base <strong>$database</strong> va être complètement effacée puis sera 
+    progressivement recréée à partir des informations (structure de la base et
+    données des enregistrements) présentes dans le fichier de dump. 
+</p>
+
+<p>
+    Le temps nécessaire pour recréer complètement la base dépend du nombre
+    d'index, de tables et de clés de tri définis dans le schéma de la base,
+    du nombre de notices que contient la base, et du nombre moyen de mots à 
+    indexer par notice.
+</p>
+
+<p>
+    Pendant toute la durée de la restauration, les utilisateurs du site pourront
+    interroger et consulter les enregistrements au fur et à mesure de leur 
+    chargement. Par contre, <strong>aucune modification ne sera possible</strong>.
+</p>
+
+<p>
+    Lancer la restauration ?
+</p>
+ 
+<form>
+    <okcancel ok="Lancer la restauration..." />
+    <hidden name="database" value="$database" />
+    <hidden name="file" value="$file" />
+    <hidden name="confirm" value="true" />
+</form>
