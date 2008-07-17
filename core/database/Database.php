@@ -149,13 +149,14 @@ abstract class Database implements ArrayAccess, Iterator
         $schema->compile();
 */        
         // Utilise /config/db.config pour convertir l'alias en chemin et déterminer le type de base
-//        $type=Config::get("db.$database.type", $type);
-//        $database=Config::get("db.$database.path", $database);
-        
-        // TODO: gérer les chemins relatifs
+        $type=Config::get("db.$database.type", $type);
+        $database=Config::get("db.$database.path", $database);
+
+        // Si c'est un chemin relatif, recherche dans /data/db
+        if (Utils::isRelativePath($database))
+            $database=Utils::makePath(Runtime::$root, 'data/db', $database);
         
         // Crée une instance de la bonne classe en fonction du type, crée la base et retourne l'objet obtenu
-//        debug && Debug::log("Création de la base '%s' de type '%s'", $database, $type);
         switch($type=strtolower($type))
         {
             case 'bis':
