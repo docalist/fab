@@ -198,7 +198,7 @@ class TaskManager extends DatabaseModule
         if ($this->method==='actionSearch')
         {
             if (!$this->request->bool('done')->defaults(false)->ok())
-                $this->request->add('_filter', 'last='.strftime('%Y%m%d*').' OR (not status:done)');
+                $this->request->add('_filter', 'last='.strftime('%Y%m%d*').' OR (NOT status:done)');
         }
     }
     
@@ -215,13 +215,18 @@ class TaskManager extends DatabaseModule
      */
 	private static function out($message, $client = null)
 	{
-		echo date('d/m/y H:i:s');
+		$h= date('d/m/y H:i:s');
 		if ($client)
-			echo ' (', $client, ')';
-		echo ' - ', Utils::convertString($message,'CP1252 to CP850'), "\n";
+			$h.= ' (' . $client . ')';
+		$h.= ' - ' . Utils::convertString($message,'CP1252 to CP850') . "\n";
+		
+		echo $h;
 		flush();
 		while (ob_get_level())
 			ob_end_flush();
+			
+//        $path=self::getOutputDirectory() . 'daemon.html';
+//		file_put_contents($path, $h, FILE_APPEND);
 	}
 
     /**
@@ -345,7 +350,7 @@ class TaskManager extends DatabaseModule
             
 			// actuellement (php 5.1.4) si on met un timeout de plus de 4294, on a un overflow
 			// voir bug http://bugs.php.net/bug.php?id=38096 
-			if ($timeout > 4294) $timeout = 4294; // = 1 heure, 11 minutes et 34 secondes
+//			if ($timeout > 4294) $timeout = 4294; // = 1 heure, 11 minutes et 34 secondes
 
 			// Attend que quelqu'un se connecte ou que le timeout expire
 			self::out('en attente de connexion, timeout='.$timeout.(is_null($task) ? ', aucune tâche en attente' : (', prochaine tâche : '.$task->getId(false))));
