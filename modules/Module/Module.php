@@ -613,9 +613,124 @@ Config::addArray($this->config);    // fixme: objectif : uniquement $this->confi
         $this->postExecute();
     }
 
+    /**
+     * Méthode appelée après l'exécution de l'action demandée.
+     * 
+     * Pour l'action demandée, cette méthode génère des logs.
+     * 
+     * Les fichiers de log se trouvent dans le répertoire <code>/data/log</code>
+     * de l'application.
+     * 
+     * Le path du fichier de log, relatif au répertoire <code>/data/log</code> est 
+     * indiqué dans la clé <code>logfile</code> du fichier de configuration. Dans  
+     * le nom du fichier, il est possible d'utiliser tous les flags supportés par 
+     * la fonction {@link strftime()} de php.
+     * 
+     * Le format de chaque ligne du fichier de log est indiqué dans la clé 
+     * <code>logformat</code> du fichier de configuration.
+     */
     public function postExecute()
     {
+        // Récupère le nom du fichier de log, exit si aucun
+        if (is_null($logFile=Config::get('logfile'))) return;
         
+        // Récupère le format du fichier de log, exit si aucun
+        if (is_null($logFormat=Config::get('logformat'))) return;
+        
+        // Détermine le répertoire où seront stockés les log
+        $dir=Utils::makePath(Runtime::$root, 'data', 'log', dirname($logFile));
+        
+        // Vérifie qu'il existe, le crée si besoin est
+        if (!is_dir($dir))
+            if (!Utils::makeDirectory($dir)) return;
+
+        // Détermine le nom du fichier de log
+        $file=strftime(basename($logFile));
+        
+        // Construit la ligne de log
+        if ('' === $log=$this->getLogData($logFormat)) return;
+        
+        // Ecrit la ligne de log dans le fichier
+        file_put_contents($dir . DIRECTORY_SEPARATOR . $file, $log, FILE_APPEND);
+    }
+    
+    /**
+     * Construit la ligne de log.
+     * 
+     * @param string $format le format.
+     * @return string la ligne de log.
+     */
+    private function getLogData($format)
+    {
+        $log='';    
+        $items=preg_split('~%([A-Za-z0-9_.]+)~', $format, -1, PREG_SPLIT_DELIM_CAPTURE);
+        foreach($items as $index=>$item)
+        {
+            // Les items d'indice pair sont écrits tels quels 
+            if (0 === $index %2)
+                $log .= $item;
+            else
+            {
+                $data=$this->getLogItem($item);
+                if (! $data) 
+                    $data='-';
+                else                    
+                    // Neutralise les retours chariots
+                    $data=str_replace(array("\r\n", "\n", "\r"), array(' ', ' ', ' '), $data);
+                    
+                $log .= $data;
+            }
+        }
+
+        if ($log) $log.="\n";
+        return $log;
+    }
+    
+    /**
+     * Retourne la valeur d'un élément à écrire dans le fichier de log.
+     * 
+     * Méthode destinée à être surchargée par les modules descendants.
+     * 
+     * Noms d'items reconnus par cette méthode :
+     * - tous les flags supportés par la fonction {@link strftime()} de php
+     * - user.xxx : la propriété 'xxx' de l'utilisateur en cours
+     * - ip : l'adresse ip du client
+     * - host : le nom d'hôte du serveur en cours
+     * - user_agent : la chaine identifiant le navigateur de l'utilisateur
+     * - referer : la page d'où provient l'utilisateur
+     * - uri : l'adresse complète (sans le host) de la requête en cours
+     * - query_string : les paramètres de la requête 
+     * 
+     * @param string $name le nom de l'item.
+     * 
+     * @return string la valeur à écrire dans le fichier de log pour cet item.
+     */
+    protected function getLogItem($name)
+    {
+        // Date, heure, etc.
+        if (strlen($name)===1) return strftime('%'.$name);
+        
+        // Important : les items dont le nom ne fait que un caractère sont
+        // réservés à strftime. Tous les autres items que l'on crée doivent
+        // obligatoirement avoir un nom d'au moins deux lettres.
+        
+        // Items sur l'utilisateur en cours
+        if (substr($name, 0, 5)==='user.') return User::get(substr($name, 5));
+        
+        // Autres items
+        switch($name)
+        {
+            // Requête http
+            case 'ip':              return $_SERVER['REMOTE_ADDR'];
+            case 'host':            return $_SERVER['HTTP_HOST'];
+            case 'user_agent':      return $_SERVER['HTTP_USER_AGENT'];
+            case 'referer':         return $_SERVER['HTTP_REFERER'];
+            case 'uri':             return $_SERVER['REQUEST_URI'];
+            case 'query_string':    return $_SERVER['QUERY_STRING'];
+        }
+
+        // Item inconnu
+        return '';
     }
     
     public static function forward($fabUrl)

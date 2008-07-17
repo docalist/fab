@@ -1250,7 +1250,7 @@ class DatabaseModule extends Module
         
         // Force swift à utiliser un cache disque pour minimiser la mémoire utilisée
         Swift_CacheFactory::setClassName("Swift_Cache_Disk");
-        Swift_Cache_Disk::setSavePath(Utils::getTempDirectory());        
+        Swift_Cache_Disk::setSavePath(Utils::getTempDirectory());
  		
  		// Crée le message
 		$email = new Swift_Message($subject);
@@ -2025,6 +2025,44 @@ class DatabaseModule extends Module
         echo '</database>', "\n"; 
     }
     
+    /** 
+     * Retourne la valeur d'un élément à écrire dans le fichier de log. 
+     * 
+     * Nom d'items reconnus par cette méthode :
+     * - tous les items définis dans la méthode {@link Module::getLogItem()}
+     * - database : le nom de la base de données
+     * - equation : l'équation de recherche
+     * - count : le nombre de réponses de la recherche en cours
+     * - fmt : le format d'affichage des réponses
+     * - sort : le tri utilisé pour afficher les réponses
+     * - max : le nombre maximum de réponses affichées sur une page
+     * - start : le numéro d'ordre de la notice sur laquelle 
+     *  
+     * @param string $name le nom de l'item.
+     * 
+     * @return string la valeur à écrire dans le fichier de log pour cet item.
+     */ 
+    protected function getLogItem($name)
+    {
+        switch($name)
+        {
+            // Base de données
+            case 'database': return Config::get('database');
+            
+            // Items sur la recherche en cours
+            case 'equation': return $this->equation;
+            case 'count':    return is_null($this->equation) ? '' : $this->selection->count();
+            case 'fmt':      return $this->request->get('_fmt');
+            case 'sort':     return $this->request->get('_sort');
+            case 'max':      return $this->request->get('_max');
+            case 'start':    return $this->request->get('_start');
+
+            // Items sur l'affichage d'un enregistrement
+            case 'ref':      return $this->request->get('REF');
+        }
+        
+        return parent::getLogItem($name);
+    }
     
     // ****************** méthodes privées ***************
     
