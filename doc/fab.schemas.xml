@@ -1,0 +1,713 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE sect1 PUBLIC "-//OASIS//DTD DocBook XML V4.5//EN"
+"http://www.oasis-open.org/docbook/xml/4.5/docbookx.dtd">
+<?xml-stylesheet href="../web/css/docbook/dm.css" type="text/css"?>
+<sect1 id="fab.actions">
+    <sect1info>
+        <releaseinfo>$Id$</releaseinfo>
+    </sect1info>
+
+    <title>Schémas de bases de données *</title>
+
+    <toc></toc>
+
+    <sect2 id="fab.schemas.introduction">
+        <title>Qu'est-ce qu'un schéma ?</title>
+
+        <para>Un schéma est un fichier définissant la structure complète d'une
+        base de données fab. Un schéma décrit toutes les propriétés d'une base
+        : la structure des enregistrements, la liste des index et leurs
+        caractéristiques, les tables de lookup disponibles, les tris
+        possibles, etc.</para>
+
+        <para>Un schéma est stocké sous la forme d'un fichier xml indépendant
+        (il peut être copié, archivé, transféré d'un poste à l'autre, envoyé à
+        un collègue, etc.) mais Fab dispose également d'un éditeur graphique
+        sophistiqué qui permet de masquer la complexité du format xml (il
+        suffit d'entrer les informations demandées, de saisir les valeurs
+        souhaitées, etc.) Cet éditeur assure également la validation des
+        schémas et empêche l'enregistrement d'un schéma comportant des erreurs
+        (nom de champ invalide, index portant sur un champ qui n'existe
+        pas...)</para>
+
+        <para>Le but premier d'un schéma est de permettre la création et la
+        modification d'une base de données. Le site d'administration de Fab
+        permet de créer une nouvelle base de données à partir d'un schéma
+        existant : on choisit le nom de la base à créer, le schéma à utiliser
+        et fab se charge de créer la base conformément aux indications qui
+        figurent dans le schéma. Pour permettre aux applications de faire de
+        l'introspection sur la structure de la base de données, une copie du
+        schéma utilisé lors de la création est stockée dans les métadonnées de
+        la base.</para>
+
+        <para>La structure d'une base de données ainsi créée pourra être par
+        la suite modifiée. Dans fab, la procédure pour modifier la structure
+        d'une base existante consiste à modifier un schéma existant (en
+        général celui qui a servi à créer la base, mais ce n'est pas
+        obligatoire) puis à appliquer ce nouveau schéma à la base de données.
+        Fab va alors détecter automatiquement les différences entre le schéma
+        actuel de la base de données (stocké dans les métadonnées de la base)
+        et le schéma à appliquer et va apporter les modifications requises à
+        la base de données, en proposant éventuellement une réindexation
+        complète de la base si celle-ci est nécessaire.</para>
+
+        <para>Un schéma est une structure hiérarchique qui définit différents
+        types d'objet. Les chapitres suivants décrivent chaque type d'objet et
+        les propriétés qui le caractérisent. Pour la description des
+        propriétés, nous avons fait apparaître à chaque fois le titre de la
+        propriété telle qu'elle apparaît dans l'éditeur de schéma de Fab,
+        suivi, entre parenthèses, du nom exact de la propriété dans le fichier
+        xml du schéma et dans l'API de fab. Exemple : Mots-vides
+        (stopwords).</para>
+    </sect2>
+
+    <sect2 id="fab.schemas.properties">
+        <title>Propriétés générales</title>
+
+        <para>Un schéma a les propriétés générales suivantes :</para>
+
+        <itemizedlist>
+            <listitem>
+                <para><emphasis role="strong">Libellé</emphasis>
+                (<code>label</code>) : un libellé court (sur une ligne)
+                décrivant le but du schéma. Ce libellé sera en général affiché
+                à coté du nom du schéma.</para>
+            </listitem>
+
+            <listitem>
+                <para><emphasis role="strong">Description</emphasis>
+                (<code>description</code>) : une zone de texte libre dans
+                laquelle vous pouvez stocker toute information utile à la
+                gestion du schéma (précisions sur les choix effectués,
+                historique des modifications apportées, notes diverses, etc.)
+                Fab ne fait aucune utilisation en propre de cette
+                propriété.</para>
+            </listitem>
+
+            <listitem>
+                <para><emphasis role="strong">Mots-vides</emphasis>
+                (<code>stopwords</code>) : la liste des mots-vides à ignorer
+                lors de l'indexation en texte intégral des enregistrements de
+                la base et lors des recherches. Les mots-vides correspondent à
+                des mots qui, pour un corpus de documents donné, sont trop
+                fréquents pour être porteurs de sens (par exemple, en
+                français, les articles tels que "le", "la", "les", les
+                prépositions, les conjonctions de coordination, certains
+                adjectifs, certains adverbes, etc.) La constitution d'une
+                "bonne" liste de mots-vides constitue une optimisation
+                importante d'une base de données : cela permet d'alléger les
+                index d'une quantité importante de données qui n'apportent en
+                général aucune amélioration des résultats de recherche.</para>
+            </listitem>
+
+            <listitem>
+                <para><emphasis role="strong">Indexer les
+                mots-vides</emphasis> (<code>indexstopwords</code>) : il
+                s'agit d'un flag qui indique s'il faut ou non indexer les
+                mots-vides. Actuellement, Fab ne tient pas compte de ce flag
+                (les mots-vides ne sont jamais indexés).</para>
+            </listitem>
+
+            <listitem>
+                <para><emphasis role="strong">Date de création</emphasis>
+                (<code>creation</code>) : cette propriété est gérée
+                automatiquement par Fab, il s'agit de la date et de l'heure de
+                création du schéma.</para>
+            </listitem>
+
+            <listitem>
+                <para><emphasis role="strong">Date de dernière
+                modification</emphasis> (<code>lastupdate</code>) : cette
+                propriété est gérée automatiquement par Fab, il s'agit de la
+                date et de l'heure à laquelle le schéma a été enregistré pour
+                la dernière fois.</para>
+            </listitem>
+        </itemizedlist>
+    </sect2>
+
+    <sect2 id="fab.schemas.fields">
+        <title>Liste des champs</title>
+
+        <sect3 id="fab.schemas.fields.introduction">
+            <title>Introduction</title>
+
+            <para>La liste des champs (<code>fields</code>) définit la
+            structure des enregistrements de la base. Dans une base Fab, tous
+            les enregistrements ont la même structure. Fab optimise le
+            stockage des enregistrements en n'enregistrant que les champs
+            auxquels une valeur a été attibuée (autrement dit : les champs
+            vides ne prennent pas de place).</para>
+
+            <para>Chaque champ peut contenir une valeur simple (un entier, un
+            booléen, une chaine de caractères...) ou un tableau de valeurs
+            (champ articles).</para>
+        </sect3>
+
+        <sect3 id="fab.schemas.fields.properties">
+            <title>Propriétés d'un champ</title>
+
+            <para>Un champ a les propriétés suivantes :</para>
+
+            <itemizedlist>
+                <listitem>
+                    <para><emphasis role="strong">Nom</emphasis>
+                    (<code>name</code>) : le nom du champ. Ne peut comporter
+                    que des lettres, des chiffres et le caractère souligné.
+                    Doit être unique.</para>
+                </listitem>
+
+                <listitem>
+                    <para><emphasis role="strong" security="">Type du
+                    champ</emphasis> (<code>type</code>) : indique la nature
+                    de l'information qui sera stockée dans ce champ.</para>
+
+                    <itemizedlist>
+                        <listitem>
+                            <para><emphasis>bool</emphasis> : un booléen
+                            (uniquement les valeurs "true" et "false").</para>
+                        </listitem>
+
+                        <listitem>
+                            <para><emphasis>int</emphasis> : un nombre
+                            entier.</para>
+                        </listitem>
+
+                        <listitem>
+                            <para><emphasis>text</emphasis> : une chaine de
+                            caractères de taille variable.</para>
+                        </listitem>
+
+                        <listitem>
+                            <para><emphasis>autonumber</emphasis> : il s'agit
+                            d'un champ de type entier comme
+                            <emphasis>int</emphasis>, mais à chaque fois qu'un
+                            nouvel enregistrement sera créé, Fab affectera
+                            automatiquement un numéro unique si le champ n'a pas
+                            encore de valeur attribuée. Cela permet, par
+                            exemple, d'attribuer un numéro de référence unique à
+                            chaque enregistrement.</para>
+                        </listitem>
+                    </itemizedlist>
+                </listitem>
+
+                <listitem>
+                    <para><emphasis role="strong">Libellé</emphasis>
+                    (<code>label</code>) : un libellé court (sur une ligne)
+                    décrivant le rôle du champ.</para>
+                </listitem>
+
+                <listitem>
+                    <para><emphasis role="strong">Description</emphasis>
+                    (<code>description</code>) : une zone de texte libre dans
+                    laquelle vous pouvez stocker toute information utile pour
+                    ce champ (valeurs possibles, format, etc.)</para>
+                </listitem>
+
+                <listitem>
+                    <para><emphasis role="strong">Utiliser les mots vides de
+                    la base</emphasis> (<code>defaultstopwords</code>) : il
+                    s'agit d'un flag qui indique si les mots-vides indiqués
+                    dans les propriétés générales de la base doivent ou non
+                    être utilisés pour ce champ. Si cette propriété est à
+                    "true", fab utiliser les mots-vides de la base, auxquels
+                    s'ajoutent les éventuels mots-vides spécifiques au champ
+                    (voir ci-dessous). Si cette propriété est à "false", seuls
+                    les mots-vides spécifiques au champ seront
+                    utilisés.</para>
+                </listitem>
+
+                <listitem>
+                    <para><emphasis role="strong">Mots-vides
+                    spécifiques</emphasis> (<code>stopwords</code>) : mots qui
+                    seront ignorés de façon spécifique lors de l'indexation de
+                    ce champ (cf ci-dessus).</para>
+                </listitem>
+            </itemizedlist>
+        </sect3>
+    </sect2>
+
+    <sect2 id="fab.schemas.indices">
+        <title>Liste des index</title>
+
+        <sect3 id="fab.schemas.indices.introduction">
+            <title>Introduction</title>
+
+            <para>La liste des index permet de définir les champs les
+            possibilités de recherche qui seront offertes aux utilisateurs
+            pour exécuter une requête sur la base.</para>
+
+            <para>Chaque index a un nom unique qui sera utilisé dans les
+            requêtes pour restreindre la recherche à un ou plusieurs champs de
+            la base. Par exemple, si un index "Titre" a été créé pour un champ
+            "Titre du document", l'utilisateur pourra effectuer des requêtes
+            de la forme <code>Titre:mot</code> pour ne sélectionner que les
+            enregistrements ayant le mot indiqué dans le titre.</para>
+
+            <para>Un index peut porter sur un ou plusieurs champs. Cela permet
+            de masquer les détails de la structure et de simplifier les
+            requêtes des utilisateurs. Pour reprendre l'exmple donné
+            ci-dessus, on pourrait créer un index "Titre" qui porterait à la
+            fois sur le champ "Titre du document" et sur le champ "Traduction
+            du titre". La même requête <code>Titre:mot</code> recherchera
+            alors les enregistrements qui ont le mot indiqué soi dans le titre
+            du document soit dans la traduction.</para>
+
+            <para>Il existe également un index global (sans nom) qui est
+            utilisé lorsqu'aucun nom d'index n'est indiqué dans la requête.
+            Cet index global est alimenté à partir des champs d'index pour
+            lesquels la propriété "count" est à vrai (cf plus bas).</para>
+        </sect3>
+
+        <sect3 id="fab.schemas.indices.properties">
+            <title>Propriétés d'un index</title>
+
+            <para>Un index a les propriétés suivantes :</para>
+
+            <itemizedlist>
+                <listitem>
+                    <para><emphasis role="strong">Nom</emphasis>
+                    (<code>name</code>) : le nom de l'index. Ne peut comporter
+                    que des lettres, des chiffres et le caractère souligné.
+                    Doit être unique. C'est le nom que les utilisateurs
+                    utiliseront dans leurs requêtes. Dans le cas d'un index ne
+                    portant que sur un seul champ, il est d'usage de donner à
+                    l'index le même nom que le champ qu'il indexe.</para>
+                </listitem>
+
+                <listitem>
+                    <para><emphasis role="strong">Libellé</emphasis>
+                    (<code>label</code>) : un libellé court (sur une ligne)
+                    décrivant le rôle de l'index.</para>
+                </listitem>
+
+                <listitem>
+                    <para><emphasis role="strong">Description</emphasis>
+                    (<code>description</code>) : une zone de texte libre dans
+                    laquelle vous pouvez stocker toute information utile pour
+                    cet index (champs indexés, précisions, etc.)</para>
+                </listitem>
+            </itemizedlist>
+        </sect3>
+
+        <sect3 id="fab.schemas.indices.fields">
+            <title>Liste des champs composant un index</title>
+
+            <para>Chaque index peut porter sur un ou plusieurs champs. Pour
+            chaque champ composant un index dispose des propriétés suivantes
+            :</para>
+
+            <itemizedlist>
+                <listitem>
+                    <para><emphasis role="strong">Nom</emphasis>
+                    (<code>name</code>) : le nom exact du champ, tel qu'il
+                    figure dans la liste des champs composant les
+                    enregistrements.</para>
+                </listitem>
+
+                <listitem>
+                    <para><emphasis role="strong">Indexer les mots</emphasis>
+                    (<code>words</code>) : indique que tous les mots présents
+                    dans le champ (sauf les mots-vides, voir plus haut) seront
+                    ajoutés à l'index. Le fait de mettre cette propriété à
+                    true permettra à l'utilisateur de faire des requêtes de la
+                    forme <code>Titre:mot</code>.</para>
+                </listitem>
+
+                <listitem>
+                    <para><emphasis role="strong">Indexer les
+                    phrases</emphasis> (<code>phrases</code>) : indique que
+                    pour chaque mot présent dans le champ (sauf les
+                    mots-vides, voir plus haut), des informations
+                    supplémentaires permettant à l'utilisateur de faire des
+                    recherches par phrases seront ajoutées à l'index.</para>
+
+                    <para>Le fait de mettre cette propriété à true définit
+                    implicitement à true la propriété précédente "indexer les
+                    mots". La recherche par phrase permet à l'utilisateur de
+                    rechercher des expressions exactes en utilisant des
+                    requêtes de la forme
+                    <code>Titre:"100 ans de solitude"</code>. Dans ce cas,
+                    seuls les documents qui ont l'expression indiqué (dans
+                    l'ordre exact des mots) seront sélectionnés.</para>
+
+                    <para>La recherche par phrase permet également de faire
+                    des recherches par proximité (c'est à dire sans tenir
+                    compte de l'ordre des mots) :
+                    <code>Titre:100 NEAR solitude</code>.</para>
+
+                    <para>Le fait d'activer la recherche par phrase ajoute une
+                    très grande quantité d'informations dans les index : pour
+                    chaque mot trouvé, Fab stockera la liste complète des
+                    positions exactes de ce mot dans le champ.</para>
+                </listitem>
+
+                <listitem>
+                    <para><emphasis role="strong">Indexer les
+                    valeurs</emphasis> (<code>values</code>) : cette option
+                    permet d'ajouter à l'index les valeurs exactes présentes
+                    dans le champ. C'est une option intéressante pour tous les
+                    champs qui contiennent une liste finie de valeurs
+                    possibles (types de documents, mots-clés, et ainsi de
+                    suite).</para>
+
+                    <para>Quand l'option est activée, fab ajoute dans l'index
+                    des tokens spéciaux basés sur les valeurs présentes dans
+                    le champ, ce qui permettra à l'utilisateur de faire des
+                    requêtes de la forme
+                    <code>Motcles:[information et communication]</code>.</para>
+                </listitem>
+
+                <listitem>
+                    <para><emphasis role="strong">Indexation de type
+                    count</emphasis> (<code>count</code>) : cette option
+                    permet d'ajouter à l'index des tokens spéciaux
+                    représentant le nombre de valeurs présentes dans le champ
+                    indexé :</para>
+
+                    <para>valeurs exactes présentes dans le champ. C'est une
+                    option intéressante pour tous les champs qui contiennent
+                    une liste finie de valeurs possibles (types de documents,
+                    mots-clés, et ainsi de suite).</para>
+
+                    <itemizedlist>
+                        <listitem>
+                            <para>si le champ est vide, Fab ajoutera à l'index
+                            un token <code>__empty</code> (le mot "empty"
+                            précédé de deux caractères soulignés), ce qui
+                            permettra à l'utilisateur de lancer une requête de
+                            la forme <code>Motscles:__empty</code> pour obtenir
+                            la liste des enregistrements qui n'ont aucun
+                            mot-clé.</para>
+                        </listitem>
+
+                        <listitem>
+                            <para>Dans le cas contraire, Fab ajoutera à l'index
+                            un token de la forme __hasXXX (le mot "has" précédé
+                            de deux caractères soulignés et suivi d'un nombre
+                            entier) où XXX représente le nombre exact de valeurs
+                            présentes dans le champ. Dans ce cas, l'utilisateur
+                            pourra lancer une requête de la forme
+                            <code>Motscles:__has5</code> pour obtenir la liste
+                            de tous les enregistrements qui ont exactement 5
+                            mots-clés ou une requête de la forme
+                            <code>Motscles:__has*</code> (utilisation de la
+                            troncature) pour tous ceux qui ont au moins un
+                            mot-clé.</para>
+                        </listitem>
+                    </itemizedlist>
+                </listitem>
+
+                <listitem>
+                    <para><emphasis role="strong">Index global</emphasis>
+                    (<code>global</code>) : cette option permet d'ajouter ce
+                    champ dans l'index global (l'index global est l'index qui
+                    est utilisé quand aucun nom de champ n'est indiqué dans la
+                    requête).</para>
+                </listitem>
+
+                <listitem>
+                    <para><emphasis role="strong">Poids du champ</emphasis>
+                    (<code>weight</code>) : cette propriété permet de définir
+                    des poids respectifs entre les différents champs et les
+                    différents index. Ce poids (entier positif non nul) est
+                    l'un des critères pris en compte par l'algorithme de
+                    calcul de pertinence de Fab pour permettre d'afficher en
+                    premier les documents qui répondent le mieux à la requête
+                    de l'utilisateur. Par défaut, tous les champs d'index on
+                    un poids égal à 1 (un). Le fait de donner un poids plus
+                    important à un champ va augmenter son importance.</para>
+
+                    <para>L'idée intuitive est que si le mot recherché par
+                    l'utilisateur est trouvé dans, par exemple, le titre du
+                    document, l'enregistrement est probalement plus pertinent
+                    que si ce mot avait été trouvé dans un champ "notes" mais
+                    moins que si le même mot figurait dans la liste des
+                    mots-clés de ce document.</para>
+
+                    <para>Il est impossible de donner des règles exactes pour
+                    l'attribution des poids aux différents champs : cela
+                    dépend de la structure de la base, de la nature des
+                    documents, des caractéristiques souhaitées, etc. Seules
+                    des expérimentations permettent de déterminer les valeurs
+                    les plus raisonnables.</para>
+                </listitem>
+
+                <listitem>
+                    <para><emphasis role="strong">Positions de début et de
+                    fin</emphasis> (<code>start</code> et <code>end</code>).
+                    Par défaut, Fab prend en compte la totalité de
+                    l'information présente dans le champ indexé. Parfois, il
+                    est souhaitable de n'indexer qu'une partie de
+                    l'information présente (parce qu'on veut constituer un
+                    index particulier, ou parce que ce sera plus commode pour
+                    l'utilisateur, ou encore pour optimiser la taille de la
+                    base).</para>
+
+                    <para>Les propriétés <code>start</code> et
+                    <code>end</code> permettent d'indiquer à Fab la position
+                    de début et/ou de fin de l'information à indexer.</para>
+
+                    <para>Pour chacune des deux propriétés, il peut s'agir
+                    :</para>
+
+                    <para>start et : cette option permet d'ajouter ce champ
+                    dans l'index global (l'index global est l'index qui est
+                    utilisé quand aucun nom de champ n'est indiqué dans la
+                    requête).</para>
+
+                    <itemizedlist>
+                        <listitem>
+                            <para>soit d'un entier positif : dans ce cas, il
+                            s'agit d'une position par rapport au début du champ
+                            (le premier caractère présent dans le champ ayant la
+                            position 1).</para>
+                        </listitem>
+
+                        <listitem>
+                            <para>soit d'un entier négatif : dans ce cas, il
+                            s'agit d'une position par rapport à la fin du champ
+                            (exemple : -2 = les deux derniers
+                            caractères).</para>
+                        </listitem>
+
+                        <listitem>
+                            <para>soit d'une chaine de caractères : dans ce cas,
+                            Fab recherchera la chaine indiquée (insensible à la
+                            casse) et commencera l'indexation à la position
+                            obtenue.</para>
+                        </listitem>
+                    </itemizedlist>
+
+                    <para>Remarque : si <code>start</code> et <code>end</code>
+                    sont des entiers de même signe, start doit être inférieur
+                    à end.</para>
+                </listitem>
+            </itemizedlist>
+        </sect3>
+    </sect2>
+
+    <sect2 id="fab.schemas.alias">
+        <title>Liste des alias</title>
+
+        <sect3 id="fab.schemas.alias.introduction">
+            <title>Introduction</title>
+
+            <para>Un alias permet d'attribuer un nouveau nom (un synonyme) à
+            un index existant et de regrouper plusieurs index sous un nom
+            unique.</para>
+
+            <para>Un alias est composé d'un ou plusieurs index.</para>
+
+            <para>Si l'alias ne comporte qu'un seul index, on définit en fait
+            un nouveau nom pour cet index. Cela permet, par exemple, d'avoir
+            des noms d'index en plusieurs langues (un index Titre et des alias
+            "Title", "Titel", "Título", etc.)</para>
+
+            <para>Si l'alias comporte plusieurs index, les requêtes portant
+            sur cet alias fonctionneront comme si l'utilisateur avait combiné
+            en "OU" des requêtes distinctes portant sur chacun des index de
+            l'alias.</para>
+
+            <para>Exemple : Imaginons qu'on ait un index "TitreORI" portant
+            sur le titre original d'un document, un index "TitreENG" portant
+            sur le titre traduit en anglais et un alias "Titre" regroupant les
+            index "TitreORI" et "TitreENG". Une requête de la forme
+            <code>Titre:mot</code> produira exactement les mêmes résultats que
+            la requête équivalente
+            <code>TitreORI:mot OR TitreENG:mot</code>.</para>
+
+            <para>Les alias ne stockent aucune données dans la base : ils
+            n'ont de rôle que lors de la recherche et peuvent donc être
+            changés facilement sans avoir besoin de réindexer la base.</para>
+
+            <para>Lors d'une recherche, les parties de la requête portant sur
+            un alias seront développées pour générer une équation en "OU"
+            comportant tous les index présents dans l'alias. De ce fait, un
+            alias comportant beaucoup d'index peut assez vite conduire à des
+            requêtes très compliquées pour lesquelles les temps de réponses
+            seront dégradés.</para>
+        </sect3>
+
+        <sect3 id="fab.schemas.alias.properties">
+            <title>Propriétés d'un alias</title>
+
+            <para>Un alias a les mêmes propriétés qu'un index (nom, libellé,
+            description) : voir plus haut.</para>
+        </sect3>
+
+        <sect3 id="fab.schemas.alias.indices">
+            <title>Liste des index composant un alias</title>
+
+            <para>Les index composant un alias n'ont pas de propriétés
+            spécifiques : on indique simplement le nom (name) de chacun des
+            index qu'on souhaite inclure dans l'alias.</para>
+        </sect3>
+    </sect2>
+
+    <sect2 id="fab.schemas.lookuptables">
+        <title>Tables de lookup</title>
+
+        <sect3 id="fab.schemas.lookuptables.introduction">
+            <title>Introduction</title>
+
+            <para>Une table de lookup permet de collecter toutes les valeurs
+            distinctes présentes dans la base pour un ou plusieurs champs
+            donnés et d'avoir en temps réel pour chaque valeur le nombre exact
+            d'enregistrements de la base qui ont cette valeur.</para>
+
+            <para>Une table de lookup a plusieurs usages :</para>
+
+            <itemizedlist>
+                <listitem>
+                    <para>assistance à la recherche : on propose à
+                    l'utilisateur la liste des valeurs possibles pour un champ
+                    (par exemple la liste des auteurs ou des mots-clés
+                    disponibles avec en face le nombre exact
+                    d'occurences) ;</para>
+                </listitem>
+
+                <listitem>
+                    <para>assistance à la saisie de nouveaux enregistrements
+                    (permet d'éviter qu'une même valeur soit saisie sous
+                    différentes variantes) ;</para>
+                </listitem>
+
+                <listitem>
+                    <para>aide au nettoyage de la base ;</para>
+                </listitem>
+
+                <listitem>
+                    <para>statistiques ;</para>
+                </listitem>
+
+                <listitem>
+                    <para>etc.</para>
+                </listitem>
+            </itemizedlist>
+
+            <para>Une table de lookup (et le nombre d'occurences de chaque
+            valeur) porte toujours sur l'intégralité de la base. Il n'est pas
+            possible d'interroger une table de lookup en appliquant un
+            "filtre".</para>
+
+            <para>Une table de lookup n'a de sens que pour un champ comportant
+            un nombre fini de valeurs distinctes (par exemple ça n'aurait
+            aucun sens de créer une table de lookup sur un champ
+            résumé).</para>
+        </sect3>
+
+        <sect3 id="fab.schemas.lookuptables.properties">
+            <title>Propriétés d'une table de lookup</title>
+
+            <para>Une table de lookup a les mêmes propriétés qu'un index ou un
+            alias (nom, libellé, description) : voir plus haut.</para>
+        </sect3>
+
+        <sect3 id="fab.schemas.lookuptables.fields">
+            <title>Champs utilisés pour alimenter la table de lookup</title>
+
+            <para>Une table de lookup porte sur un ou plusieurs champs. Chaque
+            champ a les propriétés suivantes :</para>
+
+            <itemizedlist>
+                <listitem>
+                    <para><emphasis role="strong">Nom</emphasis>
+                    (<code>name</code>) : le nom excat du champ à ajouter à la
+                    table de lookup, tel qu'il figure dans la liste des champs
+                    composant les enregistrements.</para>
+                </listitem>
+
+                <listitem>
+                    <para><emphasis role="strong">Positions de début et de
+                    fin</emphasis> (<code>start</code> et <code>end</code>) :
+                    même signification que pour les index (voir plus
+                    haut).</para>
+                </listitem>
+            </itemizedlist>
+        </sect3>
+    </sect2>
+
+    <sect2 id="fab.schemas.sortkeys">
+        <title>Clés de tri</title>
+
+        <sect3 id="fab.schemas.sortkeys.introduction">
+            <title>Introduction</title>
+
+            <para>Par défaut, Fab trie les réponses obtenues pour une requête
+            par perinence (les documents qui répondent le mieux à la requête
+            de l'utilisateur en premier). Il est également possible de
+            supprimer le tri et d'afficher les enregistrements dans l'ordre
+            dans lequel ils apparaissent dans la base.</para>
+
+            <para>Les clés de tri permettent d'offrir de nouvelles
+            possibilités de tri à l'utilisateur. Chaque clé de tri porte sur
+            un champ et va permettre de trier les réponses en fonction de ce
+            champ.</para>
+
+            <para>Une clé de tri peut également porter sur plusieurs champs.
+            Dans ce cas, le premier champ indiqué sera utilisé pour créer la
+            clé de tri, s'il est vide, le second champ sera examiné et ainsi
+            de suite.</para>
+
+            <para>Chaque clé de tri offre deux possibilités de tri à
+            l'utilisateur : une possibilité de tri dans l'ordre des clés et
+            une possibilité de tri en ordre inverse.</para>
+
+            <para>Lors d'une recherche, il est possible de spécifier une ou
+            plusieurs clés de tri. Si plusieurs clés de tri sont indiqués, Fab
+            utilisera un tri multi-critères (on utilise la premier clé, en cas
+            d'égalité on utilise la seconde et ainsi de suite).</para>
+        </sect3>
+
+        <sect3 id="fab.schemas.sortkeys.properties">
+            <title>Propriétés d'une clé de tri</title>
+
+            <para>Une clé de tri a les propriétés suivantes :nom, libellé,
+            description, type de clé (string/number).</para>
+
+            <itemizedlist>
+                <listitem>
+                    <para><emphasis role="strong">Nom</emphasis>
+                    (<code>name</code>) : le nom de la clé de tri. Ne peut
+                    comporter que des lettres, des chiffres et le caractère
+                    souligné. Doit être unique. C'est le nom du tri qui sera
+                    passé en paramètre lors des rechercehs.</para>
+                </listitem>
+
+                <listitem>
+                    <para><emphasis role="strong">Libellé</emphasis>
+                    (<code>label</code>) : un libellé court (sur une ligne)
+                    décrivant le rôle de la clé de tri.</para>
+                </listitem>
+
+                <listitem>
+                    <para><emphasis role="strong">Description</emphasis>
+                    (<code>description</code>) : une zone de texte libre dans
+                    laquelle vous pouvez stocker toute information utile pour
+                    cette clé de tri (champs pris en compte, précisions,
+                    etc.)</para>
+                </listitem>
+
+                <listitem>
+                    <para><emphasis role="strong">Type de clé</emphasis>
+                    (<code>type</code>) : par défaut les clés de tri sont de
+                    type alphanumériques (<code>string</code>) et produiront
+                    un tri lexicographique (alphabétique). Si les champs
+                    composant la clé de tri sont tous de type entier
+                    (<code>int</code>), il est possible d'indiquer que la clé
+                    de tri créée doit être de type numérique
+                    (<code>number</code>) pour produire un tri
+                    numérique.</para>
+                </listitem>
+            </itemizedlist>
+        </sect3>
+
+        <sect3 id="fab.schemas.sortkeys.fields">
+            <title>Champs composant une clé de tri</title>
+
+            <para>Les champs composant une clé de tri ont les mêmes propriétés
+            que les champs composant une table de lookup (voir plus
+            haut).</para>
+        </sect3>
+    </sect2>
+</sect1>
