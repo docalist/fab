@@ -23,7 +23,7 @@
     <bigmenu>
         <loop on="$schemas" as="$path,$file">
             <def name="schema" value="{AdminSchemas::getSchema($file)}" />
-            <item label="$file" img="{$this->getIcon()}" href="Edit?file=$file">
+            <item label="$file" img="{$this->getIcon()}" href="EditSchema?file=$file">
                 <if test="{$schema===false}">
                     <p>Impossible de charger ce format.</p>
                 </if>
@@ -70,7 +70,7 @@
     <bigmenu>
         <loop on="$schemas" as="$path,$file">
             <def name="schema" value="{AdminSchemas::getSchema($file)}" />
-            <item label="$file" img="{$this->getIcon()}">
+            <item label="$file" img="{$this->getIcon()}" href="CopyFrom?file=$path">
                 <if test="{$schema===false}">
                     <p>Impossible de charger ce format.</p>
                 </if>
