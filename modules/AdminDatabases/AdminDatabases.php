@@ -573,7 +573,7 @@ class AdminDatabases extends Admin
              * non plus.
              * 
              */
-            if (0===preg_match('~[^\x09\x0A\x0D\x20-\xFF]~u', $value))
+            if (0===preg_match('~[^\x09\x0A\x0D\x20-\xFF]~', $value))
             {
                 $xml->writeElement(utf8_encode($tag), utf8_encode($value));
             }
@@ -603,14 +603,6 @@ class AdminDatabases extends Admin
      */ 
     public function actionBackup($database, $taskTime='', $taskRepeat='')
     {
-        // Détermine un titre pour la tâche de dump
-        $title=sprintf
-        (
-            'Dump %s de la base %s', 
-            ($taskRepeat ? 'périodique' : 'ponctuel'), 
-            $database
-        );
-        
         // Vérifie que le répertoire /data/backup existe, essaie de le créer sinon
         $dir=Runtime::$root.'data' . DIRECTORY_SEPARATOR . 'backup' . DIRECTORY_SEPARATOR;
         if (!is_dir($dir))
@@ -628,6 +620,14 @@ class AdminDatabases extends Admin
                 Template::Run('backup.html', array('error'=>''));
                 return;
             }
+            
+            // Détermine un titre pour la tâche de dump
+            $title=sprintf
+            (
+                'Dump %s de la base %s', 
+                ($taskRepeat ? 'périodique' : 'ponctuel'), 
+                $database
+            );
             
             // 2. Crée la tâche
             $id=Task::create()
@@ -647,7 +647,7 @@ class AdminDatabases extends Admin
         }
                 
         // 3. Lance le dump
-        echo '<h1>', $title, '</h1>';
+        echo '<h1>', sprintf('Dump de la base %s', $database), '</h1>';
         
         echo '<p>Date du dump : ', strftime('%x %X'), '</p>';
                         
@@ -657,9 +657,10 @@ class AdminDatabases extends Admin
         echo '<p>La base contient ', $count, ' notices</p>';
         
         // Détermine le path du fichier à générer
-        $path=$dir . $database . '-' . strftime('%Y%m%d-%H%M%S') . '.xml.gz';
-        
+        $path=$database . '-' . strftime('%Y%m%d-%H%M%S') . '.xml.gz';
         echo '<p>Génération du fichier ', $path, '</p>';
+        $path=$dir . $path;
+        
         if (file_exists($path))
         {
             throw new Exception('Le fichier de dump existe déjà.');
@@ -1013,7 +1014,19 @@ class AdminDatabases extends Admin
                 while($xml->nodeType !== XMLReader::ELEMENT) $xml->read();
                 
                 $field=$xml->name;
-                $value=$this->fieldValue($xml->expand());
+                $node=$xml->expand();
+                if ($node===false)
+                {
+                    echo 'Une erreur s\'est produite, expand()  retourné false<br />';
+                    echo 'nodeType : ', $this->nodeType($xml), '<br />';
+                    echo 'tag name : ', $xml->name, '<br />';
+                    echo 'tag value: ', $xml->value, '<br />';
+                    echo 'libxml error: ', var_export(libxml_get_last_error(), true), '<br />';
+                    echo 'line : ', xml_get_current_line_number($xml), '<br />';
+                    echo 'col : ', xml_get_current_column_number($xml), '<br />';
+                    return;
+                }
+                $value=$this->fieldValue($node);
                 
                 $db[$field]=$value;
                 $xml->next();
