@@ -161,10 +161,10 @@ class ThesaurusModule extends DatabaseModule
      * @param string $term le terme à nettoyer
      * @param string le bout de requête obtenu
      */ 
-    public function termToQuery($term, $asValue=true)
+    public function termToQuery($term, $asValue=true, $encode=true)
     {
         $result = str_replace('  ', ' ', trim(strtr($term, '[]()&+-', '       ')));
-        $result=urlencode($result);
+        if ($encode) $result=urlencode($result);
         if ($asValue) $result = '[' . $result . ']';
         return $result;
     }
