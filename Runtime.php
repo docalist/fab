@@ -719,12 +719,18 @@ $fab_init_time=microtime(true);
             'TaskManager'=>'modules/TaskManager/TaskManager.php',
             'Task'=>'modules/TaskManager/Task.php',
             'Request'=>'core/Request/Request.php',
-            'ThesaurusCindoc'=>'modules/ThesaurusModule/ThesaurusCindoc.php',
+//            'ThesaurusCindoc'=>'modules/ThesaurusModule/ThesaurusCindoc.php',
         
-            'ImportModule'=>'modules/ImportModule/ImportModule.php',
             // remarque : ImportModule est nécessaire pour permettre au module ImportAsco de faire "extends ImportModule"
             // sur le fond, ne devrait pas être là : le autoload devrait pouvoir charger tout seul n'importe quel module
             // sans qu'on ait à lui donner le path exact. (supprimerait aussi de la liste DatabaseModule, TaskManager, NoSecurity, etc.)
+        	'ImportModule'=>'modules/ImportModule/ImportModule.php',
+            
+            // remarque : ThesaurusModule est nécessaire pour permettre au module Thesaurus de ascoweb de faire "extends ThesaurusModule"
+            // sur le fond, ne devrait pas être là : le autoload devrait pouvoir charger tout seul n'importe quel module
+            // sans qu'on ait à lui donner le path exact. (supprimerait aussi de la liste DatabaseModule, TaskManager, NoSecurity, etc.)
+            'ThesaurusModule'=>'modules/ThesaurusModule/ThesaurusModule.php',
+            
             'CartModule'=>'modules/CartModule/CartModule.php',
         
         );
