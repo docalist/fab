@@ -1,0 +1,12 @@
+<h1>{$this->getTitle()}</h1>
+<h2>Envoyer un fichier sur le serveur</h2>
+
+<p>
+    Le fichier a été copié sur le serveur, mais comme il existait déjà
+    un fichier nommé <strong>$file</strong>, celui-ci a été renommé en 
+    <strong>$newname</strong>.
+</p>
+
+<toolbar style="display: inline">
+    <item img="/FabWeb/modules/Admin/images/tick.png" class="positive" href="{$this->getBackUrl($newname)}">Ok</item>
+</toolbar>

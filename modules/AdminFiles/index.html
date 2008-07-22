@@ -14,6 +14,8 @@
     <item href="{$request->setAction('NewFile')}" img="$icons/page_add.png">Nouveau fichier...</item>
     <separator />
     <item href="{$request->setAction('NewFolder')}" img="$icons/folder_add.png">Nouveau dossier...</item>
+    <separator />
+    <item href="{$request->setAction('Upload')}" img="$icons/shape_square_go.png">Envoyer un fichier...</item>
 </toolbar>
 
 <br style="clear: both" />
@@ -63,3 +65,7 @@
         </loop>
     </bigmenu>
 </else>
+<script>
+if (location.hash) 
+    jQuery('a[name=' + location.hash.substr(1) + ']').next().css('background-color','#F5A9A9').animate(\{backgroundColor:"#f2f2f2"\}, 2000);
+</script>

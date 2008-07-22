@@ -345,7 +345,7 @@ class AdminFiles extends Admin
      */
     private function goBack($file='')
     {
-        Runtime::redirect($this->getBackUrl());
+        Runtime::redirect($this->getBackUrl($file));
     }
 
     
@@ -984,6 +984,62 @@ class AdminFiles extends Admin
         
         // Redirige vers la page d'accueil
         $this->goBack($file);
+    }
+    
+    public function actionUpload()
+    {
+        $error='';
+        if (count($_FILES)===0)
+        {
+            Template::run('upload.html', array('error'=>$error));
+            return;
+        }
+        
+        // Récupère le fichier uploadé
+        $file=$_FILES['file'];
+        $name=$file['name'];
+        
+        // Vérifie que le nom n'a pas été "bidouillé" (séquences ".." par exemple)
+        $this->checkPath($name, 'Nom du fichier à envoyer');
+        
+        // Détermine le répertoire de destination
+        $dir=$this->getDirectory();
+        
+        // S'il existe déjà un fichier portant ce nom, ajoute un numéro
+        $i=1;
+        while (file_exists($dir.$name))
+        {
+            $i++;
+            $name=Utils::setExtension($file['name']) . '-' . $i . Utils::getExtension($file['name']);
+        }
+        
+        // Copie le fichier uploadé
+        $error=Utils::uploadFile($file, $dir.$name, null);
+        
+        if (is_string($error) || $error===false)
+        {
+            if ($error===false) $error="Vous n'avez pas sélectionné le fichier à envoyer.";
+            Template::run('upload.html', array('error'=>$error));
+            return;
+        }
+        
+        // Si le fichier a été renommé, indique le nouveau nom a l'utilisateur
+        if ($name !== $file['name'])
+        {
+            Template::Run
+            (
+                'uploaded.html',
+                array
+                (
+                    'file'=>$file['name'],
+                    'newname'=>$name
+                )
+            );
+            return;
+        }
+        
+        // Sinon, redirige l'utilisateur vers le fichier copié
+        $this->goBack($name);
     }
 }
 ?>
