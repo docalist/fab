@@ -1056,8 +1056,100 @@ class AdminDatabases extends Admin
         echo '<li>La restauration est terminée.</li>';
         echo '</ol>';
     }
+
+    
+    /**
+     * Supprime la base de données dont le nom est passé en paramètre.
+     * 
+     * La base est complètement supprimée. Si la base est représentée
+     * par un répertoire (cas d'une base xapian, par exemple), l'intégralité
+     * du répertoire est supprimée, y compris si le répertoire contient des
+     * fichiers qui n'ont rien à vir avec la base.
+     *
+     * @param string $database le nom de la base à supprimer.
+     * @param bool $confirm un flag de confirmation.
+     */
+    public function actionDelete($database, $confirm=false)
+    {
+        if (! $confirm)
+        {
+            Template::run('confirmDelete.html', array('database'=>$database));
+            return ;
+        }
+        
+        // Utilise /config/db.config pour convertir l'alias en chemin et déterminer le type de base
+        $path=Config::get("db.$database.path", $database);
+
+        // Si c'est un chemin relatif, recherche dans /data/db
+        if (Utils::isRelativePath($path))
+            $path=Utils::makePath(Runtime::$root, 'data/db', $path);
+            
+        
+        if (! $this->delete($path))
+            throw new Exception('La suppression de la base a échouée.');
+        
+        // Charge le fichier de config db.config
+        $pathConfig=Runtime::$root.'config' . DIRECTORY_SEPARATOR . 'db.config';
+        if (file_exists($pathConfig))
+        {
+            $config=Config::loadXml(file_get_contents($pathConfig));
+            
+            // Ajoute un alias
+            if (isset($config[$database]))
+            {
+                unset($config[$database]);  
+                // Sauvegarde le fichier de config
+                ob_start();
+                Config::toXml('config', $config);
+                $data=ob_get_clean();
+                file_put_contents($pathConfig, $data);
+            }
+        }
+                
+        // Redirige vers la page d'accueil
+        Runtime::redirect('/'.$this->module);
+    }
+    
+    /**
+     * Delete a file, or a folder and its contents
+     *
+     * @author      Aidan Lister {@link aidan@php.net}
+     * @version     1.0.3
+     * @link        http://aidanlister.com/repos/v/function.rmdirr.php
+     * @param       string   $dirname    Directory to delete
+     * @return      bool     Returns TRUE on success, FALSE on failure
+     */
+    private function delete($dirname) // todo: !DRY , figure déjà dans AdminFiles
+    {
+        // Sanity check
+        if (!file_exists($dirname)) {
+            return false;
+        }
+     
+        // Simple delete for a file
+        if (is_file($dirname) || is_link($dirname)) {
+            return unlink($dirname);
+        }
+     
+        // Loop through the folder
+        $dir = dir($dirname);
+        while (false !== $entry = $dir->read()) {
+            // Skip pointers
+            if ($entry == '.' || $entry == '..') {
+                continue;
+            }
+     
+            // Recurse
+            $this->delete($dirname . DIRECTORY_SEPARATOR . $entry);
+        }
+     
+        // Clean up
+        $dir->close();
+        return rmdir($dirname);
+    }    
     
 }
+
 class DumpException extends Exception
 {
     public function __construct($message)

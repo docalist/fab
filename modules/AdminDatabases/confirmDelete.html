@@ -1,0 +1,26 @@
+<h1>{$this->getTitle()}</h1>
+<h2>Suppression de la base $database</h2>
+
+<p>
+    Vous allez supprimer complètement la base <strong>$database</strong>.
+</p>
+
+<p>
+    Le répertoire contenant la base de données va être supprimé. Tous les 
+    fichiers et tous les dossiers présents dans ce répertoire vont être 
+    supprimés, même s'il s'agit de fichiers étrangers à la base de données. 
+</p>
+
+<p>
+    La suppression est irréversible : vous ne pourrez recréer la base de données
+    que si vous disposez d'un dump à jour de la base $database.
+</p>
+<p>
+    Voulez-vous continuer ?
+</p>
+ 
+<form>
+    <okcancel ok="Supprimer la base..." />
+    <hidden name="database" value="$database" />
+    <hidden name="confirm" value="true" />
+</form>
