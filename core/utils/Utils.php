@@ -1898,5 +1898,92 @@ final class Utils
         
         return min($maxUpload, $maxPost, $memoryLimit);
     }
+    
+    
+    /**
+     * Vérifie et stocke sur le serveur un fichier uploadé par l'utilisateur.
+     * 
+     * @param array $file un élément du tableau 
+     * {@link http://php.net/features.file-upload $_FILES} décrivant le fichier 
+     * uploadé par l'utilisateur
+     * 
+     * @param string $path le path final sur le serveur du fichier uploadé. Si 
+     * le fichier uploadé est valide (pas d'erreur, etc.) il sera déplacé vers 
+     * ce path en utilisant la fonction 
+     * {@link http://php.net/move_uploaded_file move_uploaded_file()} de php.
+     * 
+     * @param callback $callback méthode à appeler pour vérifier que le 
+     * fichier uploadé est valide. Le callback sera appelé avec en paramètre le 
+     * path complet du fichier à valider. Elle doit retourner true si le fichier 
+     * est valide ou un message d'erreur dans le cas contraire :
+     * <code>
+     * public function callback(string $path) : true|string
+     * </code>  
+     *  
+     * @return string|bool la fonction retourne :
+     * - string : en cas d'erreur
+     * - true : si le fichier est ok (il a été validé et stocké dans $path)
+     * - false : le tableau passé en paramètre ne contenait aucun fichier 
+     * uploadé (cela se produit si le formulaire a été validé mais que le input 
+     * file était vide).
+     */
+    public static function uploadFile($file, $path, $callback=null)
+    {
+        switch($file['error'])
+        {
+            case UPLOAD_ERR_OK:
+                if ($file['size']==0)
+                    return sprintf("Le fichier '%s' est vide (taille=0)", $file['name']);
+        
+                if (! is_null($callback))
+                {
+                    $result=call_user_func($callback, $file['tmp_name'], $file['name']);
+                    switch(true)
+                    {
+                        case $result===true: // ok
+                            break;
+                            
+                        case is_null($result): // ok aussi, le callback n'a pas signalé d'erreur
+                            break;
+                                
+                        case $result===false: // non attendu, cas d'erreur
+                            $result='le callback a retourné false';
+                            // pas de break : voulu
+                            
+                        default:    // erreur
+                            return sprintf("Le fichier '%s' n'est pas valide : %s", $file['name'], $result);
+                    }
+                }
+                
+                if (move_uploaded_file($file['tmp_name'], $path)===false)
+                    return sprintf("Impossible d'enregistrer le fichier '%s'.", $file['name']);
+
+                // tout est ok
+                return true;
+                
+            case UPLOAD_ERR_INI_SIZE:
+                return sprintf("Impossible de charger le fichier '%s' : la taille du fichier dépasse la taille maximale autorisée par le serveur", $file['name']);
+                
+            case UPLOAD_ERR_FORM_SIZE:
+                return sprintf("Impossible de charger le fichier '%s' : la taille du fichier dépasse la taille maximale autorisée par le formulaire (MAX_FILE_SIZE)", $file['name']);
+                
+            case UPLOAD_ERR_PARTIAL:
+                return sprintf("Impossible de charger le fichier '%s' : le fichier n'a été que partiellement téléchargé",$file['name']);
+                
+            case UPLOAD_ERR_NO_FILE: // le input file est vide, pas de fichier à uploader
+                return false;
+                
+            case UPLOAD_ERR_NO_TMP_DIR:                    
+                return sprintf("Impossible de charger le fichier '%s' : erreur de configuration du serveur, dossier temporaire manquant", $file['name']);
+                
+            case UPLOAD_ERR_CANT_WRITE:                    
+                return sprintf("Impossible de charger le fichier '%s' : échec de l'écriture du fichier sur le disque", $file['name']);
+
+            default:
+                return sprintf('Impossible de charger le fichier "%s" : erreur non gérée : "%d"', $file['name'], $file['error']);
+        }
+    }
+    
+    
 }
 ?>
