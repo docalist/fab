@@ -56,8 +56,8 @@
 
  
 /* Blocs de code */
-<template match="//programlisting"><pre class="programlisting prettyprint">{htmlspecialchars(select('string(node())|@*'))}</pre></template>
-<template match="//screen"><div class="screen">{htmlspecialchars(select('string(node())|@*'))}</div></template>
+<template match="//programlisting"><pre class="programlisting prettyprint">{htmlspecialchars(select('string(node())'))}{select('@*')}</pre></template>
+<template match="//screen"><div class="screen">{htmlspecialchars(select('string(node())'))}{select('@*')}</div></template>
 
 /* Paragraphes */
 <template match="//para"><p>{select('node()|@*')}</p></template>
@@ -83,7 +83,7 @@
 <template match="//command"><span class="command">{select('node()|@*')}</span></template>
 <template match="//filename"><span class="filename">{select('node()|@*')}</span></template>
  
-<template match="//code[not(@class='escaped')]"><code class="escaped">{htmlspecialchars(select('string(node())|@*'))}</code></template>
+<template match="//code[not(@class='escaped')]"><code class="escaped">{htmlspecialchars(select('string(node())'))}{select('@*')}</code></template>
 
 /* TOC - Construction de la table des matières */
 
