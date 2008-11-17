@@ -3,15 +3,22 @@
 /* STATUT DU TASKMANAGER, BOUTONS DEMARRER/ARRETER */
 <h2>Statut</h2>
 <p>{TaskManager::status()}.</p>
-<p>
-    <if test="{! TaskManager::isRunning()}">
-        <a href="/TaskManager/Start">Démarrer</a>
-    </if>
-    <else>
-        <a href="/TaskManager/Stop">Arrêter</a>
-        <a href="/TaskManager/Restart">Redémarrer</a>
-    </else>
-</p>
+<if test="{Config::get('taskmanager.webcontrol')}">
+    <p>
+        <if test="{! TaskManager::isRunning()}">
+            <a href="/TaskManager/Start">Démarrer</a>
+        </if>
+        <else>
+            <a href="/TaskManager/Stop">Arrêter</a>
+            <a href="/TaskManager/Restart">Redémarrer</a>
+        </else>
+    </p>
+</if>
+<else>
+    <p test="{! TaskManager::isRunning()}">
+        Veuillez demander à votre administrateur système de le lancer.
+    </p>
+</else>
 
 /* LISTE DES TACHES */
 <h2>Liste des tâches</h2>
