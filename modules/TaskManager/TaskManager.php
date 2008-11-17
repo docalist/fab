@@ -262,7 +262,7 @@ class TaskManager extends DatabaseModule
 	 * Son rôle est d'exécuter les tâches programmées quand leur heure est
 	 * venue.
 	 * 
-	 * C'est également un server basé sur des sockets TCP qui réponds aux 
+	 * C'est également un serveur basé sur des sockets TCP qui réponds aux 
 	 * requêtes adressées par les clients.
 	 */
 	public function actionDaemon()
@@ -274,13 +274,15 @@ class TaskManager extends DatabaseModule
 	    self::out('Démarrage du gestionnaire de tâches');
 
 		// Détermine les options du gestionnaire de tâches
-		$port = Config :: get('taskmanager.port');
-		$startTime = date('d/m/y H:i:s');
-
+        $IP=Config::get('taskmanager.localIP');
+	    $port = Config :: get('taskmanager.port');
+        $address= 'tcp://' . $IP . ':' . $port;
+        $startTime = strftime('%x %X');
+        
 		// Démarre le serveur
 		$errno = 0; // évite warning 'var not initialized'
 		$errstr = '';
-		$socket = stream_socket_server('tcp://127.0.0.1:' . $port, $errno, $errstr);
+		$socket = stream_socket_server($address, $errno, $errstr);
 		if (!$socket)
 			die("Impossible de démarrer le gestionnaire de tâches : $errstr ($errno)\n");
 
@@ -371,11 +373,10 @@ class TaskManager extends DatabaseModule
 						$result = 'yes';
 						break;
 					case 'status':
-//						$result = 'Démarré depuis le ' . $startTime . ' sur tcp#' . $port;
 						$result=sprintf
 						(
-                            'Démarré depuis le %s (PID : %d, port : tcp %d, serveur : %s, mem used : %s)', 
-                            $startTime, getmypid(),$port, php_uname('n'), memory_get_usage().'/'.memory_get_usage(true)
+                            'Démarré depuis le %s (PID : %d, IP : %s, port tcp : %d, serveur : %s, memoire utilisée : %s)', 
+                            $startTime, getmypid(), $IP, $port, php_uname('n'), Utils::formatSize(memory_get_usage(true))
                         );
 						break;
                     case 'add':
@@ -642,34 +643,75 @@ class TaskManager extends DatabaseModule
     }
     
     /**
-     * Exécute une action d'un module fab en tâche de fond.
+     * Lance l'exécution en tâche de fond (en arrière-plan) d'une action.
      * 
-     * La fonction crée un nouveau process qui chargera le module indiqué
-     * et lancera l'exécution de l'action indiquée.
+     * La fonction crée un nouveau processus php qui va exécuter fab en mode 
+     * CLI puis chargera le module indiqué et exécutera l'action demandée.
      * 
-     * Pour cela, elle récupère dans la configuration le path de l'exécutable
-     * php à utiliser et le lance avec en paramètres le path du fichier
-     * <code>/bin/fab.php</code> de fab et les arguments nécessaires pour 
-     * lancer le module et l'action demandés.
+     * Pour cela, elle détermine la ligne de commande à utiliser puis utilise
+     * les fonctions du système d'exploitation pour exécuter la commande obtenue 
+     * en tâche de fond :
      * 
-     * La manière dont l'exécutable php est lancé dépend du système 
-     * d'exploitation utilisé :
-     * - sous linux, le process est simplement lancé en utilisant une ligne de 
-     *   commande du style :
+     * - sous linux, le symbole <code>&</code> est simplement ajouté à la 
+     *   commande à exécuter ;
+     * 
+     * - sous windows, une instance du composant ActiveX 
+     *   <code>WScript.Shell</code> de Windows est créée et sa méthode 
+     *   <code>Run</code> est appellée en passant la valeur <code>false</code>
+     *   pour le paramètre <code>bWaitOnReturn</code>. Consultez la 
+     *   {@link http://msdn.microsoft.com/en-us/library/d5fk67ky(VS.85).aspx
+     *   documentation de Microsoft} pour plus d'informations sur le composant 
+     *   WScript de Windows.
+     * 
+     * Pour déterminer la ligne de commande à utiliser, la fonction se base sur
+     * les informations présentes dans la section <code><taskmanager></code> du
+     * fichier de configuration <code>general.config</code> et sur les arguments 
+     * <code>$root</code> et <code>$home</code> passés en paramètre :
+     * 
+     * - elle récupère dans la clé <code><php></code> le path exact de 
+     *   l'exécutable php à utiliser. Une erreur est générée si cette clé n'est
+     *   pas renseignée ou si elle désigne un fichier inexistant ou autre chose
+     *   qu'un exécutable. Si le path obtenu contient des espaces, des 
+     *   guillemets sont ajoutés au début et à la fin.
+     * 
+     * - elle récupère dans la clé <code><phpargs></code> les options 
+     *   éventuelles à passer à l'exécutable php.
+     * 
+     * - elle ajoute le path exact du fichier php à exécuter en l'encadrant si
+     *   nécessaire de guillemets. En général, il s'agit du path exact du front
+     *   controler de l'application (typiquement, c'est le path du fichier 
+     *   <code>index.php</code> qui figure dans le répertoire web de 
+     *   l'application) mais un fichier différent peut être utilisé en 
+     *   passant en paramètres des valeurs pour <code>$root</code> et 
+     *   <code>$home</code>. 
+     * 
+     * - elle ajoute ensuite les paramètres du script à savoir le module et 
+     *   l'action à exécuter(<code>$fabUrl</code>) et la valeur indiquée pour le 
+     *   paramètre <code>$home</code>. 
+     * 
+     * Exemple :
+     * Si l'application est installée dans le répertoire <code>/site</code> et 
+     * que la configuration contient les valeurs suivantes :
      * <code>
-     *      /usr/bin/php -f /var/fab/bin/fab.php -- /module/action?params /var/www/approot &
+     *     <taskmanager>
+     *         <php>/usr/bin/php</php>
+     *         <phpargs>-n -f</phpargs>
+     *     </taskmanager>
      * </code>
-     *   C'est le <code>&</code> final qui permet de faire en sorte que 
-     *   l'application soit lancée en tâche de fond.
-     * - sous windows, c'est en général l'exécutable <code>php-win.exe</code>
-     *   qui est utilisé. Pour le lancer en tâche de fond, une instance du
-     *   composant ActiveX <code>WScript.Shell</code> de Windows est créée et la
-     *   méthode <code>Run</code> est utilisée pour lancer l'exécutable php en
-     *   tâche de fond. Consultez la 
-     *   {@link http://msdn2.microsoft.com/en-us/library/d5fk67ky(VS.85).aspx 
-     *   documentation de Microsoft} pour plus d'informations.
+     * la ligne de commande qui sera exécutée sera de la forme :
+     * <code>
+     * /usr/bin/php -n -f /site/web/index.php /module/action?params &
+     *    <php>  <phpargs>  front controler           $fabUrl          
+     * </code>
+     *
+     * Remarque :
+     * Sous linux l'exécutable php s'appelle simplement <code>php</code>. Sous 
+     * windows, il faut utiliser <code>php.exe</code> ou, ce qui est préférable, 
+     * l'exécutable spécifique <code>php-win.exe</code> afin d'éviter la 
+     * création d'une console (consulter la 
+     * {@link http://php.net/manual/features.commandline.php documentation sur 
+     * l'utilisation de php en ligne de commande} pour plus d'informations).
      * 
-     *  
      * @param string $fabUrl la fab url (/module/action?params) à exécuter
      * @param string $root la racine de l'application à passer en paramètre à 
      * {@link Runtime::setup()}.
@@ -703,12 +745,12 @@ class TaskManager extends DatabaseModule
         // Argument 1 : module/action à exécuter
         $cmd .= ' ' . escapeshellarg($fabUrl);
         
-        // Argument 2 : url de la page d'accueil de l'application
+        // Argument 2 : url de la page d'accueil de l'application (si indiqué)
         if ($home)
             $cmd .= ' ' . escapeshellarg($home);
         
         // Sous windows, on utilise wscript.shell pour lancer le process en tâche de fond
-        if ( substr(PHP_OS,0,3) == 'WIN')
+        if (substr(PHP_OS, 0, 3) == 'WIN')
         { 
             $WshShell = new COM("WScript.Shell");
             $oExec = $WshShell->Run($cmd, 0, false);
@@ -861,8 +903,10 @@ class TaskManager extends DatabaseModule
 	{
 		if (self::isRunning())
 			throw new Exception('Le gestionnaire de tâches est déjà lancé');
-		// à voir : pour *nix : nohup
-
+		
+        if (! Config::get('taskmanager.webcontrol'))
+            throw new Exception('Accès refusé, contactez votre administrateur système.');
+        
         self::runBackgroundModule('/TaskManager/Daemon');
         
         sleep(1); // on lui laisse un peu de temps pour démarrer
@@ -883,7 +927,10 @@ class TaskManager extends DatabaseModule
 		if (!self::isRunning())
 			throw new Exception('Le gestionnaire de tâches n\'est pas lancé');
 
-		return self :: request('quit');
+        if (! Config::get('taskmanager.webcontrol'))
+            throw new Exception('Accès refusé, contactez votre administrateur système.');
+			
+        return self :: request('quit');
 	}
 
 	/**
@@ -894,7 +941,10 @@ class TaskManager extends DatabaseModule
 	 */
 	public static function restart()
 	{
-		if (self::isRunning())
+        if (! Config::get('taskmanager.webcontrol'))
+            throw new Exception('Accès refusé, contactez votre administrateur système.');
+            
+        if (self::isRunning())
 			if (!self::stop())
 				return false;
 		return self::start();
@@ -941,15 +991,16 @@ class TaskManager extends DatabaseModule
 	 */
 	private static function request($command, & $error = '')
 	{
-		$port = Config::get('taskmanager.port');
-		$timeout = Config::get('taskmanager.timeout'); // en secondes, un float
-		$timeout = 0.5;
-
-		$errno = 0; // évite warning 'var not initialized'
-		$errstr = '';
+        $IP=Config::get('taskmanager.remoteIP');
+        $port = Config :: get('taskmanager.port');
+        $address= 'tcp://' . $IP . ':' . $port;
+		
+		$timeout = (float) Config::get('taskmanager.timeout'); // en secondes, un float
 
 		// Crée une connexion au serveur
-        $socket = @stream_socket_client('tcp://127.0.0.1:' . $port, $errno, $errstr, $timeout,STREAM_CLIENT_CONNECT);
+        $errno = 0; // évite warning 'var not initialized'
+        $errstr = '';
+		$socket = @stream_socket_client($address, $errno, $errstr, $timeout, STREAM_CLIENT_CONNECT);
 
 		if (!is_resource($socket))
 		{
