@@ -223,8 +223,8 @@ class Runtime
                 if (isset($_SERVER['ORIG_PATH_INFO']))
                     $path=$_SERVER['ORIG_PATH_INFO'];
                 else
-                    die("Impossible d'initialiser l'application : url redirigée (sans front controler) mais ORIG_PATH_INFO non disponible");
-    
+                    $path=$_SERVER['SCRIPT_NAME'];//SCRIPT_FILENAME
+
                 if (false=== $pt=strpos($path, self::$fcName))
                     die("Impossible d'initialiser l'application : url redirigée mais nom du script non trouvé dans ORIG_PATH_INFO");
     
