@@ -29,6 +29,32 @@ abstract class Module
      */
     public $request=null;
     
+    
+    /**
+     * Permet à un module de s'initialiser une fois que sa configuration
+     * a été chargée.
+     * 
+     * La méthode <code>initialize()</code> est destinée à être surchargée par 
+     * les modules descendants.
+     * 
+     * Lorsqu'un module est créé, son constructeur <code>__construct()</code> 
+     * est appellé. Le module peut alors faire certaines initialisations, mais, 
+     * à ce stade, la configuration du module n'a pas encore été chargée.
+     * 
+     * La méthode <code>initialize()</code> permet de remédier à ce problème : 
+     * elle est appellée par la méthode {@link loadModule()} une fois que la 
+     * configuration du module a été chargée.
+     * 
+     * Remarque :
+     * Si un module surcharge cette méthode, il doit appeller la méthode ancêtre
+     * de son parent : <code>parent::initialize()</code>.
+     * 
+     */
+    public function initialize()
+    {
+        
+    }
+    
     /**
      * Crée une instance du module dont le nom est passé en paramètre.
      * 
@@ -217,6 +243,7 @@ abstract class Module
         $object->module=$module;
         debug && Debug::log($module . ' : %o', $object);
 
+        $object->initialize();
         return $object;        
     }
     
