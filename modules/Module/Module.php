@@ -106,25 +106,14 @@ abstract class Module
         // Si le module a un fichier php, c'est un vrai module, on le charge 
         if (file_exists($path=$moduleDirectory.$module.'.php'))
         {
-            // Inclut le source du module
-            if (!class_exists($module))
-            {
-                debug && Debug::log('Chargement du module %s, type: module php, path: %s', $module, $path);
-                require_once($path);
-                if (!class_exists($module))
-                {
-                    throw new ModuleException("Le module '$module' est invalide : la classe '$module' n'est pas définie dans le fichier $module.php");
-                }
-            }
-            
-            // Vérifie que c'est bien une classe déscendant de 'Module'
-            if (! is_subclass_of($module, 'Module'))
-                throw new ModuleException("Le module '$module' est invalide : il n'hérite pas de la classe ancêtre 'Module' de fab");
-                            
             // Crée une nouvelle instance du module
             $object=new $module();
 
-            $object->searchPath=array(Runtime::$fabRoot.'core'.DIRECTORY_SEPARATOR.'template'.DIRECTORY_SEPARATOR); // fixme: on ne dervait pas fixer le searchpath ici
+            // Vérifie que c'est bien une classe déscendant de 'Module'
+            if (! $object instanceof Module)
+                throw new ModuleException("Le module '$module' est invalide : il n'hérite pas de la classe ancêtre 'Module' de fab");
+            
+            $object->searchPath=array(Runtime::$fabRoot.'core'.DIRECTORY_SEPARATOR.'template'.DIRECTORY_SEPARATOR); // fixme: on ne devrait pas fixer le searchpath ici
             
             $transformer=array($object, 'compileConfiguration');
             
@@ -193,7 +182,7 @@ abstract class Module
                 // Applique la config du pseudo-module à la config du module
                 Config::mergeConfig($parent->config, $config);
                 
-                if (! class_exists($module))
+                if (! class_exists($module, false))
                 {
                     eval
                     (
