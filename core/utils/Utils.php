@@ -1560,6 +1560,7 @@ final class Utils
      */
     public static function friendlyElapsedTime($time)
     { 
+        if ($time<1) return round($time*1000) . ' ms';
         $h='';
         if (is_float($time) && $time>60) $time=round($time);
         
@@ -1578,7 +1579,7 @@ final class Utils
         $secs = round($time,2);
         if ($h==='' || $secs>0)
             $h.= ($h ? 'et ' : '') . $secs . ' seconde' . ($secs >1 ? 's' : '');
-        
+
         return $h;
     }    
     
