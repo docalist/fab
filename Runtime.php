@@ -6,17 +6,6 @@
  * @version     SVN: $Id: Runtime.php 235 2006-12-20 09:02:07Z dmenard $
  */
 
-function pre($x)
-{
-    $t=func_get_args();
-    echo '<pre>';
-    foreach($t as $var)
-    {
-        print_r($var);    
-    }
-    echo '</pre>';
-}
-
 /**
  * Le coeur de fab
  * 
@@ -264,20 +253,6 @@ class Runtime
      */
     private static function checkSmartUrls()
     {
-
-//echo '<h1>FINAL</h1>';
-//echo '<br /><big>';
-//echo'self::$fabRoot : ', self::$fabRoot, '<br />';
-//echo'self::$url : ', self::$url, '<br />';
-//echo'self::fcName : ', self::$fcName, '<br />';
-//echo'self::$webRoot : ', self::$webRoot, '<br />';
-//echo'self::$root : ', self::$root, '<br />';
-//echo'self::$realHome : ', self::$home, '<br />';
-//echo'self::$home : ', self::$home, '<br />';
-//echo 'host : ', Utils::getHost(), '<br />';
-//echo 'query string : ', $_SERVER['QUERY_STRING'], '<br />';
-//echo '</big>';
-
         if (!is_bool(self::$fcInUrl)) // fcName=null : mode cli, ignorer le test
             return;
             
@@ -321,38 +296,28 @@ class Runtime
      
     /**
      * Initialise et lance l'application
-     * @param string $path Path complet du script appellant (utiliser __FILE__)
+     * 
+     * @param string $env L'environnement à utiliser ou une chaine vide pour 
+     * utiliser l'environnement normal.
      */
     public static function setup($env='')
     {
+        global $fab_start_time, $fab_init_time, $fab_request_time;
+        
+        $fab_start_time=microtime(true);
+        
         self::checkRequirements();
         self::setupPaths();
 
         spl_autoload_register(array(__CLASS__, 'autoload'));
-                
-//        xdebug_enable();
-//        xdebug_start_trace('c:/temp/profiles/trace', XDEBUG_TRACE_COMPUTERIZED);
-//        xdebug_start_trace('c:/temp/profiles/trace');
+
         self::$env=($env=='' ? 'normal' : $env);
 
-        //Debug::log('Xdebug is enabled : %s', xdebug_is_enabled()?'true':'false');
-         
-        $fab_start_time=microtime(true);
-    
-        // Charge les fonctions utilitaires
-        //require_once self::$fabRoot.'core/utils/Utils.php'; 
-        
-        // Fonctions de déboggage // TODO : seulement si mode debug
-        //require_once self::$fabRoot.'core/debug/Debug.php';
-        Debug::notice('Initialisation du framework en mode %s', $env ? $env : 'normal');
-        
-        // Charge le gestionnaire de configuration
-        //require_once self::$fabRoot.'core/config/Config.php'; 
-        
         // Charge la configuration de base (fichiers config.php application/fab/environnement)
         self::setupBaseConfig();                    // Modules requis : Debug
                                                     // variables utilisées : fabRoot, root, env
-                        
+
+                       
         // Initialise le cache                      // Modules requis : Config, Utils, Debug
         self::setupCache();                         // variables utilisées : fabRoot, root             
 
@@ -363,13 +328,13 @@ class Runtime
         // Charge la configuration générale (fichiers general.config fab/application/environnement)
         self::setupGeneralConfig();                 // Modules requis : Debug, Config
                                                     // variables utilisées : fabRoot, root, env
-
+        
+        define('debug', (bool)config::get('debug',false));
+        debug && Debug::notice('Initialisation de fab en mode "%s"', $env ? $env : 'normal');
+        
         self::checkSmartUrls();
-
-        if (config::get('debug'))
-            define('debug', true);
-        else
-            define('debug', false);
+        debug && Debug::notice("Module/action demandés par l'utilisateur : " . self::$url);
+        
     
 //echo '<h1>FINAL</h1>';
 //echo '<br /><big>';
@@ -382,52 +347,20 @@ class Runtime
 //echo'self::$home : ', self::$home, '<br />';
 //echo '</big>';
 
-        debug && Debug::notice("Module/action demandés par l'utilisateur : " . self::$url);
+        // Initialise le gestionnaire d'exceptions
+        debug && Debug::log("Initialisation du gestionnaire d'exceptions");
+        Module::loadModule('ExceptionManager')->install();
         
         // Répare les tableaux $_GET, $_POST et $_REQUEST
         Utils::repairGetPostRequest();
         
         // Charge les routes - routes.config -
         debug && Debug::log('Initialisation du routeur');
-        //require_once self::$fabRoot.'core/routing/Routing.php'; 
         self::setupRoutes();
         
-        // Initialise le gestionnaire de templates
-//        debug && Debug::log('Initialisation du gestionnaire de templates');
-        //require_once self::$fabRoot.'core/template/Template.php';
-//        Template::setup();
-        
-        // Initialise le gestionnaire de modules
-//        debug && Debug::log('Initialisation du gestionnaire de modules');
-        //require_once self::$fabRoot.'core/module/Module.php'; 
-        
         // Initialise le gestionnaire de sécurité
-//        debug && Debug::log('Initialisation du gestionnaire de sécurité');
-        //require_once self::$fabRoot.'modules/NoSecurity/NoSecurity.php'; // uniquement pour les classes qui implémentent 
-        //require_once self::$fabRoot.'core/user/User.php'; 
-
+        debug && Debug::log('Initialisation du gestionnaire de sécurité');
         User::$user=Module::loadModule(Config::get('security.handler'));
-        //User::$user->rights=Config::get('rights');
-
-        // Définit les paramètres de session, mais sans la démarrer (fait par Module::Execute seulement si nécessaire) 
-//        session_name(Config::get('sessions.id'));
-//        session_set_cookie_params(Config::get('sessions.lifetime'), self::$home);
-////        session_set_cookie_params(Config::get('sessions.lifetime'));
-//        session_cache_limiter('none');
-        //Runtime::startSession();
-
-        // Initialise le gestionnaire d'exceptions
-        debug && Debug::log("Initialisation du gestionnaire d'exceptions");
-        Module::loadModule('ExceptionManager')->install();
-        
-        // Includes supplémentaires
-        // TODO: écrire un class manager pour ne pas inclure systématiquement tout (voir du coté du gestionnaire de modules)
-        //require_once self::$fabRoot.'core/database/Database.php';
-//        require_once self::$fabRoot.'modules'.DIRECTORY_SEPARATOR.'DatabaseModule/DatabaseModule.php';
-//      require_once self::$fabRoot.'modules'.DIRECTORY_SEPARATOR.'CartModule/CartModule.php';
-//      
-//        require_once self::$fabRoot.'modules'.DIRECTORY_SEPARATOR.'TaskManager/TaskManager.php';
-//        require_once self::$fabRoot.'core/helpers/TextTable/TextTable.php';
 
         /**
          * Charge les fichiers de configuration de base de données (db.config, db.
@@ -449,6 +382,7 @@ class Runtime
         if (file_exists($path=Runtime::$root.'config' . DIRECTORY_SEPARATOR . 'db.config'))
             Config::load($path, 'db');
         
+        debug && Debug::log('Initialisation de l\'environnement "%s"', Runtime::$env);
         if (!empty(Runtime::$env))   // charge la config spécifique à l'environnement
         {
             if (file_exists($path=Runtime::$fabRoot.'config'.DIRECTORY_SEPARATOR.'db.' . Runtime::$env . '.config'))
@@ -458,11 +392,12 @@ class Runtime
         }
         
         // Dispatch l'url
-$fab_init_time=microtime(true);
         debug && Debug::log("Lancement de l'application");
         self::$baseConfig=Config::getAll(); // hack pour permettre à runSlot de repartir de la bonne config
+        
+        $fab_init_time=microtime(true);
         Routing::dispatch(self::$url);
-
+        $fab_request_time=microtime(true);
         self::shutdown();
     }
     
@@ -470,26 +405,17 @@ $fab_init_time=microtime(true);
     // variables utilisées : fabRoot, root, env
     private static function setupBaseConfig()
     {
-        Debug::log('Chargement de la configuration initiale');
         require_once(self::$fabRoot . 'config' . DIRECTORY_SEPARATOR . 'config.php');
         if (file_exists($path=self::$root . 'config' . DIRECTORY_SEPARATOR . 'config.php'))
-        {
-            Debug::log('Chargement de %s', $path);
             require_once $path;
-        }
         
         if (!empty(self::$env))   // charge la config spécifique à l'environnement
         {
             if (file_exists($path=self::$fabRoot.'config'.DIRECTORY_SEPARATOR.'config.' . self::$env . '.php'))
-            {
-                Debug::log('Chargement de %s', $path);
                 require_once $path;
-            }
+
             if (file_exists($path=self::$root.'config'.DIRECTORY_SEPARATOR.'config.' . self::$env . '.php'))
-            {
-                Debug::log('Chargement de %s', $path);
                 require_once $path;
-            }
         }
     }
 
@@ -497,7 +423,6 @@ $fab_init_time=microtime(true);
     // variables utilisées : fabRoot, root, env
     private static function setupGeneralConfig()
     {
-        Debug::log("Chargement de la configuration générale");
         Config::load(self::$fabRoot.'config' . DIRECTORY_SEPARATOR . 'general.config');
         if (file_exists($path=self::$root.'config' . DIRECTORY_SEPARATOR . 'general.config'))
             Config::load($path);
@@ -517,8 +442,6 @@ $fab_init_time=microtime(true);
     {
         if (Config::get('cache.enabled'))
         {
-            //require_once self::$fabRoot.'core/cache/Cache.php';
-            
             // Détermine le nom de l'application
             $appname=basename(self::$root);
 
@@ -540,16 +463,15 @@ $fab_init_time=microtime(true);
             $fabPath=$path.DIRECTORY_SEPARATOR.self::$env.DIRECTORY_SEPARATOR.'fab';
             
             // Créée les caches
-            if (Cache::addCache(self::$root, $appPath) && Cache::addCache(self::$fabRoot, $fabPath)) 
-                Debug::log('Cache initialisé. Application : %s, framework : %s', $appPath, $fabPath);
+            if (Cache::addCache(self::$root, $appPath) && Cache::addCache(self::$fabRoot, $fabPath))
+            {
+                // ok 
+            }
             else
             {
                 Config::set('cache.enabled', false);
-                Debug::warning('Cache désactivé : impossible d\'utiliser les répertoires indiqués (application : %s, framework : %s', $appPath, $fabPath);
             }
         }
-        else
-            Debug::notice('Le cache est désactivé dans la config');
     }
     
     // Modules requis : Config
@@ -576,17 +498,24 @@ $fab_init_time=microtime(true);
             if (file_exists($path=self::$root.'config'.DIRECTORY_SEPARATOR.'routing.' . self::$env . '.config'))
                 Config::load($path, 'routing', array('Routing','transform'));
         }
-
     }
     
     public static function shutdown()
     {
-        global $start_time;
-
+        global $fab_start_time, $fab_init_time, $fab_request_time, $xxx;
+        $fab_end_time=microtime(true);
         if (Config::get('showdebug'))
         {        
             debug && Debug::log("Application terminée");
-            Debug::log('Temps total d\'exécution : %s secondes', sprintf('%.3f', (microtime(true) - $start_time )));
+            Debug::log
+            (
+                'Temps d\'exécution : init=%s, requête=%s, shutdown=%s, total=%s', 
+                Utils::friendlyElapsedTime($fab_init_time - $fab_start_time),
+                Utils::friendlyElapsedTime($fab_request_time - $fab_init_time),
+                Utils::friendlyElapsedTime($fab_end_time - $fab_request_time),
+                Utils::friendlyElapsedTime($fab_end_time - $fab_start_time)
+            );
+            
             Debug::showBar();
         }
         exit(0);
@@ -603,7 +532,7 @@ $fab_init_time=microtime(true);
     
     
     /**
-     * Démare la session si ce n'est pas déjà fait
+     * Démarre la session si ce n'est pas déjà fait
      */
     public static function startSession()
     {
@@ -681,64 +610,66 @@ $fab_init_time=microtime(true);
      * indiquée en paramètre.
      * 
      * Cette fonction n'est pas destinée à être appellée directement : c'est une
-     * fonction magique que php appelle lorsqu'il ne trouve pas la définition d'une
-     * classe demandée.
+     * fonction magique que php appelle lorsqu'il ne trouve pas la définition 
+     * d'une classe.
      * 
-     * Pour que cette fonction marche, il faut que les fichiers de classes soient 
-     * nommés selon la convention NomDeClasse.class.php
-     * 
-     * @param string $className le nom de la classe qui n'a pas été trouvée
+     * @param string $className le nom de la classe qui n'a pas été trouvée.
      */
     public static function autoload($class)
-    {
-        static $core='';
-        static $dir=array
+    { 
+        // Classes dont on a besoin avant que la configuration ne soit chargée
+        static $core=array
         (
+            //'Debug'=>'core/debug/Debug.php',
             'Utils'=>'core/utils/Utils.php',
-            'Cache'=>'core/cache/Cache.php',
-            'Debug'=>'core/debug/Debug.php',
             'Config'=>'core/config/Config.php',
-            'Routing'=>'core/routing/Routing.php',
-            'Template'=>'core/template/Template.php',
-            'User'=>'core/user/User.php',
-            'Module'=>'modules/Module/Module.php',
-            'Admin'=>'modules/Admin/Admin.php',
-            'AdminFiles'=>'modules/AdminFiles/AdminFiles.php',
-            'AdminSchemas'=>'modules/AdminSchemas/AdminSchemas.php',
-            'NoSecurity'=>'modules/NoSecurity/NoSecurity.php',
-//            'ExceptionManager'=>'core/exception/ExceptionManager.php',
-            'Database'=>'core/database/Database.php',
-            'DatabaseModule'=>'modules/DatabaseModule/DatabaseModule.php',
-            'TextTable'=>'core/helpers/TextTable/TextTable.php',
-            'BisDatabase'=>'core/database/BisDatabase.php',
-            'XapianDatabaseDriver'=>'core/database/XapianDatabase.php',
-            'DatabaseSchema'=>'core/database/DatabaseSchema.php',
-            'TemplateCompiler'=>'core/template/TemplateCompiler.php',
-            'TemplateCode'=>'core/template/TemplateCode.php',
-            'TemplateEnvironment'=>'core/template/TemplateEnvironment.php',
-            'TaskManager'=>'modules/TaskManager/TaskManager.php',
-            'Task'=>'modules/TaskManager/Task.php',
-            'Request'=>'core/Request/Request.php',
-//            'ThesaurusCindoc'=>'modules/ThesaurusModule/ThesaurusCindoc.php',
-        
-            // remarque : ImportModule est nécessaire pour permettre au module ImportAsco de faire "extends ImportModule"
-            // sur le fond, ne devrait pas être là : le autoload devrait pouvoir charger tout seul n'importe quel module
-            // sans qu'on ait à lui donner le path exact. (supprimerait aussi de la liste DatabaseModule, TaskManager, NoSecurity, etc.)
-        	'ImportModule'=>'modules/ImportModule/ImportModule.php',
-            
-            // remarque : ThesaurusModule est nécessaire pour permettre au module Thesaurus de ascoweb de faire "extends ThesaurusModule"
-            // sur le fond, ne devrait pas être là : le autoload devrait pouvoir charger tout seul n'importe quel module
-            // sans qu'on ait à lui donner le path exact. (supprimerait aussi de la liste DatabaseModule, TaskManager, NoSecurity, etc.)
-            'ThesaurusModule'=>'modules/ThesaurusModule/ThesaurusModule.php',
-            
-            'CartModule'=>'modules/CartModule/CartModule.php',
-        
+            'Cache'=>'core/cache/Cache.php',
         );
-        if (!isset($dir[$class])) return;
-        $path=self::$fabRoot. strtr($dir[$class],'/', DIRECTORY_SEPARATOR);
-//        echo "__autoload('$class') -> require_once('$path')<br />\n";
-        require_once($path);
+        
+        // Classes "core" de fab
+        if (isset($core[$class]))
+        {
+            $path=$core[$class];
+            $root=self::$fabRoot;
+        }
+        
+        // Classes définies par l'application
+        elseif ($path=Config::get('autoload.'.$class))
+        {
+            $root=self::$root;
+        }
+        
+        // Classes définies par fab
+        elseif ($path=Config::get('fabautoload.'.$class))
+        {
+            $root=self::$fabRoot;
+        }
+        
+        // Modules 
+        else
+        {
+            // Modules de l'application
+            $path='modules'.DIRECTORY_SEPARATOR.$class.DIRECTORY_SEPARATOR.$class.'.php';
+            $root=Runtime::$root;
+            if (!file_exists($root.$path))
+            {
+                // Modules de fab
+                $root=Runtime::$fabRoot;
+                if (!file_exists($root.$path))
+                {
+                    // Classe non trouvée
+                    echo "__autoload('$class') -> Not found !<br />\n";
+                    return false;
+                }
+            }
+        }
+          
+        $path=$root. ltrim(strtr($path,'/', DIRECTORY_SEPARATOR),DIRECTORY_SEPARATOR);
+        
+        require($path); 
+        // autoload n'est appellée que si la classe n'existe pas, on peut donc
+        // se ontenter de require, require_once est inutile.
+        defined('debug') && debug && Debug::log('Autoload %s (%s)', $class, $path);
     }
-    
 }
 ?>
