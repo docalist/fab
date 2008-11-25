@@ -74,15 +74,9 @@ class Config
         // Retourne le fichier depuis le cache s'il existe et est à jour
         $cache=Config::get('cache.enabled');
         if ( $cache && Cache::has($path, Config::get('config.checktime')?filemtime($path):0) )
-        {
-            Debug::log("Chargement de '%s' à partir du cache", $configPath);
             return require(Cache::getPath($path));
-        }
         
-        // Sinon, charge le fichier réel et le stocke en cache
-        Debug::log("Chargement de '%s' : compilation", $configPath);
-
-        // Charge le fichier
+        // Sinon, charge le fichier réel, le transforme puis le stocke en cache
         $data=self::loadXml(file_get_contents($path));
     
         // Applique le transformer
@@ -487,7 +481,7 @@ class Config
         $config=& self::$config;
         foreach (explode('.', $name) as $name)
         {
-        	if ( ! array_key_exists($name, $config)) return $default;
+            if ( ! array_key_exists($name, (array) $config)) return $default;
             $config=& $config[$name];
         }
         return $config;
