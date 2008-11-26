@@ -94,7 +94,12 @@ jQuery.AutoCompleteHandler =
         } else {
             settings = defaultSettings;
         }
-                            
+              
+        // si l'url contient &amp;, &gt; ou &lt; on les décode maintenant
+        settings.url=settings.url.replace(/&amp;/g, '&')
+                                 .replace(/&gt;/g, '>')
+                                 .replace(/&lt;/g, '<');
+
         // Initialise l'autocomplete pour chacun des contrôles jquery sélectionnés
         return this.each(function () {
             this.ac = settings;
