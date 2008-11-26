@@ -28,6 +28,16 @@ class DatabaseSchema
         FIELD_TEXT=3,
         FIELD_BOOL=4;
 
+    
+    /**
+     * Les types autorisés pour les index et les alias
+     *
+     */
+    const
+        INDEX_PROBABILISTIC    = 1,
+        INDEX_BOOLEAN=2;
+        
+
     /**
      * Ce tableau décrit les propriétés d'une schéma de base de données.
      * 
@@ -62,7 +72,7 @@ class DatabaseSchema
                     '_id'=>0,            // Identifiant (numéro unique) du champ
                     'name'=>'',             // Nom du champ, d'autres noms peuvent être définis via des alias
                     'type'=>'text',         // Type du champ (juste à titre d'information, non utilisé pour l'instant)
-                    '_type'=>0,          // Traduction de la propriété type en entier
+                    '_type'=>self::FIELD_TEXT,          // Traduction de la propriété type en entier
                     'label'=>'',            // Libellé du champ
                     'description'=>'',      // Description
                     'defaultstopwords'=>true, // Utiliser les mots-vides de la base
@@ -94,6 +104,8 @@ class DatabaseSchema
                     'name'=>'',             // Nom de l'index
                     'label'=>'',            // Libellé de l'index
                     'description'=>'',      // Description de l'index
+                    'type'=>'probabilistic',         // Type d'index : 'probabilistic' ou 'boolean'
+                    '_type'=>self::INDEX_PROBABILISTIC,             // Traduction de la propriété type en entier
                     'fields'=>array         // La liste des champs qui alimentent cet index
                     (
                         'field'=> array
@@ -142,6 +154,8 @@ class DatabaseSchema
                     'name'=>'',             // Nom de l'alias
                     'label'=>'',            // Libellé de l'index
                     'description'=>'',      // Description de l'index
+                    'type'=>'probabilistic',         // Type d'index : 'probabilistic' ou 'boolean'
+                    '_type'=>self::INDEX_PROBABILISTIC,             // Traduction de la propriété type en entier
                     'indices'=>array        // La liste des index qui composent cet alias
                     (
                         'index'=>array
@@ -764,6 +778,16 @@ class DatabaseSchema
                 $errors[]="Les index #$i et #$indices[$name] ont le même nom";
             $indices[$name]=$i;
             
+            // Vérifie le type de l'index
+            switch($index->type=strtolower(trim($index->type)))
+            {
+                case 'probabilistic':    
+                case 'boolean': 
+                    break;
+                default:
+                    $errors[]="Type incorrect pour l'index #$i";
+            }
+            
             // Vérifie que l'index a au moins un champ
             if (count($index->fields)===0)
                 $errors[]="Aucun champ n'a été indiqué pour l'index #$i ($index->name)";
@@ -846,6 +870,16 @@ class DatabaseSchema
                 $errors[]="Les alias #$i et #$aliases[$name] ont le même nom";
             $aliases[$name]=$i;
             
+            // Vérifie le type de l'alias
+            switch($alias->type=strtolower(trim($alias->type)))
+            {
+                case 'probabilistic':    
+                case 'boolean': 
+                    break;
+                default:
+                    $errors[]="Type incorrect pour l'alias #$i";
+            }
+            
             // Vérifie que l'alias a au moins un index
             if (count($alias->indices)===0)
                 $errors[]="Aucun index n'a été indiqué pour l'alias #$i ($alias->name)";
@@ -925,9 +959,7 @@ class DatabaseSchema
      */
     private static function stopwords(& $stopwords)
     {
-        $t=preg_split('~\s~', $stopwords, -1, PREG_SPLIT_NO_EMPTY);
-        sort($t);
-        $stopwords=implode(' ', $t);    
+        $stopwords=implode(' ', array_keys(array_flip(Utils::tokenize($stopwords))));
     }
     
     /**
@@ -1158,6 +1190,16 @@ class DatabaseSchema
             foreach ($index->fields as &$field)
                 $field->_id=$this->fields[trim(Utils::ConvertString($field->name, 'alphanum'))]->_id;
             unset($field);
+            
+            // initialise le type de l'index
+            if (!isset($index->type)) $index->type='probabilistic'; // cas d'un schéma compilé avant que _type ne soit implémenté
+            switch(strtolower(trim($index->type)))
+            {
+                case 'probabilistic': $index->_type=self::INDEX_PROBABILISTIC;    break;
+                case 'boolean':       $index->_type=self::INDEX_BOOLEAN;          break;
+                default:
+                    throw new LogicException('Type d\'index incorrect, aurait dû être détecté avant : ' . $index->type);
+            }
         }
 
 
@@ -1176,6 +1218,16 @@ class DatabaseSchema
             foreach ($alias->indices as &$index)
                 $index->_id=$this->indices[trim(Utils::ConvertString($index->name, 'alphanum'))]->_id;
             unset($index);
+            
+            // initialise le type de l'alias
+            if (!isset($alias->type)) $alias->type='probabilistic'; // cas d'un schéma compilé avant que _type ne soit implémenté
+            switch(strtolower(trim($alias->type)))
+            {
+                case 'probabilistic': $alias->_type=self::INDEX_PROBABILISTIC;    break;
+                case 'boolean':       $alias->_type=self::INDEX_BOOLEAN;          break;
+                default:
+                    throw new LogicException('Type d\'alias incorrect, aurait dû être détecté avant : ' . $alias->type);
+            }
         }
 
         
@@ -1371,6 +1423,9 @@ class DatabaseSchema
             if ($oldIndex->description !== $newIndex->description)
                 $changes['Changement de la description de l\'index ' . $newIndex->name]=0;
 
+            if ($oldIndex->type !== $newIndex->type)
+                $changes['Changement du type de l\'index ' . $newIndex->name]=0;
+
             // Liste des champs de cet index
             $f1=$this->index($oldIndex->fields);
             $f2=$this->index($newIndex->fields);
@@ -1433,6 +1488,9 @@ class DatabaseSchema
             if ($oldAlias->description !== $newAlias->description)
                 $changes['Changement de la description de l\'alias ' . $newAlias->name]=0;
 
+            if ($oldAlias->type !== $newAlias->type)
+                $changes['Changement du type de l\'alias ' . $newAlias->name]=0;
+                
             // Liste des index de cet alias
             $f1=$this->index($oldAlias->indices);
             $f2=$this->index($newAlias->indices);
