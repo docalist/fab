@@ -11,10 +11,10 @@
  * qui sera exécutée.
  * 
  * L'objet Request est destiné à éviter que les tableaux $_GET, $_POST, etc.
- * soient accédés directement.
+ * ne soient accédés directement.
  * 
- * Certaines fonctions retourne $this pour permettre de chainer les appels de 
- * méthode :
+ * Certaines méthodes retourne $this pour permettre de chainer les appels de 
+ * méthodes :
  * 
  * <code>
  * $request
@@ -23,8 +23,8 @@
  *     ->set('query', 'health');
  * </code>
  * 
- * Request propose également des fonctions (chainées) permettant de valider
- * les paramètres de la requête :
+ * Request propose également des méthodes (chainées) permettant de valider
+ * aisément les paramètres de la requête :
  * 
  * <code>
  * $request
@@ -151,27 +151,25 @@ class Request
             // Existe déjà, c'est un tableau, ajoute la valeur à la fin
             if (is_array($value))
             {
-                if (is_array($value))   // tableau + tableau
-                {
+                // tableau + tableau
+                if (is_array($value))   
                     $this->_parameters[$key]=array_merge($this->_parameters[$key], $value);
-                }
-                else                    // tableau + valeur
-                {
+                    
+                // tableau + valeur
+                else                    
                     $this->_parameters[$key][]=$value;
-                }
             }    
 
             // Existe déjà, simple valeur, crée un tableau contenant la valeur existante et la valeur indiquée
             else
             {
-                if (is_array($value))   // valeur + tableau
-                {
+                // valeur + tableau
+                if (is_array($value))
                     $this->_parameters[$key]=array_merge(array($this->_parameters[$key]), $value);
-                }
-                else                    // valeur + valeur
-                {
+                    
+                // valeur + valeur
+                else                    
                     $this->_parameters[$key]=array($this->_parameters[$key], $value);
-                }
             }
         }
         return $this;
@@ -324,7 +322,7 @@ class Request
     }
     
     /**
-     * Détruit le paramètre indiqué
+     * Supprime le paramètre indiqué
      * 
      * __unset est une méthode magique de php qui permet de supprimer les 
      * paramètres de la requête comme s'il s'agissait de propriétés de 
@@ -339,17 +337,28 @@ class Request
     
     
     /**
-     * Alias de {@link __unset()}
+     * Supprime un paramètre de la requête.
      * 
-     * Exemple : <code>$request->clear('item')</code>
+     * Exemples :
+     * - <code>$request->clear('item')</code> // supprime le paramètre
+     *   item de la requête ;
+     * - <code>$request->clear('item', 'article')</code> // supprime la
+     *   valeur 'article' du paramètre item de la requête.
      *
-     * @param string $key
+     * @param string $key le nom du paramètre à supprimer.
+     * @param mixed $value optionnel : la valeur à effacer. 
+     * Par défaut (lorsque $value n'est pas indiqué, clear efface complètement
+     * le paramétre indiqué par $key. Si $value est indiqué et que $key désigne
+     * un tableau, seule la valeur indiquée va être supprimée de la requête.
+     * Si $key désigne un scalaire, le paramètre ne sera supprimé que si la valeur
+     * associée correspond à $value.
+     *
      * @return Request $this pour permettre le chainage des appels de méthodes
      * 
      * @todo : accepter plusieurs paramètres pour permettre de vider
      * plusieurs arguments d'un coup
      */
-    public function clear($key=null)
+    public function clear($key=null, $value=null)
     {
         if (is_null($key))
         {
@@ -357,7 +366,29 @@ class Request
         }
         else
         {
-            unset($this->_parameters[$key]);
+            if (is_null($value))
+            {
+                unset($this->_parameters[$key]);
+            }
+            else
+            {
+                if (array_key_exists($key, $this->_parameters))
+                {
+                    $v=$this->_parameters[$key];
+                    if (is_scalar($v))
+                    {
+                        if ($v === $value)
+                            unset($this->_parameters[$key]);
+                    }
+                    else
+                    {
+                        foreach($this->_parameters[$key] as $k=>$v)
+                            if ($v === $value) unset($this->_parameters[$key][$k]);
+                        if (empty($this->_parameters[$key]))
+                            unset($this->_parameters[$key]);
+                    }
+                }
+            }
         }
         return $this;
     }
@@ -402,7 +433,7 @@ class Request
     
     
     /**
-     * Retourne la liste des paramètres présents dans la requête 
+     * Retourne tous les paramètres présents dans la requête 
      *
      * @return array
      */
@@ -430,16 +461,25 @@ class Request
     }
     
     /**
-     * Détermine si le paramètre indiqué existe dans la requête
+     * Détermine si le paramètre indiqué existe dans la requête.
      * 
      * La fonction retourne true même si le paramètre à la valeur null
      * 
-     * @param string $key
+     * @param string $key le nom du paramètre à tester.
+     * @param mixed $value optionnel, la valeur à tester. Lorsque $value
+     * est indiquée, la méthode retourne true si le paramètre $key figure 
+     * dans la requête et s'il contient la valeur $value.
+     *
      * @return bool
      */
-    public function has($key)
+    public function has($key, $value=null)
     {
-        return array_key_exists($key, $this->_parameters);
+        if (! array_key_exists($key, $this->_parameters)) return false;
+        if (is_null($value)) return true;
+
+        foreach((array) $this->_parameters[$key] as $v)
+            if ($v === $value) return true;
+        return false;
     }
     
     
