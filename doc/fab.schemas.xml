@@ -4,7 +4,8 @@
 <?xml-stylesheet href="../web/css/docbook/dm.css" type="text/css"?>
 <sect1 id="fab.actions">
     <sect1info>
-        <releaseinfo>$Id$</releaseinfo>
+        <releaseinfo>$Id: fab.schemas.xml 877 2008-07-17 19:53:28Z
+        daniel.menard.bdsp $</releaseinfo>
     </sect1info>
 
     <title>Schémas de bases de données *</title>
@@ -285,6 +286,44 @@
                     (<code>description</code>) : une zone de texte libre dans
                     laquelle vous pouvez stocker toute information utile pour
                     cet index (champs indexés, précisions, etc.)</para>
+                </listitem>
+
+                <listitem>
+                    <para><emphasis role="strong" security="">Type
+                    d'index</emphasis> (<code>type</code>) : indique le type
+                    de l'index.</para>
+
+                    <para>Fab supporte deux types d'index :</para>
+
+                    <itemizedlist>
+                        <listitem>
+                            <para><emphasis>probabilistic</emphasis> : c'est le
+                            type par défaut. Un index de type "probabiliste"
+                            contribuera au calcul du score des réponses
+                            obtenues.</para>
+                        </listitem>
+
+                        <listitem>
+                            <para><emphasis>boolean</emphasis> : Un index de
+                            type "booléen" se comporte comme un simple filtre et
+                            ne contribue pas au calcul du score des réponses
+                            obtenues.</para>
+                        </listitem>
+                    </itemizedlist>
+
+                    <para>Les index de type booléens permettent de mettre en
+                    oeuvre des filtres qui ne vont pas "perturber" le calcul
+                    du score obtenu par chacune des réponses. Par exemple, un
+                    index portant sur la date des documents sera en général un
+                    bon candidat : si l'utilisateur précise dans sa requête
+                    "date : 2008", ce qu'on veut obtenir, c'est un filtre qui
+                    ne va afficher que les documents édités en 2008. Si un
+                    même document contient plusieurs fois le token "2008" dans
+                    le champ date, il n'y a pas lieu que cela change quoique
+                    ce soit au score de la réponse. Techniquement, les index
+                    de type "boolean" vont donner lieu à la construction d'une
+                    clause "filter" qui sera combinée à la partie probabiliste
+                    de la requête de l'utilisateur.</para>
                 </listitem>
             </itemizedlist>
         </sect3>
