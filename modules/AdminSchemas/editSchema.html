@@ -89,6 +89,7 @@
                     <textbox id="db_indices_name" class="fullwidth" size="80" label="Nom :" />
                     <textbox id="db_indices_label" size="60" class="fullwidth" label="Libellé :" /><br />
                     <textbox id="db_indices_description" class="fullwidth" rows="3" cols="60" label="Description :" /><br />
+                    <select id="db_indices_type" src="{array('probabilistic'=>'probabiliste (contribue au score des réponses)', 'boolean'=>'booléen (simple filtre)')}" label="Type :" /><br />
                 </fieldset>
                 <fieldset>
                     <legend>Liste des champs à indexer</legend>
@@ -156,6 +157,7 @@
                     <textbox id="db_aliases_name" class="fullwidth" size="80" label="Nom :"/>
                     <textbox id="db_aliases_label" size="60" class="fullwidth" label="Libellé :" /><br />
                     <textbox id="db_aliases_description" class="fullwidth" rows="3" cols="60" label="Description :" /><br />
+                    <select id="db_aliases_type" src="{array('probabilistic'=>'probabiliste (contribue au score des réponses)', 'boolean'=>'booléen (simple filtre)')}" label="Type :" /><br />
                 </fieldset>
                 <fieldset>
                     <legend>Liste des index de cet alias</legend>
