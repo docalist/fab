@@ -226,7 +226,6 @@ class ExceptionManager extends Module
      */
     public function handleError($code, $message, $file, $line)
     {
-        echo 'erreur here : ', $message, '<br />';
         $this->handleException(new Exception($message, $code), false);
         // NOTREACHED
         exit(); // todo : exit si erreur, pas si warning + runtime::shutdown
@@ -234,10 +233,6 @@ class ExceptionManager extends Module
     
     protected function mail(Exception $exception)
     {
-        // Charge les fichiers Swift
-        require_once Runtime::$fabRoot . 'lib/SwiftMailer/Swift.php';
-        require_once Runtime::$fabRoot . 'lib/SwiftMailer/Swift/Connection/SMTP.php';
-
         // Crée une nouvelle connexion Swift
         $swift = new Swift(new Swift_Connection_SMTP(ini_get('SMTP'))); // TODO: mettre dans la config de fab pour ne pas être obligé de changer php.ini
         
@@ -260,7 +255,7 @@ class ExceptionManager extends Module
                 '_COOKIE'=>$_COOKIE
             )
         );
-//        die();
+
         $body=ob_get_clean();
         $email->attach(new Swift_Message_Part($body, 'text/html'));
         
@@ -286,7 +281,6 @@ class ExceptionManager extends Module
         }
 
         return true;
-        
     }
 }
 ?>
