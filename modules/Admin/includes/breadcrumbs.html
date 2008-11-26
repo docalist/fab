@@ -1,6 +1,6 @@
 /* Ajoute un fil d'ariane devant les titres h1 de toutes les pages */
 <template match="//h1[not(@class='converted')]">
-    <p class="breadcrumbs" style="text-align: right; margin: 0">
+    <p test="{$this instanceof Admin}" class="breadcrumbs" style="text-align: right; margin: 0">
         <loop on="{$this->getBreadCrumbs()}" as="$link,$label">
             <if test="{$link===0}">$label</if>
             <else><a href="$link">$label</a> »</else>    
