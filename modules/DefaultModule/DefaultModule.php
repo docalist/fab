@@ -9,8 +9,7 @@ class DefaultModule extends Module
 {
 	public function actionIndex()
     {
-    	echo "<p>Bravo, vous affichez le résultat de l'action par défaut du module par défaut !</p>";
-        print_r($_COOKIE);
+        Template::run('index.html');
     }
 }
 ?>
