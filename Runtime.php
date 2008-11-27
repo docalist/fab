@@ -48,6 +48,15 @@ class Runtime
     const Version='0.6.0';
     
     /**
+     * Url complète de ce fichier dans le dépôt svn.
+     * 
+     * Utilisé pour déterminer automatiquement le numéro de vesion de fab.
+     * 
+     * @var string
+     */
+    private static $headUrl='$HeadURL$';
+    
+    /**
      * @var string Path du répertoire racine du site web contenant la page
      * demandée par l'utilisateur (le front controler). webRoot est forcément un
      * sous- répertoire de {@link $root}. webRoot contient toujours un slash
@@ -302,87 +311,39 @@ class Runtime
      */
     public static function setup($env='')
     {
-        global $fab_start_time, $fab_init_time, $fab_request_time;
+        // Mémorise l'heure de début au xas où l'option timer soit activée
+        $startTime=microtime(true);
         
-        $fab_start_time=microtime(true);
-        
-        self::checkRequirements();
-        self::setupPaths();
-
-        spl_autoload_register(array(__CLASS__, 'autoload'));
-
+        // Mémorise l'environnement d'exécution demandé
         self::$env=($env=='' ? 'normal' : $env);
-
-        // Charge la configuration de base (fichiers config.php application/fab/environnement)
-        self::setupBaseConfig();                    // Modules requis : Debug
-                                                    // variables utilisées : fabRoot, root, env
-
+        
+        // Vérifie qu'on a la configuration minimale requise pour fab
+        self::checkRequirements();
+        
+        // Définit les chemins utilisés
+        self::setupPaths();
+        
+        // Charge le gestionnaire de classes
+        spl_autoload_register(array(__CLASS__, 'autoload'));
+        
+        // initialement, l'autoload ne peut charger que les classes core de fab.
+        // dès que la config sera chargée, il saura charger tout le reste
+        
+        // Charge la configuration de base (fichiers /config/config.*.php)
+        self::setupBaseConfig();
                        
-        // Initialise le cache                      // Modules requis : Config, Utils, Debug
-        self::setupCache();                         // variables utilisées : fabRoot, root             
-
-        // Définit le fuseau horaire utilisé par les fonctions date de php
-        self::setupTimeZone();                      // Modules requis : Config
-        setlocale(LC_ALL, 'fr'); // fr_FR ne marche pas, retourne false.
+        // Initialise le cache
+        self::setupCache();             
         
-        // Charge la configuration générale (fichiers general.config fab/application/environnement)
-        self::setupGeneralConfig();                 // Modules requis : Debug, Config
-                                                    // variables utilisées : fabRoot, root, env
+        // Charge la configuration générale (fichiers /config/general.*.config)
+        self::setupGeneralConfig();
         
-        define('debug', (bool)config::get('debug',false));
-        debug && Debug::notice('Initialisation de fab en mode "%s"', $env ? $env : 'normal');
-        
-        self::checkSmartUrls();
-        debug && Debug::notice("Module/action demandés par l'utilisateur : " . self::$url);
-        
-    
-//echo '<h1>FINAL</h1>';
-//echo '<br /><big>';
-//echo'self::$fabRoot : ', self::$fabRoot, '<br />';
-//echo'self::$url : ', self::$url, '<br />';
-//echo'self::fcName : ', self::$fcName, '<br />';
-//echo'self::$webRoot : ', self::$webRoot, '<br />';
-//echo'self::$root : ', self::$root, '<br />';
-//echo'self::$realHome : ', self::$home, '<br />';
-//echo'self::$home : ', self::$home, '<br />';
-//echo '</big>';
-
-        // Initialise le gestionnaire d'exceptions
-        debug && Debug::log("Initialisation du gestionnaire d'exceptions");
-        Module::loadModule('ExceptionManager')->install();
-        
-        // Répare les tableaux $_GET, $_POST et $_REQUEST
-        Utils::repairGetPostRequest();
-        
-        // Charge les routes - routes.config -
-        debug && Debug::log('Initialisation du routeur');
-        self::setupRoutes();
-        
-        // Initialise le gestionnaire de sécurité
-        debug && Debug::log('Initialisation du gestionnaire de sécurité');
-        User::$user=Module::loadModule(Config::get('security.handler'));
-
-        /**
-         * Charge les fichiers de configuration de base de données (db.config, db.
-         * debug.config...) dans la configuration en cours.
-         * 
-         * L'ordre de chargement est le suivant :
-         * 
-         * - fichier db.config de fab (si existant)
-         * 
-         * - fichier db.$env.config de fab (si existant)
-         * 
-         * - fichier db.config de l'application (si existant)
-         * 
-         * - fichier db.$env.config de l'application (si existant)
-         */
-        debug && Debug::log("Chargement de la configuration des bases de données");
+        // Charge la configuration des bases de données (fichiers /config/db.*.config)
         if (file_exists($path=Runtime::$fabRoot.'config' . DIRECTORY_SEPARATOR . 'db.config'))
             Config::load($path, 'db');
         if (file_exists($path=Runtime::$root.'config' . DIRECTORY_SEPARATOR . 'db.config'))
             Config::load($path, 'db');
-        
-        debug && Debug::log('Initialisation de l\'environnement "%s"', Runtime::$env);
+            
         if (!empty(Runtime::$env))   // charge la config spécifique à l'environnement
         {
             if (file_exists($path=Runtime::$fabRoot.'config'.DIRECTORY_SEPARATOR.'db.' . Runtime::$env . '.config'))
@@ -391,13 +352,62 @@ class Runtime
                 Config::load($path, 'db');
         }
         
-        // Dispatch l'url
-        debug && Debug::log("Lancement de l'application");
-        self::$baseConfig=Config::getAll(); // hack pour permettre à runSlot de repartir de la bonne config
+        // Vérifie que les smarturls sont respectées, redirige si besoin est
+        self::checkSmartUrls();
+
+        // Définit le fuseau horaire utilisé par les fonctions date de php
+        self::setupTimeZone();
+        setlocale(LC_ALL, 'fr'); // fr_FR ne marche pas, retourne false.
         
-        $fab_init_time=microtime(true);
-        Routing::dispatch(self::$url);
-        $fab_request_time=microtime(true);
+        // Répare les tableaux $_GET, $_POST et $_REQUEST
+        Utils::repairGetPostRequest();
+        
+        // Définir les constantes utilisées pour le mode debug et le mpde timer
+        define('debug', (bool)config::get('debug',false));
+        define('timer', (bool)config::get('timer',false));
+
+        // Chronomètre le temps d'intialisation de fab
+        if (timer)
+        {
+            Timer::reset($startTime);
+            Timer::enter('Initialisation de fab', $startTime);
+            Timer::enter('Configuration de base', $startTime);
+            Timer::leave();
+        }
+                
+        debug && Debug::notice('Initialisation de fab en mode "%s"', $env ? $env : 'normal');
+        debug && Debug::notice("Module/action demandés par l'utilisateur : " . self::$url);
+
+        // Initialise le gestionnaire d'exceptions
+        timer && Timer::enter('Gestionnaire d\'exceptions');
+            debug && Debug::log("Initialisation du gestionnaire d'exceptions");
+            Module::loadModule('ExceptionManager')->install();
+        timer && Timer::leave();
+        
+        // Charge les routes (fichiers /config/routes.*.config)
+        timer && Timer::enter('Chargement des routes');
+            debug && Debug::log('Initialisation des routes');
+            self::setupRoutes();
+        timer && Timer::leave();
+        
+        // Initialise le gestionnaire de sécurité
+        timer && Timer::enter('Chargement de la sécurité');
+            debug && Debug::log('Initialisation du gestionnaire de sécurité');
+            User::$user=Module::loadModule(Config::get('security.handler'));
+        timer && Timer::leave();
+
+        // L'initialisation est terminée
+        timer && Timer::leave();
+        
+        // Exécute le module et l'action demandés
+        timer && Timer::enter('Exécution de ' . self::$url);
+            debug && Debug::log("Lancement de l'application");
+            self::$baseConfig=Config::getAll(); // hack pour permettre à runSlot de repartir de la bonne config
+            Routing::dispatch(self::$url);
+        timer && Timer::leave();
+
+        timer && Timer::printOut(true);
+
         self::shutdown();
     }
     
@@ -502,20 +512,9 @@ class Runtime
     
     public static function shutdown()
     {
-        global $fab_start_time, $fab_init_time, $fab_request_time, $xxx;
-        $fab_end_time=microtime(true);
         if (Config::get('showdebug'))
         {        
             debug && Debug::log("Application terminée");
-            Debug::log
-            (
-                'Temps d\'exécution : init=%s, requête=%s, shutdown=%s, total=%s', 
-                Utils::friendlyElapsedTime($fab_init_time - $fab_start_time),
-                Utils::friendlyElapsedTime($fab_request_time - $fab_init_time),
-                Utils::friendlyElapsedTime($fab_end_time - $fab_request_time),
-                Utils::friendlyElapsedTime($fab_end_time - $fab_start_time)
-            );
-            
             Debug::showBar();
         }
         exit(0);
@@ -616,7 +615,7 @@ class Runtime
      * @param string $className le nom de la classe qui n'a pas été trouvée.
      */
     public static function autoload($class)
-    { 
+    {
         // Classes dont on a besoin avant que la configuration ne soit chargée
         static $core=array
         (
@@ -658,14 +657,13 @@ class Runtime
                 if (!file_exists($root.$path))
                 {
                     // Classe non trouvée
-                    echo "__autoload('$class') -> Not found !<br />\n";
                     return false;
                 }
             }
         }
           
         $path=$root. ltrim(strtr($path,'/', DIRECTORY_SEPARATOR),DIRECTORY_SEPARATOR);
-        
+        //printf('Autoload %s (%s)<br/>', $class, $path);
         require($path); 
         // autoload n'est appellée que si la classe n'existe pas, on peut donc
         // se ontenter de require, require_once est inutile.
