@@ -33,30 +33,6 @@
 class Runtime
 {
     /**
-     * La version en cours de fab, sous forme de chaine de caractères.
-     * 
-     * Cette constante doit être mise à jour chaque fois qu'une nouvelle 
-     * release de fab est faite.
-     * 
-     * Vous pouvez utiliser la fonction php version_compare() pour vérifier
-     * que la version installée de fab est au moins celle que vous attendez :
-     * <code>
-     *      if (version_compare(Runtime::version, '0.5.0', '<=')
-     *          die('La version version 0.5.0 ou supérieure de fab est requise');
-     * </code>
-     */
-    const Version='0.6.0';
-    
-    /**
-     * Url complète de ce fichier dans le dépôt svn.
-     * 
-     * Utilisé pour déterminer automatiquement le numéro de vesion de fab.
-     * 
-     * @var string
-     */
-    private static $headUrl='$HeadURL$';
-    
-    /**
      * @var string Path du répertoire racine du site web contenant la page
      * demandée par l'utilisateur (le front controler). webRoot est forcément un
      * sous- répertoire de {@link $root}. webRoot contient toujours un slash
@@ -668,6 +644,52 @@ class Runtime
         // autoload n'est appellée que si la classe n'existe pas, on peut donc
         // se ontenter de require, require_once est inutile.
         defined('debug') && debug && Debug::log('Autoload %s (%s)', $class, $path);
+    }
+    
+    /**
+     * Retourne la version en cours de fab, sous forme d'une chaine de 
+     * caractère.
+     * 
+     * La méthode analyse l'url du fichier Runtime.php au sein du dépôt
+     * subversion pour déterminer la version de fab (exemple :
+     * http://fab.googlecode.com/svn/tags/0.11.0/Runtime.php = version 0.11.0)
+     * 
+     * Le numéro de version retourné peut être :
+     * - le nom d'un tag dans le dépôt subversion, composé d'une chaine de trois 
+     *   chiffres séparés par un point (par exemple 0.11.0).
+     * - le nom d'une branche dans le dépôt subversion (la syntaxe peut varier,
+     *   mais il s'agit en général d'un numéro de tag suivie d'un label).
+     * - la chaine 'trunk' qui indique qu'il s'agit de la version en cours de 
+     *   développement.
+     * - le booléen false si le numéro de version n'a pas pu être déterminé
+     *   automatiquement.
+     * 
+     * Remarque :
+     * Si vous utilisez les tags, vous pouvez dans votre application utiliser la 
+     * fonction php version_compare() pour vérifier que la version installée de 
+     * fab est au moins celle que vous attendez :
+     * <code>
+     *      if (version_compare(Runtime::getVersion(), '0.11.0', '<=')
+     *          die('La version de fab que vous utilisez est obsolète');
+     * </code>
+     * 
+     * @var string|false le numéro de version de fab.
+     */
+    
+    public static function getVersion()
+    {
+        // Le contenu de la variable ci-dessous est mis à jour automatiquement 
+        // par subversion lors d'un checkout. Ne pas modifier.
+        $headUrl='$HeadURL$';
+        
+        if (false === $pt=strpos($headUrl, '/svn/'))
+            return false;
+            
+        $t=explode('/', substr($headUrl, $pt+5), 3);
+        if ($t[0] === 'trunk')
+            return 'trunk';
+        
+        return $version=$t[1];
     }
 }
 ?>
