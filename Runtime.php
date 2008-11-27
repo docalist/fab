@@ -3,7 +3,7 @@
  * @package     fab
  * @subpackage  runtime
  * @author      Daniel Ménard <Daniel.Menard@bdsp.tm.fr>
- * @version     SVN: $Id: Runtime.php 235 2006-12-20 09:02:07Z dmenard $
+ * @version     SVN: $Id$
  */
 
 /**
