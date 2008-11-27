@@ -1,0 +1,27 @@
+Etapes d'une release
+
+* Nettoyage du code, suppression des bouts de code obsolète, compléter la 
+  documentation PHP des fonctions, des fichiers de config, etc.
+  
+* Modifier le numéro de version qui figure dans Runtime.php (constante Version)
+
+* Committer ces modifications
+
+* Créer un tag svn pour cette release
+
+* Dans le issue tracker, modifier le statut de tous les bugs qui sont fixés par
+  cette release (fixed -> closed)
+  
+* Dans le issue tracker, ajouter un nouveau label de version avec le numéro de 
+  cette release (pour permettre de marquer les futurs bugs signalés comme étant
+  propres à cette release)
+
+* Mettre à jour le wiki (ajout d'une page "release x.y.z" signalant les 
+  modifications apportées par cette release, modifier les liens des pages 
+  existantes pour qu'elles pointent sur cette nouvelle page).
+
+* Mettre à jour BdspWeb2 (faire un update s'il est localisé sur /trunk, 
+  relocaliser sur la nouvelle release sinon).
+  
+* Vider le cache de fab et de l'application
+ 
