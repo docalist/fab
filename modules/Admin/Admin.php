@@ -189,8 +189,8 @@ class Admin extends Module
         // sauvegarde notre config
         $config=Config::getAll();
         
-        // Crée la requête utilisée pour charge chacun des modules d'admin 
-        $request=Request::create()->setAction('/');
+        // Crée la requête utilisée pour charger chacun des modules d'admin 
+        $request=Request::create()->setAction('');
 
         // Crée un tableau indiquant pour chacun des modules indiqués dans la
         // config : son titre, sa description, l'url de son icone et l'url 
@@ -215,7 +215,7 @@ class Admin extends Module
                 'link'=>$request->getUrl(),
             );
         }
-        
+
         // Restaure notre config
         Config::clear();
         Config::addArray($config);
