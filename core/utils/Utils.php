@@ -1986,5 +1986,63 @@ final class Utils
     }
     
     
+    /**
+     * Retourne la taille du contenu présent dans un fichier compressé au format 
+     * gzip (.gz).
+     * 
+     * La méthode détermine la taille du contenu en consultant les quatre octets
+     * qui figurent à la fin du fichier.
+     * 
+     * Remarque :
+     * La méthode vérifie que le fichier que vous passez en paramètre (quelle
+     * que soit son extension) est bien un fichier au format gzip en vérifiant
+     * dans les deux premiers octets du fichier sont conformes à la signature
+     * standard d'un fichier gzip.
+     *  
+     * Il vous appartient de vérifier que le fichier que vous indiquez est bien
+     * un fichier compressé. Si vous appellez la méthode avec autre chose qu'un
+     * fichier .gz, elle retournera n'importe quoi.
+     * 
+     * @param string $path le path d'un fichier .gz
+     * @return int|false la taille du contenu stocké dans le fichier ou false
+     * si une erreur survient (fichier inexistant, fichier vide, ...)
+     */
+    public static function gzSize($path)
+    {
+        // La taille du contenu est stockée dans le fichier .gz à la fin du
+        // fichier (champ ISIZE) sous la forme d'un entier 32 bits stockés en
+        // mode "little indian". 
+        // cf http://tools.ietf.org/html/rfc1952#page-6
+        
+        // Ouvre le fichier
+        if (!$f=@fopen($path, 'r')) return false;
+        
+        // Vérifie que c'est bien un fichier au format gzip
+        $id=fread($f, 2);
+        if ($id !== "\x1f\x8b")
+            die('pas un gz');
+            
+        // Va 4 octets avant la fin
+        fseek($f, -4, SEEK_END);
+        
+        // Lit les quatre octets (une simple chaine pour le moment)
+        $size=fread($f, 4);
+        if (strlen($size) !== 4) return false;
+        
+        // Ferme le fichier
+        fclose($f);
+        
+        // Convertit en entier
+        $size=unpack('V', $size);   // V = little indian
+
+        // unpack retourne un tableau contenant un seul élément
+        $size=end($size);
+        
+        // Convertit l'entier signé en entier non signé
+        if ($size <0) $size += 4294967296;
+        
+        // Retourne le résultat
+        return $size;
+    }
 }
 ?>
