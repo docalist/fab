@@ -56,13 +56,13 @@
     
     <fieldset label="Options">
 /*
-    Option "Archive ZIP" 
+    Option "Archive ZIP"
 */
         <div>
             <if test="{Config::get('allowzip') and class_exists('ZipArchive')}">
                 <if test="{Config::get('forcezip')}">
                     <checkbox label="Archive au format ZIP" disabled="disabled" checked="checked" />
-                    <hidden name="_mail" value="1" />
+                    <hidden name="_zip" value="1" />
                 </if>
                 <else>
                     <checkbox name="_zip" value="1" label="Archive au format ZIP" />
@@ -73,7 +73,7 @@
                 <checkbox label="Archive au format ZIP" disabled="disabled">
                     <br /><small>cette option n'est pas disponible sur ce serveur</small>
                 </checkbox>
-                <hidden name="_mail" value="0" />
+                <hidden name="_zip" value="0" />
             </else>
         </div>
 
