@@ -1,0 +1,159 @@
+Fichier de test unitaires pour la classe Routing
+
+Ce test utilise les routes définies dans le fichier testroutes.config.
+
+Dans les résultats (--expect--) vous pouvez utiliser deux variables pour
+désigner la racine du site :
+(home) : la racine du site, incluant le nom du FC (majorité des urls)
+(realhome) : idem sans FC (urls désignant un fichier de app/web)
+
+@version : $Id$
+
+================================================================================
+--test--
+Racine du site
+--file--
+/
+--expect--
+(home)/
+================================================================================
+--test--
+Un module et une action
+--file--
+/anymodule/anyaction
+--expect--
+(home)/anymodule/anyaction
+================================================================================
+--test--
+Un module et une action (avec slash final)
+--file--
+/anymodule/anyaction/
+--expect--
+(home)/anymodule/anyaction
+--comment--
+le slash final indiqué a été supprimé (tel qu'indiqué dans les routes)
+================================================================================
+--test--
+Un module et son action par défaut
+--file--
+/anymodule/index
+--expect--
+(home)/anymodule/
+--comment--
+l'action par défaut n'est pas mentionnée
+================================================================================
+--test--
+Un module uniquement avec slash final
+--file--
+/anymodule/
+--expect--
+(home)/anymodule/
+================================================================================
+--test--
+Un module uniquement sans slash final
+--file--
+/anymodule
+--expect--
+(home)/anymodule/
+--comment--
+le slash final a été ajouté (tel qu'indiqué dans les routes)
+================================================================================
+--test--
+Une action du module en cours
+--file--
+anyaction
+--expect--
+(home)/AutoTest/anyaction
+================================================================================
+--test--
+Une action du module en cours (avec slash final)
+--file--
+anyaction/
+--expect--
+(home)/AutoTest/anyaction
+--comment--
+slash final supprimé
+================================================================================
+--test--
+Action en cours du module en cours (ie chaine vide)
+--file--
+
+--expect--
+(home)/AutoTest/actionRun
+
+================================================================================
+================================================================================
+--test--
+Un fichier existant dans le répertoire web de l'application
+--file--
+/styles/homepage.css
+--expect--
+(realhome)/styles/homepage.css
+--comment--
+Difficile d'écrire ce test de manière universelle : le fichier indiqué *doit*
+exister. J'ai pris un fichier existant de ascodoc, mais avec une autre 
+application, ce test ne passera pas.
+================================================================================
+--test--
+Un fichier inexistant dans un répertoire existant du répertoire web de l'application
+--file--
+/images
+--expect--
+(realhome)/images
+--comment--
+Là, pas d'ajout en automatique du slash final
+================================================================================
+--test--
+Un sous-répertoire dans un répertoire existant du répertoire web de l'application
+--file--
+/images/default/
+--expect--
+(realhome)/images/default/
+--comment--
+Le but de ce test est de vérifier que le slash final n'est pas supprimé dans ce
+cas.
+================================================================================
+================================================================================
+
+--test--
+Formulaire de recherche
+--file--
+/databasemodule/search
+--expect--
+(home)/base/recherche
+================================================================================
+--test--
+Recherche par numéro de ref
+--file--
+/databasemodule/search?ref=12
+--expect--
+(home)/base/12
+================================================================================
+--test--
+Recherche par auteur
+--file--
+/databasemodule/search?aut=menard
+--expect--
+(home)/base/auteur/menard
+================================================================================
+--test--
+Recherche par motscles
+--file--
+/databasemodule/search?motscles=dev
+--expect--
+(home)/base/motcle/dev
+================================================================================
+--test--
+Recherche par revue
+--file--
+/databasemodule/search?rev=phpmagazine
+--expect--
+(home)/base/revue/phpmagazine
+================================================================================
+--test--
+Détail d'une revue
+--file--
+/databasemodule/inspect?rev=phpmagazine
+--expect--
+(home)/base/revue/phpmagazine/inspect
+================================================================================

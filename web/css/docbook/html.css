@@ -1,0 +1,638 @@
+@CHARSET "ISO-8859-1";
+/*
+    Cette feuille de style est destinée à être appliquée à un document
+    xml au format docbook, pas à une page html.
+    Elle permet d'avoir un rendu à peu près wysiwyg du fichier docbook.
+    
+    $Id$
+*/    
+
+/* débug */
+html
+{
+    font-size: 76%;
+}
+sect1, sect2, sect3, sect4, example, all,
+title, para, link, ulink,
+itemizedlist, orderedlist, listitem,
+emphasis,
+table, tgroup, thead, tbody, tfooter, row, entry
+{
+    background-color: transparent; /* OK pour tous les éléments connus */
+}
+*[role]
+{
+   background-color: red; /* repère en rouge les éléments inconnus qui ont un attribut role */
+}
+/* fin debug */
+
+
+/* Index des classes */
+div.index
+{
+    float: right;
+    width: 19em;
+    
+}
+
+div.index div.section
+{
+    background-color: #FFFFCC;
+    border: 1px dashed orange;
+    padding: 0.5em;
+    margin-bottom: 1em;
+}
+
+div.index h2
+{
+    margin: 0;
+    text-align: center;
+    padding: 0;
+    background-color: orange;
+    color: #fff;
+}
+
+div.index h3
+{
+    margin: 0.5em 0 0.2em 0;
+    color: darkorange;
+}
+
+div.index ul
+{
+    margin: 0;
+    padding: 0;
+    list-style-type: none;
+}
+
+div.index li
+{
+    list-style-type: none;
+    margin: 0 0 0.1em 0;
+    padding: 0;
+}
+
+div.index li li
+{
+    padding: 0 0 0 1em;
+}
+
+div.index li a
+{
+    text-decoration: none;
+}
+
+div.index li span
+{
+    display: block;
+}
+
+div.index li a:hover span,
+div.index li.selected span
+    {
+    background-color: orange;
+    color: #fff;
+    text-decoration: none;
+}
+
+div.index li.selected span
+{
+    font-weight: bold;
+}
+
+/* Fin Index des classes */
+
+*
+{
+    font-family: Arial, Tahoma, sans-serif;
+    /*display: block;*/
+}
+
+/* Titre du doc */
+title
+{
+    font-family: Verdana, Arial, Helvetica, Sans-Serif;
+    color: #009;
+}
+
+/* Sections et titres de section */
+div.sect1
+{
+    /* max-width: 60em; */
+    margin: 0 20em 0 1em;
+    padding: 0;
+}
+
+div.sect1 h1
+{
+    font-size: 2.5em;
+    font-weight: bold;
+    margin-bottom: 2em;
+}
+
+div.sect2, div.sect3, div.sect4
+{
+    padding: 1em 0 1em 1em;
+    margin-bottom: 1em;
+}
+
+div.sect2 h2
+{
+    font-size: 1.2em;
+    text-align: left;
+    font-weight: bold;
+    margin: 0 0 1em -1em;
+    border-bottom: 1px solid #009;
+}
+div.sect3 h3
+{
+    font-size: 1.1em;
+    text-align: left;
+    font-weight: bold;
+    margin: 0 0 1em -1em;
+    border-bottom: none;
+}
+div.sect4 h4
+{
+    font-size: 1em;
+    text-align: left;
+    font-weight: bold;
+    margin: 0 0 1em -1em;
+    border-bottom: none;
+    text-decoration: underline;
+}
+
+/* 
+    Admonitions (note, tip, warning...)
+    icones utilisées : 34x34px
+*/
+
+div.note, div.tip, div.example, div.warning, div.important, div.caution
+{
+    background: #eee none no-repeat scroll 10px 50%;
+    border:1px solid #444;
+    margin: 0.5em 0em;
+    padding: 0 54px 0em 54px;
+    -moz-border-radius: 5px;
+    
+}
+
+div.note
+{
+    background-image: url(images/note.png);
+    background-color: #FFFFCC;
+    border-color: orange;
+}
+
+div.tip
+{
+    background-image: url(images/tip.png);
+    background-color: #efe;
+    border-color: #080;
+}
+
+div.warning
+{
+    background-image: url(images/warning.png);
+    background-color: #FFE4B5; /* mocassin */
+    border-color: darkorange;
+}
+
+div.important
+{
+    background-image: url(images/important.png);
+    background-color: #ddf;
+    border-color: #008;
+}
+
+div.caution
+{
+    background-image: url(images/caution.png);
+    background-color: #fdd;
+    border-color: #F00;
+}
+
+div.example
+{
+/*    background: #eee url(images/example.png) no-repeat scroll 0 0;*/
+    padding: 0em 1em 0 1em;
+    margin: 1em 0;
+}
+
+div.note div.title, div.tip div.title, div.example div.title, 
+div.warning div.title, div.important div.title, div.caution div.title, 
+div.table div.title
+{
+    font-size: 1.1em;
+    font-weight: bold;
+    border: none;
+    color: orange;
+    font-weight: bold;
+    margin: 0;
+    padding: 0.5em 0 0 0;
+    text-align: left;
+}
+div.tip div.title
+{
+    color: #080;
+}
+div.warning div.title
+{
+    color: darkorange;
+}
+div.important div.title
+{
+    color: #00F;
+}
+div.caution div.title
+{
+    color: #F00;
+}
+div.example div.title,
+div.table div.title
+{
+    color: #111;
+/*    text-align: center;
+    margin-bottom: 0.5em;*/
+}        
+
+/* Paragraphes */
+p
+{
+    color: #444;
+    margin: 0.5em 0;
+    line-height: 1.5em;
+/*    text-align: justify;*/
+}
+
+/* Listes */
+ul, ol, dl
+{
+    /*margin: 1em 3em 1em 3em;*/
+}
+ul li
+{
+    list-style-type: square;
+    display: list-item;
+    /*color: #008;*/
+}
+        
+ol li
+{
+    list-style-type: circle; /* decimal ne marche pas sous FF 2 : toujours zéro */
+    display: list-item;
+    color: #008;
+}
+
+/* Liens */
+a
+{
+    display: inline;
+    color: blue;
+    text-decoration: underline;
+}
+
+/* Gras et italique */
+em
+{
+    color: #222;
+    font-style: italic;
+    display: inline;
+}
+strong
+{
+    font-style: normal;
+    font-weight: bolder;
+    background-color: transparent; /* debug */
+}
+
+/* Listings, code */
+.programlisting,
+div.screen
+{
+    border: 1px solid #aaa;
+    background-color: #ffe;
+    margin: 0.5em 0;
+    padding: 0.5em;
+    font-family: "Courier New", Courier, Monospace;
+    white-space: pre; /* Ne marche pas sous IE 7 ! */
+    color: #00A;
+    overflow: auto; /* ajoute des ascenseurs si on a vraiment des lignes trop longues */
+}
+
+/* affiche une erreur pour les programlisting sans role ou avec un role non reconnu */
+programlisting:before
+{
+    content: "<programlisting /> : Attribut role='" attr(role) "' non valide ";
+    color: #fff;
+    background-color: #f00;
+    display: block;
+    text-align: center;
+    margin-top: -0.5em;
+}
+
+programlisting[role=xml]:before,
+programlisting[role=php]:before    
+{
+    content: "(code " attr(role) ")";
+    color: #fff;
+    background-color: #000;
+}
+
+div.screen
+{
+    background-color: #eef;
+}
+div.example div.programlisting
+{
+    border: 1px inset #eee !important;
+}    
+code, span.command, span.filename
+{
+    display: inline;
+    font-family: "Courier New", Courier, Monospace;
+    white-space: pre;
+    background-color: #eee;
+    color: inherit;
+    font-size: 104%;
+}
+span.command
+{
+    background-color: #111;
+    color: #fff;
+    padding: 0 0.5em;
+}
+code.configkey
+{
+    background-color:#CEF6CE;
+    border:1px solid #008800;
+    color: #444;
+}
+code.var
+{
+    /*background-color:transparent;*/
+    color: #008;
+    /*font-weight: bold;*/
+}
+
+
+/* tables : code inspiré des feuilles de styles de firefox (/res/html.css) */
+
+table
+{
+    display: table;
+    border-collapse: collapse;
+    margin: 0 auto 0.5em auto;
+    text-indent: 0;
+}
+div.table div.title
+{
+    max-width: 100%;
+    text-align: center;
+    /* 
+        evite que le titre de la table soit plus large que la table
+        sinon, la table n'est plus centrée. Apparemment, faire margin: auto
+        sur tgroup ne suffit pas
+    */
+}    
+tgroup
+{
+}
+
+row
+{
+  display: table-row;
+  vertical-align: inherit;
+}
+
+col
+{
+  display: table-column;
+}
+
+colgroup
+{
+  display: table-column-group;
+}
+
+tbody
+{
+  display: table-row-group;
+  vertical-align: middle;
+}
+
+thead
+{
+  display: table-header-group;
+  vertical-align: middle;
+}
+
+tfoot
+{
+    display: table-footer-group;
+    vertical-align: middle;
+}
+
+td
+{ 
+    display: table-cell;
+    vertical-align:top;
+    text-align: inherit; 
+    color: #444;
+    border: 1px inset #A97;
+    padding: 0.5em;
+    background-color: #F5F4F1;
+}
+
+th
+{
+    vertical-align: middle;
+    font-weight: bold;
+    color: #000;
+    background: #A97;
+}
+
+/* Numérotation des titres */
+sect1
+{
+    counter-increment: sect1;
+    counter-reset: sect2 table example;    
+}
+sect2 title:before
+{
+    content: counter(sect2) ". ";
+    counter-increment: sect2;    
+}
+
+sect2
+{
+    counter-reset: sect3;    
+}
+sect3 title:before
+{
+    content: counter(sect2) "." counter(sect3) ". ";
+    counter-increment: sect3;    
+}
+
+sect3
+{
+    counter-reset: sect4;    
+}
+sect4 title:before
+{
+    content: counter(sect2) "." counter(sect3) "." counter(sect4) ". ";
+    counter-increment: sect4;    
+}
+
+table title:before
+{
+    content: "Table " counter(table) " : ";
+    counter-increment: table;
+}
+
+example title:before
+{
+    content: "Exemple " counter(example) " : ";
+    counter-increment: example;
+}
+
+tip title:before,
+note title:before,
+warning title:before,
+important title:before,
+caution title:before
+{
+    content: "";
+    counter-increment: none;
+}
+div.releaseinfo
+{
+    color: #AAA;
+    background-color: transparent;
+    font-size: 0.9em;
+    text-align: center;
+    margin-bottom: 1em;
+}
+
+div.hierarchy
+{
+    border: 1px solid #444;
+    background: rgb(240,250,250);
+    padding: 1em;
+    margin: 1em;
+    text-align: center;
+}
+
+/* coloration syntaxique des signatures */
+span.keyword
+{
+    color: #444;
+}
+span.element
+{
+    color: #800;
+    font-weight: bold;
+}
+span.operator
+{
+    color: #444;
+}
+
+code.configkey span.operator
+{
+    color: #A00;
+    padding: 0 0.1em;
+}
+
+span.type
+{
+    color: #004;
+    font-style: italic;
+/*    font-weight: bold;*/
+}
+span.var
+{
+    color: #008;
+    font-weight: bold;
+}
+span.value
+{
+    color: #040;
+/*    font-weight: bold;*/
+}
+
+
+/* icones pour repérer les différents types de lien */
+a.external
+{
+    padding-right: 14px;
+    background: url(linkicons/remote.gif) no-repeat center right;
+}
+
+a.external:hover,a.external:active,a.external:focus
+{
+    background-image: url(linkicons/remote_a.gif);
+}
+
+a.property, a.method
+{
+    padding-right: 14px;
+    background: url(linkicons/scrolldown.gif) no-repeat center right;
+}
+a.property:hover, a.property:active, a.property:focus,
+a.method:hover, a.method:active, a.method:focus
+{
+    background-image: url(linkicons/scrolldown_a.gif);
+}
+
+a.externalproperty, a.externalmethod, a.externalconst
+{
+    padding-right: 14px;
+    background: url(linkicons/scrollup.gif) no-repeat center right;
+}
+a.externalproperty:hover, a.externalproperty:active, a.externalproperty:focus, 
+a.externalmethod:hover, a.externalmethod:active, a.externalmethod:focus,
+a.externalconst:hover, a.externalconst:active, a.externalconst:focus
+{
+    background-image: url(linkicons/scrollup_a.gif);
+}
+
+
+a.otherclass
+{
+    padding-right: 14px;
+    background: url(linkicons/note.gif) no-repeat center right;
+}
+a.otherclass:hover, a.otherclass:active, a.otherclass:focus 
+{
+    background-image: url(linkicons/note_a.gif);
+}
+
+div.tableofcontents code,
+div.tableofcontents filename,
+div.tableofcontents command,
+div.tableofcontents emphasis
+        
+{
+    font-family: inherit;
+    color: inherit;
+    background-color: inherit;
+    border: none;
+    text-decoration: none;
+}
+  
+
+@MEDIA print
+{
+    div.index/*, div.tableofcontents */
+    {
+        display: none;
+    }
+    
+    html, body, div.sect1
+    {
+        margin: 0;
+        padding: 0;
+    }
+    
+}

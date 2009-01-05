@@ -1,0 +1,66 @@
+================================================================================
+--file--
+{'L\'année'}
+<textbox label="{implode('', array('L\'annee'))}" />
+--expect--
+================================================================================
+--test--
+L'attribut label du textbox permet d'en donner une description en créant un élément <label />
+et en ajoutant un attribut title au textbox
+--file--
+<textbox name="myTextbox" label="$varTitorigA" />
+--expect--
+<label class="text" for="label">Test unitaire des textbox</label>
+<input type="text" name="myTextbox" title="Test unitaire des textbox" class="text " id="label" />
+================================================================================
+--file--
+s
+--expect--
+--skip--
+
+<template match="//textbox" name="" label="" value="" class="">
+    <label test="'$label'" class="text {rtrim(' '.$class)}" for="{autoId()}">$label</label>
+    <input
+        type="text" 
+        name="$name" 
+        title="$label"
+        value="{select('string(@value)')}{select('.//text()')}"
+        class="text $class" 
+        id="{lastId()}">{select('@*')}</input>
+</template>
+
+
+<textbox name="myTextbox" label="Test unitaire des textbox" />
+
+<template match="//textbox" name="" label="" value="" class="">
+    <label test="'Test unitaire des textbox'" class="text" for="label">Test unitaire des textbox</label>
+    <input
+        type="text" 
+        name="myTextbox" 
+        title="Test unitaire des textbox"
+        value=""
+        class="text " 
+        id="label" />
+</template>
+================================================================================
+--test--
+
+--file--
+<if test="salut youenn" />
+<if test="$label" />
+
+
+<?php
+$test="salut youenn";
+if ($test) ...
+?>
+<if test="xxxx" />
+
+<if test="$x" />
+<if test="{$x != 0}" />
+<if test="{trim($x)==''}" />
+
+<if test="salut {trim(' youenn')}" />
+--expect--
+--skip--
+================================================================================

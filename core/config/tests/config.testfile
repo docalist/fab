@@ -1,0 +1,290 @@
+Fichier de test unitaires pour la classe Config
+
+@version : $Id$
+
+================================================================================
+--test--
+Configuration vide
+--file--
+<config />
+--expect--
+array()
+================================================================================
+--test--
+Reconnaissance des types de base (null, booléens, entiers, floats, chaines)
+--file--
+<config>
+    <null1 />
+    <null2></null2>
+    
+    <bool1>true</bool1>
+    <bool2>false</bool2>
+    
+    <int1>1</int1>
+    <int2>    2    </int2>
+    <int3>3</int3>
+    
+    <float1>3.14</float1>
+    <float2>0.5</float2>
+    <float3>.5</float3>
+    <float4>+6.55957</float4>
+    <float5>-1.00000000000001</float5>
+    <float6>+0123.45e6</float6>
+    
+    <string1>abc</string1>
+    <string2> ; </string2>
+    <string3>      </string3>
+    <string4>       
+            
+    </string4>
+</config>
+--expect--
+array 
+(
+    'null1' => NULL, 
+    'null2' => NULL, 
+    
+    'bool1' => true, 
+    'bool2' => false,
+    
+    'int1' => 1, 
+    'int2' => 2, 
+    'int3' => 3,
+    
+    'float1' => 3.14,
+    'float2' => 0.5,
+    'float3' => 0.5,
+    'float4' => 6.55957,
+    'float5' => -1,
+    'float6' => 123450000,
+    
+    'string1' => 'abc',
+    'string2' => ' ; ',
+    'string3' => NULL,
+    'string4' => NULL,
+)
+--comment--
+- Une clé ne contenant QUE des blancs (' ', \t,\n) est retournée comme NULL (string3 et 4)
+- Les float ont bien sur une précision limitée (float4)
+- Les float peuvent être écrits sous forme exponentielle (float6)
+- Les nombres en hexadécimal ne sont pas correctement convertis (0xFF->0) (int3)
+
+================================================================================
+
+--test--
+Entiers écrits sous forme hexadécimale
+--file--
+<config>0xFF</config>
+--expect--
+255
+--skip--
+non géré pour le moment, retourne 0
+
+================================================================================
+
+--test--
+Caractères spéciaux et cdata
+--file--
+<config>
+    <titre>
+        <item><![CDATA[<h1>OK</h1>]]></item>
+        <item><h1>ne fait pas ce qu'on veut</h1></item>
+        <item>&lt;h1&gt;OK aussi mais un peu lourd&lt;/h1&gt;</item>
+    </titre>
+</config>
+--expect--
+array
+(
+    'titre' => array
+    (
+        0 => '<h1>OK</h1>',
+        1 => array
+        (
+            'h1' => 'ne fait pas ce qu\'on veut',
+        ),
+        2 => '<h1>OK aussi mais un peu lourd</h1>',
+    ),
+)
+--comment--
+Les cdata sont gérées, il faut passer par elles si on veut insérer des caractères
+spéciaux sans avoir à les encoder
+
+================================================================================
+
+--test--
+On ne peut pas mélanger texte et propriétés
+--file--
+<config>
+    <titre>un essai <soustitre>qui foire</soustitre></titre>
+</config>
+--expect Exception--
+contient à la fois du texte et des noeuds
+--comment--
+- un tag peut contenir du texte, ou des noeuds, mais ne doitpas mélanger les deux
+- les blancs entre les noeuds ne sont pas considéré comme du texte et sont donc
+  ignorés (preserveSpace=false)  
+
+================================================================================
+--test--
+Tableaux d'options, tableaux de tableaux
+--file--
+<config>
+    <A>
+        <item>zéro</item>
+        <item>un</item>
+        <item>deux</item>
+    </A>
+    <B>
+        <item>zéro</item>
+        <item />
+        <item>deux</item>
+    </B>
+    <C>
+        <item>
+            <item>c.0.0</item>
+            <item>c.0.1</item>
+        </item>
+        <item>
+            <c1>1</c1>
+            <c2>
+                <item>c2.0</item>
+                <item>c2.1</item>
+            </c2>
+            <c3>3</c3>
+        </item>
+    </C>
+</config>
+--expect--
+array
+(
+    'A' => array 
+    (
+        0 => 'zéro',
+        1 => 'un',
+        2 => 'deux',
+    ),
+    'B' =>array
+    (
+        0 => 'zéro',
+        1 => NULL,
+        2 => 'deux',
+    ),
+    'C' => array
+    (
+        0 => array
+        (
+            0 => 'c.0.0',
+            1 => 'c.0.1',
+        ),
+        1 => array
+        (
+            'c1' => 1,
+            'c2' => array
+            (
+                0 => 'c2.0',
+                1 => 'c2.1',
+            ),
+        'c3' => 3,
+    ),
+),
+)
+--comment--
+- les items 'null' ne sont pas supprimés (B)
+- les items d'un tableau peuvent être de types différents (C) 
+
+================================================================================
+
+--test--
+Cas d'erreur : tag ayant à la fois des fils '<item>' et des options 
+--file--
+<config>
+    <A>
+        <item>2</item>
+        <item>2</item>
+        <option>un</option>
+    </A>
+</config>
+--expect Exception--
+A contient à la fois des options et des items
+--comment--
+- Soit on crée un tableau associatif (des options), soit un tableau numérique
+(des items) mais on ne mélange pas les deux
+
+================================================================================
+
+--test--
+Cas d'erreur : répétition d'un tag
+--file--
+<config>
+    <css>un.css</css>
+    <css>deux.css</css>
+</config>
+--expect Exception--
+Tag répété
+--comment--
+On n'a pas le droit de faire ça, il faut utiliser un tableau d'items :
+<css>
+    <item>un.css</item>
+    <item>deux.css</item>
+</css>
+
+================================================================================
+
+--test--
+Le seul attribut autorisé est 'inherit'
+--file--
+<config>
+    <css inherit="false" />
+    <templates checktime="false" />
+</config>
+--expect Exception--
+attribut checktime pas autorisé
+--comment--
+- aucune erreur n'est générée pour css.inherit (c'est autorisé)
+- erreur par contre pour templates.checktime (interdit)
+ 
+================================================================================
+
+--test--
+L'attribut 'inherit' ne peut pas être utilisé sur un item
+--file--
+<config>
+    <item inherit="false" />
+</config>
+--expect Exception--
+item pas attributs
+ 
+================================================================================
+
+--test--
+L'attribut 'inherit' n'accepte que les valeurs 'true' et false'
+--file--
+<config>
+    <un inherit="true" />
+    <un inherit="   true   " />
+    <un inherit="TRUE" />
+    <un inherit="false" />
+    <un inherit="FaLsE" />
+    <un inherit="autre" />
+</config>
+--expect Exception--
+inherit valeur incorrecte autre
+ 
+================================================================================
+
+--test--
+Lorsque l'attribut inherit est à false, le nom de la propriété est précédé d'un '!'
+--file--
+<config>
+    <un />
+    <deux inherit="true" />
+    <trois inherit="false" />
+</config>
+--expect--
+array
+(
+    'un' => NULL,
+    'deux' => NULL,
+    '!trois' => NULL,
+)
+================================================================================

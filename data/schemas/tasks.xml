@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schema label="Tâches" creation="2008/01/25 11:09:18" lastupdate="2008/07/02 11:33:54">
+    <description>Schéma de la base utilisée par le TaskManager de fab pour stocker la liste des tâches</description>
+    <_lastid field="14" index="8" sortkey="3" />
+    <fields>
+        <field _id="1" name="ID" type="autonumber" _type="2" label="Numéro unique de la tâche" />
+        <field _id="2" name="Label" _type="3" label="Tâche" description="Descriptif (court) de ce que fait la tâche" />
+        <field _id="3" name="Status" _type="3" label="Etat">
+            <description>disabled=tâche désactivée
+waiting=tâche en attente (ce n'est pas encore l'heure de l'exécuter)
+starting=tâche en train de démarrer (lancée par le TaskManager)
+running=tâche en cours d'exécution
+done=tâche terminée
+error=tâche en erreur (lancement impossible, erreur durant l'exécution...)</description>
+        </field>
+        <field _id="4" name="ApplicationRoot" _type="3" label="Application">
+            <description>Contient le path complet de l'application qui a créé cette tâche (plus exactement c'est le path de la racine de l'application telle que retournée par Runtime::$root) </description>
+        </field>
+        <field _id="5" name="Url" _type="3" label="Url" description="Url de la page d'accueil de l'application" />
+        <field _id="6" name="Creation" type="int" _type="1" label="Date de création" description="Timestamp indiquant la date et l'heure à laquelle la tâche a été créée" />
+        <field _id="7" name="Time" type="int" _type="1" label="Planification">
+            <description>Timestamp indiquant la date et l'heure à laquelle l'exécution de la tâche est planifiée (null=jamais, 0=dès que possible)</description>
+        </field>
+        <field _id="8" name="Repeat" _type="3" label="Répétition">
+            <description>Pour une tâche récurrente, indique la manière dont la tâche doit être répétée.
+Format : entier unité/filtre,filtre...
+Exemples : &quot;1 mois&quot;, &quot;1 h./8-12,14-18&quot;, &quot;2 jours/1-15,lun-mar,ven&quot;</description>
+        </field>
+        <field _id="9" name="Module" _type="3" label="Module" />
+        <field _id="10" name="Action" _type="3" label="Action" description="Cela doit être une action du module indiqué dans le champ Module." />
+        <field _id="11" name="Parameters" _type="3" label="Paramètres" description="Version sérialisée des paramètres indiqués lors de la création de la tâche" />
+        <field _id="12" name="Next" type="int" _type="1" label="Prochaine exécution">
+            <description>Timestamp indiquant la date et l'heure de la prochaine exécution de la tâche (null=jamais)</description>
+        </field>
+        <field _id="13" name="Last" type="int" _type="1" label="Dernière exécution">
+            <description>Timestamp indiquant la date et l'heure de la dernière exécution de la tâche (null=jamais exécutée)</description>
+        </field>
+        <field _id="14" name="Output" _type="3" label="Fichier de sortie">
+            <description>à étudier : on pourrait éventuellement gérer Output comme un champ articles et stocker, pour une tâche récurrente, le résultat des n dernières exécutions.</description>
+        </field>
+    </fields>
+    <indices>
+        <index _id="1" name="ID" label="Statut de la tâche">
+            <fields>
+                <field _id="1" name="ID" words="true" />
+            </fields>
+        </index>
+        <index _id="2" name="Label" label="Libellé de la tâche">
+            <fields>
+                <field _id="2" name="Label" words="true" />
+            </fields>
+        </index>
+        <index _id="3" name="Status" label="Statut de la tâche">
+            <fields>
+                <field _id="3" name="Status" words="true" />
+            </fields>
+        </index>
+        <index _id="4" name="ApplicationRoot" label="Path de l'application qui a créé la tâche">
+            <fields>
+                <field _id="4" name="ApplicationRoot" values="true" />
+            </fields>
+        </index>
+        <index _id="5" name="Module" label="Module à charger pour exécuter la tâche">
+            <fields>
+                <field _id="9" name="Module" words="true" />
+            </fields>
+        </index>
+        <index _id="6" name="Action" label="Action à appeller pour exécuter la tâche">
+            <fields>
+                <field _id="10" name="Action" words="true" />
+            </fields>
+        </index>
+        <index _id="7" name="Parameters" label="Avec/sans paramètres">
+            <description>C'est juste un index de type 'count' (remplis ou pas), les paramètres eux-mêmes ne sont pas indexés</description>
+            <fields>
+                <field _id="11" name="Parameters" count="true" />
+            </fields>
+        </index>
+        <index _id="8" name="Last" label="Date/heure de la dernière exécution">
+            <fields>
+                <field _id="13" name="Last" words="true" />
+            </fields>
+        </index>
+    </indices>
+    <sortkeys>
+        <sortkey _id="1" name="Next" label="Date/heure de la prochaine exécution">
+            <fields>
+                <field _id="12" name="Next" />
+            </fields>
+        </sortkey>
+        <sortkey _id="2" name="Last" label="Date/heure de la dernière exécution">
+            <fields>
+                <field _id="13" name="Last" />
+            </fields>
+        </sortkey>
+        <sortkey _id="3" name="Status" label="Etat de la tâche">
+            <fields>
+                <field _id="3" name="Status" length="2" />
+            </fields>
+        </sortkey>
+    </sortkeys>
+</schema>

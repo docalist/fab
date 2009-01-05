@@ -1,0 +1,28 @@
+<h2><a href="/{$this->module}">Thesaurus</a></h2>
+
+<p>
+    <a style="float: right" href="Index" onclick="history.go(-1); return false;">
+        Modifier votre recherche
+    </a>
+    Votre recherche : {$this->equation}
+</p>
+    /* Affiche les mots-vides qui ont été ignorés dans l'équation */
+    <def name="stopwords" value="{$this->selection->searchInfo('stopwords')}" />
+    <switch test="{count($stopwords)}">
+        <case test="0" />
+        <case test="1"><p>Le mot "{$stopwords[0]}" a été ignoré dans votre recherche.</p></case>
+        <default><p>Les mots "{implode('", "', $stopwords)}" ont été ignorés dans votre recherche.</p></default>
+    </switch>
+    
+
+<ul>
+    <loop on="$this->selection">
+        <li>
+            <a href="Show?FRE={$this->termToQuery($FRE)}">$Fre</a>
+            <if test="$EM">
+                <br />EM : <a href="Show?Fre={$this->termToQuery($EM)}">$EM</a>
+            </if>
+        </li>
+    </loop>
+</ul>
+<p>{$this->selection->count()} réponse(s)</p>

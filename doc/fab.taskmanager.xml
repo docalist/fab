@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE sect1 PUBLIC "-//OASIS//DTD DocBook XML V4.5//EN"
+    "http://www.oasis-open.org/docbook/xml/4.5/docbookx.dtd">
+<?xml-stylesheet href="../web/css/docbook/dm.css" type="text/css"?>
+<sect1 id="fab.taskmanager">
+
+    <sect1info>
+        <releaseinfo>$Id$</releaseinfo>
+    </sect1info>
+
+    <title>Gestionnaire de tâches *</title>
+    
+    <sect2 id="fab.taskmanager.?">
+    
+        <title>Introduction</title>
+        
+        <para>
+            Pour l'instant, veuillez consulter la documentation disponible
+            dans <ulink url="?class=TaskManager">l'API du module TaskManager</ulink>.
+        </para>
+    </sect2>
+
+</sect1>

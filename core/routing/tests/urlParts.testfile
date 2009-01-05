@@ -1,0 +1,140 @@
+Fichier de test unitaires pour Routing::urlParts()
+
+Ce test n'utilise aucun fichier .config
+
+--file-- : une url à découper en morceaux
+--expect-- : le tableau obtenu (utilise var_export)
+
+@version : $Id$
+
+================================================================================
+--test--
+Une chaine vide retourne un tableau vide
+--file--
+
+--expect--
+array()
+================================================================================
+--test--
+L'url '/' (homepage) retourne un tableau vide également
+--file--
+/
+--expect--
+array()
+================================================================================
+--test--
+Test simple de découpage : affichage d'une notice
+--file--
+/database/show/$ref
+--expect--
+array
+(
+    0 => 'database',
+    1 => 'show',
+    2 => '$ref',
+)
+================================================================================
+--test--
+L'adresse d'un article dans un blog (découpage de la route)
+--file--
+/articles/$ref-$permalink.html
+--expect--
+array
+(
+    0 => 'articles',
+    1 => '$ref',
+    2 => '-',
+    3 => '$permalink',
+    4 => '.',
+    5 => 'html',
+)
+================================================================================
+--test--
+L'adresse d'un article dans un blog (découpage d'une des urls)
+--file--
+/articles/12-feuilles-de-styles.html
+--expect--
+array
+(
+    0 => 'articles',
+    1 => '12',
+    2 => '-',
+    3 => 'feuilles',
+    4 => '-',
+    5 => 'de',
+    6 => '-',
+    7 => 'styles',
+    8 => '.',
+    9 => 'html',
+)
+================================================================================
+--test--
+Recherche combinant trois tags dans un blog (découpage de la route)
+--file--
+/articles/tag/$motcle+$motcle+$motcle
+--expect--
+array
+(
+    0 => 'articles',
+    1 => 'tag',
+    2 => '$motcle',
+    3 => '+',
+    4 => '$motcle',
+    5 => '+',
+    6 => '$motcle',
+)
+================================================================================
+--test--
+Recherche combinant trois tags dans un blog (découpage d'une url)
+--file--
+/articles/tag/php+mvc+framework
+--expect--
+array
+(
+    0 => 'articles',
+    1 => 'tag',
+    2 => 'php',
+    3 => '+',
+    4 => 'mvc',
+    5 => '+',
+    6 => 'framework',
+)
+================================================================================
+--test--
+Test complexe utilisant tous les séparateurs reconnus
+--file--
+/$user/mes-dvd/mes-classiques/mai,juin/Laurel & Hardy ; les temps modernes [vo] +bonus : arte!?§+ (dvd$ref).html
+--expect--
+array
+(
+    0 => '$user',
+    1 => 'mes',
+    2 => '-',
+    3 => 'dvd',
+    4 => 'mes',
+    5 => '-',
+    6 => 'classiques',
+    7 => 'mai',
+    8 => ',',
+    9 => 'juin',
+    10 => 'Laurel & Hardy ',
+    11 => ';',
+    12 => ' les temps modernes [vo] ',
+    13 => '+',
+    14 => 'bonus : arte!?§',
+    15 => '+',
+    16 => ' (dvd',
+    17 => '$ref',
+    18 => ')',
+    19 => '',
+    20 => '.',
+    21 => 'html',
+)
+--comment--
+- vérifie que les caractères "-,;/$.+" sont reconnus comme délimiteurs 
+- vérifie que les autres ne le sont pas (on teste avec "& []°:!?§+")
+- vérifie que le slash est reconnu comme délimiteur mais n'est pas stocké dans
+  le tableau
+- vérifie que les variables sont reconnues aussi bien après un slash ($user)
+  que n'importe où ailleurs ($ref)
+================================================================================

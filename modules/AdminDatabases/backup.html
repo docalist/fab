@@ -1,0 +1,55 @@
+<def name="database" value="{$this->request->get('database')}" />
+
+<h1>Génération d'un dump de la base $database</h1>
+
+<p>
+    Un "dump" est un cliché de la base de données à un instant donné.
+    C'est un fichier xml compressé (.xml.gz) qui contient à la fois le 
+    schéma de la base et tous les enregistrements qu'elle contient.
+</p>
+
+<p>
+    Un dump permet de recréer facilement la base de données en cas de besoin en
+    utilisant <a href="/AdminBases/Restore?database=$database">l'option 
+    restauration du module d'administration</a>.
+</p>
+
+<p>
+    C'est également un moyen pratique pour conserver, à des fins historiques, 
+    certaines versions d'une base de données ou pour transférer le contenu d'une 
+    base de données d'un serveur à l'autre. Par ailleurs, un fichier de dump 
+    étant un simple fichier xml, les outils xml existants, s'ils sont capables
+    de traiter des fichiers volumineux, peuvent être utilisés (exemples 
+    d'applications possibles : extraction de données, statistiques, etc.) 
+</p>
+
+<p>
+    Une stratégie de sauvegarde typique consiste à générer un nouveau fichier
+    de dump toutes les nuits et à faire en sorte que ces fichiers de dump soient
+    sauvegardés par le serveur hébergeant le site.
+</p>
+
+<p>
+    Cette page permet de générer ponctuellement un nouveau dump (par exemple
+    avant de faire une modification importante sur la base) ou de planifier 
+    une tâche qui réalisera un dump à intervalles réguliers (exécution périodique,
+    par exemple toutes les nuits).
+</p>
+
+<p>
+    Le nom du fichier contenant le dump sera généré automatiquement à partir du
+    nom de la base, de la date au format AAAAMMJJ et de l'heure en cours 
+    au format HHMMSS ($database-{strftime('%Y%m%d-%H%M%S')}.xml par exemple).
+</p>
+
+<form action="">
+    <p test="$error" class="error">$error</p>
+    
+    <fieldset label="Créer un dump : ">
+        <plantask />
+    </fieldset>
+    
+    <okcancel  />
+    
+    <hidden name="database" value="$database" />
+</form>

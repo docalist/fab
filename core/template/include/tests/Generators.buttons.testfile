@@ -1,0 +1,134 @@
+Fichier de test pour les générateurs de type bouton définis dans button.html,
+submit.html et reset.html
+
+Utilisation normale du générateur : ne prévoit pas les cas de mauvaise utilisation
+
+@version : $Id$
+
+================================================================================
+--test--
+Un submit simple génère un <input type="submit" /> HTML
+--file-- 
+<submit />
+--expect--
+<input type="submit" class="button submit" />
+================================================================================
+--test--
+Le label d'un submit se retrouve dans l'attribut value du tag input généré
+--file--
+<submit label="Valider" />
+--expect--
+<input type="submit" value="Valider" class="button submit" />
+================================================================================
+--test--
+L'attribut name d'un submit permet de l'identifier 
+--file--
+<submit name="validation" />
+--expect--
+<input type="submit" name="validation" class="button submit" />
+================================================================================
+--test--
+Souvent, on renseigne les attributs name et label du générateur submit
+--file--
+<submit name="validation" label="Valider le formulaire" />
+--expect--
+<input type="submit" name="validation" value="Valider le formulaire" class="button submit" />
+================================================================================
+--test--
+L'attribut class peut être utile si on souhaite styler le submit
+--file--
+<submit name="validation" label="Valider le formulaire" class="outline" />
+--expect--
+<input type="submit" name="validation" value="Valider le formulaire" class="button submit outline" />
+================================================================================
+--test--
+Tout attribut supplémentaire d'un submit se retrouvera dans la sortie générée
+--file--
+<submit name="validation" label="Valider le formulaire" monattr="test" />
+--expect--
+<input type="submit" name="validation" value="Valider le formulaire" class="button submit" monattr="test" />
+================================================================================
+--test--
+Un reset simple génère un <input type="reset" /> HTML
+--file-- 
+<reset />
+--expect--
+<input type="reset" class="button reset" />
+================================================================================
+--test--
+Le label d'un reset se retrouve dans l'attribut value du tag input généré
+--file--
+<reset label="Valider" />
+--expect--
+<input type="reset" value="Valider" class="button reset" />
+================================================================================
+--test--
+L'attribut name d'un reset permet de l'identifier 
+--file--
+<reset name="validation" />
+--expect--
+<input type="reset" name="validation" class="button reset" />
+================================================================================
+--test--
+Souvent, on renseigne les attributs name et label du générateur reset
+--file--
+<reset name="validation" label="Valider le formulaire" />
+--expect--
+<input type="reset" name="validation" value="Valider le formulaire" class="button reset" />
+================================================================================
+--test--
+L'attribut class peut être utile si on souhaite styler le reset
+--file--
+<reset name="validation" label="Valider le formulaire" class="outline" />
+--expect--
+<input type="reset" name="validation" value="Valider le formulaire" class="button reset outline" />
+================================================================================
+--test--
+Tout attribut supplémentaire d'un reset se retrouvera dans la sortie générée
+--file--
+<reset name="validation" label="Valider le formulaire" monattr="test" />
+--expect--
+<input type="reset" name="validation" value="Valider le formulaire" class="button reset" monattr="test" />
+================================================================================
+--test--
+Un button simple génère un <input type="button" /> HTML
+--file-- 
+<button />
+--expect--
+<input type="button" class="button" />
+================================================================================
+--test--
+Le label d'un button se retrouve dans l'attribut value du tag input généré
+--file--
+<button label="Valider" />
+--expect--
+<input type="button" value="Valider" class="button" />
+================================================================================
+--test--
+L'attribut name d'un button permet de l'identifier 
+--file--
+<button name="validation" />
+--expect--
+<input type="button" name="validation" class="button" />
+================================================================================
+--test--
+Souvent, on renseigne les attributs name et label du générateur button
+--file--
+<button name="validation" label="Valider le formulaire" />
+--expect--
+<input type="button" name="validation" value="Valider le formulaire" class="button" />
+================================================================================
+--test--
+L'attribut class peut être utile si on souhaite styler le button
+--file--
+<button name="validation" label="Valider le formulaire" class="outline" />
+--expect--
+<input type="button" name="validation" value="Valider le formulaire" class="button outline" />
+================================================================================
+--test--
+Tout attribut supplémentaire d'un button se retrouvera dans la sortie générée
+--file--
+<button name="validation" label="Valider le formulaire" monattr="test" />
+--expect--
+<input type="button" name="validation" value="Valider le formulaire" class="button" monattr="test" />
+================================================================================

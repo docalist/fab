@@ -1,0 +1,89 @@
+Fichier de test unitaires de l'attribut 'test' du compilateur de templates
+
+@version : $Id$
+
+================================================================================
+--test--
+Test contient maintenant un texte quelconque avec éventuellement des variables 
+et des expressions. Si on écrit directement test="false", ça fait l'inverse
+de ce qu'on veut, il faut écrire test="{false}"
+--file--
+<input test="false" type="text" name="mytext" />
+--expect--
+<input type="text" name="mytext" />
+--comment--
+NB : c'est volontairement que je n'ai pas mis d'accolades autour du false
+test semble être à false (donc le tag devrait disparaître) mais en fait
+la chaine "false" est une chaine non vide donc qui s'évalue à true, donc le tag
+est conservé.
+================================================================================
+--test--
+Un noeud sans texte dont l'attribut test vaut false ne s'affiche pas
+--file--
+<input test="{false}" type="text" name="mytext" />
+--expect--
+
+================================================================================
+--test--
+Un noeud sans texte dont l'attribut test vaut true s'affiche
+--file--
+<input test="{true}" type="text" name="my text" />
+--expect--
+<input type="text" name="my text" />
+================================================================================
+--test--
+Un noeud sans texte dont l'attribut test évalué à true n'est pas le premier déclaré apparaît
+--file--
+<input type="text" test="$varA" name="mytext" />
+--expect--
+<input type="text" name="my text" />
+================================================================================
+--test--
+Un noeud sans texte dont l'attribut test évalué à false n'est pas le premier déclaré disparaît
+--file--
+<input type="text" name="mytext" test="$varFalse" />
+--expect--
+
+================================================================================
+--test--
+Un noeud contenant du texte et dont l'attribut test est évalué à true apparaît entièrement
+--file--
+<a test="$varA" href="www.bdsp.tm.fr">Un lien</a>
+--expect--
+<a href="www.bdsp.tm.fr">Un lien</a>
+================================================================================
+--test--
+Un noeud contenant du texte et dont l'attribut test est évalué à false disparaît
+--file--
+<a test="$varFalse" href="www.bdsp.tm.fr">Un lien</a>
+--expect--
+
+================================================================================
+--test--
+Un noeud dont l'attribut test est vide : disparaît
+--file--
+<input test="" type="text" />
+--expect--
+
+================================================================================
+--test--
+Un noeud dont l'attribut test contient un appel de fonction génère une exception
+--file--
+<input test="{echo 'hi test'}" type="text"/>
+--expect Exception--
+interdit dans une expression
+================================================================================
+--test--
+Un noeud dont l'attribut test est mal formé génère une exception
+--file--
+<input test= type="text" />
+--expect Exception--
+ce n'est pas un fichier xml valide
+================================================================================
+--test--
+Un noeud dont l'attribut test est mal formé génère une exception
+--file--
+<input test"true" type="text" />
+--expect Exception--
+ce n'est pas un fichier xml valide
+================================================================================

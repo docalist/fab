@@ -1,0 +1,295 @@
+Fichier de test pour les conditions de type 'if' du compilateur de templates
+
+@version : $Id$
+
+================================================================================
+--test--
+Un bloc if dont la condition vaut false et qui n'a pas de else disparaît.
+--file--
+<if test="{false}">
+	Dans le if
+</if>
+--expect--
+
+================================================================================
+--test--
+Un bloc if dont la condition est une variable valant false et qui n'a pas de else disparaît.
+--file--
+<if test="$varFalse">
+	Dans le if
+</if>
+--expect--
+
+================================================================================
+--test--
+Un bloc if ayant 2 attributs test génère une exception
+--file--
+<if test="{true}" test="{false}">
+	Test validé
+</if>
+--expect Exception--
+ce n'est pas un fichier xml valide
+================================================================================
+--test--
+Un bloc else ayant 1 attribut génère une exception
+--file--
+<if test="{false}">
+	Dans le if
+</if>
+<else attr="{true}">
+	Dans le else
+</else>
+--expect Exception--
+attribut interdit
+================================================================================
+--test--
+Un bloc if ayant 2 attributs génère une exception
+--file--
+<if test="{true}" attribut="{false}">
+	Test validé
+</if>
+--expect Exception--
+attribut interdit
+================================================================================
+--test--
+Un bloc if n'ayant pas d'attribut test génère une exception
+--file--
+<if testun="{true}" testdeux="{false}">
+	Test validé
+</if>
+--expect Exception--
+attribut obligatoire
+================================================================================
+--test--
+Un bloc if dont la condition contient une variable inexistante génère une exception.
+--file--
+<if test="$varInexistante">
+	Dans le if
+</if>
+--expect Exception--
+variable non définie
+================================================================================
+--test--
+Un bloc if ayant une condition simple évaluée à false et qui n'a pas de else disparaît.
+--file--
+<if test="{$varTitorigA === ''}">
+	Dans le if
+</if>
+--expect--
+================================================================================
+--test--
+Un bloc if ayant une condition contenant '&&' évaluée à false et qui n'a pas de else disparaît.
+--file--
+<if test="{(16>>4 - 1) * 52 && $varTitorigA != ''}">
+	Dans le if
+</if>
+--expect--
+--skip--
+DM : j'ai ajouté un skip temporaire, me gène pour ce que je fais...
+================================================================================
+--test--
+Un bloc if ayant une condition contenant 'and' évaluée à false et qui n'a pas de else disparaît.
+--file--
+<if test="{false and ($varTitorigA != '')}">
+	Dans le if
+</if>
+--expect--
+================================================================================
+--test--
+Un bloc if ayant une condition contenant un '||' évaluée à false et qui n'a pas de else disparaît.
+--file--
+<if test="{false || 0}">
+	Dans le if
+</if>
+--expect--
+================================================================================
+--test--
+Un bloc if dont la condition est évaluée à false et qui a un bloc else passe seulement dans le else
+--file--
+<if test="{2*3 == 5}">
+	Dans le if
+</if>
+<else>
+	Dans le else
+</else>
+--expect--
+Dans le else
+================================================================================
+--test--
+Un bloc if sans tag fermant génère une exception
+--file--
+<if test="{true}">
+
+
+--expect Exception--
+ce n'est pas un fichier xml valide
+================================================================================
+--test--
+Un tag if fermant sans tag ouvrant génère une exception
+--file--
+	Instructions du if
+</if>
+
+--expect Exception--
+ce n'est pas un fichier xml valide
+================================================================================
+--test--
+Un bloc if/else dont la conditionnelle est évaluée à false ne passe que dans le else
+--file--
+<if test="{false}">
+	Dans le if
+</if>
+<else>
+	Dans le else
+</else>
+--expect--
+	Dans le else
+================================================================================
+--test--
+Un bloc if ayant une branche default (au lieu de else) génère une exception
+--file--
+<if test="{false}">
+	Dans le if
+</if>
+<default>
+	Dans le default
+</default>
+--expect Exception--
+default isolé
+================================================================================
+--test--
+Un bloc if/elseif/else dont les conditions (if et elseif) sont évaluées à false ne passe que dans le else
+--file--
+<if test="{false}">
+	Dans le if
+</if>
+<elseif test="{$varFalse != 0}">
+	Dans le elseif
+</elseif>
+<else>
+	Dans le else
+</else>
+--expect--
+Dans le else
+================================================================================
+--test--
+Un bloc if sans test génère une exception
+--file--
+<if>
+	Dans le if
+</if>
+<else>
+	Dans le else
+</else>
+--expect Exception--
+attribut obligatoire
+================================================================================
+--test--
+Un bloc de type if/else contenant 2 else génère une exception
+--file--
+<if test="{false}">
+</if>
+<else>
+</else>
+<else>
+</else>
+--expect Exception--
+doit suivre immédiatement un tag if ou elseif
+================================================================================
+--test--
+Un bloc else contenant un test génère une exception
+--file--
+<if test="{false}">
+	Dans le if
+</if>
+<else test="{true}">
+	Dans le else
+</else>
+--expect Exception--
+attribut test interdit
+================================================================================
+--test--
+Une exception est générée quand un bloc else est situé entre un bloc if et un bloc elseif
+--file--
+<if test="$varAut">
+</if>
+<else>
+</else>
+<elseif test="{true}">
+</elseif>
+--expect Exception--
+doit suivre immédiatement un tag if ou elseif
+================================================================================
+--test--
+Un bloc elseif sans bloc if correspondant génère une exception
+--file--
+<elseif test="$varAut">
+</elseif>
+<else>
+</else>
+--expect Exception--
+doit suivre immédiatement un tag if ou elseif
+================================================================================
+--test--
+Un bloc if/else dont le tag fermant if est mal placé génère une exception
+--file--
+<if test="{true}">
+	Dans le if
+<else>
+</if>
+	Dans le else
+</else>
+--expect Exception--
+ce n'est pas un fichier xml valide
+================================================================================
+--test--
+Un bloc if ayant un tag strip génère une exception
+--file--
+<if test="{true}" strip="{true}">
+	Dans le if
+</if>
+--expect Exception--
+attribut interdit
+================================================================================
+--test--
+Un bloc elseif ayant un tag strip génère une exception
+--file--
+<if test="{false}">
+	Dans le if
+</if>
+<elseif test="{true}" strip="{true}">
+	Dans le elseif
+</elseif>
+--expect Exception--
+attribut interdit
+================================================================================
+--test--
+Un bloc else ayant un tag strip génère une exception
+--file--
+<if test="{false}">
+	Dans le if
+</if>
+<elseif test="{false}">
+	Dans le elseif
+</elseif>
+<else strip="{true}">
+	Dans le else
+</else>
+--expect Exception--
+attribut interdit
+================================================================================
+--test--
+Un bloc else ayant un tag test et un tag strip génère une exception
+--file--
+<if test="{false}">
+	Dans le if
+</if>
+<elseif test="{false}">
+	Dans le elseif
+</elseif>
+<else test="{true}" strip="{true}">
+	Dans le else
+</else>
+--expect Exception--
+attributs interdits
+================================================================================

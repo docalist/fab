@@ -1,0 +1,220 @@
+Fichier de test unitaires pour la classe Config
+
+@version : $Id$
+
+================================================================================
+--test--
+Merge de base
+--file--
+<config>
+    <base>
+        <template>test</template>
+        <max>10</max>
+        <sort>%</sort>
+    </base>
+    <merge>
+        <start>10</start>
+        <max>1000</max>
+        <template>autre</template>
+    </merge>
+</config>
+--expect--
+array
+(
+    'template' => 'autre',
+    'max' => 1000,
+    'sort' => '%',
+    'start' => 10,
+)
+--comment--
+- les options définies dans la section merge viennent remplacer celles qui
+  sont définies dans la section base
+- si on ajoute une option qui n'existaient pas, elle est créée (start)
+- si on ne redéfinit pas une option, elle garde la valeur qu'elle avait (max)
+- l'ordre des options est sans importance dans le fichier xml
+- dans le tableau résultat, les options apparaissent par ordre de création
+
+================================================================================
+--test--
+Merge récursif avec héritage par défaut
+--file--
+<config>
+    <base>
+        <template>search</template>
+        <max>10</max>
+        <filters>
+            <admin>none</admin>
+            <edit>valide=true</edit>
+        </filters>
+    </base>
+    <merge>
+        <template>autre</template>
+        <filters>
+            <edit />
+            <public>visible=true</public>
+        </filters>
+    </merge>
+</config>
+--expect--
+array
+(
+    'template' => 'autre',
+    'max' => 10,
+    'filters' => array
+    (
+        'admin' => 'none',
+        'edit' => NULL,
+        'public' => 'visible=true',
+    ),
+)
+--comment--
+- le merge est appliqué récursivement sur les options
+- on peut mettre à null une option (edit) 
+================================================================================
+--test--
+Merge récursif sans héritage
+--file--
+<config>
+    <base>
+        <template>search</template>
+        <max>10</max>
+        <filters>
+            <admin>none</admin>
+            <edit>valide=true</edit>
+        </filters>
+    </base>
+    <merge>
+        <template inherit="false">autre</template>
+        <filters inherit="false">
+            <edit />
+            <public>visible=true</public>
+        </filters>
+    </merge>
+</config>
+--expect--
+array
+(
+    'template' => 'autre',
+    'max' => 10,
+    'filters' => array
+    (
+        'edit' => NULL,
+        'public' => 'visible=true',
+    ),
+)
+--comment--
+- les options initiales de base.filters n'ont pas été conservées
+- l'attribut inherit="false" de merge.template n'a aucun effet, comme c'est une 
+  simple chaine (ni un tableau, ni une structure)
+================================================================================
+--test--
+Merge d'un tableaux d'item avec héritage par défaut
+--file--
+<config>
+    <base>
+        <css>
+            <item>css 1</item>
+            <item>css 2</item>
+        </css>
+        <js>
+            <item>js 1</item>
+            <item>js 2</item>
+        </js>
+    </base>
+    <merge>
+        <css>
+            <item>css 3</item>
+            <item>css 4</item>
+        </css>
+        <js>
+            <item>js 3</item>
+            <item>js 4</item>
+        </js>
+    </merge>
+</config>
+--expect--
+array
+(
+    'css' => array
+    (
+        0 => 'css 1',
+        1 => 'css 2',
+        2 => 'css 3',
+        3 => 'css 4',
+    ),
+    'js' => array
+    (
+        0 => 'js 1',
+        1 => 'js 2',
+        2 => 'js 3',
+        3 => 'js 4',
+    ),
+)
+--comment--
+- par défaut (inherit absent ou inherit="true"), lorsqu'on fusionne deux tableaux
+  les items du second tableau sont ajoutés au tableau existant
+================================================================================
+--test--
+Merge d'un tableaux d'items sans héritage
+--file--
+<config>
+    <base>
+        <css>
+            <item>css 1</item>
+            <item>css 2</item>
+        </css>
+        <js>
+            <item>js 1</item>
+            <item>js 2</item>
+        </js>
+    </base>
+    <merge>
+        <css inherit="false">
+            <item>css 3</item>
+            <item>css 4</item>
+        </css>
+        <js inherit="false">
+            <item>js 3</item>
+            <item>js 4</item>
+        </js>
+    </merge>
+</config>
+--expect--
+array
+(
+    'css' => array
+    (
+        0 => 'css 3',
+        1 => 'css 4',
+    ),
+    'js' => array
+    (
+        0 => 'js 3',
+        1 => 'js 4',
+    ),
+)
+--comment--
+- aucune des options initiales n'a été conservée
+================================================================================
+--test--
+Réinitialisation d'une section avec inherit="false"
+--file--
+<config>
+    <base>
+        <css>
+            <item>css 1</item>
+            <item>css 2</item>
+        </css>
+    </base>
+    <merge>
+        <css inherit="false" />
+    </merge>
+</config>
+--expect--
+array
+(
+    'css' => NULL,
+)
+--comment--
+- on a remis la section css "à zéro"
+================================================================================

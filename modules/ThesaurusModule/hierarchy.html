@@ -1,0 +1,29 @@
+/*
+    Affichage d'un ou plusieurs termes du thésaurus sous forme
+    de liste alphabétique structurée
+*/
+<h2><a href="/{$this->module}">Thesaurus</a></h2>
+
+/*
+<p>
+    <a style="float: right" href="Index">
+        Nouvelle recherche
+    </a>
+</p>
+*/
+
+<loop on="$hierarchy" as="$term,$value">
+    <h3>Champ sémantique : <a href="Show?Fre={$this->termToQuery($term)}">$term</a></h3>
+    <hierarchy for="$value" />
+</loop>
+
+<template match="//hierarchy" for="">
+    <ul class="hierarchy" style="list-style-type: none">
+        <loop on="$for" as="$term,$value">
+            <li>
+                <a href="Show?Fre={$this->termToQuery($term)}">$term</a>
+                <if test="{is_array($value)}"><hierarchy for="$value" /></if>
+            </li>
+        </loop>
+    </ul>
+</template>

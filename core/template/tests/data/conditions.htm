@@ -1,0 +1,84 @@
+<!-- Fichier de tests des conditionnelles bien formés -->
+
+<!--  ATTENTION : ne pas mettre de commentaires HTML n'importe où dans le fichier -->
+
+--TEST--
+Conditions de type if/elseif/else bien formées
+--FILE--
+<if test="$vAccentuée">
+    Dans le if
+</if>
+<else>
+    Dans le else
+</else>
+
+<if test="$empty">
+    Dans le if
+</if>
+<else>
+    Dans le else
+</else>
+
+<if test="$empty">
+    Dans le if
+</if>
+
+<if test="$vAccentuée==$vValNoSpaces">
+    Dans le if
+</if>
+<elseif test="$vAccentuée=='Valeur'">
+    Dans le elseif
+</elseif>
+<else>
+    \$vAccentuée='Valeur1'
+</else>
+--EXPECT--
+Dans le if
+
+Dans le else
+
+
+$vAccentuée='Valeur1'
+====
+--TEST--
+
+--FILE--
+<!-- TODO: ajouter '<switch="$vAccentuée"><case test="\'Valeur 1\'">Vaut Valeur 1</case></switch>' au test ci-dessous quand bug résolu  -->
+
+<switch test="$vAccentuée">
+    <case test="'Valeur 2'">
+        Vaut Valeur 2
+    </case>
+    <case test="'Valeur 1'">
+        Vaut Valeur 1
+    </case>
+</switch>
+
+<switch test="$vAccentuée">
+    <case test="'Valeur 2'">
+        Vaut Valeur 2
+    </case>
+    <default>
+        Vaut $vAccentuée
+    </default>
+</switch>
+
+<switch test="$vAccentuée">
+    <default>
+        Cas par défaut
+    </default>
+</switch>
+
+<switch test="$vAccentuée">
+    <case test="'Valeur 2'">
+        Vaut Valeur 2
+    </case>
+</switch>
+--EXPECT--
+
+Vaut Valeur 1
+
+Vaut Valeur 1
+
+Cas par défaut
+

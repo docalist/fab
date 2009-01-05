@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE sect1 PUBLIC "-//OASIS//DTD DocBook XML V4.5//EN"
+"http://www.oasis-open.org/docbook/xml/4.5/docbookx.dtd">
+<?xml-stylesheet href="../web/css/docbook/dm.css" type="text/css"?>
+<sect1 id="fab.index">
+    <sect1info>
+        <releaseinfo>$Id: modele.documentation.xml 587 2008-01-09 10:43:11Z
+        daniel.menard.bdsp $</releaseinfo>
+    </sect1info>
+
+    <title>Introduction *</title>
+
+    <toc></toc>
+
+    <sect2 id="fab.index.about">
+        <title>A propos</title>
+
+        <para>Fab est un ensemble d'outils et de conventions permettant de
+        créer rapidement des applications web évoluées.</para>
+
+        <para>Il fournit un standard pour l'architecture des applications et
+        dispose de modules prêts à l'emploi qui permettent de développer très
+        rapidement des applications structurées, configurables, extensibles,
+        documentées et faciles à maintenir.</para>
+
+        <itemizedlist>
+            <listitem>
+                <para><ulink url="?filename=fab.features">Principales
+                fonctionnalités</ulink></para>
+            </listitem>
+
+            <listitem>
+                <para><ulink
+                url="?filename=fab.concepts">Concepts</ulink></para>
+            </listitem>
+        </itemizedlist>
+    </sect2>
+
+    <sect2 id="fab.index.licence">
+        <title>Licence</title>
+
+        <para>Ascoweb est distribué sous licence <ulink
+        url="http://www.gnu.org/licenses/old-licenses/gpl-2.0.html">GPL
+        v2</ulink>.</para>
+    </sect2>
+
+    <sect2 id="fab.index.dev">
+        <title>Développement</title>
+
+        <para>Fab est développé en php 5.</para>
+
+        <para>Le projet est hébergé sur Google Code : <ulink
+        url="http://fab.googlecode.com">http://fab.googlecode.com</ulink>.</para>
+
+        <para>Il dispose d'un <ulink
+        url="http://code.google.com/p/fab/issues/list">issue tracker</ulink>,
+        et de deux listes de diffusion :</para>
+
+        <itemizedlist>
+            <listitem>
+                <para><ulink
+                url="http://groups.google.com/group/fab-commits">fab-commits</ulink>
+                : permet d'être informé des modifications apportées à
+                l'application.</para>
+            </listitem>
+
+            <listitem>
+                <para><ulink
+                url="http://groups.google.com/group/fab-issues">fab-issues</ulink>
+                : permet de recevoir les messages des problèmes signalés et de
+                leur résolution.</para>
+            </listitem>
+        </itemizedlist>
+    </sect2>
+
+    <sect2 id="fab.index.code">
+        <title>Code source</title>
+
+        <para>Le code source de l'application est disponible dans le <ulink
+        url="http://code.google.com/p/fab/source/checkout">dépôt Subversion du
+        projet</ulink>.</para>
+    </sect2>
+
+    <sect2 id="fab.index.doc">
+        <title>Documentation</title>
+
+        <para>L'ensemble du code source des modules et des classes de fab est
+        documenté au format <ulink url="http://www.phpdoc.org/">phpdoc</ulink>
+        et est complétée de tutoriels et de didacticiels au format <ulink
+        url="http://www.docbook.org">docbook</ulink>.</para>
+
+        <itemizedlist>
+            <listitem>
+                <para><ulink url="?filename=fab.documentation">Format de la
+                documentation</ulink></para>
+            </listitem>
+
+            <listitem>
+                <para><ulink url="Api">Consulter l'API de fab</ulink></para>
+            </listitem>
+        </itemizedlist>
+    </sect2>
+</sect1>

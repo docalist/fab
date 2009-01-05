@@ -1,0 +1,110 @@
+Fichier de test pour l'analyseur d'expressions du compilateur de templates.
+
+Colliers d'expressions
+
+@version : $Id$
+
+================================================================================
+--file-- 
+'':'titre du document'
+--expect--
+'titre du document'
+================================================================================
+--file-- 
+'titre du document':''
+--expect--
+'titre du document'
+================================================================================
+--file-- 
+'a': : 'b'
+--expect Exception--
+erreur expression
+--comment--
+le deuxième élément du collier est vide
+================================================================================
+--file-- 
+'a':
+--expect Exception--
+erreur expression
+--comment--
+variabte du précédent : le deuxième élément du collier est vide
+================================================================================
+--file-- 
+0:0.0:'0':null:false:'titre du document'
+--expect--
+'titre du document'
+================================================================================
+--file-- 
+0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0
+--expect--
+NULL
+================================================================================
+--file-- 
+false:0:'rien'
+--expect--
+'rien'
+================================================================================
+--file-- 
+(false?'aa':''):0:'titre du document'
+--expect--
+'titre du document'
+--comment--
+($tmp=((false?'aa':'')) OR $tmp=(0) OR $tmp=('rien'))?$tmp:null
+l'interprétation est correcte
+================================================================================
+--file-- 
+0:(false?'aa':''):'titre du document'
+--expect--
+'titre du document'
+--comment--
+($tmp=(0) OR $tmp=((false?'aa':'')) OR $tmp=('titre du document'))?$tmp:null
+l'interprétation est correcte
+================================================================================
+--file-- 
+0:'':(false?'aa':'titre du document')
+--expect--
+'titre du document'
+--comment--
+($tmp=(0) OR $tmp=('') OR $tmp=((false?'aa':'titre du document')))?$tmp:null
+l'interprétation est correcte
+================================================================================
+--file-- 
+('':0:'titre du document')?true:false
+--expect--
+'titre du document'
+--comment--
+($tmp=(('') OR $tmp=(0) OR $tmp=('titre du document')?true:false))?$tmp:null
+Erreur ! le parenthésage n'est pas bon
+--skip--
+pour le moment, on ne peut pas utiliser de colliers dans la condition d'un 
+opérateur ternaire
+================================================================================
+--file-- 
+true?('':0:'titre du document'):'aa'
+--expect--
+'titre du document'
+--comment--
+($tmp=(true?('':0) OR $tmp=('titre du document')) OR $tmp=('aa'))?$tmp:null
+Erreur ! ce n'est pas du php correct
+--skip--
+pour le moment, on ne peut pas utiliser de colliers dans une alternative 
+d'opérateur ternaire
+================================================================================
+--file-- 
+false?'aa':('':0:'titre du document')
+--expect--
+'titre du document'
+--comment--
+($tmp=(false?'aa':('') OR $tmp=(0) OR $tmp=('rien')))?$tmp:null
+Erreur ! le parenthèsage n'a pas été respecté
+--skip--
+pour le moment, on ne peut pas utiliser de colliers dans une alternative 
+d'opérateur ternaire
+================================================================================
+--file-- 
+trim(0:false:2)
+--expect--
+'2'
+--comment--
+le collier retourne l'entier 2, mais trim retourne toujours une chaine donc '2'
+================================================================================

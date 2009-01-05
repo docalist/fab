@@ -1,0 +1,170 @@
+/**
+    taskmanager.css
+
+    Feuille de style utilisée par le gestionnaire de tâches
+*/
+th, td
+{
+    text-align: center;
+}
+
+table.tasks
+{
+    border: 1px solid #000;
+    border-collapse: collapse;
+    width: 100%;
+}
+table.tasks td.label
+{
+    width: 50%;
+    font-weight: bold;
+}
+
+table.tasks td,
+table.tasks th    
+{
+    padding: 0 1em 0 1em;
+    text-align: center;
+}
+
+table.tasks a img
+{
+    border: 1px solid transparent;
+/*    opacity: .5;*/
+}
+
+table.tasks a:hover img
+{
+    border: 1px outset #000;
+    background-color: #888;
+/*    opacity: 1.0;*/
+}
+
+table.tasks tr.even
+{
+    background-color: #fff;
+}
+table.tasks tr.odd
+{
+    background-color: #eee;
+}
+
+table.tasks tr.disabled
+{
+    color: #444;
+    text-decoration: line-through;
+}
+table.tasks tr.waiting
+{
+    color: #080;
+}
+table.tasks tr.starting
+{
+    color: #F90;
+}
+
+table.tasks tr.running
+{
+    color: #00F;
+}
+
+table.tasks tr.error,
+table.tasks tr.expired
+{
+    color: #F00;
+}
+
+table.tasks tr.done
+{
+    color: #888;
+}
+
+
+table.tasks td.status
+{
+/*    background: transparent no-repeat 4px center ;*/
+    background-position: 4px center;
+    background-repeat: no-repeat;
+    padding-left: 24px;
+}
+
+table.tasks tr.disabled td.status
+{
+    background-image: url('plugin_disabled.png');
+}
+table.tasks tr.waiting td.status
+{
+    background-image: url('clock.png');
+}
+table.tasks tr.starting td.status
+{
+    background-image: url('starting.gif');
+}
+table.tasks tr.running td.status
+{
+    background-image: url('running.gif');
+}
+table.tasks tr.done td.status
+{
+    background-image: url('accept.png');
+}
+table.tasks tr.expired td.status
+{
+    background-image: url('clock_red.png');
+}
+table.tasks tr.error td.status
+{
+    background-image: url('exclamation.png');
+}
+
+
+
+
+
+
+/* STYLES POUR LA PROGRESSBAR */
+
+
+
+/* la barre de progression */
+div#progressbar
+{
+    border: 3px solid orange; 
+    width: 100%;
+    position: relative;
+    background: #CCC;
+    overflow: hidden;
+}
+
+/* la div utilisée pour indiquer la progression en cours */
+div#progressbar div
+{
+    background: orange url('progressBarAnimOrange.gif') ;
+    height: 2em;
+    width: 50%;
+}
+
+/* le texte indiquant le pourcentage */
+div#progressbar span
+{
+    text-align: center; 
+    position: absolute; 
+    top: 0; 
+    left: 0; 
+    width: 100%;
+    font-family:verdana;
+    font-weight:bold;
+    color: #7F3300; /*DarkOrange ;*/
+    font-size: 1.2em;
+    line-height: 1.8em;        
+}
+
+div.taskinfo
+{
+    color: #888;
+    background-color: #eee;
+    border: 1px solid #aaa;
+    font-size: 0.9em;
+    margin: 1em auto;
+    padding: 0.5em;
+}

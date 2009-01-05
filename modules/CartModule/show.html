@@ -1,0 +1,42 @@
+<if test="{count($this->cart)==0}">
+    <h1>Votre panier est vide</h1>
+</if>
+<else>
+    /* S'il s'agit d'un panier ayant des catégories, on affiche la liste, puis les items */
+    <if test="{$this->hasCategory}">
+    
+        /* Aucune catégorie indiquée : affiche la liste des catégories sous forme de lien */
+        <if test="{is_null($category)}">
+            <h1>Catégories présentes dans votre panier</h1>
+            <ul>
+                <loop on="{$this->cart}" as="$category,$items">
+                    <li><a href="show?category=$category">$category</a> : {count($items)} item(s), {array_sum($items)} article(s)</li>
+                </loop>
+            </ul>
+            <a href="clear">Vider le panier (supprime toutes les catégories et tous les éléments qu'elles contiennent)</a>
+        </if>
+        
+        /* sinon : affiche les items de la catégorie demandée */
+        <else>
+            <h1>Eléments présents dans la catégorie <strong>$category</strong> de votre panier</h1>
+            <ul>
+                <loop on="{$this->cart[$category]}" as="$item,$quantity">
+                    <li>$item ($quantity) <a href="remove?category=$category&amp;item=$item">supprimer</a></li>
+                </loop>
+            </ul>
+            <a href="show">Retour à la liste des catégories</a>
+            <a href="clear?category=$category">Vider cette partie du panier (tous les éléments de cette catégorie et la catégorie elle-même)</a>
+        </else>
+    </if>
+    
+    /* Sinon, on affiche directement la liste des items */
+    <else>
+        <h1>Contenu de votre panier</h1>
+        <ul>
+            <loop on="{$this->cart}" as="$item,$quantity">
+                <li>$item ($quantity) <a href="remove?item=$item">supprimer</a></li>
+            </loop>
+        </ul>
+        <a href="clear">Vider le panier</a>
+    </else>
+</else>

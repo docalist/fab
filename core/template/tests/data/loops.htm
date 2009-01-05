@@ -1,0 +1,64 @@
+<!-- Fichier de tests des zones de données simples -->
+
+<!--  ATTENTION : ne pas mettre de commentaires HTML n'importe où dans le fichier -->
+
+--TEST--
+Boucles loop bien formées
+--FILE--
+<loop on="$arrayVal" as="$i,$j">
+    $i:$j;
+</loop>
+
+<loop on="$arrayVal" as="$i">
+    $i;
+</loop>
+
+<loop on="$arrayVal">
+</loop>
+
+<loop on="$arrayVal" as="">
+</loop>
+
+<loop on="$arrayArray" as="$key,$arr">
+<loop on="$arr" as="$ind,$val">
+    $val
+</loop>
+</loop>
+--EXPECT--
+0:Elément 1;
+1:Elément 2;
+2:Elément 3;
+
+Elément 1;
+Elément 2;
+Elément 3;
+
+
+a
+b
+c
+0
+1
+2
+3
+4
+lalalala
+====
+--TEST--
+Test localité des variables d\'une boucle loop
+--FILE--
+$vValNoSpaces
+
+<loop on="$arrayVal" as="$vValNoSpaces">
+$vValNoSpaces
+</loop>
+
+$vValNoSpaces
+--EXPECT--
+Valeur18
+
+Elément 1
+Elément 2
+Elément 3
+
+Valeur18

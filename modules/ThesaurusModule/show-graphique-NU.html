@@ -1,0 +1,90 @@
+<div class="topArrow"><span></span></div>
+
+<span class="downArrow"></span>
+
+<hr style="margin-top: 8em;" />
+    <div class="term">
+<div class="hline" style="top: 0em;"><span>0 em</span></div>
+<div class="hline" style="top: 1em;"><span>1 em</span></div>
+<div class="hline" style="top: 2em;"><span>2 em</span></div>
+<div class="hline" style="top: 3em;"><span>3 em</span></div>
+<div class="hline" style="top: 4em;"><span>4 em</span></div>
+<div class="hline" style="top: 5em;"><span>5 em</span></div>
+<div class="hline" style="top: 6em;"><span>6 em</span></div>
+<div class="hline" style="top: 7em;"><span>7 em</span></div>
+<div class="hline" style="top: 8em;"><span>8 em</span></div>
+<div class="hline" style="top: 9em;"><span>9 em</span></div>
+<div class="hline" style="top: 10em;"><span>10 em</span></div>
+<div class="hline" style="top: 11em;"><span>11 em</span></div>
+<div class="hline" style="top: 12em;"><span>12 em</span></div>
+<div class="hline" style="top: 13em;"><span>13 em</span></div>
+<div class="hline" style="top: 14em;"><span>14 em</span></div>
+<div class="hline" style="top: 15em;"><span>15 em</span></div>
+<div class="hline" style="top: 16em;"><span>16 em</span></div>
+<div class="hline" style="top: 17em;"><span>17 em</span></div>
+<div class="hline" style="top: 18em;"><span>18 em</span></div>
+<div class="hline" style="top: 19em;"><span>19 em</span></div>
+<div class="hline" style="top: 20em;"><span>20 em</span></div>
+
+<div class="vline" style="left: 0%;"><span>0%</span></div>
+<div class="vline" style="left: 30%;"><span>30%</span></div>
+<div class="vline" style="left: 35%;"><span>35%</span></div>
+<div class="vline" style="left: 65%;"><span>65%</span></div>
+<div class="vline" style="left: 70%;"><span>70%</span></div>
+<div class="vline" style="left: 100%;"><span>100%</span></div>
+
+        <div class="lib">    
+            <h1>$Fre</h1>
+            <div test="$NA" class="NA">$NA</div>
+        </div>
+                
+        <div class="MT">
+            <h2>Microthésaurus</h2>
+            <ul>
+                <li><a href="?Fre=[$MT]">$MT</a></li>
+            </ul>
+<!--            <div class="bottomArrow"><span></span></div>-->
+            <span class="arrow">&#2193;</span> /* darr */
+        </div>
+
+
+        <div class="TG">
+            <h2>Générique</h2>
+            <ul>
+                <li><a href="?Fre=[$TG]">$TG</a></li>
+            </ul>
+<!--            <div class="bottomArrow"><span></span></div>-->
+            <span class="arrow">&#2193;;</span>/* darr */
+        </div>
+    
+        <div test="$EP" class="EP">
+            <h2>Employé pour</h2>
+            <ul>
+                <loop on="(array)$EP" as ="$EP">
+                    <li><a href="?Fre=[$EP]">$EP</a></li>
+                </loop>
+            </ul>
+            <div class="rightArrow"><span></span></div>
+        </div>
+    
+        <div test="$TA" class="TA">
+            <h2>Termes associés</h2>    
+            <ul>
+                <loop on="(array)$TA" as ="$TA">
+                    <li><a href="?Fre=[$TA]">$TA</a></li>
+                </loop>
+            </ul>    
+            <span class="arrow">&#x2192;</span> /* rarr */
+        </div>
+        
+        <div test="$TS" class="TS">
+            <h2>Spécifiques</h2>
+            <ul>
+                <loop on="(array)$TS" as ="$TS">
+                    <li><a href="?Fre=[$TS]">$TS</a></li>
+                </loop>
+            </ul>
+            <span class="arrow">&#8595;a</span> /* darr */
+        </div>
+        
+    </div>

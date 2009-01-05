@@ -1,0 +1,58 @@
+/*
+    Affichage d'un ou plusieurs termes du thésaurus sous forme
+    de liste alphabétique structurée
+*/
+<h2><a href="/{$this->module}">Thesaurus</a></h2>
+
+<p>
+    <a style="float: right" href="Index">
+        Nouvelle recherche
+    </a>
+</p>
+
+<loop on="{$this->selection}">
+    <div class="term">
+        <p class="FRE">$Fre</p>
+        
+        <p test="$MT" class="MT">
+            <span class="lib">MT :</span>
+            <a href="?Fre={$this->termToQuery($MT)}">$MT</a>
+        </p>
+    
+        <p test="$TG" class="TG">
+            <span class="lib">TG :</span>
+            <a href="?Fre={$this->termToQuery($TG)}">$TG</a>
+        </p>
+    
+        <loop on="(array)$TS" as="$TS">
+            <p class="TS">
+                <span class="lib">TS :</span>
+                <a href="?Fre={$this->termToQuery($TS)}">$TS</a>
+            </p>
+        </loop>
+    
+        <loop on="(array)$TA" as="$TA">
+            <p class="TA">
+                <span class="lib">TA :</span>
+                <a href="?Fre={$this->termToQuery($TA)}">$TA</a>
+            </p>
+        </loop>
+    
+        <p test="$EM" class="EM">
+            <span class="lib">EM :</span>
+            <a href="?Fre={$this->termToQuery($EM)}">$EM</a>
+        </p>
+    
+        <loop on="(array)$EP" as="$EP">
+            <p class="EP">
+                <span class="lib">EP :</span>
+                <a href="?Fre={$this->termToQuery($EP)}">$EP</a>
+            </p>
+        </loop>
+    
+        <p test="$NA" class="NA">
+            <span class="lib">NA :</span>
+            $NA
+        </p>
+    </div>
+</loop>

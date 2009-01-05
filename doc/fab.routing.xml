@@ -1,0 +1,811 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE sect1 PUBLIC "-//OASIS//DTD DocBook XML V4.5//EN"
+"http://www.oasis-open.org/docbook/xml/4.5/docbookx.dtd">
+<?xml-stylesheet href="../web/css/docbook/dm.css" type="text/css"?>
+<sect1 id="fab.routing">
+    <sect1info>
+        <releaseinfo>$Id: routing.xml 587 2008-01-09 10:43:11Z
+        daniel.menard.bdsp $</releaseinfo>
+    </sect1info>
+
+    <title>Routing *</title>
+
+    <toc></toc>
+
+    <sect2 id="fab.routing.introduction">
+        <title>Introduction</title>
+
+        <para>Dans un site web traditionnel, l'adresse des pages du site
+        correspond en général à des fichiers qui existent sur le serveur
+        :</para>
+
+        <screen>http://www.example.com/index.html
+http://www.example.com/images/logo.gif
+http://www.example.com/css/styles.css
+http://www.example.com/search.php</screen>
+
+        <para>Lorsqu'il s'agit de scripts, des paramètres additionnels peuvent
+        être indiqués pour composer la <emphasis>query
+        string</emphasis>.</para>
+
+        <para>La query string s'écrit à la suite du nom du fichier appelé et
+        commence par un point d'interrogation. Suit ensuite une liste de
+        paramètres sous la forme <code>nom=valeur</code>, chaque paramètre
+        étant séparé du suivant par le caractère <code>&amp;</code> :</para>
+
+        <screen>http://www.example.com/search.php?query=health&amp;hitsperpage=10&amp;start=1</screen>
+    </sect2>
+
+    <sect2 id="fab.routing.faburls">
+        <title>Les urls dans fab</title>
+
+        <para>Dans fab, les urls utilisées ne désignent pas un fichier
+        existant, elles désignent <emphasis role="strong">un module et une
+        action</emphasis> de l'application. Lorsque la configuration par
+        défaut de fab est utilisée, les urls ont la forme suivante :</para>
+
+        <screen>http://www.example.com/index.php/module/action?querystring</screen>
+
+        <note>
+            <para>Dans les exemples ci-dessus, le nom du contrôleur utilisé
+            apparaît (<filename>index.php</filename>), mais il est possible de
+            paramétrer fab et le serveur http utilisé pour que celui-ci soit
+            masqué. Si c'était le cas, les urls auraient alors l'allure
+            suivante :</para>
+
+            <screen>http://www.example.com/module/action?querystring</screen>
+
+            <para>Le fait que le contrôleur soit visible ou non n'est pas lié
+            au paramétrage des routes. Pour plus de clarté, dans les exemples
+            qui suivent, nous ne le ferons pas apparaître.</para>
+        </note>
+
+        <para>Lorsque le navigateur appelle une page, fab va examiner l'url
+        pour déterminer le nom du module qu'il faut charger et le nom de
+        l'action à exécuter.</para>
+
+        <para>Ce mécanisme s'appelle le <emphasis>routage </emphasis>: il
+        consiste, pour une url donnée, à déterminer la <emphasis>route
+        </emphasis> à utiliser pour servir cette url. Ce mécanisme de routage
+        est complètement paramétrable via la configuration. Il va nous
+        permettre :</para>
+
+        <itemizedlist>
+            <listitem>
+                <para>de choisir librement le format des urls</para>
+            </listitem>
+
+            <listitem>
+                <para>d'améliorer la manière dont le site est indexé par les
+                moteurs de recherche en incluant dans les urls des mots-clés
+                susceptibles d'être recherchés</para>
+            </listitem>
+
+            <listitem>
+                <para>de masquer complètement les détails d'implémentation du
+                site (on ne précise pas de noms de répertoires ou d'extension
+                de fichiers, etc.)</para>
+            </listitem>
+
+            <listitem>
+                <para>d'avoir des urls en plusieurs langues</para>
+            </listitem>
+
+            <listitem>
+                <para>de gérer les réorganisations de sites
+                (redirections)</para>
+            </listitem>
+
+            <listitem>
+                <para>de passer des paramètres à l'action exécutée sans avoir
+                à les faire apparaitre dans l'url</para>
+            </listitem>
+        </itemizedlist>
+
+        <example>
+            <title>Urls personnalisées</title>
+
+            <para>Affichage de l'enregistrement numéro 5 d'une base de données
+            'articles' : <itemizedlist>
+                    <listitem>
+                        <para>Url normale :
+                        <code>http://www.example.com/Database/show?database=articles&amp;ref=5</code></para>
+                    </listitem>
+
+                    <listitem>
+                        <para>Url personnalisée :
+                        <code>http://www.example.com/article/5.html</code></para>
+                    </listitem>
+                </itemizedlist></para>
+
+            <para>Recherche de notices par mot-clé : <itemizedlist>
+                    <listitem>
+                        <para>Url normale :
+                        <code>http://www.example.com/Database/search?database=articles&amp;motcle=health</code></para>
+                    </listitem>
+
+                    <listitem>
+                        <para>Url personnalisée :
+                        <code>http://www.example.com/tag/health</code></para>
+                    </listitem>
+                </itemizedlist></para>
+        </example>
+    </sect2>
+
+    <sect2 id="fab.routing.admin.module">
+        <title>Module de configuration des routes de l'application</title>
+
+        <para>Pour le moment, fab ne dispose pas de module d'administration
+        permettant de modifier directement les routes via le navigateur. La
+        personnalisation des routes se fait en modifiant directement les
+        fichiers de configuration.</para>
+    </sect2>
+
+    <sect2 id="fab.routing.config.format">
+        <title>Fichier de configuration des routes</title>
+
+        <caution>
+            <title>Attention aux conséquences...</title>
+
+            <para>Tant que l'application est en cours de développement,
+            modifier les routes n'a aucun impact. Mais dès que le site est en
+            production, il faut garder à l'esprit que toute modification
+            apportée aux routes est susceptible de casser : <itemizedlist>
+                    <listitem>
+                        <para>les bookmarks de vos utilisateurs ;</para>
+                    </listitem>
+
+                    <listitem>
+                        <para>les liens que d'autres sites ont fait vers vos
+                        pages ;</para>
+                    </listitem>
+
+                    <listitem>
+                        <para>la manière dont votre site est indexé par les
+                        moteurs de recherche ;</para>
+                    </listitem>
+
+                    <listitem>
+                        <para>etc.</para>
+                    </listitem>
+                </itemizedlist></para>
+        </caution>
+
+        <para>La configuration des routes se fait en modifiant la
+        configuration du module <emphasis>Routing</emphasis> (fichier
+        <filename>/config/Routing.config</filename> de l'application). Ce
+        fichier est un fichier xml listant les routes personnalisées de
+        l'application. Par exemple, pour obtenir les urls personnalisées
+        données dans l'exemple précédent, on pourrait avoir la configuration
+        suivante :</para>
+
+        <example>
+            <title>Exemple de routes</title>
+
+            <programlisting role="xml">&lt;?xml version="1.0" encoding="UTF-8" standalone="yes"?&gt;
+&lt;config&gt;
+    &lt;!--
+        Affichage d'une notice
+    --&gt;
+    &lt;item&gt;
+        &lt;url&gt;/article/\$ref&lt;/url&gt;
+        &lt;module&gt;database&lt;/module&gt;
+        &lt;action&gt;actionShow&lt;/action&gt;
+        &lt;with&gt;
+            &lt;ref&gt;\d+&lt;/ref&gt;
+        &lt;/with&gt;
+    &lt;/item&gt;
+    &lt;!--
+        Recherche de notices par mot-clé
+    --&gt;
+    &lt;item&gt;
+        &lt;url&gt;/tag/\$motcle&lt;/url&gt;
+        &lt;module&gt;database&lt;/module&gt;
+        &lt;action&gt;actionSearch&lt;/action&gt;
+    &lt;/item&gt;
+&lt;/config&gt;</programlisting>
+        </example>
+
+        <para>Dans ce fichier, chaque <code>&lt;item&gt;</code> représente une
+        route. L'exemple ci-dessus peut être interprété de la manière suivante
+        :</para>
+
+        <itemizedlist>
+            <listitem>
+                <para>si l'url commence par la chaine de caractères
+                <code>/article/</code> et est suivie d'un entier, alors
+                charger le module <code>Database</code> et appeler la méthode
+                <code>actionShow()</code> en lui passant un paramètre nommé
+                <code>ref</code> contenant l'entier obtenu ;</para>
+            </listitem>
+
+            <listitem>
+                <para>si l'url est de la forme <code>/tag/</code> suivi de
+                n'importe quoi, appeler la méthode <code>actionSearch()</code>
+                du module <code>Database</code> en lui passant dans un
+                paramètre nommé <code>motcle</code> ce qui suit la chaine
+                <code>/tag/</code>.</para>
+            </listitem>
+        </itemizedlist>
+    </sect2>
+
+    <sect2 id="fab.routing.route.format">
+        <title>Format des routes</title>
+
+        <para>Chaque route peut avoir les propriétés suivants :</para>
+
+        <table>
+            <title>Paramètres d'une route</title>
+
+            <tgroup cols="3">
+                <thead>
+                    <row>
+                        <entry>Propriété</entry>
+
+                        <entry>Rôle</entry>
+
+                        <entry>Type</entry>
+                    </row>
+                </thead>
+
+                <tbody>
+                    <row>
+                        <entry><code>url</code></entry>
+
+                        <entry>url définissant la route</entry>
+
+                        <entry>chaine de caractères</entry>
+                    </row>
+
+                    <row>
+                        <entry><code>module</code></entry>
+
+                        <entry>Le nom du module à charger</entry>
+
+                        <entry>chaine de caractères</entry>
+                    </row>
+
+                    <row>
+                        <entry><code>action</code></entry>
+
+                        <entry>l'action à exécuter</entry>
+
+                        <entry>chaine de caractères</entry>
+                    </row>
+
+                    <row>
+                        <entry><code>with</code></entry>
+
+                        <entry>le format des paramètres de l'url</entry>
+
+                        <entry>Une liste de variables</entry>
+                    </row>
+
+                    <row>
+                        <entry><code>add</code></entry>
+
+                        <entry>paramètres supplémentaires à passer à
+                        l'action</entry>
+
+                        <entry>Une liste de variables</entry>
+                    </row>
+                </tbody>
+            </tgroup>
+        </table>
+
+        <sect3 id="fab.routing.route.format.url">
+            <title>Propriété <code>url</code></title>
+
+            <para>Il s'agit d'une url qui identifie la route.</para>
+
+            <para>Au sein d'un fichier de route, chaque url doit être unique.
+            Si votre fichier de configuration contient plusieurs routes ayant
+            la même url, seule la dernière route sera prise en compte.</para>
+
+            <para>La route ne doit jamais indiquer une url complète : on
+            indique uniquement la partie qui suit le nom du
+            contrôlleur.</para>
+
+            <para>Une route est complètement abstraite : l'url ne désigne pas
+            des répertoires existants ; elle peut avoir autant de niveaux que
+            vous souhaitez (par exemple
+            <code>/blog/archives/public/2007/12/french/a-m.html</code>)</para>
+
+            <para>L'url indiquée pour la route doit former une url valide.
+            Consultez la <ulink url="http://www.faqs.org/rfcs/rfc1738">RFC
+            1738 </ulink> pour connaître la liste des caractères
+            autorisés.</para>
+
+            <para>L'url peut contenir des variables. Dans ce cas, on ne
+            définit plus une url unique mais un ensemble d'urls. Lors du
+            mécanisme de routing, chaque variable sera remplacée par la valeur
+            correspondante. <example>
+                    <title>Routage d'une url contenant des variables</title>
+
+                    <para>Si la route contient l'url
+                    <code>/articles/archives/\$year-\$month-\$day.html</code>
+                    et que l'utilisateur demande la page
+                    <code>/articles/archives/2007-12-06.html</code>, l'action
+                    indiquée dans la route sera exécutée avec les variables
+                    suivantes : <itemizedlist>
+                            <listitem>
+                                <para><code>\$year=2007</code></para>
+                            </listitem>
+
+                            <listitem>
+                                <para><code>\$month=12</code></para>
+                            </listitem>
+
+                            <listitem>
+                                <para><code>\$day=06</code></para>
+                            </listitem>
+                        </itemizedlist></para>
+                </example></para>
+
+            <warning>
+                <title>Nom des arguments</title>
+
+                <para>Le nom des arguments que vous indiquez dans l'url n'est
+                pas quelconque : ce sont les paramètres attendus par la
+                méthode qui sera appellée. Consultez la documentation de
+                l'action correspondante pour connaître les arguments
+                autorisés.</para>
+            </warning>
+
+            <para>Si votre url contient des variables nommées
+            <code>module</code> ou <code>action</code>, celles-ci vont
+            permettre d'initialiser automatiquement le module et la route à
+            utiliser pour cette route.</para>
+
+            <para>Si votre route contient plusieurs fois la variable
+            <code>module</code> (idem pour <code>action</code>), la première
+            occurence indiquera le module à utiliser pour cette route mais les
+            suivantes seront traitées comme des arguments à passer à l'action
+            :</para>
+
+            <para>Exemple : si on a la route
+            <code>/\$module/\$action/\$module/\$action</code> et l'url :
+            <code>/admin/enable/database/backup</code> on chargera le module
+            <code>Admin</code> (première occurence de <code>\$module</code>)et
+            on appellera l'action <code>actionEnable</code> (première
+            occurence de <code>\$action</code>) en lui passant en paramètres
+            <code>\$module=database</code> (la seconde occurence de
+            <code>\$module</code>) et <code>\$module=database</code> (la
+            seconde occurence de <code>\$action</code>).</para>
+
+            <para>Lorsque le module et l'action d'une route sont définis en
+            utilisant des variables dans l'url, il ne faut pas préciser les
+            propriétés <code>module</code> et <code>action</code> de la route
+            (cf ci-dessous).</para>
+        </sect3>
+
+        <sect3 id="fab.routing.route.format.module">
+            <title>Propriété <code>module</code></title>
+
+            <para>Il s'agit du nom du module à charger pour cette route. Il
+            peut s'agir soit d'un vrai module (contenant du code PHP) soit
+            d'un pseudo-module.</para>
+
+            <para>Le module correspondant à une route donnée doit toujours
+            pouvoir être déterminé. La propriété module est donc presque
+            toujours obligatoire. Vous ne pouvez ommettre la propriété module
+            d'une route que si le module à appeller figure sous forme de
+            variable dans l'url indiquée (cf ci-dessus).</para>
+
+            <warning>
+                <title>casse des caractères</title>
+
+                <para>Actuellement, fab est sensible à la casse des
+                caractères. Il faut donc indiquer le nom exact du module en
+                respectant les majuscules et les minuscules (ie indiquer le
+                nom du répertoire contenant le module, tel qu'il figure dans
+                le répertoire <filename>/config/modules</filename> de
+                l'application.</para>
+            </warning>
+
+            <tip>
+                <para>En général, les routes que vous écrirez porteront sur
+                des modules de votre application, mais vous pouvez aussi
+                indiquer un module ou un pseudo-module standard de fab.</para>
+            </tip>
+        </sect3>
+
+        <sect3 id="fab.routing.route.format.action">
+            <title>Propriété <code>action</code></title>
+
+            <para>Le nom de l'action à exécuter. En général, il s'agit d'une
+            méthode du module indiqué dans la route. Dans ce cas, celle-ci
+            doit être accessible (i.e. <code>public function
+            actionXXX()</code>).</para>
+
+            <note>
+                <para>Dans certains modules (par exemple <code>FabWeb</code>),
+                l'action peut correspondre à autre chose qu'une
+                méthode.</para>
+            </note>
+
+            <para>La propriété action d'une route n'est pas obligatoire : si
+            vous l'omettez, l'action par défaut du module sera appellée
+            (<code>actionIndex()</code>).</para>
+
+            <para>Si l'url contient déjà une variable nommée
+            <code>\$action</code>, cette propriété ne doit pas être
+            renseignée.</para>
+        </sect3>
+
+        <sect3 id="fab.routing.route.format.with">
+            <title>Propriété <code>with</code></title>
+
+            <para>La propriété <code>with</code> permet de définir le format
+            que les arguments indiqués dans l'url doivent respecter.</para>
+
+            <para>Le format est indiqué en indiquant une expression régulière.
+            Lors du routage d'une url, la valeur de chaque paramêtre va être
+            examiné et la route ne sera retenue que si l'expression régulière
+            reconnaît la valeur indiquée.</para>
+
+            <tip>
+                <title>Expressions régulières</title>
+
+                <para>Pour vous documenter sur les expressions régulières,
+                consultez les sites suivants : <ulink
+                url="http://fr.wikipedia.org/wiki/Expression_rationnelle"></ulink>,
+                <ulink url="http://www.regular-expressions.info/"></ulink>,
+                <ulink url="http://www.expreg.com/"></ulink>.</para>
+            </tip>
+
+            <para>La propriété <code>with</code> contient une liste de tags.
+            Le nom de chaque tag doit correspondre au nom d'une variable
+            utilisée dans l'url (c'est une erreur sinon).</para>
+
+            <example>
+                <title>Utilisation de la propriété with</title>
+
+                <para>Imaginons qu'on veuille afficher une notice dont on
+                connaît le numéro en appellant une url de la forme
+                <code>/database/12</code> et lancer une recherche sur un
+                mot-clé si l'url est de la forme
+                <code>/database/php</code>.</para>
+
+                <para>Syntaxiquement, les deux urls sont ambigües (database
+                suivi d'un terme), et si on ne fait rien, fab utilisera
+                toujours la première route qui convient. Pour distinguer les
+                deux cas, on va utiliser la propriété <code>with</code> pour
+                indiquer que le numéro de notice doit être un entier :
+                <programlisting role="xml">&lt;config&gt;
+    &lt;!--
+        Affichage d'une notice
+    --&gt;
+    &lt;item&gt;
+        &lt;url&gt;/article/\$ref&lt;/url&gt;
+        &lt;module&gt;database&lt;/module&gt;
+        &lt;action&gt;actionShow&lt;/action&gt;
+        &lt;with&gt;
+            &lt;ref&gt;\d+&lt;/ref&gt;
+        &lt;/with&gt;
+    &lt;/item&gt;
+    &lt;!--
+        Recherche de notices par mot-clé
+    --&gt;
+    &lt;item&gt;
+        &lt;url&gt;/tag/\$motcle&lt;/url&gt;
+        &lt;module&gt;database&lt;/module&gt;
+        &lt;action&gt;actionSearch&lt;/action&gt;
+    &lt;/item&gt;
+&lt;/config&gt;</programlisting></para>
+
+                <para>Dans la route <code>/article/\$ref</code>, on a utilisé
+                la propriété <code>with</code> pour indiquer que
+                <code>\$ref</code> devait être un entier (c'est ce que
+                signifie l'expression régulière <code>\d+</code>, qu'on aurait
+                pu aussi écrire sous la forme <code>[0-9]+</code>)</para>
+            </example>
+
+            <note>
+                <para>Si vous êtes habitués aux expressions régulières, vous
+                aurez noté que celles-ci ne sont pas "complètes" : en fait,
+                fab complète automatiquement toutes les expressions indiquées
+                pour qu'elle valident la totalité de la variable.</para>
+
+                <para>Quand vous indiquez "<code>\d+</code>", fab utilise en
+                fait le masque "<code>^\d+\$</code>".</para>
+            </note>
+
+            <warning>
+                <para>Les expressions régulières utilisées par fab sont
+                sensibles à la casse des caractères.</para>
+
+                <para>Si vous voulez indiquer un masque qui contienne des
+                lettres, vous devez indiquer les différentes formes (par
+                exemple "<code>[a-zA-Z]\d+</code>" pour désigner une lettre
+                suivie d'un nombre).</para>
+            </warning>
+        </sect3>
+
+        <sect3 id="fab.routing.route.format.add">
+            <title>Propriété <code>add</code></title>
+
+            <para>La propriété <code>add</code> d'une route permet de définir
+            des arguments supplémentaires qui seront passés en paramètre à
+            l'action exécutée.</para>
+
+            <para>C'est pratique, par exemple, pour éviter de faire apparaître
+            certains paramètres dans les urls.</para>
+
+            <para>La propriété <code>add</code> contient une liste de tags
+            dont le nom correspond au nom de l'argument à passer en paramètre
+            à l'action exécutée. La valeur d'un argument définit par
+            <code>add</code> peut être soit une valeur simple (une chaine de
+            caractères), soit une liste de valeurs : <programlisting
+            role="xml">&lt;add&gt;
+    &lt;-- Le paramètre "sort" passé à l'action contiendra la chaine "asc" --&gt; 
+    &lt;sort&gt;asc&lt;/asc&gt;
+    
+    &lt;-- le paramètre "motscles" passé à l'action sera un tableau de 3 valeurs --&gt;
+    &lt;motcles&gt;
+        &lt;item&gt;un&lt;/item&gt;
+        &lt;item&gt;deux&lt;/item&gt;
+        &lt;item&gt;trois&lt;/item&gt;
+    &lt;/motcles&gt;                    
+&lt;/add&gt;</programlisting></para>
+
+            <example>
+                <title>Utilisation de add</title>
+
+                <para>Imaginons une action "search" dans un module "database"
+                qui prenne en paramêtre l'ordre de tri des réponses
+                (<code>sort=date</code> pour trier par date ou
+                <code>sort=aut</code> pour trier par auteur).</para>
+
+                <para>Par défaut, les urls seront de la forme
+                <code>/database/search?query=php&amp;sort=date</code> ou
+                <code>/database/search?query=php&amp;sort=aut</code>.</para>
+
+                <para>Si on souhaite que les urls soient de la forme
+                <code>/articles/pardate/php</code> et
+                <code>/articles/parauteur/php</code>, on va pouvoir utiliser
+                la propriété <code>add</code> pour éviter que l'ordre de tri
+                n'apparaisse :</para>
+
+                <programlisting role="xml">&lt;config&gt;
+    &lt;!--
+        Tri par date
+    --&gt;
+    &lt;item&gt;
+        &lt;url&gt;/articles/pardate/\$query&lt;/url&gt;
+        &lt;module&gt;database&lt;/module&gt;
+        &lt;action&gt;actionSearch&lt;/action&gt;
+        &lt;add&gt;
+            &lt;sort&gt;date&lt;/sort&gt;
+        &lt;/add&gt;
+    &lt;/item&gt;
+    &lt;!--
+        Tri par auteur
+    --&gt;
+    &lt;item&gt;
+        &lt;url&gt;/articles/parauteur/\$query&lt;/url&gt;
+        &lt;module&gt;database&lt;/module&gt;
+        &lt;action&gt;actionSearch&lt;/action&gt;
+        &lt;add&gt;
+            &lt;sort&gt;aut&lt;/sort&gt;
+        &lt;/add&gt;
+    &lt;/item&gt;
+&lt;/config&gt;</programlisting>
+            </example>
+        </sect3>
+    </sect2>
+
+    <sect2 id="fab.routing.routes.order">
+        <title>Ordre des routes</title>
+
+        <para>todo: expliquer dans quels cas l'ordre des routes peut être
+        jouer</para>
+
+        <para>voir la section : "exemples d'utilisation avancée".</para>
+    </sect2>
+
+    <sect2 id="fab.routing.defaultroutes">
+        <title>Routes par défaut de fab</title>
+
+        <para>Par défaut, fab inclue les routes suivantes :</para>
+
+        <programlisting role="xml">&lt;config&gt;
+    &lt;item&gt;
+        &lt;url&gt;/&lt;/url&gt;
+        &lt;module&gt;DefaultModule&lt;/module&gt;
+        &lt;action&gt;actionIndex&lt;/action&gt;
+    &lt;/item&gt;
+    &lt;item&gt;
+        &lt;url&gt;/\$module/&lt;/url&gt;
+        &lt;action&gt;actionIndex&lt;/action&gt;
+    &lt;/item&gt;
+    &lt;item&gt;
+        &lt;url&gt;/\$module/\$action&lt;/url&gt;
+    &lt;/item&gt;
+&lt;/config&gt;</programlisting>
+
+        <para>Dans la configuration de votre application, il est possible soit
+        d'écraser une route existante de fab (il suffit de créer une route qui
+        a exactement la même url), soit de supprimer complètement toutes les
+        routes par défaut de fab en utilisant l'attribut
+        <code>inherit="false"</code> du tag <code>config</code> :
+        <programlisting role="xml">&lt;config inherit="false"
+    &lt;item&gt;...&lt;/item&gt;            
+&lt;/config&gt;</programlisting></para>
+    </sect2>
+
+    <sect2 id="fab.routing.examples">
+        <title>Exemples d'utilisation avancée</title>
+
+        <para>Les routes suivantes proviennent d'un blog imaginaire :</para>
+
+        <programlisting role="xml">&lt;config&gt;
+
+    &lt;!--
+        Une url de la forme /articles/recent qui affiche les derniers articles publiés.
+        
+        On lance une recherche qui sélectionne les 10 derniers articles en 
+        ordre inverse.
+    --&gt;
+    &lt;item&gt;
+        &lt;url&gt;/&lt;/url&gt;
+        &lt;module&gt;database&lt;/module&gt;
+        &lt;action&gt;actionRecent&lt;/action&gt;
+        &lt;add&gt;
+            &lt;equation&gt;*&lt;/equation&gt;
+            &lt;max&gt;10&lt;/max&gt;
+            &lt;sort&gt;desc&lt;/sort&gt;
+        &lt;/add&gt;
+    &lt;/item&gt;
+
+    &lt;!--
+        Une url de la forme /articles/12-programmation-objet-en-php.html
+        
+        Seul le numéro de référence de la notice nous interesse, le titre
+        de l'article n'est là que pour la "décoration"
+    --&gt;
+    &lt;item&gt;
+        &lt;url&gt;/articles/\$ref-\$permalink.html&lt;/url&gt;
+        &lt;module&gt;database&lt;/module&gt;
+        &lt;action&gt;actionShow&lt;/action&gt;
+        &lt;with&gt;
+            &lt;ref&gt;\d+&lt;/ref&gt;
+        &lt;/with&gt;
+    &lt;/item&gt;
+
+    &lt;!--
+        Charger un article pour le modifier
+    --&gt;
+    &lt;item&gt;
+        &lt;url&gt;/articles/edit/\$ref&lt;/url&gt;
+        &lt;module&gt;database&lt;/module&gt;
+        &lt;action&gt;actionLoad&lt;/action&gt;
+        &lt;with&gt;
+            &lt;ref&gt;\d+&lt;/ref&gt;
+        &lt;/with&gt;
+    &lt;/item&gt;
+
+    &lt;!--
+        Sauvegarder un article
+    --&gt;
+    &lt;item&gt;
+        &lt;url&gt;/articles/save/\$ref&lt;/url&gt;
+        &lt;module&gt;database&lt;/module&gt;
+        &lt;action&gt;actionSave&lt;/action&gt;
+        &lt;with&gt;
+            &lt;ref&gt;\d+&lt;/ref&gt;
+        &lt;/with&gt;
+    &lt;/item&gt;
+    
+    &lt;!--
+        Lancer une recherche qui combine deux mots-clés en "sauf" en utilisant
+        des urls du style /articles/tag/php-php4 ("php SAUF php4")
+        
+        Cette route a la même syntaxe que la route /articles/tag/\$motcle+\$motcle
+        définie plus bas. Comme elle est plus spécifique (utilisation d'un ADD
+        que l'autre n'a pas), elle doit figurer avant.  
+    --&gt;
+    &lt;item&gt;
+        &lt;url&gt;/articles/tag/\$motcle-\$motcle&lt;/url&gt;
+        &lt;module&gt;database&lt;/module&gt;
+        &lt;action&gt;actionSearch&lt;/action&gt;
+        &lt;add&gt;
+            &lt;op&gt;AND_NOT&lt;/op&gt;
+        &lt;/add&gt;
+    &lt;/item&gt;
+
+    &lt;!--
+        Lancer une recherche qui combine deux mots-clés en "ET" en utilisant
+        des urls du style /articles/tag/php+mvc ("php AND mvc") 
+        Combiner deux tags en 'ET' (/articles/tag/php+mvc)
+    --&gt;
+    &lt;item&gt;
+        &lt;url&gt;/articles/tag/\$motcle+\$motcle&lt;/url&gt;
+        &lt;module&gt;database&lt;/module&gt;
+        &lt;action&gt;actionSearch&lt;/action&gt;
+    &lt;/item&gt;
+
+    &lt;!--
+        Lancer une recherche avec un seul mot-clé (/articles/tag/php)
+        
+        Cette route doit obligatoirement être après les deux précédentes
+        (sinon, une url "/articles/tag/php+mvc" lancera la recherche
+        /database/search?motcle=php+mvc
+    --&gt;
+    &lt;item&gt;
+        &lt;url&gt;/articles/tag/\$motcle&lt;/url&gt;
+        &lt;module&gt;database&lt;/module&gt;
+        &lt;action&gt;actionSearch&lt;/action&gt;
+    &lt;/item&gt;
+
+    
+    &lt;!--
+        Une recherche année/mois/jour présentée comme une page html statique
+    --&gt;
+    &lt;item&gt;
+        &lt;url&gt;/articles/archives/\$year-\$month-\$day.html&lt;/url&gt;
+        &lt;module&gt;database&lt;/module&gt;
+        &lt;action&gt;actionSearch&lt;/action&gt;
+        &lt;with&gt;
+            &lt;year&gt;\d+&lt;/year&gt;
+            &lt;month&gt;\d+&lt;/month&gt;
+            &lt;day&gt;\d+&lt;/day&gt;
+        &lt;/with&gt;
+    &lt;/item&gt;
+    
+    &lt;!--
+        Comparer deux références, pour montrer qu'on peut avoir plusieurs fois
+        le même nom de variables dans les urls.
+        
+        Remarque : le with s'applique aux deux, il n'est pas possible de fire
+        que la première ref doit respecter un format et la seconde un autre 
+        format...
+    --&gt;
+    &lt;item&gt;
+        &lt;url&gt;/articles/compare/\$REF-\$REF.html&lt;/url&gt;
+        &lt;with&gt;
+            &lt;REF&gt;\d+&lt;/REF&gt;
+        &lt;/with&gt;
+        &lt;module&gt;database&lt;/module&gt;
+        &lt;action&gt;actionCompare&lt;/action&gt;
+    &lt;/item&gt;
+
+&lt;/config&gt;</programlisting>
+    </sect2>
+
+    <sect2 id="fab.routing.remarks">
+        <title>bonnes pratiques</title>
+
+        <para>todo</para>
+
+        <para>expliquer qu'il ne faut pas faire n'importe quoi !</para>
+
+        <para>on peut très facilement avoir plusieurs urls différentes qui
+        retournent le même "document". Les moteurs de recherche pénalisent ça
+        et peuvent même complètement black-lister le site s'ils trouvent qu'il
+        abuse. Normallement, un contenu === une url et vice versa</para>
+
+        <para>développer le caution mis plus haut : on peut casser tous les
+        liens (extérieurs) existant en changeant les routes.</para>
+    </sect2>
+
+    <sect2 id="fab.routing.linkfor">
+        <title>linkFor() : créer des liens à partir des routes</title>
+
+        <para>todo</para>
+
+        <para>expliquer que ça marche aussi dans l'autre sens. On donne une
+        route (module+action+paramètres) à la fonction linkFor() de fab et on
+        obtient un beau lien bien formatté</para>
+
+        <para>complètement dynamique : on change les routes, tous les liens
+        sont automatiquement mis à jour.</para>
+
+        <para>linkFor est appellée automatiquement pour les liens présents
+        dans les templates, rien à faire.</para>
+
+        <para>linkFor doit être appellée manuellement quand du code php génère
+        des liens (code source des modules, expressions de code dans les
+        templates)</para>
+    </sect2>
+</sect1>

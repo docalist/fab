@@ -1,0 +1,38 @@
+<script>
+function checkAll(formId, value)
+\{
+   var f = document.getElementById(formId);
+   var inputs = f.getElementsByTagName("input");
+   for(var t = 0;t &lt; inputs.length;t++)
+   \{
+     if(inputs[t].type == "checkbox")
+        if (inputs[t].name == "test")
+            inputs[t].checked = (value==true || value==false ? value : !inputs[t].checked);
+   }
+\}
+</script>
+<h1>Module d'auto-test</h1>
+<p>Sélectionnez les tests que vous voulez exécuter :</p>
+<form class="form" method="post" id="tests" action="Run">
+    <fieldset>
+        <legend>Tests à exécuter</legend>
+        <div nustyle="float: right">
+            <button onclick="checkAll('tests',true);return false">Tout</button>
+            <button onclick="checkAll('tests',false);return false">Rien</button>
+            <button onclick="checkAll('tests','invert');return false">Inverser</button>
+        </div>
+        <loop on="$tests" as="$name,$path">
+            <label><input type="checkbox" name="test" value="$path" />$name</label><br />
+        </loop>
+    </fieldset>
+    
+    <if test="extension_loaded('xdebug')">
+        <fieldset>
+            <legend>Couverture de code</legend>
+            <checkbox name="codecoverage" value="1" label="Générer un rapport de couverture de code" />
+        </fieldset>
+    </if>
+    <div class="buttons">
+        <input type="submit" class="submit" value="Lancer les tests..." />
+    </div>
+</form>

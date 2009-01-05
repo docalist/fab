@@ -1,0 +1,33 @@
+<h1>Création d'une nouvelle base de données</h1>
+<opt>
+    <p style="color: red"><strong>$error</strong></p>
+</opt>
+
+<form>
+    <fieldset label="Nom de la base à créer :">
+        <textbox name="name" size="80" value="$name" />
+    </fieldset>
+
+    <fieldset label="Choisissez le schéma à utiliser pour la structure initiale de la base">
+        <loop on="$templates" as="$templatename,$template">
+            <div style="margin-left: 1.5em; text-indent: -1.5em;">
+                <strong>
+                    <radio name="template" label="$templatename" id="$templatename" value="$templatename" />
+                </strong>
+                <opt> - {$template->label}</opt>
+                <opt>
+                    <br />
+                    <small>
+                        {$template->description}
+                        <br />
+                        Date de création : {$template->creation}, dernière modification : {$template->lastupdate} 
+                    </small>
+                </opt>
+            </div>
+        </loop>
+    </fieldset>
+    
+    <div>
+        <submit label="Créer la base..." />
+    </div>
+</form>

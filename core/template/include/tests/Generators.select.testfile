@@ -1,0 +1,126 @@
+Fichier de test pour le générateur select
+
+Utilisation normale du générateur : ne prévoit pas les cas de mauvaise utilisation
+
+@version : $Id$
+
+================================================================================
+--test--
+Un contrôle select permet de générer, à partir d'un itérable, une liste de sélection.
+Par l'intermédiaire du helper TextTable, on peut utiliser un fichier CSV comme source de
+données
+--file--
+<select src="new TextTable($this->path.'tables/date.txt')" />
+--expect--
+
+--skip--
+$this->path n'existe pas aussi donc le test ne peut pas fonctionner
+================================================================================
+--test--
+Un contrôle select permet de générer, à partir d'un itérable, une liste de sélection.
+données
+--file--
+<select src="array(array('code'=>'2007', 'label'=>'2007'), array('code'=>'2006', 'label'=>'2006'), array('code'=>'2005', 'label'=>'2005'))" />
+--expect--
+<select class="select">
+	<option>2007</option>
+	<option>2006</option>
+	<option>2005</option>
+</select>
+================================================================================
+--test--
+L'attribut value d'un tag option d'un select est renseigné si le code et la valeur de la source de données
+correspondante sont différent
+--file--
+<select src="array(array('code'=>'2007', 'label'=>'Cette année'), array('code'=>'2006', 'label'=>'L\'année dernière'), array('code'=>'2005', 'label'=>'2005'))" />
+--expect--
+<select class="select">
+	<option value="2007">Cette année</option>
+	<option value="2006">L'année dernière</option>
+	<option>2005</option>
+</select>
+--skip--
+Bug : pour le moment, on ne peut pas créer de select contenant la chaîne "L'année".
+================================================================================
+--test--
+On peut donner un nom et un label à un select
+--file--
+<select name="mySelect" label="Test unitaire du select :" src="array(array('code'=>'2007', 'label'=>'2007'), array('code'=>'2006', 'label'=>'2006'), array('code'=>'2005', 'label'=>'2005'))" />
+--expect--
+<label class="select" for="mySelect">Test unitaire du select :</label>
+<select name="mySelect" class="select" id="mySelect">
+	<option>2007</option>
+	<option>2006</option>
+	<option>2005</option>
+</select>
+================================================================================
+--test--
+On peut obtenir une liste à sélection multiples en ajoutant l'attribut multiple="true" à un select
+--file--
+<select name="mySelect" label="Test unitaire du select :" src="array(array('code'=>'2007', 'label'=>'2007'), array('code'=>'2006', 'label'=>'2006'), array('code'=>'2005', 'label'=>'2005'))" multiple="true" />
+--expect--
+<label class="select" for="mySelect">Test unitaire du select :</label>
+<select name="mySelect" class="select" id="mySelect" multiple="true">
+	<option>2007</option>
+	<option>2006</option>
+	<option>2005</option>
+</select>
+================================================================================
+--test--
+On peut également spécifier la taille du select (nombre d'options affichées sans qu'on ait
+a appuyper sur l'éventuelle flèche)
+--file--
+<select name="mySelect" label="Test unitaire du select :" src="array(array('code'=>'2007', 'label'=>'2007'), array('code'=>'2006', 'label'=>'2006'), array('code'=>'2005', 'label'=>'2005'))" size="3" multiple="true" />
+--expect--
+<label class="select multiline" for="mySelect">Test unitaire du select :</label>
+<select name="mySelect" size="3" class="select multiline" id="mySelect" multiple="true">
+	<option>2007</option>
+	<option>2006</option>
+	<option>2005</option>
+</select>
+================================================================================
+--test--
+On peut mélanger les sources de données d'un select : une partie peut provenir de l'attribut src
+et l'autre partie peut être ajoutée dans le corps du select
+--file--
+<select name="mySelect" label="Test unitaire du select :" src="array(array('code'=>'2007', 'label'=>'2007'), array('code'=>'2006', 'label'=>'2006'), array('code'=>'2005', 'label'=>'2005'))" multiple="true">
+	<option value="">-</option>
+</select>
+--expect--
+<label class="select" for="mySelect">Test unitaire du select :</label>
+<select name="mySelect" class="select" id="mySelect" multiple="true">
+	<option>-</option>
+	<option>2007</option>
+	<option>2006</option>
+	<option>2005</option>
+</select>
+================================================================================
+--test--
+Si la source de données est vide, rien ne s'affiche
+--file--
+
+--expect--
+
+--skip--
+Rajouter un if englobant pour n'afficher un select que si src est non vide (!= '') et 
+correspond à une zone de données non vide (TextTable ayant des données, tableau non vide, etc.)
+================================================================================
+--test--
+Un contrôle select dans un fill
+--file-- 
+<fill values="2007">
+	<select name="mySel" label="Select 1" src="array(array('code'=>'2007', 'label'=>'2007'), array('code'=>'2006', 'label'=>'2006'))"/>
+	<select name="mySel2" label="Select 2" src="array(array('code'=>'2006', 'label'=>'2006'), array('code'=>'2005', 'label'=>'2005'))" />
+</fill>
+--expect--
+<label class="select" for="mySel">Select 1</label>
+<select name="mySel" class="select" id="mySel">
+	<option selected="selected">2007</option>
+	<option>2006</option>
+</select>
+<label class="select" for="mySel2">Select 2</label>
+<select name="mySel2" class="select" id="mySel2">
+	<option>2006</option>
+	<option>2005</option>
+</select>
+================================================================================

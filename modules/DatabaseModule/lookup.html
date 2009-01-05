@@ -1,0 +1,5 @@
+<ul><loop on="$terms" as="$term,$info">
+    <li onclick="this.set('{addslashes($term)}')">
+        <span>{$info[0]}</span>{$info[1]} <strong>{$info[2]}</strong>{$info[3]}
+    </li>
+</loop></ul>

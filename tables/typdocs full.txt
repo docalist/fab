@@ -1,0 +1,6 @@
+code	label	view
+Article	Article	Ref,TypDoc,TypDocB,AutPhys,AutColl,TitOrigA,TitOrigM,TitPerio,TitCol,TitFran,TitEng,DatEdit,NoVol,NoFasc,NumDiv,PageColl,RefBib,Issn,CodPays,CodLang,LangResu,Resum,MotsCles,NouvDesc,Ident,Adr,Creation,LastUpdate
+Ouvrage	Ouvrage (édité)	Ref,TypDoc,TypDocB,AutPhys,AutColl,TitOrigM,TitCol,TitFran,TitEng,DatEdit,NoVol,NoFasc,NumDiv,PageColl,RefBib,Isbn,VilEd,VilCong,CodPays,CodLang,LangResu,Resum,MotsCles,NouvDesc,Ident,Adr,Creation,LastUpdate
+Diplome	Diplôme (non édité)	Ref,TypDoc,TypDocB,AutPhys,AutColl,TitOrigM,Diplom,TitFran,TitEng,DatEdit,PageColl,RefBib,CodPays,CodLang,LangResu,Resum,MotsCles,NouvDesc,Ident,Adr,Creation,LastUpdate
+Rapport	Rapport (non édité)	Ref,TypDoc,TypDocB,AutPhys,AutColl,TitOrigM,TitFran,TitEng,DatEdit,NumDiv,PageColl,RefBib,CodPays,CodLang,LangResu,Resum,MotsCles,NouvDesc,Ident,Adr,Creation,LastUpdate
+Congrès	Actes (non édité)	Ref,TypDoc,TypDocB,AutPhys,AutColl,TitOrigM,TitCong,TitFran,TitEng,TitCongF,DatEdit,DatCong,NumDiv,PageColl,RefBib,VilCong,CodPays,CodLang,LangResu,Resum,MotsCles,NouvDesc,Ident,Adr,Creation,LastUpdate

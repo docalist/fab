@@ -1,0 +1,250 @@
+Fichier de test unitaires pour Routing::routeFor
+(url tapée par l'utilisateur -> url comprise par fab)
+
+Ce test utilise les routes définies dans le fichier testroutes.minimal.config
+
+@version : $Id$
+
+================================================================================
+--test--
+La page d'accueil du site
+--file--
+/
+--expect--
+array
+(
+    'url' => '/',
+    'module' => 'database',
+    'action' => 'actionRecent',
+    'add' => array
+    (
+        '_equation' => '*',
+        '_max' => 10,
+        '_sort' => '-',
+    ),
+    'args' => array
+    (
+        '_equation' => '*',
+        '_max' => 10,
+        '_sort' => '-',
+    ),
+)
+================================================================================
+--test--
+Voir un article
+--file--
+/articles/12-feuilles-de-styles.html
+--expect--
+array
+(
+    'url' => '/articles/$ref-$permalink.html',
+    'module' => 'database',
+    'action' => 'actionShow',
+    'with' => array
+    (
+        'ref' => '~^\\d+$~',
+    ),
+    'args' => array
+    (
+        'ref' => '12',
+        'permalink' => 'feuilles-de-styles',
+    ),
+)
+================================================================================
+--test--
+Editer un article
+--file--
+/articles/edit/12
+--expect--
+array
+(
+    'url' => '/articles/edit/$ref',
+    'module' => 'database',
+    'action' => 'actionLoad',
+    'with' => array
+    (
+        'ref' => '~^\\d+$~',
+    ),
+    'args' => array
+    (
+        'ref' => '12',
+    ),
+)
+================================================================================
+--test--
+Sauvegarder un article
+--file--
+/articles/save/12
+--expect--
+array
+(
+    'url' => '/articles/save/$ref',
+    'module' => 'database',
+    'action' => 'actionSave',
+    'with' => array
+    (
+        'ref' => '~^\\d+$~',
+    ),
+    'args' => array
+    (
+        'ref' => '12',
+    ),
+)
+================================================================================
+--test--
+Accès par tag
+--file--
+/articles/tag/php
+--expect--
+array
+(
+    'url' => '/articles/tag/$motcle',
+    'module' => 'database',
+    'action' => 'actionSearch',
+    'args' => array
+    (
+        'motcle' => 'php',
+    ),
+)
+================================================================================
+--test--
+Accès par tag en combinant deux mots-clés
+--file--
+/articles/tag/php+mvc
+--expect--
+array
+(
+    'url' => '/articles/tag/$motcle+$motcle',
+    'module' => 'database',
+    'action' => 'actionSearch',
+    'args' => array
+    (
+        'motcle' => array
+        (
+            0 => 'php',
+            1 => 'mvc',
+        ),
+    ),
+)
+================================================================================
+--test--
+Accès par tag en combinant trois mots-clés
+--file--
+/articles/tag/php+mvc+framework
+--expect--
+array
+(
+    'url' => '/articles/tag/$motcle+$motcle+$motcle',
+    'module' => 'database',
+    'action' => 'actionSearch',
+    'args' => array
+    (
+        'motcle' => array
+        (
+            0 => 'php',
+            1 => 'mvc',
+            2 => 'framework',
+        ),
+    ),
+)
+================================================================================
+--test--
+Accès par tag : motsclé1 AND_NOT motclé2
+Teste aussi l'injection de paramètres dans la query string à partir de la route
+--file--
+/articles/tag/php-php4
+--expect--
+array
+(
+    'url' => '/articles/tag/$motcle-$motcle',
+    'module' => 'database',
+    'action' => 'actionSearch',
+    'add' => array
+    (
+        'op' => 'AND_NOT',
+    ),
+    'args' => array
+    (
+        'motcle' => array
+        (
+            0 => 'php',
+            1 => 'php4',
+        ),
+        'op' => 'AND_NOT',
+    ),
+)
+--comment--
+op=AND_NOT a été ajouté directement par la route
+================================================================================
+================================================================================
+--test--
+Page d'archives
+--file--
+/articles/archives/2006-06-10.html
+--expect--
+array
+(
+    'url' => '/articles/archives/$year-$month-$day.html',
+    'module' => 'database',
+    'action' => 'actionSearch',
+    'with' => array
+    (
+        'year' => '~^\\d+$~',
+        'month' => '~^\\d+$~',
+        'day' => '~^\\d+$~',
+    ),
+    'args' => array
+    (
+        'year' => '2006',
+        'month' => '06',
+        'day' => '10',
+    ),
+)
+================================================================================
+--test--
+Tentative d'accès à la page d'archives avec un mois incorrect 
+--file--
+/articles/archives/2006-june-10.html
+--expect--
+false
+--comment--
+La route /articles/archives/$year-$month-$day.html ne va pas pouvoir s'appliquer
+car $month n'a pas la bonne syntaxe.
+Comme aucune autre route ne peut être appliquée (dans routes.blob.config, on 
+n'a pas les routes généralistes), routeFor reourne false.
+================================================================================
+--test--
+Comparaison de deux notices 
+--file--
+/articles/compare/4968-12508.html
+--expect--
+array
+(
+    'url' => '/articles/compare/$REF-$REF.html',
+    'with' => array
+    (
+        'REF' => '~^\\d+(,\\d+){0,4}$~',
+    ),
+    'module' => 'database',
+    'action' => 'actionCompare',
+    'args' => array
+    (
+        'REF' => array
+        (
+            0 => '4968',
+            1 => '12508',
+        ),
+    ),
+)
+================================================================================
+--test--
+Tentative de comparaison de deux notices (l'un des REF n'est pas un entier) 
+--file--
+/articles/compare/4968-previous.html
+--expect--
+false
+--comment--
+Le second REF ne respecte pas la syntaxe indiquée par le with.
+Comme aucune autre route ne peut être appliquée (dans routes.blob.config, on 
+n'a pas les routes généralistes), routeFor reourne false.
+================================================================================

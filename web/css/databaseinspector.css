@@ -1,0 +1,151 @@
+span.type
+{
+    display: none;
+}
+
+.showtype span.type
+{
+    color: #080;
+    width: 10em;
+    display:inline;
+}
+span.value
+{
+    color: #007;
+    font-family: monospace;
+}
+
+.showspaces span.value
+{
+    /*background-color: #eee;*/
+}
+
+.showspaces span.space:before
+{
+    content: "·";
+    color: #700;
+    margin-right: -0.61em;
+}
+.showspaces span.tab:before
+{
+    content: "»";
+    color: #700;
+    padding: 0 2em;
+    margin-right: -0.61em;
+}
+.showspaces span.para:before
+{
+    content: "¶";
+    color: #700;
+}
+
+tr.empty
+{
+    display: none;
+}
+.showempty tr.empty
+{
+    display: table-row;
+}
+
+th
+{
+    font-weight: normal;
+    text-align: right;
+    width: 12em;
+}
+table
+{
+    border-collapse: collapse;
+    border: 1px solid #888;
+}
+tr
+{
+    border-bottom: 1px solid #888;
+}
+th, td
+{
+    padding: 0.2em;
+    vertical-align: top;
+}
+th
+{
+    color: #444;
+    border-right: 1px dotted #888;
+}
+ol
+{
+    margin: 0;
+}
+
+.toolbar a
+{
+    padding: 0 1em;
+    color: buttontext;
+    background-color: buttonface;
+    border: 1px outset buttonhighlight;
+    text-decoration: none;
+}
+
+div.tooltip
+{
+    display: none;
+    font-size: 0.9em;
+    background-color: infobackground;
+    color: infotext;
+    border: 1px solid infotext;
+    -moz-border-radius: 1em;
+    padding: 1em;
+    position: absolute;
+    margin-left: 30em; 
+}
+div.tooltip p
+{
+    margin: 0;
+}
+
+span.lookupsymbol
+{
+    color: orange;
+}
+
+/* Styles pour les popup AutoComplete */
+
+#autocompletePopup
+{
+    border: 1px solid #6FBEFF;
+    background: #EFF8FF; 
+    height: 10em;
+    overflow-y: scroll;
+    white-space: nowrap;
+/*    font-size: 0.9em;*/
+}
+
+#autocompletePopup ul
+{
+    padding: 0;
+    margin: 0;
+}
+
+#autocompletePopup .selected
+{
+    background-color: #d2fb8f;
+}
+
+#autocompletePopup li
+{
+    list-style-image:none;    
+    list-style: none;
+    border-bottom: 1px solid #ddd;
+    padding-left: 0.2em;
+}
+
+#autocompletePopup li span
+{
+    color: #888;
+    float: left;
+    border-right: 1px solid #ddd;
+    width: 3em;
+    text-align: right;
+    padding-right: 0.2em; 
+}

@@ -1,0 +1,111 @@
+/* AutoTest.css */
+h1
+{
+    font-family: arial;
+    font-size: 10pt;
+/*    border-top: 1px solid #eee;*/
+    border-bottom: 1px solid #eee;
+    padding: 0.5em 0 0 0;
+    margin: 0;
+}
+
+ul
+{
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    border-left: 1px solid #eee;
+    border-right: 1px solid #eee;
+}
+
+li
+{
+    list-style-type: none;
+    
+    margin: 0;
+    padding: 0;
+    padding: 0 20px;
+    
+    background-image: none;
+    background-repeat: no-repeat;
+    background-position: 0 center ;
+    
+    background-color: #fff;
+    
+    border-top: 1px solid transparent;
+    border-bottom: 1px solid transparent;
+
+    clear: both;
+}
+
+li.odd
+{
+	background-color: #f7f7f7;
+	
+    border-top: 1px solid #eee;
+	border-bottom: 1px solid #eee;
+}
+/*
+li:hover, li.odd:hover
+{
+    background-color: #ff6;
+}
+*/
+li.pass
+{
+    color: green;
+    background-image: url("../images/famfamfam/sylk/accept.png");
+
+}
+li.incomplete
+{
+    color: gray;
+    background-image: url("../images/famfamfam/sylk/eye.png");
+}
+li.skip
+{
+    color: blue;
+    background-image: url("../images/famfamfam/sylk/help.png");
+}
+li.fail
+{
+    color: darkred;
+    background-image: url("../images/famfamfam/sylk/exclamation.png");
+}
+li.error
+{
+    color: red;
+    background-image: url("../images/famfamfam/sylk/exclamation.png");
+}
+
+div.diff
+{
+    font-family: 'courier new';
+    background-color: #fff;
+    z-order: 9990;
+}
+
+div.diff div
+{
+    width: 47%;
+    float: left;
+    border: 1px solid;
+    border-color: #888 #eee #eee #888;
+    margin: 1%;
+    background-color: #ffe;
+    overflow-x: scroll;
+}
+
+span.delete
+{
+    color: darkred;
+/*    font-weight: bold;*/
+    background-color: yellow;
+}
+
+span.insert
+{
+    color: darkgreen;
+   /* font-weight: bold;*/
+    background-color: yellow;
+}

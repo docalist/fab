@@ -1,0 +1,95 @@
+<def name="database" value="{Config::get('database')}" />
+
+<h1>{Config::get('title')} - recherche dans la base $database</h1>
+
+<form action="Search" method="GET">
+    <hidden name="database" value="$database" />
+
+    <p class="toolbar" style="text-align: right; margin: 0;">
+        Afficher : 
+        <a class="toolbar" href="#" onclick="jQuery('#aliases').toggle(); return false;">liste des alias</a>
+        <a class="toolbar" href="#" onclick="jQuery('#indices').toggle(); return false;">liste des index</a>
+    </p>
+
+    <fieldset>
+        <legend>Recherche par equation</legend>
+        
+        <textbox name="_equation" size="80" />
+
+    </fieldset>
+    
+    /* Liste des alias */
+    <fieldset id="aliases" style="display: none">
+        <legend>Liste des alias</legend>
+        
+        <loop on="{$this->selection->getSchema()->aliases}" as="$alias">
+            
+            <def name="lookup" value="{$this->guessLookupTable($alias)}" />
+            
+            <div style="margin-bottom: 1em;">
+                <label for="{$alias->name}">
+                    {$alias->name}
+                    <opt> ({Utils::lcfirst($alias->label)})</opt>
+                    <span test="$lookup" class="lookupsymbol" title="Table de lookup associée : $lookup">[=]</span>
+                    :
+                </label>
+                <br />
+                <input type="text" class="text" name="{$alias->name}" id="{$alias->name}" size="80" title="{$alias->description}" />
+                <lookup on="{$alias->name}" table="$lookup" />
+                <a href="#" onclick="jQuery('#help{$alias->name}').toggle(); return false;">?</a>
+                <div id="help{$alias->name}" class="tooltip">
+                    <p>{$alias->name} est un alias.</p>
+                    <opt><p>Description : {$alias->description}</p></opt>
+                    <p>Index correspondant(s) : {implode('+', array_keys($alias->indices))}</p>
+                </div>
+            </div>
+        </loop>
+    </fieldset>
+    
+    /* Liste des index de base */
+    <fieldset id="indices" style="display: none">
+        <legend>Liste des index</legend>
+        
+        <loop on="{$this->selection->getSchema()->indices}" as="$index">
+            <def name="lookup" value="{$this->guessLookupTable($index)}" />
+            
+            <div style="margin-bottom: 1em;">
+                <label for="{$index->name}">
+                    {$index->name}
+                    <opt> ({Utils::lcfirst($index->label)})</opt>
+                   <span test="$lookup" class="lookupsymbol" title="Table de lookup associée : $lookup">[=]</span>
+                    :
+                </label>
+                <br />
+                <input type="text" class="text" name="{$index->name}" id="{$index->name}" size="80" title="{$index->description}" />
+                <lookup on="{$index->name}" table="$lookup" />
+                <a href="#" onclick="jQuery('#help{$index->name}').toggle(); return false;">?</a>
+                <div id="help{$index->name}" class="tooltip">
+                    <p>{$index->name} est un index.</p>
+                    <opt><p>Description : {$index->description}</p></opt>
+                    <p>Champ(s) interrogé(s) : {implode(', ', array_keys($index->fields))}</p>
+                </div>
+            </div>
+        </loop>
+    </fieldset>
+    <div class="buttons">
+        <submit label="Rechercher..." />
+    </div>
+</form>
+
+<template match="//lookup" on="" table="" asvalue="false">
+    <script test="$table" type="text/javascript">
+        jQuery(document).ready(
+            function()
+            \{
+                jQuery('#$on').autocomplete
+                (
+                    'lookup?database=$database&amp;table=$table&amp;value=%s',
+                    \{
+                        asValue: $asvalue
+                    \}
+                );
+            \}
+        );
+    </script>                
+</template>

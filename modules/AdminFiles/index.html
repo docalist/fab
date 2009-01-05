@@ -1,0 +1,71 @@
+<!-- Path des images utilisées -->
+<def name="icons" value="/FabWeb/modules/AdminFiles/images" />
+<h1>{$this->getTitle()}</h1>
+<autopara>{$this->getDescription()}</autopara>
+
+<def name="parent" value="{$this->getParentDirectory()}" />
+
+<def name="request" value="{$this->request->copy()->keepOnly('directory')}" />
+<toolbar style="float: right">
+    <if test="{$parent!==false}">
+        <item href="index?directory=$parent" img="$icons/arrow_up.png">Dossier parent</item>
+        <separator />
+    </if>
+    <item href="{$request->setAction('NewFile')}" img="$icons/page_add.png">Nouveau fichier...</item>
+    <separator />
+    <item href="{$request->setAction('NewFolder')}" img="$icons/folder_add.png">Nouveau dossier...</item>
+    <separator />
+    <item href="{$request->setAction('Upload')}" img="$icons/shape_square_go.png">Envoyer un fichier...</item>
+</toolbar>
+
+<br style="clear: both" />
+
+<def name="files" value="{$this->getFiles()}" />
+
+<if test="{count($files)===0}">
+    <bigmenu>
+        <item label="Ce dossier est vide." img="$icons/information.png">Utilisez les boutons ci-dessus pour créer un nouveau fichier ou un nouveau dossier</item>
+    </bigmenu>
+</if>
+<else>
+    <bigmenu>
+        /* <item label="Répertoire parent" img="" href="index?directory=$parent" /> */
+    
+        <loop on="$files" as="$path,$file">
+            <def name="request" value="{$request->set('file', $file)}" />
+    
+            <if test="{is_dir($path)}">
+                <a name="$file" />
+                <item label="$file" img="{$this->getFileIcon($path)}" href="index?directory={Utils::makePath($this->request->get('directory'),$file)}">
+                    <slot name="fileinfo" action="fileinfo.html" path="$path" />
+                    <toolbar>
+                        <item href="index?directory={Utils::makePath($this->request->get('directory'),$file)}" img="$icons/folder_go.png">Ouvrir</item>
+                        <separator />
+                        <item href="{$request->setAction('Copy')}" img="$icons/page_copy.png">Copier</item>
+                        <item href="{$request->setAction('Rename')}" img="$icons/folder_edit.png">Renommer</item>
+                        <item href="{$request->setAction('Delete')}" img="$icons/folder_delete.png">Supprimer</item>
+                    </toolbar>
+                </item>
+            </if>
+            <else>
+                <a name="$file" />
+                <item label="$file" img="{$this->getFileIcon($path)}" href="{$request->setAction('Edit')}">
+                    <slot name="fileinfo" action="fileinfo.html" path="$path" />
+                    <toolbar>
+                        <item href="{$request->setAction('Edit')}" img="$icons/page_edit.png">Modifier</item>
+                        <separator />
+                        <item href="{$request->setAction('Copy')}" img="$icons/page_copy.png">Copier</item>
+                        <item href="{$request->setAction('Rename')}" img="$icons/textfield_rename.png">Renommer</item>
+                        <item href="{$request->setAction('Delete')}" img="$icons/page_delete.png">Supprimer</item>
+                        <separator />
+                        <item href="{$request->setAction('Download')}" img="$icons/page_save.png">Télécharger</item>
+                    </toolbar>
+                </item>
+            </else>
+        </loop>
+    </bigmenu>
+</else>
+<script>
+if (location.hash) 
+    jQuery('a[name=' + location.hash.substr(1) + ']').next().css('background-color','#F5A9A9').animate(\{backgroundColor:"#f2f2f2"\}, 2000);
+</script>

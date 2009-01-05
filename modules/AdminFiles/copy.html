@@ -1,0 +1,16 @@
+/* Attention : ce template est utilisé à la fois pour les action Copy et CopyFrom */ 
+
+<def name="type" value="{is_dir($this->getDirectory().$file) ? 'dossier' : 'fichier'}" />
+
+<h1>{$this->getTitle()}</h1>
+<h2>Copier le $type {basename($file)}</h2>
+
+<form action="/{$this->module}/{$this->action}">
+    <textbox name="newName" value="{$newName:basename($file)}" label="Nom du nouveau $type :" size="40" />
+    <okcancel ok="Copier" cancelurl="{$this->getBackUrl($file)}" />
+
+    <div test="$error" style="color: red">$error</div>
+
+    <hidden name="directory" value="{$this->request->get('directory')}" />
+    <hidden name="file" value="$file" />
+</form>

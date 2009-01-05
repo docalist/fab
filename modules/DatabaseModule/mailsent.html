@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="ISO-8859-1" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1" />
+<title>Notices envoyées par courriel</title>
+</head>
+<body>
+    <h1>Vos notices ont été envoyées par courriel</h1>
+    
+    <p>
+        Le message a été envoyé à l'adresse $to et sera délivré dans les minutes 
+        qui viennent.
+    </p>
+    
+    <p>
+        <if test="$zip">
+            <p>
+                Le fichier joint au message est une archive au format 
+                <a href="http://www.7-zip.org/fr/" 
+                title="7-zip : logiciel open-source d'archivage de fichiers pour windows">zip</a>
+                contenant vos notices.
+            </p>
+            
+            <if test="{count($filenames)===1}">
+                <p>Cette archive contient le fichier suivant :</p>
+            </if>
+            <else>
+                <p>Cette archive contient {count($filenames)} fichiers :</p>
+            </else>
+        </if>
+        <else>
+            <if test="{count($filenames)===1}">
+                <p>Il contient en pièce jointe le fichier suivant :</p>
+            </if>
+            <else>
+                <p>
+                    Les {count($filenames)} fichiers suivants figurent en pièces 
+                    jointes du message :
+                </p>
+            </else>
+        </else>
+    </p>
+    
+    <ul>
+        <loop on="{$filenames}" as="$i,$filename">
+            <li>
+                <p>
+                    <strong>{$filenames[$i]}</strong>
+                    ({Utils::formatSize($filesizes[$i])}, 
+                    {$counts[$i]} notice{$counts[$i]>1 ? 's' : ''})<br />
+                    Equation de recherche : <code>{$equations[$i]}</code>
+                </p>
+            </li>
+        </loop>
+    </ul>
+
+    <p>
+        Les notices sont en format <strong>"{Utils::lcFirst($format)}"</strong>.
+    </p>
+    <p test="$description">$description</p>
+ 
+    <p>
+        <a href="SearchForm">Retour au formulaire de recherche</a>
+    </p>
+</body>
+</html>

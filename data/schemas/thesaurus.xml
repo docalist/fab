@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schema label="Thesaurus" lastupdate="2008/07/02 11:34:23">
+    <description>Schéma de base de données utilisée pour stocker un thésaurus monolingue/monohiérarchique</description>
+    <stopwords>a and au aux d de des du en et l la le les not or ou par pour re sauf sur un une</stopwords>
+    <_lastid field="9" index="9" />
+    <fields>
+        <field _id="1" name="REF" type="autonumber" _type="2" label="Numéro du terme" />
+        <field _id="2" name="Fre" _type="3" label="Libellé du terme" />
+        <field _id="3" name="MT" _type="3" label="Micro-thesaurus">
+            <description>Libellé du terme représentant la racine du micro-thésaurus auquel appartient le terme</description>
+        </field>
+        <field _id="4" name="TG" _type="3" label="Terme générique" description="Libellé du terme générique de ce terme ou vide s'il s'agit d'un non-descripteur" />
+        <field _id="5" name="TS" _type="3" label="Terme(s) spécifique(s)" description="Liste des terme(s) spécifique(s) de ce terme (descripteurs uniquement)" />
+        <field _id="6" name="EM" _type="3" label="Employer" description="Pour un non-descripteur, libellé du descripteur à utiliser à la place" />
+        <field _id="7" name="EP" _type="3" label="Employé pour">
+            <description>Pour un descripteur, liste des non-descripteurs pour lesquels ce terme est employé</description>
+        </field>
+        <field _id="8" name="TA" _type="3" label="Terme(s) associé(s)" description="Pour un descripteur, liste des descripteurs associés" />
+        <field _id="9" name="NA" _type="3" label="Note d'application">
+            <description>Une précision indiquant le sens ou le contexte dans lequel ce terme doit être compris (descripteurs uniquement)</description>
+        </field>
+    </fields>
+    <indices>
+        <index _id="1" name="REF">
+            <fields>
+                <field _id="1" name="REF" words="true" />
+            </fields>
+        </index>
+        <index _id="2" name="Fre" label="Libellé du terme">
+            <fields>
+                <field _id="2" name="Fre" words="true" phrases="true" values="true" global="true" weight="5" />
+            </fields>
+        </index>
+        <index _id="3" name="MT" label="Micro-thesaurus">
+            <fields>
+                <field _id="3" name="MT" words="true" phrases="true" values="true" />
+            </fields>
+        </index>
+        <index _id="4" name="TG" label="Terme générique">
+            <fields>
+                <field _id="4" name="TG" words="true" phrases="true" values="true" count="true" />
+            </fields>
+        </index>
+        <index _id="5" name="TS" label="Terme(s) spécifique(s)">
+            <fields>
+                <field _id="5" name="TS" words="true" phrases="true" values="true" count="true" />
+            </fields>
+        </index>
+        <index _id="6" name="EM" label="Employer">
+            <fields>
+                <field _id="6" name="EM" words="true" phrases="true" values="true" count="true" />
+            </fields>
+        </index>
+        <index _id="7" name="EP" label="Employer pour">
+            <fields>
+                <field _id="7" name="EP" words="true" phrases="true" values="true" count="true" />
+            </fields>
+        </index>
+        <index _id="8" name="TA" label="Terme(s) associé(s)">
+            <fields>
+                <field _id="8" name="TA" words="true" phrases="true" values="true" count="true" />
+            </fields>
+        </index>
+        <index _id="9" name="NA" label="Note d'application">
+            <fields>
+                <field _id="9" name="NA" words="true" phrases="true" />
+            </fields>
+        </index>
+    </indices>
+</schema>

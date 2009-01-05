@@ -1,0 +1,3 @@
+<loop on="$this->selection->record" as="$field,$value">$field{"\t"}</loop>
+<loop on="$this->selection" as="$record"><loop on="$record" as="$field,$value">{strpbrk(implode('¤',(array)$value)," \n\r\t")===false ? implode('¤',(array)$value) : '"'.implode('¤',(array)$value).'"'}{"\t"}</loop>
+</loop>

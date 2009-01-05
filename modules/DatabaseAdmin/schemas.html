@@ -1,0 +1,44 @@
+<h1>Schémas de bases de données</h1>
+<p>Cette page permet de modifier un schéma et d'en créer de nouveaux.</p>
+
+<opt>
+    <p style="color: red"><strong>$error</strong></p>
+</opt>
+
+<form>
+    <if test="{count($templates)}">
+        <ul>
+            <loop on="$templates" as="$name,$template">
+                <li>
+                    <a href="EditSchema?template=$name"><strong>$name</strong><opt> - {$template->label}</opt></a>
+                    <opt>
+                        <br />
+                        <small>
+                            <opt>{$template->description}<br /></opt>
+                            Date de création : {$template->creation}, dernière modification : {$template->lastupdate} 
+                        </small>
+                    </opt>
+                </li>
+            </loop>
+        </ul>
+    </if>
+    <else>
+        <p>Aucun schéma n'est disponible.</p>
+    </else>
+    <ul>
+        <li>
+            <strong>
+                <a href="#" onclick="return askName()">Créer un nouveau modèle...</a>
+            </strong>
+            <script type="text/javascript">
+                function askName()
+                \{
+                    var name=prompt('Entrez le nom du modèle à créer :', 'nouveau nom.xml');
+                    if (name)
+                        window.location='EditSchema?new=1&amp;template='+escape(name);
+                    return false;
+                \}
+            </script>
+        </li>
+    </ul>
+</form>

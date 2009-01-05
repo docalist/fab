@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schema label="Liste des fichiers à importer (ImportModule)" creation="2008/01/21 17:13:37" lastupdate="2008/07/02 11:33:11">
+    <description>Schéma de la base de données utilisée par le module ImportModule de fab pour stocker et gérer la liste des fichiers à importer.</description>
+    <_lastid field="10" index="4" sortkey="3" />
+    <fields>
+        <field _id="1" name="REF" type="autonumber" _type="2" label="Numéro unique identifiant le fichier à importer" />
+        <field _id="2" name="Path" _type="3" label="Path du fichier uploadé" description="Il s'agit du path du fichier stocké sur le serveur une fois l'upload effectué" />
+        <field _id="3" name="FileName" _type="3" label="Nom du fichier uploadé par l'utilisateur">
+            <description>Il s'agit du nom que l'utilisateur a indiqué lors de l'upload, pas forcément du nom du fichier tel qu'il est stocké sur le serveur.</description>
+        </field>
+        <field _id="4" name="Size" type="int" _type="1" label="Taille du fichier uploadé" description="en octets" />
+        <field _id="5" name="Status" _type="3" label="Statut du fichier">
+            <description>upload_ok : fichier uploadé, vérifié, non planifié, non traité
+upload_error : fichier uploadé, des erreurs ont été détectées pendant la vérification (le champ Notes détaille les erreurs)
+task : l'import de ce fichier est planifié (le numéro de la tâche correspondante est stockée dans le champ TaskId)
+import_ok : le fichier a été chargé (le champ Notes contient le détail du nombre de notices chargées)
+import_warning : le fichier a été chargé, des warnings ont été générés durant l'import (indiqués dans Notes)
+import_error : le fichier a été chargé, des erreurs ont été générées durant l'import (indiquées dans Notes), une ou plusieurs notices n'ont pas été chargées </description>
+        </field>
+        <field _id="6" name="TaskId" _type="3" label="Id de la tâche chargée de faire l'import de ce fichier">
+            <description>Une fois qu'un import a été planifié, ce champ contient l'id de la tâche correspondante (si plusieurs imports sont planifiés, chaque import ne chargera que les fichiers qu'il doit charger et non pas tout).</description>
+        </field>
+        <field _id="7" name="Notes" _type="3" label="Notes, remarques, erreurs">
+            <description>Pour un fichier qui vient d'être uploadé, ce champ peut contenir des informations de statut retournées par validFile() (fichier erronné : ce n'est pas du CSV, le fichier est vide, nombre de notices à importer, etc.)
+
+Une fois l'import fait, ce champ peut contenir le résultat (xxx notices importées, liste des notices ignorées, etc.)</description>
+        </field>
+        <field _id="8" name="Creation" _type="3" label="Date de création de l'enregistrement">
+            <description>Correspond à la date/heure à laquelle le fichier a été uploadé sur le serveur.
+
+Format aaaammjjhhmmss</description>
+        </field>
+        <field _id="9" name="LastUpdate" _type="3" label="Date de dernière modification de l'enregistrement" description="format aaaammjjhhmmss" />
+        <field _id="10" name="Ident" _type="3" label="Ident de l'utilisateur qui a uploadé le fichier">
+            <description>remarque : un peu spécifique à ascodocpsy, voir si on garde dans la structure standard de fab ou si on crée un autre database template</description>
+        </field>
+    </fields>
+    <indices>
+        <index _id="1" name="REF">
+            <fields>
+                <field _id="1" name="REF" words="true" />
+            </fields>
+        </index>
+        <index _id="2" name="Status">
+            <fields>
+                <field _id="5" name="Status" words="true" />
+            </fields>
+        </index>
+        <index _id="3" name="TaskId">
+            <fields>
+                <field _id="6" name="TaskId" words="true" />
+            </fields>
+        </index>
+        <index _id="4" name="Ident">
+            <fields>
+                <field _id="10" name="Ident" words="true" />
+            </fields>
+        </index>
+    </indices>
+    <sortkeys>
+        <sortkey _id="1" name="FileName" label="Tri par nom du fichier">
+            <fields>
+                <field _id="3" name="FileName" />
+            </fields>
+        </sortkey>
+        <sortkey _id="2" name="Status" label="Tri par statut">
+            <fields>
+                <field _id="5" name="Status" />
+            </fields>
+        </sortkey>
+        <sortkey _id="3" name="Ident" label="Tri par ident">
+            <fields>
+                <field _id="10" name="Ident" />
+            </fields>
+        </sortkey>
+    </sortkeys>
+</schema>

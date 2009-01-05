@@ -1,0 +1,6 @@
+type	value
+Ouvrage	Ouvrage
+Classeur	Classeur
+Cd-Rom	CD-ROM
+Disquette	Disquette
+Revue	Revue

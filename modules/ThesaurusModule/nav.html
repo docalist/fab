@@ -1,0 +1,9 @@
+<ul class="{Utils::isAjax()?'':'treeview'}">
+    <loop on="$this->selection">
+        <li class="{$EM ? 'nondes' : ($TS ? 'node' : 'leaf')}">
+            <a test="$TS" class="toggle" href="Nav?_equation=TG:[{strtr($Fre,'[]','  ')}] OR EM:[{strtr($Fre,'[]','  ')}]">+</a>
+            <a href="Show?REF=$REF">$Fre</a>
+        </li>
+    </loop>
+</ul>
+

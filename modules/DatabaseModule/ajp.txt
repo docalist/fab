@@ -1,0 +1,4 @@
+<loop on="$this->selection" as="$record">
+<loop on="$record" as="$field,$value"><if test="$value">$field
+{wordwrap(implode(Config::get("formats.$format.sep",'¤'),(array)$value))}
+</if></loop>//</loop>

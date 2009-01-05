@@ -1,0 +1,103 @@
+<!-- Path des images utilisées -->
+<def name="icons" value="/FabWeb/modules/AdminSchemas/images" />
+<def name="adminFiles" value="/FabWeb/modules/AdminFiles/images" />
+
+<!-- Template utilisé pour afficher le nombre de champs, d'index, etc. -->
+<template match="//count" value="" label=""><switch test="$value">
+        <case test="0">0 {str_replace('?','', $label)}</case>
+        <case test="1">1 {str_replace('?','', $label)}</case>
+        <default>$value {str_replace('?','s', $label)}</default>
+</switch></template>
+
+<h1>{$this->getTitle()}</h1>
+<autopara>{$this->getDescription()}</autopara>
+
+<h2>Schémas de l'application</h2>
+<def name="schemas" value="{AdminSchemas::getSchemas()}" />
+
+<toolbar style="float: right">
+    <item href="New" img="$icons/table_add.png">Créer un nouveau schéma...</item>
+</toolbar>
+<br style="clear: both" />
+<if test="$schemas">
+    <bigmenu>
+        <loop on="$schemas" as="$path,$file">
+            <def name="schema" value="{AdminSchemas::getSchema($file)}" />
+            <item label="$file" img="{$this->getIcon()}" href="EditSchema?file=$file">
+                <if test="{$schema===false}">
+                    <p>Impossible de charger ce format.</p>
+                </if>
+                <else>
+                    <p><strong>{$schema->label}</strong></p>
+                    
+                    <p>{$schema->description}</p>
+                    
+                    <p>
+                        Ce schéma comporte 
+                        <count value="{count($schema->fields)}" label="champ?" />,  
+                        <count value="{count($schema->indices)}" label="index de recherche" />,  
+                        <count value="{count($schema->aliases)}" label="alias" />,  
+                        <count value="{count($schema->lookuptables)}" label="table? de lookup" /> et 
+                        <count value="{count($schema->sortkeys)}" label="clé? de tri" />.
+                    </p>
+                    
+                    <slot name="fileinfo" action="fileinfo.html" path="$path" />
+                    
+                    <toolbar>
+                        <item href="EditSchema?file=$file" img="$icons/table_edit.png">Modifier</item>
+                        <separator />
+                        <item href="Copy?file=$file" img="$adminFiles/page_copy.png">Copier</item>
+                        <item href="Rename?file=$file" img="$adminFiles/textfield_rename.png">Renommer</item>
+                        <item href="Delete?file=$file" img="$adminFiles/page_delete.png">Supprimer</item>
+                        <separator />
+                        <item href="Download?file=$file" img="$adminFiles/page_save.png">Télécharger</item>
+                        <separator />
+                        <item href="Edit?file=$file" img="$icons/table_edit.png">Editer le code xml</item>
+                    </toolbar>
+                </else>
+            </item>
+        </loop>
+    </bigmenu>
+</if>
+<else>
+    <p>Aucun schéma n'a été défini dans l'application.</p>
+</else>
+    
+<h2 style="clear: both">Modèles de schémas définis dans fab</h2>
+<def name="schemas" value="{AdminSchemas::getSchemas(true)}" />
+
+<if test="$schemas">
+    <bigmenu>
+        <loop on="$schemas" as="$path,$file">
+            <def name="schema" value="{AdminSchemas::getSchema($file)}" />
+            <item label="$file" img="{$this->getIcon()}" href="CopyFrom?file=$path">
+                <if test="{$schema===false}">
+                    <p>Impossible de charger ce format.</p>
+                </if>
+                <else>
+                    <p><strong>{$schema->label}</strong></p>
+                    
+                    <p>{$schema->description}</p>
+                    
+                    <p>
+                        Ce schéma comporte 
+                        <count value="{count($schema->fields)}" label="champ?" />,  
+                        <count value="{count($schema->indices)}" label="index de recherche" />,  
+                        <count value="{count($schema->aliases)}" label="alias" />,  
+                        <count value="{count($schema->lookuptables)}" label="table? de lookup" /> et 
+                        <count value="{count($schema->sortkeys)}" label="clé? de tri" />.
+                    </p>
+                    
+                    <slot name="fileinfo" action="fileinfo.html" path="$path" />
+                    
+                    <toolbar>
+                        <item href="CopyFrom?file=$path" img="$icons/table_save.png">Copier dans l'application</item>
+                    </toolbar>
+                </else>
+            </item>
+        </loop>
+    </bigmenu>
+</if>
+<else>
+    <p>Aucun modèle n'est disponible dans fab.</p>
+</else>

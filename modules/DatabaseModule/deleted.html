@@ -1,0 +1,8 @@
+<if test="{$this->selection->count()==1}">
+    <h1>Enregistrement supprimé</h1>
+    <p>L'enregistrement correspondant à l'équation {$this->equation} a été supprimé de la base {Config::get('database')}.</p>
+</if>
+<else>
+    <h1>Enregistrements supprimés</h1>
+    <p>Les {$this->selection->count()} enregistrements correspondant à l'équation {$this->equation} ont été supprimés de la base {Config::get('database')}.</p>
+</else>

@@ -1,0 +1,8 @@
+<h1>{$this->getTitle()}</h1>
+<h2>Créer un nouveau schéma</h2>
+<form>
+    <textbox name="file" value="$file" label="Nom du schéma à créer :" size="40" />
+    <okcancel ok="Créer" cancelurl="{$this->getBackUrl($file)}" />
+
+    <div test="$error" style="color: red">$error</div>
+</form>

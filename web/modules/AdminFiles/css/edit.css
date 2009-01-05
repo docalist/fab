@@ -1,0 +1,45 @@
+@CHARSET "ISO-8859-1";
+html,body,form
+{
+    height: 100%;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+}
+
+div#header
+{
+    background-color: #fff;
+    width: 100%;
+    height: 4%;
+    overflow: hidden;
+    border-bottom: 1px solid #000;
+    margin: 0;
+    padding: 1% 0 0 0;
+}
+
+h1
+{
+    font-size: 110%;
+    border: none;
+    margin: 0;
+    padding: 0 1em;
+    float: left;
+}
+
+textarea
+{
+    width: 100%;
+    height: 95%;
+    margin: 0;
+    padding: 0;
+
+    border: 0px;
+}
+
+div.toolbar
+{
+    float: right;
+    padding-right: 1em;
+}

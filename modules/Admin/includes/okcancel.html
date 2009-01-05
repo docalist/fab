@@ -1,0 +1,6 @@
+<template match="//okcancel" ok="Ok" cancel="Annuler" cancelurl="/{$this->module}">
+    <toolbar style="display: inline">
+        <item test="{$ok !=='false'}" img="/FabWeb/modules/Admin/images/tick.png" type="submit" class="positive">$ok</item>
+        <item test="{$cancel !=='false'}" img="/FabWeb/modules/Admin/images/cross.png" href="$cancelurl" class="negative">$cancel</item>
+    </toolbar>
+</template>

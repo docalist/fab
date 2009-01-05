@@ -1,0 +1,185 @@
+@CHARSET "ISO-8859-1";
+
+h1
+{
+    color: #000;
+    border-bottom: 1px dotted #444;
+}
+
+/****************************************************************************** 
+ Toolbar
+ ******************************************************************************/
+
+/* 
+   Adapté de http://particletree.com/features/rediscovering-the-button-element/ 
+*/
+
+div.toolbar
+{
+    padding: 0;
+    line-height: 29px;
+}
+
+/* BUTTONS */
+
+div.toolbar button,
+div.toolbar a, 
+div.toolbar a:visited, 
+div.toolbar a:link
+{
+/*    display:block;*/
+/*    float:left;*/
+    margin:0;
+    /*
+    background-color:#f5f5f5;
+    border:1px solid #dedede;
+    border-top:1px solid #eee;
+    border-left:1px solid #eee;
+    */
+    border: 1px solid transparent;
+    font-family:Tahoma, Arial, Verdana, sans-serif;
+    font-size:100%;
+    line-height:130%;
+    text-decoration:none;
+    font-weight:normal;
+    color:#565656 !important;
+    cursor:pointer;
+    padding:5px 4px 6px 4px; /* Links */
+    white-space: nowrap;
+}
+div.toolbar button
+{
+    width:auto;
+    overflow:visible;
+    padding:4px 10px 3px 7px; /* IE6 */
+}
+div.toolbar button[type]
+{
+    padding:4px 4px 4px 4px; /* Firefox */
+    line-height:17px; /* Safari */
+    position: relative;
+    top: 0px;
+    background-color: transparent;
+}
+NU*:first-child+html button[type]
+{
+    padding:4px 10px 3px 7px; /* IE7 */
+}
+div.toolbar button img, div.toolbar a img
+{
+    margin:0 0 -3px 0 !important;
+    padding:0;
+    border:none;
+    /*opacity: 0.5;*/
+}
+div.toolbar button:hover img, div.toolbar a:hover img
+{
+    /*opacity: 1.0;*/
+}    
+
+/* Couleur STANDARD */
+
+div.toolbar button:hover, div.toolbar a:hover
+{
+    background-color:#dff4ff;
+    border:1px solid #c2e1ef;
+    color:#336699 !important;
+}
+div.toolbar a:active
+{
+    background-color:#6299c5;
+    border:1px solid #6299c5;
+    color:#fff !important;
+}
+
+/* Couleur POSITIVE */
+
+div.toolbar button.positive,
+div.toolbar a.positive
+{
+    color:#529214 !important;
+}
+div.toolbar a.positive:hover, div.toolbar button.positive:hover
+{
+    background-color:#E6EFC2;
+    border:1px solid #C6D880;
+    color:#529214 !important;
+}
+div.toolbar a.positive:active
+{
+    background-color:#529214;
+    border:1px solid #529214;
+    color:#fff !important;
+}
+
+/* Couleur NEGATIVE */
+
+div.toolbar a.negative, div.toolbar button.negative
+{
+    color:#d12f19 !important;
+}
+div.toolbar a.negative:hover, div.toolbar button.negative:hover
+{
+    background:#fbe3e4;
+    border:1px solid #fbc2c4;
+    color:#d12f19 !important;
+}
+div.toolbar a.negative:active
+{
+    background-color:#d12f19;
+    border:1px solid #d12f19;
+    color:#fff !important;
+}
+
+/* Séparateurs entre les boutons */
+
+div.toolbar span.separator
+{
+    border-left: 1px dotted #aaa;
+    border-right: 1px solid #fff;
+    width: 2px;
+    overflow: hidden;
+    padding:4px 0px;
+}
+
+/****************************************************************************** 
+ BigMenu
+ ******************************************************************************/
+ul.bigmenu
+{
+    margin: 0;
+    padding: 0;
+}
+
+ul.bigmenu li
+{
+    list-style-type: none;
+    list-style-image: none; 
+    margin: 10px 0;
+    padding: 10px 20px 10px 104px; /* image de 64px + 10 de marges gauche droite*/
+    border: 1px dotted #000;
+    background-color: #f2f2f2;
+    position: relative;
+    min-height: 64px;
+    font-family: arial;
+}
+
+ul.bigmenu h2
+{
+    margin: 0;
+    padding: 0;
+}
+/*
+ul.bigmenu h2 a
+{
+    text-decoration: none;
+    color: #000;
+}
+*/
+ul.bigmenu h2 a img
+{
+    position: absolute; top: 10px; left: 20px;
+    border: 0;
+    padding: 0;
+    margin: 0;
+}

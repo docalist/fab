@@ -1,0 +1,275 @@
+Fichier de test pour les attributs "test" et "strip" du compilateur de templates.
+
+@version : $Id$
+
+================================================================================
+--test--
+	aucun attribut
+--file--
+	<p>
+		content
+	</p>
+--expect--
+	<p>
+		content
+	</p>
+================================================================================
+--test---
+	test=true
+--file--
+	<p test="true">
+		content
+	</p>
+--expect--
+	<p>
+		content
+	</p>
+================================================================================
+--test--
+	test=false
+--file--
+	<p test="false">
+		content
+	</p>
+--expect--
+================================================================================
+--test--
+	test=variable
+--file--
+	<p test="$varFalse">
+		content
+	</p>
+--expect--
+	<?php if($_varFalse):?>
+		<p>
+			content
+		</p>
+	<?php endif;?>
+================================================================================
+--test--
+	strip=true
+--file--
+	<p strip="true">
+		content
+	</p>
+--expect--
+	content
+================================================================================
+--test--
+	strip=false
+--file--
+	<p strip="false">
+		content
+	</p>
+--expect--
+	<p>
+		content
+	</p>
+================================================================================
+--test--
+	strip=variable
+--file--
+	<p strip="$varFalse">
+		content
+	</p>
+--expect--
+	<?php if($_keeptag=!($_varFalse)):?><p><?php endif;?>
+		content
+	<?php if ($_keeptag):?></p><?php endif;?>
+================================================================================
+--test--
+	test=true && strip=true
+--file--
+	<p test="true" strip="true">
+		content
+	</p>
+--expect--
+	content
+================================================================================
+--test--
+	test=true && strip=false
+--file--
+	<p test="true" strip="false">
+		content
+	</p>
+--expect--
+	<p>
+		content
+	</p>
+================================================================================
+--test--
+	test=false && strip=true
+--file--
+	<p test="false" strip="true">
+		content
+	</p>
+--expect--
+================================================================================
+--test--
+	test=false && strip=false
+--file--
+	<p test="false" strip="false">
+		content
+	</p>
+--expect--
+================================================================================
+--test--
+	test=variable && strip=variable
+--file--
+	<p test="$varFalse" strip="$varFalse">
+		content
+	</p>
+--expect--
+	<?php if($_varFalse):?>
+		<?php if($_keeptag==!($_varFalse)):?><p><?php endif;?>
+			content
+		<?php if ($_keeptag):?></p><?php endif;?>
+	<?php endif;?>
+================================================================================
+--test--
+	tests imbriqués avec des variables
+--file--
+	<div test="$varFalse">
+		<p test="$varFalse">
+			<span test="$varFalse">
+				content
+			</span>
+		</p>
+	</div>
+--expect--
+	<?php if($_varFalse):?>
+		<div>
+			<?php if($_varFalse):?>
+				<p>
+					<?php if($_varFalse):?>
+						<span>
+							content
+						</span>
+					<?php endif;?>
+				</p>
+			<?php endif;?>
+		</div>
+	<?php endif;?>
+================================================================================
+--test--
+	strips imbriqués avec des variables
+--file--
+	<div strip="$varFalse">
+		<p strip="$varFalse">
+			<span strip="$varFalse">
+				content
+			</span>
+		</p>
+	</div>
+--expect--
+	<?php if($_keeptag=!($_varFalse)):?><div><?php endif;?>
+		<?php if($_keeptag2=!($_varFalse)):?><p><?php endif;?>
+			<?php if($_keeptag3=!($_varFalse)):?><span><?php endif;?>
+				content
+			<?php if ($_keeptag3):?></span><?php endif;?>
+		<?php if ($_keeptag2):?></p><?php endif;?>
+	<?php if ($_keeptag):?></div><?php endif;?>
+================================================================================
+--test--
+	tests et strips imbriqués avec des variables
+--file--
+	<div test="$varFalse" strip="$varFalse">
+		<p test="$varFalse" strip="$varFalse">
+			<span test="$varFalse" strip="$varFalse">
+				content
+			</span>
+		</p>
+	</div>
+--expect--
+	<?php if($_varFalse):?>
+		<?php if($_keeptag=!($_varFalse)):?><div><?php endif;?>
+			<?php if($_varFalse):?>
+				<?php if($_keeptag2=!($_varFalse)):?><p><?php endif;?>
+					<?php if($_varFalse):?>
+						<?php if($_keeptag3=!($_varFalse)):?><span><?php endif;?>
+							content
+						<?php if ($_keeptag3):?></span><?php endif;?>
+					<?php endif;?>
+				<?php if ($_keeptag2):?></p><?php endif;?>
+			<?php endif;?>
+		<?php if ($_keeptag):?></div><?php endif;?>
+	<?php endif;?>
+================================================================================
+--test--
+	élément vide avec test="true"
+--file--
+	<input test="true" name="firstname" />
+--expect--
+	<input name="firstname" />
+================================================================================
+--test--
+	élément vide avec test="false"
+--file--
+	<input test="false" name="firstname" />
+--expect--
+================================================================================
+--test--
+	élément vide avec test="variable"
+--file--
+	<input test="$varFalse" name="firstname" />
+--expect--
+	<?php if($_varFalse):?>
+		<input name="firstname" />
+	<?php endif;?>
+================================================================================
+--test--
+	élément vide avec strip="true"
+--file--
+	<input strip="true" name="firstname" />
+--expect--
+================================================================================
+--test--
+	élément vide avec strip="false"
+--file--
+	<input strip="false" name="firstname" />
+--expect--
+	<input name="firstname" />
+================================================================================
+--test--
+	élément vide avec strip="variable"
+--file--
+	<input strip="$varFalse" name="firstname" />
+--expect--
+	<?php if($_keeptag=!($_varFalse)):?>
+		<input name="firstname" />
+	<?php endif;?>
+================================================================================
+--test--
+Un noeud sans texte dont l'attribut strip évalué à false n'est pas le premier déclaré apparaît
+--file--
+<input type="text" strip="$varFalse" name="mytext">fhdskj</input>
+--expect--
+	<?php if($_keeptag=!($_varFalse)):?>
+		<input type="text" name="mytext">
+	<?php endif;?>
+		fhdskj
+	<?php if ($_keeptag):?>
+		</input>
+	<?php endif;?>
+
+================================================================================
+--test--
+Boucles imbriquées
+--file--
+<loop on="$arrayCinq" as="$i">
+	<loop on="$assocArray" as="$j">
+		<loop on="$emptyArray" as="$j">
+			$i$j
+		</loop>
+	</loop>
+</loop>
+--expect--
+000102030405
+101112131415
+202122232425
+303132333435
+404142434445
+505152535455
+--comment--
+pour continuer à travailler en attendant la résolution du bug
+================================================================================

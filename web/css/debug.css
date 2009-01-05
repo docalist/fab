@@ -1,0 +1,162 @@
+/**
+    debug.css
+
+    Feuille de style utilisée lorsque l'application est en mode debug.
+    Applique des styles à la fenêtre de débogage, aux styles générés
+    par Debug::dump(), à la trace de l'application, etc.
+*/
+
+/* Debug::dump -> null */
+span.debugDumpNull
+{
+    color:#f00;
+    font-family: courier new;
+}
+
+/* Debug::dump -> string */
+span.debugDumpString
+{
+    color:#b0b;
+    font-family: courier new;
+}
+
+/* Debug::dump -> boolean */
+span.debugDumpBool
+{
+    color:#00f;
+    font-family: courier new;
+}
+
+/* Debug::dump -> integer */
+span.debugDumpInt
+{
+    color:#0b0;
+    font-family: courier new;
+}
+
+/* Debug::dump -> float */
+span.debugDumpFloat
+{
+    color:#0bb;
+    font-family: courier new;
+}
+
+/* Debug::dump -> array */
+span.debugDumpArray,
+span.debugDumpObject
+{
+    color:#777;
+    font-weight:bold
+}
+
+/* Debug::dump -> Array Items */
+div.debugDumpArrayItems,
+div.debugDumpObjectItems
+{
+    margin-left: 0.2em;
+    padding-left: 1em;
+    border-left: 1px solid #aaa;
+}
+
+/* Debug::dump -> Array Key */
+div.debugDumpArrayKey,
+div.debugDumpObjectKey
+{
+    font-style: italic;
+}
+
+/*
+    Debug::dump -> div présente après le dernier item d'un tableau, utilisée
+    pour faire un petit trait horizontal et marquer la fin du tableau.
+*/
+div.debugDumpArrayItemsEnd,
+div.debugDumpObjectItemsEnd,
+div.debugDumpLogEnd
+{
+    height: 1px;
+    margin-left: -1em;
+    border-bottom: 1px solid #aaa;
+    width: 0.5em;
+}
+
+div#debugWebBar
+{
+    clear: both;
+/*    border: 2px solid red;
+    background-color: rgb(250,250,250);
+    margin: 2em;*/
+    margin: 1em;
+}
+
+.accordionTabTitleBar
+{
+    padding             : 0.2em 0.4em;
+    border-style        : solid none solid none;
+	border-top-color    : #BDC7E7;
+	border-bottom-color : #182052;
+    border-width        : 1px 0px 1px 0px;
+    cursor: pointer;
+    cursor: hand; /* ie, à vérifier */
+}
+
+.accordionTabTitleBarHover
+{
+	background-color : #1f669b;
+	color            : #000000;
+}
+
+.accordionTabContentBox
+{
+    font-size: 0.9em; 
+    border           : 1px solid #1f669b;
+    border-top-width : 0px;
+    padding          : 0 0.8em;
+}
+
+div.debugLog
+{
+}
+
+div.debugLog a 
+{
+    color : inherit;
+}
+
+li.debugLog0 /* log : niveau trace */
+{
+    color: #888;
+    font-weight: normal;
+    border-top: 1px solid rgb(250,250,250);
+}
+li.debugLog1 /* log : niveau notice */
+{
+    color: orange;
+    background: url('../images/famfamfam/sylk/error.png') top left no-repeat;
+    line-height: 16px;
+    padding-left: 20px;
+    font-weight: bold;
+    border-top: 1px solid rgb(250,250,250);
+}
+li.debugLog2 /* log : niveau warning */
+{
+    color: red;
+    background: url('../images/famfamfam/sylk/exclamation.png') top left no-repeat;
+    line-height: 16px;
+    padding-left: 20px;
+    font-weight: bold;
+    border-top: 1px solid rgb(250,250,250);
+}
+
+div.debugLog ul
+{
+    margin: 0 0 0 0.2em;
+    padding-left: 0;
+    list-style: none none;    
+}
+
+div.debugLog ul ul
+{
+    margin-left: 0.2em;
+    padding-left: 1em;
+    border-left: 1px solid #aaa;
+}

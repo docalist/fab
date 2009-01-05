@@ -1,0 +1,84 @@
+#autocompletePopup
+{
+    border: 1px solid #6FBEFF;
+    background: #EFF8FF; 
+    overflow: hidden;
+    white-space: nowrap;
+
+    overflow: auto; 
+    height: 15em;
+    display: none;
+    position: absolute; 
+    top: 0; 
+    left: 0; 
+    z-index: 30001;    
+}
+
+#autocompletePopup ul
+{
+    padding: 0;
+    margin: 0;
+}
+
+#autocompletePopup .selected
+{
+    background-color: #d2fb8f;
+}
+
+#autocompletePopup li
+{
+    list-style-image:none;    
+    list-style: none;
+    border-bottom: 1px solid #ddd;
+    padding-left: 0.2em;
+    cursor: pointer;
+}
+
+#autocompletePopup li span
+{
+    color: #888;
+    float: left;
+    border-right: 1px solid #ddd;
+    width: 3em;
+    text-align: right;
+    padding-right: 0.2em; 
+}
+
+#autocompletePopup div
+{
+    color: #008;
+}
+
+/* style pour le message "recherche de suggestions pour xxx" */
+#autocompletePopup p.loading
+{
+    background: url(../images/loading.gif) no-repeat center left;
+    padding: 0.5em 0.5em 0.5em 20px;
+    margin: 0 0.5em;
+    color: #888;
+}
+#autocompletePopup p.loading strong /* la valeur recherchée */
+{
+}
+
+/* style pour le message "Aucune suggestion pour xxx" */
+#autocompletePopup p.nosuggestion
+{
+    padding: 0.5em;
+    margin: 0;
+    color: #888;
+}
+#autocompletePopup p.nosuggestion strong /* la valeur recherchée */
+{
+}
+
+/* style pour le message "Aucune suggestion pour xxx" */
+#autocompletePopup p.error
+{
+    padding: 0.5em;
+    margin: 0;
+    color: #800;
+}
+#autocompletePopup p.error strong /* la valeur recherchée */
+{
+}

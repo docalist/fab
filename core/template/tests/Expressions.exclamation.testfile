@@ -1,0 +1,54 @@
+Fichier de test pour l'analyseur d'expressions du compilateur de templates.
+
+Teste la manière dont le ! est remplacé par ->
+
+@version : $Id$
+
+================================================================================
+--file-- 
+$selection!count
+--expect--
+$selection->count
+================================================================================
+--file-- 
+$selection[1]!name
+--expect--
+$selection[1]->name
+================================================================================
+--file-- 
+$this!getObject()!name
+--expect--
+$this->getObject()->name
+================================================================================
+--file-- 
+$this!getObject()!getMethod[1]!getParam(1)!name
+--expect--
+$this->getObject()->getMethod[1]->getParam(1)->name
+================================================================================
+--file-- 
+$this!path
+--expect--
+$this->path
+================================================================================
+--file-- 
+trim($x)!path
+--expect--
+trim($x)->path
+--comment--
+le code n'a pas de sens, c'est juste pour tester la syntaxe, mais à la place
+de trim, on pourrait avoir une fonction getCurrentModule(), par exemple
+================================================================================
+--file-- 
+trim[!true]!path
+--expect--
+trim[!true]->path
+--comment--
+vérifie que le 'no' n'est pas remplacé par '->'
+================================================================================
+--file-- 
+trim($x && !$y)!path
+--expect--
+trim($x && !$y)->path
+--comment--
+vérifie que le 'no' n'est pas remplacé par '->'
+================================================================================

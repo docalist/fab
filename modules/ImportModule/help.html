@@ -1,0 +1,92 @@
+<p>
+    Ce module permet d'importer un ou plusieurs fichiers dans la base de données.
+    <a href="#" onclick="jQuery('#helpdetails').toggle('fast'); return false;">Afficher/masquer l'aide...</a>
+</p>
+
+<ul id="helpdetails" style="display: none;">
+    <li>
+        <p>
+            Dans un premier temps, vous chargez sur le serveur chacun des  
+            fichiers que vous souhaitez importer dans la base.
+        </p>
+        
+        <p>
+            Pour cela, utilisez le bouton "Parcourir" pour sélectionner le
+            fichier présent sur votre ordinateur puis le bouton "Envoyer au 
+            serveur" pour lancer le transfert.
+        </p>
+        
+        <p>
+            Vous ne pouvez transférer que trois fichiers à la fois mais vous 
+            pouvez recommencer l'opération autant de fois que nécessaire. 
+        </p>
+        
+        <p>
+            Chaque fois que vous chargez un nouveau fichier, celui-ci est ajouté 
+            à la liste des fichiers à importer.
+        </p>
+        
+        <p>
+            Si une erreur survient (fichier trop gros, format incorrect...), 
+            le fichier sera affiché en rouge. Vous pouvez voir le détail de 
+            l'erreur en cliquant sur le bouton 
+            <img src="/FabWeb/css/importmodule/page_white_magnify.png" alt="Détails" />.
+            Vous pouvez également supprimer un fichier de la liste en utilisant
+            le bouton 
+            <img src="/FabWeb/css/importmodule/page_white_delete.png" alt="Supprimer" />.
+        </p>
+    </li>
+    
+    <li>
+        <if test="{User::hasAccess('Admin')}">
+            <p>
+                Dans un second temps, vous planifiez l'import des fichiers
+                chargés sur le serveur.
+            </p>
+            
+            <p>
+                Pour cela, sélectionnez dans la liste les fichiers que vous 
+                souhaitez importer en utilisant les cases à cocher qui figure à 
+                gauche du nom de chacun des fichiers, choisissez la date et 
+                l'heure à laquelle vous voulez lancer l'import puis cliquez sur 
+                le bouton "Lancer l'import".
+            </p>
+            
+            <p>
+                <strong>Important</strong> : importer des fichiers dans la base 
+                est une opération lourde qui sollicite les ressources du serveur.
+                Il est donc important de lancer les imports à un moment où cette
+                opération est le moins susceptible de perturber les autres
+                utilisateurs, par exemple la nuit ou le week-end).
+                L'option "dès que possible" ne doit être utilisée qu'à titre 
+                exceptionnel.
+            </p> 
+
+            <p>
+                Lorsque vous cliquez sur le bouton "lancer l'import" vous
+                créez en fait une tâche au sein du gestionnaire de tâches.
+                Une fois l'import effectué, les fichiers importés au cours de 
+                cette tâche n'apparaîtront plus dans la liste, mais vous pouvez 
+                utiliser le lien "afficher/masquer l'historique" 
+                qui figure en dessous du tableau pour les afficher et voir 
+                le résultat de l'import.
+            </p>
+        </if>
+        
+        <else>
+            <p>
+                Dans un second temps, un administrateur se chargera de lancer
+                l'import de vos fichiers dans la base (vous ne disposez pas des 
+                droits suffisants pour lancer vous-même l'import).
+            </p>
+            
+            <p>
+                Une fois l'import effectué, vos fichiers n'apparaîtront plus dans
+                la liste, mais vous pouvez utiliser le lien "afficher/masquer 
+                les fichiers déjà importés" qui figure en dessous du tableau 
+                pour les afficher et voir le résultat de l'import.
+            </p>
+        </else>
+    </li>
+</ul>
+

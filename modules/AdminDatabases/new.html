@@ -1,0 +1,9 @@
+<h1>{$this->getTitle()}</h1>
+<h2>Créer une nouvelle base de données</h2>
+<form>
+    <textbox name="database" value="$database" label="Nom de la base à créer :" size="40" />
+    
+    <okcancel ok="Créer la base" />
+        
+    <div test="$error" style="color: red">$error</div>
+</form>

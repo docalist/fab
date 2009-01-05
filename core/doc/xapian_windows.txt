@@ -1,0 +1,291 @@
+nouveau mode opératoire (il n'est plus nécessaire de recompiler php) :
+
+PHP :
+- récupérer la version binaire pour windows de php 5.2.2, installer dans c:\php-5.2.2-win32\
+- récupérer le source de php 5.2.2, installer dans c:\php-5.2.2\
+
+XAPIAN :
+1. création du répertoire c:\work
+2. déchargement du dernier snapshot de xapian à partir de http://www.oligarchy.co.uk/xapian/trunk/
+    a. xapian-core-0.9.99_svn8553.tar.gz 
+       unzip dans c:\work\ pour obtenir le répertoire c:\work\xapian-core-0.9.99_svn8553
+    b. xapian-bindings-0.9.99_svn8553.tar.gz
+       unzip dans c:\work pour obtenir le répertoire c:\work\xapian-bindings-0.9.99_svn8553
+3. Récupérer les makefiles pour msvc, les installer dans le répertoire win32 de xapian-core
+4. Editer le fichier config.mak et ajuster les path
+5. nmake /f win32.mak clean  (nmake clean plus tard)
+(à continuer).
+
+---
+ancienne version
+
+
+A. Créer un répertoire de travail qui contiendra tous les outils, fichiers
+includes, librairies, code sources, etc. dont on a besoin
+
+B. compilation de php
+
+1.
+Les instructions générales sont dans
+http://www.php.net/manual/fr/install.windows.building.php
+
+Récupérer le code source de php à partir de php.net
+Pour récupérer la dernière version :
+http://fr2.php.net/downloads.php
+
+Les archives se trouvent dans :
+http://www.php.net/releases/index.php
+
+Dézipper le fichier obtenu dans c:\work
+(pour avoir un répertoire C:\work\php-5.x.y)
+
+Si on suit la doc de php, il faut récupérer win32build, resolv, etc.
+Alternative : récupérer un zip contenant tout ce dont on a besoin à partir de
+ftp://ftp.emini.dk/pub/php/win32/
+(télécharger le fichier zip.zip).
+Seul le sous-répertoire "php_build" de l'archive nous interesse, à mettre dans
+c:\work
+(en fait quand on compile php dans le répertoire xxx, il cherchera dans 
+xxx\..\php_build, donc c'est ce qu'on veut).
+
+A ce stade, on doit être en état de configurer php : ::
+
+	cd c:\work\php-5.2.0
+
+Lancer buildconf : ::
+
+	C:\work\php-5.2.0>buildconf
+	Rebuilding configure.js
+	Now run 'cscript /nologo configure.js --help'	
+
+Lancer la configuration de PHP : ::
+
+	C:\work\php-5.2.0>cscript /nologo configure.js
+	Saving configure options to config.nice.bat
+	Checking for cl.exe ...  <in default path>
+	Checking for cl.exe ...  <in default path>
+	Detected MS compiler version 14
+	Checking for link.exe ...  C:\Program Files\Microsoft Visual Studio 8\VC\BIN
+	Checking for nmake.exe ...  <in default path>
+	Checking for lib.exe ...  <in default path>
+	Checking for bison.exe ...  <in default path>
+	Checking for flex.exe ...  <in default path>
+	Checking for re2c.exe ...  <not found>
+	Checking for zip.exe ...  <not found>
+	Checking for lemon.exe ...  <not found>
+	Checking for mc.exe ...  C:\Program Files\Microsoft Platform SDK for Windows Server 2003 R2\Bin
+	Checking for arpa\nameser.h ...  ..\php_build\include
+	Checking for library resolv.lib ... ..\php_build\lib\resolv.lib
+	
+	Build dir: Release_TS
+	PHP Core:  php5ts.dll and php5ts.lib
+	
+	Checking for wspiapi.h ...  <in default path>
+	Enabling IPv6 support
+	Checking for NewAPIs.h ...  <in default path>
+	Enabling SAPI sapi\cgi
+	Enabling SAPI sapi\cli
+	Enabling extension ext\bcmath
+	Enabling extension ext\calendar
+	Checking for library oleaut32.lib ... <in LIB path> OleAut32.Lib
+	Enabling extension ext\com_dotnet
+	Checking for mscoree.h ...  ..\php_build\include
+	Enabling extension ext\ctype
+	Enabling extension ext\date
+	Enabling extension ext\filter
+	Enabling extension ext\ftp
+	Checking for library libjpeg.lib ... ..\php_build\lib\libjpeg.lib
+	Checking for library freetype2.lib ... ..\php_build\lib\freetype2.lib
+	Checking for library libpng.lib ... ..\php_build\lib\libpng.lib
+	Checking for gd.h ...  ext\gd\libgd
+	Checking for library T1_StaticMD.lib ... ..\php_build\lib\T1_StaticMD.lib
+	Checking for t1lib.h ...  ..\php_build\include\t1lib
+	Enabling extension ext\gd [shared]
+	Enabling extension ext\hash
+	Checking for iconv.h ...  ..\php_build\include
+	Enabling extension ext\iconv
+	Enabling extension ext\json
+	Enabling extension ext\odbc
+	Enabling extension ext\pcre
+	Enabling extension ext\reflection
+	Enabling extension ext\session
+	Enabling extension ext\spl
+	Checking for timelib_config.h ...  ext/date/lib
+	Enabling extension ext\standard
+	Enabling extension ext\tokenizer
+	Enabling extension ext\zlib
+	Checking for library zlib.lib ... ..\php_build\lib\zlib.lib
+	Checking for zlib.h ...  ..\php_build\include
+	Checking for library libxml2_a.lib;libxml2.lib ... ..\php_build\lib\libxml2_a.lib
+	Checking for library iconv_a.lib;iconv.lib ... ..\php_build\lib\iconv_a.lib
+	Checking for libxml/parser.h ...  ..\php_build\include
+	Enabling extension ext\libxml
+	Enabling extension ext\dom
+	Enabling extension ext\simplexml
+	Enabling extension ext\wddx
+	Checking for timelib_config.h ...  ext/date/lib
+	Enabling extension ext\xml
+	Enabling extension ext\xmlreader
+	Checking for libxml/xmlwriter.h ...  ..\php_build\include
+	Enabling extension ext\xmlwriter
+	
+	Creating build dirs...
+	Generating files...
+	Generating Makefile
+	Generating main/internal_functions.c
+	Generating main/config.w32.h
+	Done.
+	
+	Type 'nmake' to build PHP
+
+
+Lancer la compilation de PHP : ::
+
+	C:\work\php-5.2.0>nmake
+
+La compilation (au moins la première fois) prends très longtemps.
+On obtient plusieurs warnings qu'on peut ignorer.
+
+Au final, fatal error : winres.h non trouvé .
+solution : 
+http://elizabethmariesmith.com/2006/11/15/how-to-compile-php52-and-php-gtk2-on-windows-using-visual-c-express/2/
+(dernier paragraphe de l'article).
+Le problème est dû au fait que MS et php ne sont pas d'accords sur le nom que
+doit avoir ce fichier... (bon en fait, je trouve plutôt que c'est php qui n'est 
+pas fichu de donner le bon nom).
+Solution : copier le fichier WinResRc.h qui se trouve dans le répertoire include
+du platform SDK 
+(C:\Program Files\Microsoft Platform SDK for Windows Server 2003 R2\Include)
+sous le nom WinRes.h (dans le même répertoire).
+
+Relancer la compilation de php en tapant à nouveau nmake.
+
+Cette fois-ci, il doit aller au bout.
+
+Les fichiers ont générés dans le sous-répertoire Release_TS de php
+(C:\work\php-5.2.0\Release_TS)
+
+Deux exe ont été générés : php.exe et php-cgi.exe
+On peut les tester en les lançant avec l'option -v, par exemple.
+
+(la sapi apache n'a pas été générée parce qu'on ne l'a pas demandée).
+
+2. génération d'une version debug
+(en cas de besoin)
+
+Reconfigurer php en mode debug : ::
+
+	cscript /nologo configure.js --enable-debug
+
+Lancer la compilation :
+
+	nmake
+
+Les fichiers sont générés dans le sous-répertoire Debug_TS de php
+(C:\work\php-5.2.0\Debug_TS)
+Idem pour les tester.
+
+C. Compilation de xapian
+Suivre les instructions détaillées du readme. 
+Les étapes en bref :
+Créer dans c:\work un répertoire 'xapian' et dézipper dedans les fichiers
+xapian-core et xapian-bindings récupérés depuis
+http://www.xapian.org/download.php
+(on n'a pas besoin de omega, mais en cas de besoin, même démarche).
+
+Récupérer les makefiles de Charlie Hull et dézipper en créant le répertoire
+win32 dans xapian-core.
+
+Editer le fichier C:\work\xapian\xapian-core-0.9.10\win32\config.mak
+Presque tout doit être bon. Ajuster la version de php (5.2.1 par défaut).
+
+C1. Compilation de xapian-core
+aller dans xapian-core/win32 (!!! pas dans xapian core, dans le sous rép win32)
+
+nettoyer : ::
+	nmake /f win32.mak CLEAN
+
+(on obtient des erreurs si c'est la première fois, normal).
+
+Compiler : ::
+	nmake /f win32.mak
+
+Les différentes makefile sont copiés, puis la compilation est lancée.
+Les fichiers sont générés dans 
+C:\work\xapian\xapian-core-0.9.10\win32\Release
+
+Plusieurs tests sont ensuite lancés automatiqueme pour vérifier que tout 
+fonctionne. ::
+
+	All 30 tests passed, 15 skipped.
+
+Dans les exécutables générés, on trouve delve, simplesearch copydatabase, etc. 
+que l'on peut tester si on a une base disponible.
+
+Exemples : ::
+
+	delve \\bdspdev\d$\var\XapianTestCompact
+		number of documents = 332262
+		average document length = 457.622
+
+	simplesearch \\bdspdev\d$\var\XapianTestCompact sida
+		Performing query `Xapian::Query(sida)'
+		28383 results found
+		ID 266297 100% [266297]
+		ID 281532 99% [281532]
+		ID 265992 99% [265992]
+		ID 119237 99% [119237]
+		ID 281531 99% [281531]
+		ID 119187 99% [119187]
+		ID 281533 99% [281533]
+		ID 291682 98% [291682]
+		ID 284205 98% [284205]
+		ID 261057 98% [261057]
+
+C2. Compilation des bindings
+::
+
+	C:\work\xapian\xapian-bindings-0.9.10\php>nmake /f win32.mak
+
+Si on essaie de tester (nmake /f win32.mak dotest), on plante.
+Pour cela, modifier ::
+
+	C:\work\xapian\xapian-core-0.9.10\win32\Release\PHP\php5
+	
+en ajoutant ::
+
+	require('xapian.php');
+
+au début.
+
+Modifier la cible DOTEST du fichier ::
+
+	C:\work\xapian\xapian-bindings-0.9.10\php\win32.mak ligne 67
+
+et ajouter "extension_dir=. " dans la commande php
+$(PHP_EXE) -q -n -d safe_mode=off -d enable_dl=on -d extension_dir=. "smoketest$(PHP_MAJOR_VERSION).php"
+
+(mieux : le faire dans le fichier win32_bindings_php du répertoire
+C:\work\xapian\xapian-core-0.9.10\win32)
+
+Si on relance : ::
+	nmake /f win32.mak dotest	
+cette fois-ci ça doit fonctionner, mais on tombe sur le bug php (dr watson).
+
+D. Modification de PHP
+
+Editer le fichier C:\work\php-5.2.0\sapi\cli\php_cli.c
+Rechercher les lignes : :: 
+
+	#ifdef ZTS
+		tsrm_shutdown();
+	#endif
+
+(ligne 1277 pour php 5.2.0, ligne 1283 pour php 5.2.1)
+Et mettre en commentaire la ligne tsrm_shutdown()
+
+Recompiler php
+
+ce coup là ça marche.
+
+reste à régler : problème de dépendance msvcr80 (pour vc8) ou msvcr71.dll (vs net 2003)

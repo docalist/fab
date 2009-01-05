@@ -1,0 +1,30 @@
+<!-- Path des images utilisées -->
+<def name="icons" value="/FabWeb/modules/AdminDatabases/images" />
+
+<h1>{$this->getTitle()}</h1>
+<h2>Modification du schéma de la base $database</h2>
+
+<p>
+    La modification de la structure d'une base de données se fait en appliquant
+    un nouveau schéma à une base de données (en général, il s'agit d'une 
+    nouvelle version du schéma utilisé pour créer la base, mais ce n'est pas
+    obligatoire).
+</p>
+
+<p>
+    Une confirmation vous sera demandée avant d'appliquer le nouveau schéma.
+    Cette page de confirmation liste toutes les modifications apportées entre
+    le schéma actuel de la base de données et le schéma choisi, ce qui vous 
+    permet de vérifier que c'est bien ce que vous voulez faire.
+</p>
+
+<p>
+    Pour continuer, choisissez dans la liste ci-dessous le schéma que vous 
+    souhaitez appliquer à la base <strong>$database</strong>&#160;:
+</p>
+
+<h3>Schémas de l'application</h3>
+<slot name="chooseSchema" action="/AdminSchemas/Choose" link="/{$this->module}/SetSchema?database=$database&amp;schema=%s" />
+
+<h3>Modèles de schémas définis dans fab</h3>
+<slot name="chooseSchema" action="/AdminSchemas/Choose" link="/{$this->module}/SetSchema?database=$database&amp;schema=%s" fab="{true}"/>

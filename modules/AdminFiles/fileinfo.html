@@ -1,0 +1,5 @@
+<p>
+    Date de création : {Utils::friendlyDate(filectime($path))}.
+    Taille : {Utils::formatSize(is_dir($path) ? Utils::dirSize($path) : filesize($path))}. 
+    Dernière modification : {Utils::friendlyDate(filemtime($path))}.
+</p>

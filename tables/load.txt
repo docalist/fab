@@ -1,0 +1,48 @@
+field	type	table	label	tooltip	texte1	texte2	attr
+	fieldset		Type de document				
+Ref	hidden			Numéro de référence			
+TypDoc	checkbox	typdocs.txt	Genre principal	Type de document principal			onclick='update_view()'
+TypDocB	checkbox	typdocs.txt	Genre secondaire	Type de document secondaire			onclick='update_view()'
+TypDoc	checkbox	supports.txt	Support	Support physique du document			
+	fieldset		Auteurs			Taper un retour à la ligne après chaque auteur	
+AutPhys	textarea		Physiques	Auteurs physiques		Exemple : <code>DE LA FONTAINE (Jean), BACH (J.S.)</code>	
+AutColl	textarea		Moraux	Auteurs collectifs et commanditaires		Exemple : <code>Banque de Données Santé Publique. (B.D.S.P.). Rennes. FRA</code>	
+	fieldset		Titre			Tous les titres doivent être saisies en minuscules accentuées, avec une majuscule au début des phrases.	
+TitOrigA	textarea		Du document	Titre original du document au niveau analytique			ss
+TitOrigM	textarea		De l'ensemble	Titre original du document au niveau monographique			
+TitPerio	textarea		De la revue	Titre du périodique			
+TitCol	textarea		De la collection	Titre de la collection			
+Diplom	textarea		Du diplôme	Intitulé du diplôme		Intitulé exact de la fillière de formation au cours de laquelle ce document a été produit.	
+TitCong	textarea		Du congrès	Titre original du congrès		Indiquer le titre du congrès s'il est différent de celui des actes indiqué sur le document	
+	fieldset		Traduction des titres			
+TitFran	textarea		En français	Traduction en français du titre		
+TitEng	textarea		En anglais	Traduction en anglais du titre		
+TitCongF	textarea		Congrès	Traduction en français du titre du congrès		
+	fieldset		Date			Exemples : <code>2006/01/27</code> pour une date précise, <code>2006/01/11, 2006/01/15</code> pour une période
+DatEdit	textarea		Du document	Date d'édition sous la forme AAAA/MM/JJ		
+DatCong	textarea		Du congrès	Date de tenue du congrès		
+	fieldset		Mentions bibliographiques			
+NoVol	textarea		Volume	Numéro de volume, ou tomaison		Indiquer uniquement le numéro en chiffres, sans aucune mention (pas de « vol. » ou autres)
+NoFasc	textarea		Fascicule	Numéro de fascicule		Indiquer uniquement le numéro en chiffres, sans aucune mention (pas de « n° » ou autres)
+NumDiv	textarea		Numéro	Mention d'édition, numéros spéciaux, législation, etc.		Si le document mentionne un numéro, l'indiquer ici (numéro de rapport), numéro d'enregistrement de la thèse, etc.
+PageColl	textarea		Page(s)	Pagination et collation		Nombre de pages suivi de « p.» et éléments éventuels de collation. Exemple : <code>168p., 6 tabl., 5 graph., carte, ann.</code>
+RefBib	textarea		Réf. biblio.	Références bibliographiques		Indiquer soit le nombre de références : <code>5 réf.</code>, soit le nombre de pages de références : <code>réf. 5p.</code>, soit simplement la mention <code>réf.bibl.</code>
+Issn	textarea			Numéro ISSN		Exemples : <code>1234-5678</code> ou <code>1234-567X</code>
+Isbn	textarea			Numéro ISBN		Dix chiffres en tout, à saisir tel qu'indiqué sur l'ouvrage
+	fieldset		Lieu, éditeur			
+VilEd	textarea		Editeur	Ville d'édition et nom de l'éditeur		Ville d'édition et nom de l'éditeur. Exemple : <code>Paris : Masson</code>
+VilCong	textarea		Ville du congrès	Ville du congrès		Ville et pays où s'est tenu le congrès. Exemple : <code>Rennes. FRA</code>
+	fieldset		Pays et langue			
+CodPays	select	pays	Pays	Pays d'édition du document		
+CodLang	select	langues	Langue	Langue du document		
+	fieldset		Résumé			
+LangResu	select	langues	Langue	Langue du résumé de la notice		
+Resum	textarea		Résumé	Résumé du document		
+	fieldset		Indexation			Taper un retour à la ligne après chaque mot-clé
+MotsCles	textarea		Mots-clés	Mots-clés BDSP		
+NouvDesc	textarea		Autres	Candidats descripteurs		
+	fieldset		Version électronique du document			
+Ident	ignore			Sigle du producteur et cote d'accès au document		
+Adr	textarea		Url	URL(s) du document		
+Creation	ignore			Date de création de la notice		
+LastUpdate	ignore			Date de dernière modification de la notice		

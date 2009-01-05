@@ -1,0 +1,10 @@
+<template match="//nav" for=""><loop on="{(array)$this->selection[$for]}" as="$term">/*
+    */<span>$for : </span><a>$term</a><br />/*
+*/</loop></template>
+<ul class="thesaurus"><loop on="{$this->selection}">
+<li term="{htmlspecialchars($this->termToQuery($EM?$EM:$Fre, false, false))}">
+<div>$Fre</div>
+<nav for="MT" /><nav for="TG" /><nav for="TS" /><nav for="TA" /><nav for="EM" /><nav for="EP" />
+<if test="$NA"><span class="lib">NE : </span>$NA<br /></if>
+</li>
+</loop></ul>

@@ -1,0 +1,357 @@
+/*                                                                                                     1 
+             1         2         3         4         5         6         7         8         9         0
+    1234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890 
+    +----------------------------+--+
+    
+    30 5 30 5 30
+    0    35   70
+
+*/
+span.arrow
+{
+    font-size: 2em;
+    position: absolute;
+    top: 1.8em;
+    text-align: center;
+    width: 100%;
+}
+
+div.TS span.arrow
+{
+    top: -1.2em;
+}
+
+div.TA span.arrow
+{
+    left: -1.5em;
+    top: 0;
+    text-align: left;
+    zoom: 2;
+}
+
+NUbody
+{
+    font-size: 76%;
+    font-family: arial;
+}
+
+div.hline
+{
+    border-top: 1px dotted #e88;
+    position: absolute;
+    width: 100%;
+    left: 0;
+}
+div.hline span
+{
+    position: relative;
+    top: -1em;
+    left: 1em;
+    color: #e88;
+    font-size: 10px;
+}
+
+div.vline
+{
+    border-left: 1px dotted #88e;
+    position: absolute;
+    top: -4em;
+    height: 100%;
+}
+div.vline span
+{
+    position: relative;
+    top: 1em;
+    left: -1em;
+    color: #88e;
+    font-size: 10px;
+}
+
+div.term
+{
+    border: 5px solid #ede;
+    position: relative;
+/*    height: 30em;*/
+/*    overflow: auto;*/
+/*    width: 80em;*/
+    width: 100%;
+    margin: auto;
+    background-color: #fed;
+    padding-top: 12em;
+}
+
+h1,h2
+{
+    margin: 0;
+    padding: 0;
+/*    background-color: #0a0;*/
+    color: #fff;
+    font-size: 1em;
+    line-height: 1em;
+}
+a
+{
+    text-decoration: none;
+}
+
+h1,h2
+{
+    /*border: 0.5em solid blue;*/
+/*    
+    border-top: 2px solid #eee;
+    border-left: 2px solid #eee;
+    border-bottom: none;
+    border-right: 2px solid #888;
+    -moz-border-radius: 1em 1em 0 0;
+*/
+        text-align: center;
+}
+
+ul, div.NA
+{
+    list-style-type: none;
+    padding: 0.5em;
+    margin: 0;
+/*    
+    border-top: 2px solid #eee;
+    border-left: 2px solid #eee;
+    border-bottom: 2px solid #888;
+    border-right: 2px solid #888;
+*/    
+    border-top: none;
+    -moz-border-radius: 0 0 1em 1em;
+/*    -moz-border-radius: 0 0 2em 2em; */
+/*    -moz-border-radius: 0 0 0.5em 0.5em;*/
+}
+    
+li
+{
+    line-height: 1em;
+    padding: 0;
+    margin: 0;
+    text-align: center;
+}
+
+div.MT
+{
+    position: absolute;
+    width: 30%;
+    top: 0;
+    left: 35%;
+
+    background: #CC0000 url(grad_white.png) repeat-x;
+    color: #B02B2C;
+    border: 2px solid #B02B2C;
+    -moz-border-radius: 1em;
+    
+}
+div.MT h2
+{
+    display: none;
+}
+
+div.MT a
+{
+    color: #B02B2C;
+}
+
+
+div.TG
+{
+    position: absolute;
+    width: 30%;
+    top: 6em;
+    left: 35%;
+
+    background: #FF9400 url(grad_white.png) repeat-x;
+    color: #543D1C;
+    border: 2px solid #543D1C;
+    -moz-border-radius: 1em;
+}
+
+div.TG h2
+{
+    display: none;
+}
+
+div.TG a
+{
+    color: #543D1C;
+}
+
+div.lib
+{
+/*    float: left;*/
+    position: relative;
+    width: 30%;
+    margin-left: 35%;
+
+    background: #C3D9FF url(grad_white.png) repeat-x;
+    color: #356AA0;
+    border: 2px solid #356AA0;
+    -moz-border-radius: 1em;
+}
+div.lib a, div.lib h1
+{
+    color: #356AA0;
+}
+
+div.NA
+{
+    text-align: center;
+    /*    font-size: 1.2em;*/
+}
+
+div.EP
+{
+/*    float: left;*/
+  position: absolute; 
+    width: 30%;
+    top: 12em;
+    left: 0;
+
+    background: #F9F7ED url(grad_white.png) repeat-x;
+    color: #36393D;
+    border: 2px solid #36393D;
+    -moz-border-radius: 1em;
+}
+div.EP a, div.EP h2
+{
+    color: #36393D;
+}
+
+div.TS
+{
+    width: 30%;
+    position: absolute;
+    left: 35%;
+    margin-top: 2em;
+
+    background: #FFFF88 url(grad_white.png) repeat-x;
+    color: #FF7400;
+    border: 2px solid #FF7400;
+    -moz-border-radius: 1em;
+}
+
+div.TS a, div.TS h2
+{
+    color: #D15600;
+}
+
+div.TA
+{
+    position: absolute;
+    width: 30%;
+    left: 70%;
+    top: 12em;
+
+    background: #CDEB8B url(grad_white.png) repeat-x;
+    color: #008C00;
+    border: 2px solid #008C00;
+    -moz-border-radius: 1em;
+    background-image: url(grad_white.png);
+    background-repeat: repeat-x;
+}
+
+div.TA a, div.TA h2
+{
+    color: #006E2E;
+}
+div.MT li,
+div.TG li,
+div.TA h2,
+div.TS h2,
+div.EP h2,
+div.lib h1
+{
+    font-size: 1.5em;
+    line-height: 2em;
+}
+            
+div.rightArrow
+{
+    border-bottom: 0.4em solid red;
+    position: absolute;
+    top: 1.5em;
+    width: 14.0%; /* le bloc fait 30% de la largeur totale. La flèche doit faire 5% du total. 5%/30%=16.66666% on met un peu moins pour que le trait ne déborde pas de la flèche*/
+    left: 100%;
+}
+div.rightArrow span
+{
+    border-left:1em solid red;
+    
+    border-top:0.5em solid transparent;
+    border-bottom:0.5em solid transparent; /* top et bottom doivent être égaux */
+    
+    position: absolute;
+    bottom:-0.7em;  /* = -1 * (arrow.span.border + arrow.border /2) */
+    height: 0pt;
+    width: 0pt;
+    right:-0.5em;
+}
+
+div.leftArrow
+{
+    border-bottom: 0.1em solid blue;
+    position: absolute;
+    top: 2em;
+    width: 10em;
+}
+div.leftArrow span
+{
+    border-right:0.5em solid blue;
+    
+    border-top:0.3em solid white;
+    border-bottom:0.3em solid white; /* top et bottom doivent être égaux */
+    
+    position: absolute;
+    bottom:-0.35em; /* = -1 * (arrow.span.border.top + arrow.border /2) */
+    height: 0pt;
+    width: 0pt;
+}
+
+div.topArrow
+{
+    border-left: 0.1em solid green;
+    position: absolute;
+    top: 3em;
+    height: 4em;
+}
+div.topArrow span
+{
+    border-bottom:0.5em solid green;
+    
+    border-left:0.3em solid white;
+    border-right:0.3em solid white; /* left et right doivent être égaux */
+    
+    position: absolute;
+    left:-0.35em; /* = -1 * (arrow.span.border.left + arrow.border /2) */
+    height: 0pt;
+    width: 0pt;
+    
+}
+
+div.bottomArrow
+{
+    border-left: 0.1em solid red;
+    position: absolute;
+    left: 50%;
+
+/*    top: 2em;*/
+/*margin-top: 0.1em;*/
+    height: 1.5em; /* = hauteur totale souhaitée - borderTop du span */
+}
+div.bottomArrow span
+{
+    border-top:0.5em solid green;
+    
+    border-left:0.3em solid yellow;
+    border-right:0.3em solid yellow; /* left et right doivent être égaux */
+    
+    position: absolute;
+    left:-0.35em; /* = -1 * (arrow.span.border.left + arrow.border /2) */
+    height: 0;
+    width: 0;
+    bottom: -0.5em; /* = -1 * borderTop */
+    
+}

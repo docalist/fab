@@ -1,0 +1,8 @@
+<h1>{$this->getTitle()}</h1>
+<autopara>{$this->getDescription()}</autopara>
+
+<bigmenu>
+    <loop on="$modules" as="$module">
+        <item label="{$module['title']}" href="{$module['link']}" img="{$module['icon']}"><autopara>{$module['description']}</autopara></item>
+    </loop>
+</bigmenu>

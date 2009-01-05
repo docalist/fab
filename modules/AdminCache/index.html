@@ -1,0 +1,47 @@
+<!-- Path des images utilisées -->
+<def name="icons" value="/FabWeb/modules/AdminFiles/images" />
+<h1>{$this->getTitle()}</h1>
+<autopara>{$this->getDescription()}</autopara>
+
+<def name="parent" value="{$this->getParentDirectory()}" />
+
+<toolbar style="float: right">
+    <if test="{$parent!==false}">
+        <item href="index?directory=$parent" img="$icons/arrow_up.png">Dossier parent</item>
+    </if>
+</toolbar>
+
+<br style="clear: both" />
+
+<def name="files" value="{$this->getFiles()}" />
+
+<bigmenu>
+    /* <item label="Répertoire parent" img="" href="index?directory=$parent" /> */
+
+    <loop on="$files" as="$path,$file">
+        <def name="request" value="{$this->request->copy()->keepOnly('directory')->set('file', $file)}" />
+
+        <if test="{is_dir($path)}">
+            <a name="$file" />
+            <item label="$file" img="{$this->getFileIcon($path)}" href="index?directory={Utils::makePath($this->request->get('directory'),$file)}">
+                <slot name="fileinfo" action="fileinfo.html" path="$path" />
+                <toolbar>
+                    <item href="index?directory={Utils::makePath($this->request->get('directory'),$file)}" img="$icons/folder_go.png">Ouvrir</item>
+                    <separator />
+                    <item href="{$request->setAction('Delete')}" img="$icons/folder_delete.png">Supprimer</item>
+                </toolbar>
+            </item>
+        </if>
+        <else>
+            <a name="$file" />
+            <item label="$file" img="{$this->getFileIcon($path)}" href="{$request->setAction('View')}">
+                <slot name="fileinfo" action="fileinfo.html" path="$path" />
+                <toolbar>
+                    <item href="{$request->setAction('View')}" img="$icons/page_go.png">Voir</item>
+                    <separator />
+                    <item href="{$request->setAction('Delete')}" img="$icons/page_delete.png">Supprimer</item>
+                </toolbar>
+            </item>
+        </else>
+    </loop>
+</bigmenu>

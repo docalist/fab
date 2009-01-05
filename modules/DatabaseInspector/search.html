@@ -1,0 +1,60 @@
+<big style="float:right;">{$this->getSimpleNav()}</big>
+<p class="toolbar">
+    <strong>Afficher : </strong>
+    <a href="#" onclick="jQuery('table').toggleClass('showempty'); return false;">champs vides</a>
+    <a href="#" onclick="jQuery('table').toggleClass('showspaces'); return false;">espaces</a>
+    <a href="#" onclick="jQuery('table').toggleClass('showtype'); return false;">type</a>
+</p>
+<p>
+    <a href="export?database={Config::get('database')}&amp;_equation={urlencode($this->equation)}">Exporter...</a>
+</p>
+<loop on="{$this->selection}">
+    <table style="width:49%; float: left;">
+        <loop on="{$this->selection->getSchema()->fields}" as="$name,$field">
+            <tr class="{empty($this->selection[$name]) ? 'empty' : ''}">
+                <th title="{$field->description}">
+                    {$field->label:$field->name}
+                </th>
+                <td>
+                    <span>
+                        {$this->dump($this->selection[$name])}
+                    </span>
+                </td>
+            </tr>
+        </loop>
+    </table>
+    
+    <table style="width: 49%; float: right;" border="1">
+        <tr>
+            <th style="text-align: center">Index/table</th>
+            <th style="text-align: center">Terme</th>
+            <th style="text-align: center">freq</th>
+            <th style="text-align: center">wdf</th>
+            <th style="text-align: center">positions</th>
+        </tr>
+        <loop on="{$this->selection->getTerms()}" as="$type,$array">
+            <loop on="$array" as="$indexname,$index">
+                <tr>
+                    <td colspan="5"><strong>$type "$indexname"</strong></td>
+                </tr>
+                <loop on="$index" as="$name,$term">
+                    <tr>
+                        <td />
+                        <td>
+                            <if test="{$type==='index'}">
+                                <a href="?_equation=$indexname:$name&amp;database={Config::get('database')}">$name</a>
+                            </if>
+                            <else>
+                                <a href="lookup?table=$indexname&amp;value={substr($name,0,strpos($name,'='))}&amp;max=100&amp;database={Config::get('database')}">$name</a>
+                            </else>
+                        </td>
+                        <td>{$term['freq']}</td>
+                        <td>{$term['wdf']}</td>
+                        <td><if test="{isset($term['positions'])}">{implode(', ', $term['positions'])}</if></td>
+                    </tr>
+                </loop>
+            </loop>
+        </loop>
+    </table>
+    <hr style="clear: both" />
+</loop>

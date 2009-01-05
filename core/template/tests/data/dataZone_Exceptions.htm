@@ -1,0 +1,48 @@
+<!-- Fichier de tests des zones de données simples qui doivent générer des exceptions-->
+
+--TEST--
+Variable inexistante
+--FILE--
+$varInexistante
+====
+--TEST--
+Nom de variable invalide commençant par un "$"
+--FILE--
+$$startDollar
+====
+--TEST--
+Nom de variable invalide commençant par un "<"
+--FILE--
+$<lesserthan
+====
+--TEST--
+Nom de variable invalide commençant par un ">"
+--FILE--
+$>greaterthan
+====
+--TEST--
+Nom de variable invalide finissant par un ">"
+--FILE--
+$greaterthan>
+====
+--TEST--
+Nom de variable invalide contenant un ":"
+--FILE--
+$vWith:Colon
+====
+--TEST--
+Collier invalide : une des variables n'existe pas
+--FILE--
+{$vInexistante:$vAccentuée}
+====
+--TEST--
+Collier invalide : une des variables contient un ":"
+--FILE--
+{$vAccentuée:$vWith:Colon}
+====
+--TEST--
+Expression non valide
+--FILE--
+<$vValNoSpaces class="class1">
+    Contenu tag
+</$vValNoSpaces>

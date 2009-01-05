@@ -1,0 +1,6 @@
+<template match="//fieldset[@label]" label="" class="">
+    <fieldset>
+        <legend class="{rtrim('fieldset '.$class)}">$label</legend>
+        {select('./node()')}{select('@*')}
+    </fieldset>
+</template>

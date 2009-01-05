@@ -1,0 +1,480 @@
+@CHARSET "ISO-8859-1";
+/*
+    Cette feuille de style est destinée à être appliquée à un document
+    xml au format docbook, pas à une page html.
+    Elle permet d'avoir un rendu à peu près wysiwyg du fichier docbook.
+    
+    $Id$
+*/    
+
+/* débug */
+*
+{
+    color: red;
+    background-color: #FFC0CB;
+    /* affiche en rose tous les éléments inconnus */
+}    
+sect1, sect2, sect3, sect4, example, all,
+title, para, link, ulink,
+itemizedlist, orderedlist, listitem,
+emphasis,
+table, tgroup, thead, tbody, tfooter, row, entry
+{
+    background-color: transparent; /* OK pour tous les éléments connus */
+}
+
+*[role]
+{
+   background-color: red; /* repère en rouge les éléments inconnus qui ont un attribut role */
+}
+/* fin debug */
+
+*
+{
+    font-family: Arial, Tahoma, sans-serif;
+    display: block;
+}
+
+/* Titre du doc */
+title
+{
+    font-family: Verdana, Arial, Helvetica, Sans-Serif;
+    color: #009;
+}
+
+/* Sections et titres de section */
+sect1
+{
+    background-color: white; /* OK pour tous les éléments connus */
+    padding: 1em;
+}
+
+sect2, sect3, sect4
+{
+    padding: 1em 0 1em 1em;
+    margin-bottom: 1em;
+}
+
+sect1
+{
+    font-size: 76%;
+    /* max-width: 60em;*/
+    margin: 0 auto;
+}
+
+sect1 title
+{
+    font-size: 2em;
+    font-weight: bold;
+    text-align: right;
+    margin-bottom: 2em;
+}
+sect2 title
+{
+    font-size: 1.2em;
+    text-align: left;
+    font-weight: bold;
+    margin: 0 0 1em 0em;
+    
+    border-width: 1px;
+    border-style: solid;
+    border-color: transparent transparent #009 transparent;
+}
+
+sect3 title
+{
+    font-size: 1.1em;
+    text-align: left;
+    font-weight: bold;
+    margin: 0 0 1em 0;
+}
+sect4 title
+{
+    font-size: 1em;
+    text-align: left;
+    font-weight: bold;
+    margin: 0 0 1em 0;
+    text-decoration: underline;
+}
+
+/* 
+    Admonitions (note, tip, warning...)
+    icones utilisées : 34x34px
+*/
+
+note:before,
+tip:before,
+example:before,
+warning:before,
+important:before,
+caution:before
+{
+    content: url("images/note.png");
+}
+
+note, tip, example, warning, important, caution
+{
+/*    background: #eee none no-repeat scroll 10px 50%;*/
+    border:1px solid #444;
+    margin: 0.5em 0em;
+    padding: 0 54px;
+/*    -moz-border-radius: 5px;*/
+}
+
+note
+{
+    background-color: #FFFFCC;
+    border-color: #FFA500; /* orange */
+}
+note:before
+{
+    content: url("images/note.png");
+}
+
+tip
+{
+    background-color: #efe;
+    border-color: #080;
+}
+tip:before
+{
+    content: url("images/tip.png");
+}
+
+warning
+{
+    background-color: #FFE4B5; /* mocassin */
+    border-color: #FF8C00; /* darkorange; */
+}
+warning:before
+{
+    content: url("images/warning.png");
+}
+
+important
+{
+    background-color: #ddf;
+    border-color: #008;
+}
+important:before
+{
+    content: url("images/important.png");
+}
+
+caution
+{
+    background-color: #fdd;
+    border-color: #F00;
+}
+caution:before
+{
+    content: url("images/caution.png");
+}
+
+example
+{
+    background-color: #eee;
+    padding: 0em 1em 0 1em;
+    margin: 1em 0;
+}
+example:before
+{
+    content: url("images/example.png");
+}
+
+note title, tip title, example title, warning title, important title, caution title, table title
+{
+    font-size: 1.1em;
+    font-weight: bold;
+    border: 0px;
+    color: #FFA500; /* orange; */
+    font-weight: bold;
+    margin: 0;
+    padding: 0.5em 0 0 0;
+    text-align: left;
+}
+tip title
+{
+    color: #080;
+}
+warning title
+{
+    color: #FF8C00; /* darkorange; */
+}
+important title
+{
+    color: #00F;
+}
+caution title
+{
+    color: #F00;
+}
+example title,
+table title
+{
+    color: #111;
+    text-align: center;
+    margin-bottom: 0.5em;
+}        
+
+/* Paragraphes */
+para
+{
+    color: #444;
+    margin: 0.5em 0;
+    line-height: 1.5;
+/*    text-align: justify;*/
+}
+
+/* Listes */
+itemizedlist, orderedlist
+{
+    margin: 1em 3em 1em 3em;
+}
+itemizedlist listitem
+{
+    list-style-type: square;
+    display: list-item;
+    color: #008;
+}
+        
+orderedlist listitem
+{
+    list-style-type: circle; /* decimal ne marche pas sous FF 2 : toujours zéro */
+    display: list-item;
+    color: #008;
+}
+
+/* Liens */
+ulink, link
+{
+    display: inline;
+    color: blue;
+    text-decoration: underline;
+}
+/* lien juste affiché, non fonctionnel */
+ulink:after
+{
+  content: " [" attr(url) "]";
+}
+/* lien juste affiché, non fonctionnel */
+link:after
+{
+  content: " [" attr(linkend) "]";
+}
+
+/* Gras et italique */
+emphasis
+{
+    color: #222;
+    font-style: italic;
+    display: inline;
+}
+emphasis[role="strong"]
+{
+    font-style: normal;
+    font-weight: bold;
+    background-color: transparent; /* debug */
+}
+
+/* Listings, code */
+programlisting,programlisting[role],
+screen
+{
+    border: 1px solid #aaa;
+    background-color: #ffe;
+    margin: 0.5em 0;
+    padding: 0.5em;
+    font-family: "Courier New", Courier, Monospace;
+    white-space: pre; /* Ne marche pas sous IE 7 ! */
+    color: #00A;
+    /*overflow: auto;*/
+     /* ajoute des ascenseurs si on a vraiment des lignes trop longues */
+}
+
+/* affiche une erreur pour les programlisting sans role ou avec un role non reconnu */
+programlisting:before
+{
+    content: "<programlisting /> : Attribut role='" attr(role) "' non valide ";
+    color: #fff;
+    background-color: #f00;
+    display: block;
+    text-align: center;
+    /*margin-top: -0.5em;*/
+}
+
+programlisting[role=xml]:before,
+programlisting[role=php]:before    
+{
+    content: "(code " attr(role) ")";
+    color: #fff;
+    background-color: #000;
+}
+
+screen
+{
+    background-color: #eef;
+}
+example programlisting
+{
+    border: 1px inset #eee !important;
+}    
+code, command, filename
+{
+    display: inline;
+    font-family: "Courier New", Courier, Monospace;
+    white-space: pre;
+    background-color: #eee;
+    color: inherit;
+    font-size: 104%;
+}
+command
+{
+    background-color: #111;
+    color: #fff;
+    padding: 0 0.5em;
+}
+
+
+
+
+
+
+/* tables : code inspiré des feuilles de styles de firefox (/res/html.css) */
+
+table
+{
+    display: block;
+    /* border-collapse: collapse; */
+    margin: 0 auto 0.5em auto;
+    text-indent: 0;
+}
+table title
+{
+    /* max-width: 100%; */
+    /* 
+        evite que le titre de la table soit plus large que la table
+        sinon, la table n'est plus centrée. Apparemment, faire margin: auto
+        sur tgroup ne suffit pas
+    */
+    display: block;
+}    
+tgroup
+{
+    display: table;
+}
+
+row
+{
+  display: table-row;
+  vertical-align: inherit;
+}
+
+col
+{
+  display: table-column;
+}
+
+colgroup
+{
+  display: table-column-group;
+}
+
+tbody
+{
+  display: table-row-group;
+  vertical-align: middle;
+}
+
+thead
+{
+  display: table-header-group;
+  vertical-align: middle;
+}
+
+tfoot
+{
+    display: table-footer-group;
+    vertical-align: middle;
+}
+
+entry
+{ 
+    display: table-cell;
+    vertical-align:top;
+    text-align: inherit; 
+    color: #444;
+    border: 1px inset #A97;
+    padding: 0.5em;
+    background-color: #F5F4F1;
+}
+
+thead entry
+{
+    vertical-align: middle;
+    font-weight: bold;
+    color: #000;
+    background-color: #A97;
+}
+
+/* Numérotation des titres */
+sect1
+{
+    counter-increment: sect1;
+    counter-reset: sect2 table example;    
+}
+sect2 title:before
+{
+    content: counter(sect2) ". ";
+    counter-increment: sect2;    
+}
+
+sect2
+{
+    counter-reset: sect3;    
+}
+sect3 title:before
+{
+    content: counter(sect2) "." counter(sect3) ". ";
+    counter-increment: sect3;    
+}
+
+sect3
+{
+    counter-reset: sect4;    
+}
+sect4 title:before
+{
+    content: counter(sect2) "." counter(sect3) "." counter(sect4) ". ";
+    counter-increment: sect4;    
+}
+
+table title:before
+{
+    content: "Table " counter(table) " : ";
+    counter-increment: table;
+}
+
+example title:before
+{
+    content: "Exemple " counter(example) " : ";
+    counter-increment: example;
+}
+
+tip title:before,
+note title:before,
+warning title:before,
+important title:before,
+caution title:before
+{
+    content: "";
+    counter-increment: none;
+}
+sect1info, sect1info releaseinfo
+{
+    color: #AAA;
+    background-color: transparent;
+    font-size: 0.9em;
+    text-align: right;
+    margin-bottom: 1em;
+}

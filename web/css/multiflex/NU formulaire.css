@@ -1,0 +1,369 @@
+
+form.form
+{
+/*    margin: 1em 5%;*/
+	width: 100%; /* il faut fixer une largeur pour form, sinon, sous IE, les textarea à 100% débordent ????? */
+}
+
+form.form fieldset
+{
+    padding: 0em 0.5em 0.5em 0.5em;
+/*    padding-top: 0em;*/
+    background-color: #E9E4F1;
+    border: 1px solid #929BBA;
+/*	border: none;*/
+    clear: both;/* améliore un peu les choses sous opera 7.54 */
+/*	-moz-border-radius: 0.4em;*/
+	margin-top: 1em;
+}
+
+form.form fieldset legend
+{
+    font-weight: bold;
+    padding: 0.2em 0.5em;
+    background-color: #929BBA;
+    color: #fff;
+    margin: 0 0 0.5em 0;
+/*    margin-bottom: 0.2em;*/
+}
+
+/* DEBUT patch pour IE */
+/* lorsqu'on applique une couleur de fond à un fieldset, IE fait déborder la couleur au dessus du bord haut.
+pour corriger ça, on décale la légende vers le bas */ 
+
+form.form fieldset
+{
+    position: relative;
+    margin-top: 2em;
+}
+html>body form.form fieldset
+{    
+    margin-top: 1em;
+}
+form.form legend
+{
+    position: relative;
+    top: -0.5em;
+} 
+   
+/* FIN patch pour IE */
+
+
+/* les div de premier niveau (juste après les fieldset) sont toujours pleine largeur */
+form.form fieldset div
+{
+    clear: left;
+	padding-left: 12em;
+	margin-bottom: 1px;
+/*background: #ddd;*/
+/*border-bottom: 1px solid yellow;*/
+/*    border-bottom: 1px dotted #929BBA;*/
+}
+
+/* les labels qu'elles contiennent sont flottés à gauche et alignés à droite */
+form.form fieldset div label
+{
+
+    width: 11.6em;
+	padding-right: 0.4em;
+    float: left;
+	margin-left: -12em;
+    text-align: right;
+/*background: #eff;*/
+margin-top: 0px;
+}
+
+/* les div de second niveau ainsi que les div utilisées pour faire un affichage en 2 ou 3 colonnes flottent */
+form.form fieldset div div,
+form.form fieldset div.col1sur2, form.form fieldset div.col2sur2,
+form.form fieldset div.col1sur3, form.form fieldset div.col2sur3, form fieldset div.col3sur3 {
+	padding: 0;
+    clear: none;
+    border: 0;
+/*background: #ccc;*/
+}
+
+/* et leurs labels sont alignés à gauche. Idem pour les labels qui sont directement dans le fieldset */
+form.form fieldset div div label, 
+form.form fieldset div.col1sur2 label, form.form fieldset div.col2sur2 label,
+form.form fieldset div.col1sur3 label, form.form fieldset div.col2sur3 label, form.form fieldset div.col3sur3 label,
+form.form fieldset label {
+	margin-left: 0;
+    width: auto;
+    float: none;
+    text-align: left;
+    padding-right: 0.4em;
+    border-bottom: 0;
+    display: inline;
+}
+
+form.form label
+{
+	color: #484D75;
+}
+
+form.form div.col1sur2, form.form div.col2sur2
+{
+    width: 48%; /* on laisse 2% dispo pour les marges, padding et border */
+}
+
+form.form div.col1sur3, form.form div.col2sur3, form.form div.col3sur3
+{
+    width: 33%; /* on laisse 2% dispo pour les marges, padding et border */
+}
+
+form.form div.col1sur2, form.form div.col1sur3, form.form div.col2sur3 {
+    margin-right: 1em;
+    border-right: 1px dotted #888;
+}
+/* juste pour ie : par défaut les zones ont une taille de police fixée en pixels. 
+comme ie ne peut pas retailler des pixels, la taille de la police ne change pas 
+lorsque l'utilisateur change la taille de la police. Le fait de fixer une police 
+en em ou en pourcentages fixe le problème.
+Source : http://www.aplus.co.yu/css/tip-input-sizing-in-ie/
+*/
+form.form input, 
+form.form textarea
+{
+    font-size: 1em;
+    font-family: 'courier new', monospace;         
+}
+
+form.form input.text:focus,
+form.form textarea:focus,
+form.form input.text:active,
+form.form textarea:active
+{
+    background-color: #CFF23F;
+}
+form.form label:hover
+{
+    color: rgb(107,120,158); /* bleu1 */
+}    
+form.form textarea.readonly
+{
+    border: 1px solid #369;
+    background-color: #eee;
+    color: #444;
+}
+
+form.form hr
+{
+    clear: both;
+    border: 0;
+    border-bottom: 2px ridge #369;
+    padding-top: 1em;
+}
+
+form.form div.buttons
+{
+	margin: 1em 0;
+}
+
+form.reset
+{
+	margin-top: -4.5em;
+}
+
+/* on utilise les classes submit parce que tous les navigateurs ne supportent pas encore les sélecteurs input[type=submit] */
+form.form button.submit
+{
+    float: right;
+	color: rgb(107,120,158); /* bleu3 */
+}
+form.form button.reset
+{
+    float: left;
+	color: rgb(107,120,158); /* bleu3 */
+}
+
+form.form button.submit span
+{
+    background: url('images/PUCE-BLEU3.gif') no-repeat center right;
+	padding-right: 15px;
+}
+
+form.form button.reset span
+{
+    background: url(images/resetbutton.gif) no-repeat center left;
+	padding-left: 15px;
+}
+
+form.form button span
+{
+	line-height: 2em;
+}
+
+html>body form.form button span
+{
+	margin: 0 0.5em; /* ie ajoute ses propres marges : margin seulement  pour les autres */
+}
+
+form.form button.submit:hover,
+form.form button.reset:hover
+{
+	color: rgb(135,146,208); /* bleu1 */
+}
+/*
+form.form input.submit:active
+{
+    border-color:#CCCCCC;
+    border-top-color: #999999;
+    border-left-color: #999999;
+    color: #009933;
+}
+*/
+/*
+form.form input.reset
+{
+    width: auto;
+    background: url(DegradeResetButton.gif) repeat-x top lightgray;
+
+    border-width: 0.3em;
+    border-style: double;
+    margin: 1em;
+
+    border-right-color: rgb(153, 153, 153);
+    border-bottom-color: rgb(153, 153, 153);
+    border-top-color: rgb(204, 204, 204);
+    border-left-color: rgb(204, 204, 204);
+    
+    padding: 0.25em;
+
+    background-color: rgb(238, 238, 238);
+
+    color: #CC0000;
+    font-weight: normal;
+
+    font-family: Verdana,Helvetica,Arial,sans-serif;
+    
+    float: left;
+}
+*/
+/*
+form.form input.reset:hover
+{
+    color: #FF0000;
+}
+*/
+/*
+form.form input.reset:active
+{
+    border-color:#CCCCCC;
+    border-top-color: #999999;
+    border-left-color: #999999;
+    color: #FF0000;
+}
+*/
+form.form span.spacer
+{
+	padding-left: 1em;
+}
+
+form.form input
+{
+	background-color: red;
+}
+/*
+form.form input[class=""]:after
+{
+	content: "Classe incorrecte</p>";
+}
+*/
+form.form input.text,
+form.form textarea
+{
+	background-color: #fff;
+	border: 0;/*1px inset #eee;*/
+	margin: 0;
+	padding: 0 0.2em;
+}
+
+form.form .right
+{
+	text-align: right;
+}
+
+form.form textarea
+{
+	padding-right: 0; /* ff met le padding entre l'ascenseur vertical et le bord... */
+}
+
+form.form input.checkbox 
+{
+	background-color: transparent;
+}
+form.form input.radio
+{
+	background-color: transparent;
+}
+
+form.form label
+{
+    cursor: pointer;  /* hand-shaped cursor */
+    cursor: hand;  /* for IE 5.x */
+}
+
+form.form fieldset span
+{
+	font-size: 80%;
+/*	color: #008;*/
+	color: #6B789E;
+
+/*	font-style: italic;*/
+}
+
+form.form input.fullwidth,
+form.form textarea.fullwidth
+{
+	width: 98%;/* pas 100% sinon, avec les marges, on obtient un ascenseur horizontal */
+}
+
+
+form.form table
+{
+	width: 100%;
+}
+
+form#recherche
+{
+	width: 40em;
+}
+
+/* Pour indiquer que la saisie d'un champ de formulaire est obligatoire */
+form.form span.obl
+{
+	color: #FF0000;
+	font-weight: bold;
+}
+
+form.form fieldset div.text1,
+form.form fieldset div.text2
+{
+	font-size: 1em;
+	color: #777;
+	margin-left: 12em;
+	padding-left: 0;
+/*	background: url('images/whatsnew.gif') no-repeat;*/
+}
+
+form.form fieldset div div.text1,
+form.form fieldset div div.text2
+{
+	font-size: 0.8em;
+	margin-left: 0.3em;
+}
+
+form.form fieldset div.text2
+{
+/*	border-bottom: 1px dotted #929BBA !important;*/
+	margin-top: 0.2em !important;
+	margin-bottom: 1em !important;
+}
+
+div.text1 code, div.text2 code
+{
+	background-color: rgb(240,240,240);
+	color: #444;
+	padding: 0 0.5em;
+}

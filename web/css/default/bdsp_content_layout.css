@@ -1,0 +1,18 @@
+/* Mise en forme très simple du contenu affiché par les templates */
+
+
+div.row
+{
+    clear: both;    
+}
+
+span.label
+{
+   float: left;
+}
+
+span.value
+{
+    width: 75%;
+    float: right;
+}

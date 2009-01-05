@@ -1,0 +1,67 @@
+/* Le bloc qui contient tous les liens */
+.pager
+{
+}
+
+/* Style de base de tous les éléments qui composent le pager */
+.pager a,
+.pager .first,
+.pager .previous,
+.pager .next,
+.pager .last,
+.pager .current
+{
+    margin: 0 0.05em;
+    padding: 0 0.4em;
+    border: 1px solid #369;
+    background-color: #eee;
+    text-decoration: none;
+}
+
+/* Style des boutons qui sont actifs */
+.pager a
+{
+    color: #369 !important;
+}
+
+/* Style pour les boutons qui sont désactivés */ 
+.pager span.first,
+.pager span.previous,
+.pager span.next,
+.pager span.last
+{
+    color: #ccc;
+    border-color: #ccc;
+}
+
+/* Style pour les boutons spéciaux premier/précédent/suivant/dernier */
+.pager .first,
+.pager .previous,
+.pager .next,
+.pager .last
+{
+    font-weight: bold;
+}
+
+/* Style pour la page en cours */
+.pager span.current
+{
+    background: orange;
+    border-color: darkorange;
+    color: white !important;
+    font-weight:bold;
+}
+
+/* Effet rollover sur les boutons */
+.pager a:active,
+.pager a:hover
+{
+    border-color:orange;
+    background-color: white;
+}
+
+/* Style pour le titre du pager (réponses x à y sur z) */
+.pager .label
+{
+    color: #444 !important;
+}

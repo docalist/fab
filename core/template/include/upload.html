@@ -1,0 +1,6 @@
+<!-- UPLOAD -->
+<!-- Zone de texte pour sélectionner un fichier à uploader -->
+<template match="//upload" name="" label="" value="" class="" id="">
+    <label test="$label" class="{rtrim('upload ' . $class)}" for="{autoId($id:$name:'upload')}">$label</label>
+    <input name="$name" type="file" title="$label" value="$value" class="upload{rtrim(' '.$class)}" id="{$label ? lastId() : ''}" />
+</template>

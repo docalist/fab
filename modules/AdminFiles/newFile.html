@@ -1,0 +1,10 @@
+<h1>{$this->getTitle()}</h1>
+<h2>Créer un nouveau fichier</h2>
+
+<form action="/{$this->module}/{$this->action}">
+    <textbox name="file" value="$file" label="Nom du fichier à créer :" size="40" />
+    <okcancel ok="Créer" />
+        
+    <div test="$error" style="color: red">$error</div>
+    <hidden name="directory" value="{$this->request->get('directory')}" />
+</form>

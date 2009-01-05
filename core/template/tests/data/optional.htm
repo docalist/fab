@@ -1,0 +1,54 @@
+<!-- Fichier de tests des tags et des bloc optionnels -->
+
+<!--  ATTENTION : ne pas mettre de commentaires HTML n'importe où dans le fichier -->
+
+--TEST--
+Test bloc optionnel formé avec test="condition"
+--FILE--
+<div test="$vAccentuée" id="key">
+    Contenu du div
+</div>
+<div test="$vAccentuée">
+    Contenu du div
+</div>
+<div test="$vAccentuée=='Valeur 1'">
+    Contenu du div
+</div>
+--EXPECT--
+<div id="key">
+    Contenu du div
+</div>
+<div>
+    Contenu du div
+</div>
+<div>
+    Contenu du div
+</div>
+====
+--TEST--
+Test bloc optionnel formé avec "<opt></opt>"
+--FILE--
+<opt>
+    La variable \$vValNoSpaces vaut $vValNoSpaces
+</opt>
+<opt>
+    La variable \$empty vaut $empty
+</opt>
+--EXPECT--
+La variable $vValNoSpaces vaut Valeur18
+====
+--TEST--
+Test tag optionnel
+--FILE--
+<!-- TODO: intégrer test '<a href="$vAccentuée" if="$vAccentuée">Lien</a>' quand bug accent résolu -->
+<a href="$vValNoSpaces" if="$vValNoSpaces">
+    Libellé du lien
+</a>
+<a href="$empty" if="$empty">
+    Libellé du lien
+</a>
+--EXPECT--
+<a href="Valeur18">
+    Libellé du lien
+</a>
+Libellé du lien

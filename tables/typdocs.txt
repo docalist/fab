@@ -1,0 +1,4 @@
+code	label	view
+Diplôme	Thèse, mémoire	Ref,TypDoc,TypDocB,AutPhys,AutColl,TitOrigM,Diplom,TitFran,TitEng,DatEdit,NoVol,NumDiv,PageColl,RefBib,CodPays,CodLang,LangResu,Resum,MotsCles,NouvDesc,Ident,Adr,Creation,LastUpdate
+Rapport	Rapport	Ref,TypDoc,TypDocB,AutPhys,AutColl,TitOrigM,TitFran,TitEng,TitCol,DatEdit,NoVol,NumDiv,PageColl,RefBib,CodPays,CodLang,LangResu,Resum,MotsCles,NouvDesc,Ident,Adr,Creation,LastUpdate
+Congrès	Actes de congrès	Ref,TypDoc,TypDocB,AutPhys,AutColl,TitOrigM,TitCong,TitFran,TitEng,TitCongF,DatEdit,DatCong,NoVol,NumDiv,PageColl,RefBib,VilCong,CodPays,CodLang,LangResu,Resum,MotsCles,NouvDesc,Ident,Adr,Creation,LastUpdate

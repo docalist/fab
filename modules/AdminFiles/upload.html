@@ -1,0 +1,14 @@
+<h1>{$this->getTitle()}</h1>
+<h2>Envoyer un fichier sur le serveur</h2>
+
+<form method="post" action="/{$this->module}/{$this->action}" enctype="multipart/form-data">
+    <p>Seuls les fichiers de moins de {Utils::formatSize(Utils::uploadMaxSize())} peuvent être chargés sur le serveur.</p>
+
+    <div test="$error" style="color: red">$error</div>
+
+    <upload name="file" label="Fichier à envoyer :" size="40" />
+
+    <okcancel ok="Envoyer au serveur..." cancelurl="{$this->getBackUrl()}" />
+
+    <hidden name="directory" value="{$this->request->get('directory')}" />
+</form>

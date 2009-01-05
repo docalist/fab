@@ -1,0 +1,4 @@
+<table border="1" style="border-collapse: collapse">
+<tr><loop on="$this->selection->record" as="$field,$value"><th>$field</th></loop></tr>
+<loop on="$this->selection" as="$record"><tr><loop on="$record" as="$value"><td>$value</td></loop></tr>
+</loop></table>

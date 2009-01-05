@@ -1,0 +1,17 @@
+<h1>Affichage brut des notices, {$this->selection->count()} réponses</h1>
+<loop on="{$this->selection}" as="$rank, $record">
+    <table border="1" style="border-collapse: collapse; border-color: #aaa; width: 100%; margin-bottom: 2em; background-color: rgb(245,245,245);">
+
+        <colgroup>
+            <col width="10%" />
+            <col width="90%" />
+        </colgroup>
+    
+        <loop on="$record" as="$name, $value">
+            <tr test="$value!==''">
+                <th style="text-align: right; padding-right: 0.5em;">$name</th>
+                <td>{Debug::dump($value)}</td>
+            </tr>
+        </loop>
+    </table>
+</loop>

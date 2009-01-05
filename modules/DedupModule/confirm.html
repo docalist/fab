@@ -1,0 +1,22 @@
+<h1>Dédoublonnage de notices</h1>
+
+<p>
+    Vous allez lancer une détection de doublons potentiels pour les 
+    {$this->selection->count} notices correspondant à l'équation de recherche :
+</p>
+
+<pre style="border: 1px solid #444; background-color: #eee; font-size: 120%; padding: 0.5em;">
+{htmlspecialchars($equation)}
+</pre>
+
+<p>
+    Selon le nombre et la nature des notices sélectionnées, le dédoublonnage peut
+    prendre de quelques minutes à plusieurs heures.
+</p>
+
+<form>
+    <button>Lancer le dédoublonnage</button>
+    <button onclick="history.back(); return false;">Annuler</button>
+    <hidden name="_equation" value="{htmlspecialchars($equation)}" />
+    <hidden name="confirm" value="true" />
+</form>

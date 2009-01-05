@@ -1,0 +1,17 @@
+<!-- Path des images utilisées -->
+<def name="icons" value="/FabWeb/modules/AdminDatabases/images" />
+
+<h1>{$this->getTitle()}</h1>
+<h2>Création de la base $database</h2>
+
+<p>
+    Choisissez le schéma à utiliser pour créer la base $database.
+</p>
+
+<div test="$error" style="color: red">$error</div>
+
+<h3>Schémas de l'application</h3>
+<slot name="chooseSchema" action="/AdminSchemas/Choose" link="/{$this->module}/New?database=$database&amp;schema=%s" />
+
+<h3>Modèles de schémas définis dans fab</h3>
+<slot name="chooseSchema" action="/AdminSchemas/Choose" link="/{$this->module}/New?database=$database&amp;schema=%s" fab="{true}"/>

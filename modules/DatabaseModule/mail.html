@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="ISO-8859-1" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1" />
+<style>
+    body
+    \{
+        font-family: Arial;
+    \}
+    code
+    \{
+        color: #444;
+    \}
+    blockquote
+    \{
+        font-style: italic;
+        border-left: 0.5em solid #eee;
+        padding-left: 1em;
+    \}
+</style>
+<title>$subject</title>
+</head>
+<body>
+    <p>
+        <small>Ce courriel est généré automatiquement. Merci de ne pas y répondre</small>
+    </p>
+    
+    <p>Madame, Monsieur</p>
+    
+    <if test="$zip">
+        <p>
+            Le fichier ci-joint est une archive au format 
+            <a href="http://www.7-zip.org/fr/" 
+            title="7-zip : logiciel open-source d'archivage de fichiers pour windows">zip</a>
+            contenant les notices que vous avez exportées à partir de notre site :
+        </p>
+    </if>
+    <else>
+        <if test="{count($filenames)===1}">
+            <p>
+                Le fichier ci-joint contient les notices que vous avez exportées à partir de
+                notre site :
+            </p>
+        </if>
+        <else>
+            <p>
+                Vous trouverez ci-joint {count($filenames)} fichiers contenant 
+                les notices que vous avez exportées à partir de notre site :
+            </p>
+        </else>
+    </else>
+    
+    <ul>
+        <loop on="{$filenames}" as="$i,$filename">
+            <li>
+                <p>
+                    <strong>{$filenames[$i]}</strong>
+                    ({Utils::formatSize($filesizes[$i])}, 
+                    {$counts[$i]} notice{$counts[$i]>1 ? 's' : ''})<br />
+                    Equation de recherche : <code>{$equations[$i]}</code>
+                </p>
+            </li>
+        </loop>
+    </ul>
+    
+    <p>
+        Les notices sont en format <strong>"{Utils::lcFirst($format)}"</strong>.
+    </p>
+    <p test="$description">$description</p>
+
+    <if test="$message">
+        <p>
+            Message additionnel indiqué lors de l'export :
+        </p>
+        <blockquote>
+            $message
+        </blockquote>
+    </if>
+    
+    <p>
+        Vous en souhaitant bonne réception,
+    </p>
+    
+    <p>
+        --<br />
+        {config::get('admin.signature')}
+    </p>
+    <p>
+        {config::get('admin.email')}
+    </p>
+</body>
+</html>

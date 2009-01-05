@@ -1,0 +1,48 @@
+Fichier de test pour la class utilitaire DedupTokens.
+(test de la méthode getEquation)
+
+@version : $Id$
+
+================================================================================
+--test--
+un simple mot donne une recherche à l'article
+--file-- 
+mot
+--expect--
+[mot]
+================================================================================
+--test--
+idem s'il y a plusieurs mots 
+--file-- 
+un essai de texte
+--expect--
+[un essai de texte]
+================================================================================
+--test--
+les mots sont tokenisés (accents...)
+--file-- 
+éèêëîïôöçàâä &"'(-)
+--expect--
+[eeeeiioocaaa]
+================================================================================
+--test--
+Les mots répétés sont conservés
+--file-- 
+un essai, encore un essai, le dernier essai
+--expect--
+[un essai encore un essai le dernier essai]
+================================================================================
+--test--
+les opérateurs de fab sont conservés
+--file-- 
+a et b ou c sauf d and e or f xor g near h
+--expect--
+[a et b ou c sauf d and e or f xor g near h]
+================================================================================
+--test--
+on peut passer un tableau en paramètre
+--file-- 
+premier article ¤ second article ¤ troisième article
+--expect--
+([premier article] [second article] [troisieme article])
+================================================================================

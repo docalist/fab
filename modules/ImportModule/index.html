@@ -1,0 +1,145 @@
+<template match="//searchinfo" for="">
+    <p test="{debug}" style="color: #888; text-align: left; margin: 0 0 0.2em 0; padding: 0;">
+        <strong>$for</strong> : 
+        <code style="background-color: #FFFFBB;">
+            {implode(', ', (array)$this->selection->searchInfo($for))}
+            {select('text()')}
+        </code>
+    </p>
+</template>
+
+<h2>Import de fichiers dans la base</h2>
+
+/* AIDE EN LIGNE */
+<slot name="help" action="help.html" />
+
+/* UPLOAD DE FICHIERS */
+<h3>
+    <a href="#" onclick="jQuery('#uploadform').toggle('fast'); return false;">Envoyer des fichiers au serveur...</a>
+</h3>
+<form method="post" action="upload" enctype="multipart/form-data" id="uploadform" style="display: none; margin-bottom: 2em;">
+    <p>Seuls les fichiers de moins de {Utils::formatSize(Utils::uploadMaxSize())} peuvent être chargés sur le serveur.</p>
+    <loop on="{range(1,3)}" as="$num">
+        <upload name="file$num" label="Fichier $num :" size="40" /><br />
+    </loop>
+    <p>
+        <submit name="upload" label="Envoyer au serveur..." onclick="jQuery('#wait').show();" />
+    </p>
+</form>
+
+<div id="wait" style="display: none; background-color: #eee; position: absolute; top: 25%; left: 30%; width: 40%; border: 5px ridge #008; padding: 1em; text-align: center;">
+    <img id="progressbar" src="/FabWeb/images/progressbar2.gif" /><br />
+    Veuillez patienter pendant l'envoi des fichiers au serveur...
+</div>
+
+/* LISTE DES FICHIERS */
+<form action="NewImport" method="get" class="form">
+    
+    <searchinfo for="StopWords" />  
+    <searchinfo for="InternalStopWords" />  
+    <searchinfo for="QueryTerms" />  
+    <searchinfo for="InternalQueryTerms" />  
+    <searchinfo for="MaxPossibleWeight" />  
+    <searchinfo for="MaxAttainedWeight" />  
+    <searchinfo for="InternalQuery" />  
+    <searchinfo for="InternalFilter" />  
+    <searchinfo for="InternalFinalQuery" />  
+    <searchinfo for="SortOrder" />
+    
+    <def name="odd" value="{true}" />
+    <table border="1" class="importfiles">
+        <tr>
+            <th test="{User::hasAccess('AdminBase')}">
+                <input 
+                    type="checkbox" 
+                    id="checkall" 
+                    onclick="jQuery('.file').each(function()\{this.checked=jQuery('#checkall').get(0).checked;\})"
+                    title="Sélectionner/désélectionner tout" 
+                />
+            </th>
+            <th>Fichier</th>
+            <th>Date</th>
+            <th>Taille</th>
+            <th>Ident</th>
+            <th>Actions</th>
+        </tr>
+        <if test="{$this->selection->count() == 0}">
+            <tr class="$Status {$odd ? 'odd' : ''}">
+                <td colspan="{User::hasAccess('AdminBase')?6:5}">Aucun fichier dans cette liste.</td>
+            </tr>
+            <script>jQuery('#checkall').hide();</script>
+        </if>
+        <else>
+            <loop on="{$this->selection}" as="$rank,$record">
+                <tr class="$Status {$odd ? 'odd' : ''}" title="{strlen($Notes)&lt;80 ? $Notes : htmlspecialchars(substr($Notes, 0, 80).'...')}">
+                    <td class="status" test="{User::hasAccess('AdminBase')}">
+                        <input test="{$status==='upload_ok'}" type="checkbox" name="REF" class="file" value="$REF" />
+                    </td>
+                    <td class="filename">$FileName</td>
+                    <td class="date">{Utils::friendlyDate($creation)}</td>
+                    <td class="size">{$Size ? Utils::formatSize($Size) : '-'}</td>
+                    <td class="ident">$Ident</td>
+                    <td class="actions">
+                        <def name="url" value="{$this->request->copy()->clear('_filter')->set('REF', $REF)}" />
+                        
+                        /* show */
+                        <a href="{$url->setAction('Show')}"><img src="/FabWeb/css/importmodule/page_white_magnify.png" alt="Détails" /></a>
+                        
+                        /* delete : on peut supprimer un fichier s'il vient d'être uploadé ou s'il a été importé mais pas s'il est en attente d'import */
+                        <a test="{$Status!=='task'}" href="{$url->setAction('Delete')}"><img src="/FabWeb/css/importmodule/page_white_delete.png" alt="Supprimer" /></a>
+                    </td>
+                </tr>
+                <def name="odd" value="{!$odd}" />
+            </loop>
+        </else>
+    </table>
+    
+    /* AFFICHER/MASQUER FICHERS DEJA CHARGES */
+    <p style="text-align: right;">
+        <if test="{$this->request->bool('done')->ok()}">
+            <a href="{$this->request->copy()->clear('_filter')->clear('done')}" title="Masque les fichiers qui ont déjà été importés dans la base">Afficher/masquer l'historique</a>
+        </if>
+        <else>
+            <a href="{$this->request->copy()->clear('_filter')->set('done','true')}" title="Affiche les fichiers qui ont déjà été importés dans la base">Afficher/masquer l'historique</a>
+        </else>
+    </p>
+    
+    /* LANCER IMPORT */
+    <if test="{User::hasAccess('AdminBase')}" >
+        <h3>
+            <a href="#" onclick="jQuery('#runimport').toggle('fast'); return false;">Lancer l'import...</a>
+        </h3>
+        <div id="runimport" style="display: none;">
+            <div>
+                <input type="radio" name="now" value="0" id="after" checked="checked" />
+                
+                <def name="date" value="{time()}" />
+                <select name="date" onfocus="jQuery('#after').val([0])">
+                    <option value="{date('Ymd')}">aujourd'hui</option>
+        
+                    <def name="date" value="{$date+86400}" />
+                    <option value="{date('Ymd',$date)}">demain</option>
+        
+                    <loop on="{range(1,8)}" as="$day"> /* 10 jours en tout, à mettre dans la config */
+                        <def name="date" value="{$date+86400}" />
+                        <option value="{date('Ymd', $date)}">{strftime('%A %d %B' ,$date)}</option>
+                    </loop>
+                </select>
+                
+                à
+        
+                <select name="time" onfocus="jQuery('#after').val([0])">
+                    <loop on="{$this->timeSteps(22.00, 4.00, 30, '%Hh%M')}" as="$key,$time">/* de 22h00 à 04h00 par tranche de 30 minutes, à mettre en config */
+                        <option value="$key">$time</option>
+                    </loop>
+                </select>
+            </div>
+            
+            
+            <div>
+                <radio name="now" label="dès que possible" value="1" />
+            </div>
+            <submit label="Lancer l'import..." style="float: right;" />
+        </div>
+    </if>
+</form>

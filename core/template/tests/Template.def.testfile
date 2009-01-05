@@ -1,0 +1,95 @@
+Fichier de test pour le tag <def> du compilateur de templates
+
+@version : $Id$
+
+================================================================================
+--test--
+Les attributs 'name' et 'value' sont obligatoires
+--file-- 
+<def />
+--expect Exception--
+name value obligatoires
+================================================================================
+--test--
+L'attribut 'name' est obligatoire
+--file-- 
+<def value="y" />
+--expect Exception--
+name obligatoire
+================================================================================
+--test--
+L'attribut 'value' est obligatoire
+--file-- 
+<def name="x" />
+--expect Exception--
+value obligatoire
+================================================================================
+--test--
+Def définit une nouvelle variable de template 
+--file-- 
+<def name="newvar" value="newvar content" />$newvar
+--expect--
+newvar content
+================================================================================
+--test--
+La valeur peut être un littéral ou une expression 
+--file-- 
+<def name="newvar1" value="abc" />
+<def name="newvar2" value="{strlen('0123456789')}" />
+<def name="newvar3" value="{$varA . $varTrois}" />
+$newvar1
+$newvar2
+$newvar3
+--expect--
+abc
+10
+A3
+================================================================================
+--test--
+Le type de la valeur n'est pas modifié 
+--file-- 
+<def name="newvar1" value="{$varNull}" />
+<def name="newvar2" value="{$varFalse}" />
+<def name="newvar3" value="{$varZero}" />
+<def name="newvar4" value="{$varAut}" />
+<def name="newvar5" value="{$emptyArray}" />
+
+{gettype($newvar1)}
+{gettype($newvar2)}
+{gettype($newvar3)}
+{gettype($newvar4)}
+{gettype($newvar5)}
+--expect--
+NULL
+boolean
+integer
+string
+array
+================================================================================
+--test--
+La variable peut être redéfinie à tout moment 
+--file-- 
+<def name="var" value="un" />
+$var
+<def name="var" value="deux" />
+$var
+<def name="var" value="trois" />
+$var
+<def name="var" value="{$varTrois}" />
+$var
+--expect--
+un
+deux
+trois
+3
+================================================================================
+--test--
+Une variable "masque" toutes les sources de données qui portent le même nom 
+--file-- 
+$varTrois
+<def name="varTrois" value="0011" />
+$varTrois
+--expect--
+3
+0011
+================================================================================

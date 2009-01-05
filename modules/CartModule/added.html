@@ -1,0 +1,36 @@
+<h1>Panier</h1>
+/* Ajout de plusieurs éléments en une seule fois */
+<if test="{count($item)>1}">
+	<p>Les éléments suivants ont été ajoutés au panier :</p>
+	<loop on="{$item}" as="$key, $value">
+		<ul>
+			<li>
+				<opt>
+					<if test="{is_array($category)}">
+						Catégorie : {$category[$key]} ; 
+					</if>
+					<else>
+						Catégorie : $category ; 
+					</else>
+				</opt>
+				Elément : $value
+				<if test="{is_array($quantity)}">
+					; Quantité : {$quantity[$key]}
+				</if>
+				<else>
+					; Quantité : $quantity
+				</else>
+			</li>
+		</ul>
+	</loop>
+</if>
+/* Ajout d'un seul élément */
+<else>
+	<p>L'élément suivant a été ajouté au panier<opt>, dans la catégorie $category</opt> :</p>
+	<ul>
+		<li>Elément : {$item[0]}</li>
+		<li>Quantité : $quantity</li>
+	</ul>	
+</else>
+
+<a href="show" title="Contenu du panier">Voir le contenu du panier...</a>

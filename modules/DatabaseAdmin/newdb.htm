@@ -1,0 +1,37 @@
+<h1>Création d'une nouvelle base de données</h1>
+<opt><p style="color: red"><strong>$error</strong></p></opt>
+<form action="" method="post">
+    <fieldset label="Paramètres de la base à créer">
+        <div>
+            <textbox name="name" label="Nom :" value="test" />
+        </div>
+        <div>
+            <textbox name="path" label="Path :" value="\\bdspserver\d\$\WebApache\AscoFuturSite\data\db\test" />
+        </div>
+
+        <div>
+            Type :
+            <radio name="type" value="bis" label="Base BIS" />
+            <radio name="type" value="xapian" label="Base XAPIAN" checked="checked" />
+        </div>
+
+    </fieldset>
+    <fieldset label="Schéma xml de la base">
+        <textbox name="schema" cols="80" rows="100"  style="width: 100%;" wrap="off">&lt;?xml version="1.0" encoding="iso-8859-1"?>
+    <database>
+        <description>...</description>
+        <sep>,</sep>
+        <stopwords>afin ainsi alors...</stopwords>
+        
+        <field name="REF" type="int" />
+        
+        <field name="Type" type="text" label="Type de document">
+            <index type="5" />
+        </field>
+        
+<!--            etc...-->
+    </database></textbox>
+    </fieldset>
+    
+    <submit label="Créer la base..." />
+</form>

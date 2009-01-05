@@ -1,0 +1,39 @@
+/* Répertoire des images */
+<def name="icons" value="/FabWeb/modules/AdminFiles/images" />
+
+/* Détermine la syntaxe à utiliser */
+<def name="syntax" value="{$this->getEditorSyntax($file)}" />
+
+<script language="javascript" type="text/javascript">
+jQuery
+(
+    function()
+    \{
+        editAreaLoader.init
+        (
+            \{
+                id : "editor",
+                syntax: "$syntax",
+                start_highlight: true,
+                language: "fr",
+                fullscreen: true,
+                replace_tab_by_spaces: true,
+                allow_toggle: false,
+                allow_resize: 'no',
+                is_multi_files: false,
+                toolbar: "search, go_to_line,|, undo, redo, |, select_font,|, reset_highlight, |, help",
+                is_editable: false
+            \}
+        );
+        editAreaLoader.setSelectionRange('editor', 0, 0);
+    \}
+);
+</script>
+
+<div id="header">
+    <toolbar>
+        <item img="$icons/tick.png" href="/{$this->module}/Index?directory={$this->request->get('directory')}#$file" class="positive">Retour</item>
+    </toolbar>
+    <h1>{$this->getTitle()} : $file (visualisation)</h1>
+</div>
+<textarea id="editor" name="content" cols="60" rows="40">{htmlspecialchars($content, ENT_NOQUOTES)}</textarea>

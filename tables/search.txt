@@ -1,0 +1,14 @@
+field	type	table	label	tooltip	texte1	text2	attr
+	fieldset		Critères				
+Mot	text		Mots	Numéro de référence			
+Mcl	text		Mots-clés	Mots-clés du thésaurus et candidats descripteurs			
+Auteur	text		Auteur, éditeur				
+Pays	checkbox	search_pays					
+Langue	checkbox	search_langues					
+Date	checkbox	dates					
+TitPerio	text		Titre de la revue				
+Type	checkbox	typdocs	Type de document				
+all	textarea		Tous champs	Recherche sur tous les champs de la notice			
+	fieldset		Options				
+bqMaxList	radio	maxlist	Nb max de réponses				
+bqListOrder	radio	listorder	Ordre des réponses				

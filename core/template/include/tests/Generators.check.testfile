@@ -1,0 +1,160 @@
+Fichier de test pour les générateurs checkbox et checklist
+
+Utilisation normale du générateur : ne prévoit pas les cas de mauvaise utilisation
+
+@version : $Id$
+
+================================================================================
+--test--
+Un contrôle checkbox sans label permet de générer un <input type="check" /> HTML
+--file-- 
+<checkbox />
+--expect--
+<input type="checkbox" class="check" />
+================================================================================
+--test--
+L'attribut name permet d'identifier un checkbox
+--file--
+<checkbox name="myCheckbox" />
+--expect--
+<input type="checkbox" name="myCheckbox" class="check" />
+================================================================================
+--test--
+Un checkbox est généralement associé à un label
+--file--
+<checkbox name="myCheckbox" label="Test unitaire des checkbox : " />
+--expect--
+<input type="checkbox" name="myCheckbox" class="check" id="myCheckbox" />
+<label class="check" for="myCheckbox">Test unitaire des checkbox : </label>
+================================================================================
+--test--
+L'attribut value précise la valeur récupérée par le script auquel l'éventuel
+formulaire sera soumit
+--file--
+<checkbox name="myCheckbox" value="val" />
+--expect--
+<input type="checkbox" name="myCheckbox" value="val" class="check" />
+================================================================================
+--test--
+L'attribut class d'un checkbox permet d'indiquer une classe qui sera concaténée
+à la classe par défaut d'un checkbox
+--file--
+<checkbox name="myCheckbox" class="myClass" />
+--expect--
+<input type="checkbox" name="myCheckbox" class="check myClass" />
+================================================================================
+--test--
+L'ordre des attributs du checkbox n'a pas de conséquence sur la sortie générée
+--file--
+<checkbox class="classe" name="myName" />
+--expect--
+<input type="checkbox" name="myName" class="check classe" />
+================================================================================
+--test--
+Le générateur checklist permet de générer une liste de checkbox à partir d'un itérable
+(ici, un TextTable construit à partir d'un fichier ayant un format particulier)
+--file--
+<checklist src="new TextTable($this->path.'tables/date.txt')" />
+--expect--
+<div class="checklist>
+	<span class="check">
+		<input type="check" value="2007" class="check" id="0" />
+		<label class="check" for="0">2007</checkbox>
+	</span>
+	<span class="check">
+		<input type="check" value="2006" class="check" id="1" />
+		<label class="check" for="1">2006</checkbox>
+	</span>
+	<span class="check">
+		<input type="check" value="2005" class="check" id="2" />
+		<label class="check" for="2">2005</checkbox>
+	</span>
+</div>
+--skip--
+Impossible d'utiliser $this->path ici : ce n'est pas un module
+================================================================================
+--test--
+Le générateur checklist permet de générer une liste de checkbox à partir d'un itérable
+--file--
+<checklist src="array(array('code'=>'2007', 'label'=>'2007'), array('code'=>'2006', 'label'=>'2006'), array('code'=>'2005', 'label'=>'2005'))" />
+--expect--
+<div class="checklist">
+	<span class="check">
+		<input type="checkbox" value="2007" class="check" id="0" />
+		<label class="check" for="0">2007</label>
+	</span>
+	<span class="check">
+		<input type="checkbox" value="2006" class="check" id="1" />
+		<label class="check" for="1">2006</label>
+	</span>
+	<span class="check">
+		<input type="checkbox" value="2005" class="check" id="2" />
+		<label class="check" for="2">2005</label>
+	</span>
+</div>
+================================================================================
+--test--
+On peut générer la même sortie en passant des valeurs numériques pour les clés 'code' et 'label'
+des tableaux de l'attribut src
+--file--
+<checklist src="array(array('code'=>2007, 'label'=>2007), array('code'=>2006, 'label'=>2006), array('code'=>2005, 'label'=>2005))" />
+--expect--
+<div class="checklist">
+	<span class="check">
+		<input type="checkbox" value="2007" class="check" id="0" />
+		<label class="check" for="0">2007</label>
+	</span>
+	<span class="check">
+		<input type="checkbox" value="2006" class="check" id="1" />
+		<label class="check" for="1">2006</label>
+	</span>
+	<span class="check">
+		<input type="checkbox" value="2005" class="check" id="2" />
+		<label class="check" for="2">2005</label>
+	</span>
+</div>
+================================================================================
+--test--
+Il est possible d'ajouter un nom et un label général aux checklist
+--file--
+<checklist name="myList" label="Choisissez parmi les années suivantes :" src="array(array('code'=>2007, 'label'=>2007), array('code'=>2006, 'label'=>2006), array('code'=>2005, 'label'=>2005))" />
+--expect--
+<label class="checklist">Choisissez parmi les années suivantes :</label>
+<div class="checklist">
+	<span class="check">
+		<input type="checkbox" name="myList" value="2007" class="check" id="myList0" />
+		<label class="check" for="myList0">2007</label>
+	</span>
+	<span class="check">
+		<input type="checkbox" name="myList" value="2006" class="check" id="myList1" />
+		<label class="check" for="myList1">2006</label>
+	</span>
+	<span class="check">
+		<input type="checkbox" name="myList" value="2005" class="check" id="myList2" />
+		<label class="check" for="myList2">2005</label>
+	</span>
+</div>
+================================================================================
+--test--
+Si la source de données est vide, rien ne s'affiche
+--file--
+
+--expect--
+
+--skip--
+Rajouter un if englobant pour n'afficher un checklist que si src est non vide (!= '') et 
+correspond à une zone de données non vide (TextTable ayant des données, tableau non vide, etc.)
+================================================================================
+--test--
+Un contrôle checkbox dans un fill
+--file-- 
+<fill values="3, 5">
+	<checkbox name="myCheck" label="Option n° 3" value="3" />
+	<checkbox name="myCheck2" label="Option n°4" value="4" />
+</fill>
+--expect--
+<input type="checkbox" name="myCheck" value="3" class="check" id="myCheck" checked="checked" />
+<label class="check" for="myCheck">Option n°3</label>
+<input type="checkbox" name="myCheck2" value="4" class="check" id="myCheck2" />
+<label class="check" for="myCheck2">Option n°4</label>
+================================================================================

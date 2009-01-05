@@ -1,0 +1,173 @@
+<!-- Fichier de tests des templates internes (<template match=...) bien formés -->
+
+<!--  ATTENTION : ne pas mettre de commentaires HTML n'importe où dans le fichier -->
+
+--TEST--
+Tags templates simples bien formés qui "matchent" tous les "copyright"
+--FILE--
+<template match="//copyright" year="2006">
+    <hr />Copyright $year BDSP
+</template>
+<copyright />
+<copyright year="2000"/>
+<p>
+    <copyright year="2001" />
+</p>
+
+
+
+<template match="//a[starts-with(@href, 'mailto:')]">
+    Email
+</template>
+<a href="mailto:Youenn">
+    Envoyer email
+</a>
+
+
+
+<template match="//form[(input[@type='checkbox'] or input[@type='radio'])]">
+    Supprimé
+</template>
+<p>
+    <form>
+        <input type="checkbox" value="Check1" />
+        <input type="submit" value="OK" />
+    </form>
+    <form>
+        <input type="radio" value="Radio1" />
+    </form>
+    <form>
+        <input type="submit" />
+    </form>
+</p>
+
+
+
+<template match="//fileParam" tplParam="">
+    vAccentuée = $vAccentuée; tplParam = $tplParam
+</template>
+<fileParam tplParam="Val tplParam" />
+
+
+
+<template match="//varScope" camelCase="">
+    camelCase = $camelCase
+</template>
+$camelCase
+<varScope camelCase="Overriden" />
+$camelCase
+
+
+
+<template match="//a[starts-with(@href, 'http://')]">
+    <a href="www" onclick="alert('A bientôt')"></a>
+</template>
+<a href="http://unsite" />
+--EXPECT--
+<hr />Copyright 2006 BDSP
+<hr />Copyright 2000 BDSP
+<p>
+    <hr />Copyright 2001 BDSP
+</p>
+
+
+
+Email
+
+
+
+<p>
+Supprimé
+Supprimé
+<form>
+<input type="submit" />
+</form>
+</p>
+
+
+
+vAccentuée = Valeur 1; tplParam = Val tplParam
+
+
+
+Valeur 4
+camelCase = Overriden
+Valeur 4 
+
+
+
+<a href="www" onclick="alert('A bientôt')" />
+====
+--TEST--
+Test de templates imbriqués
+--FILE--
+<template match="//form">
+    <template match="//input">
+        <input type="submit" />
+    </template>
+</template>
+<form>
+    <input type="radio" />
+</form>
+--EXPECT--
+<form>
+    <input type="radio" />
+</form>
+====
+--TEST--
+Tests des selects simples
+--FILE--
+<template match="//b">
+    <strong>{select('text()')}</strong>
+</template>
+Texte normal
+<b>
+    Texte gras
+</b>
+
+
+
+<template match="//ul">
+    <ol>{select('*')}</ol>
+</template>
+<ul>
+    <li>Elément 1</li>
+    <li>Elément 2</li>
+</ul>
+
+
+
+<template match="//a">
+    <a href="{select('@href')}">{select('*|text()')}</a>
+</template>
+<a href="www">Un lien HTML</a>
+--EXPECT--
+Texte normal
+<strong>Texte gras</strong>
+
+
+
+<ol>
+    <li>Elément 1</li>
+    <li>Elément 2</li>
+</ol>
+
+
+
+<a href="www">Un lien HTML</a>
+====
+--TEST--
+Test d'un select plus complexe
+--FILE--
+<a name="bdsplink" href="http://www.bdsp.tm.fr" style="color: blue" onclick="alert(\'Au revoir\')">
+    BDSP
+</a>
+<template match="//a[starts-with(@href, \'http://\')]" name="">
+    <a class="{select(\'@class\')} external" style="color: red">
+        {select(\'@*\')}{select(\'*|text()\')}
+    </a>
+</template>
+--EXPECT--
+<a class="external" style="color: red" href="http://www.bdsp.tm.fr" onclick="alert(\'Au revoir\')">
+    BDSP
+</a> 

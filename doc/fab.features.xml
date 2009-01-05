@@ -1,0 +1,255 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE sect1 PUBLIC "-//OASIS//DTD DocBook XML V4.5//EN"
+"http://www.oasis-open.org/docbook/xml/4.5/docbookx.dtd">
+<?xml-stylesheet href="../web/css/docbook/dm.css" type="text/css"?>
+<sect1 id="un.id.unique">
+    <sect1info>
+        <releaseinfo>$Id: modele.documentation.xml 683 2008-04-17 16:12:49Z
+        daniel.menard.bdsp $</releaseinfo>
+    </sect1info>
+
+    <title>Principales fonctionnalités *</title>
+
+    <toc></toc>
+
+    <sect2 id="id.de.sect1.plus.autre">
+        <title>Principales fonctionnalités</title>
+
+        <itemizedlist>
+            <listitem>
+                <para>Prêt à l'emploi (une application peut être créée sans
+                écrire une seule ligne de code php).</para>
+            </listitem>
+
+            <listitem>
+                <para>Modèle <ulink
+                url="http://fr.wikipedia.org/wiki/Mod%C3%A8le-Vue-Contr%C3%B4leur">MVC</ulink>
+                (séparation franche des données, du code et de la présentation
+                de l'application).</para>
+            </listitem>
+
+            <listitem>
+                <para><ulink url="?filename=fab.config">Configuration
+                xml</ulink> (application, modules, actions,
+                environnements...)</para>
+            </listitem>
+
+            <listitem>
+                <para><ulink url="?filename=fab.templates">Système de
+                templates</ulink> avec validation intégrée, contrôle des
+                fonctions autorisées et système de templates match permettant
+                de définir des modèles et de faire évoluer le langage.</para>
+            </listitem>
+
+            <listitem>
+                <para><ulink url="?class=Cache">Cache intégré</ulink></para>
+            </listitem>
+
+            <listitem>
+                <para>Système d'héritage à plusieurs niveaux (configuration,
+                modules, actions, templates...)</para>
+            </listitem>
+
+            <listitem>
+                <para><ulink url="?filename=fab.routing">Routing</ulink>
+                (Search Engine Friendly urls)</para>
+            </listitem>
+
+            <listitem>
+                <para>Code objet php 5</para>
+            </listitem>
+
+            <listitem>
+                <para>Respect des standards du W3C (xhtml, css...)</para>
+            </listitem>
+
+            <listitem>
+                <para>Application de ce qui est aujourd'hui considéré comme
+                les meilleures pratiques en matière de développement web
+                (KISS, DRY, XP...)</para>
+            </listitem>
+
+            <listitem>
+                <para><ulink url="?class=ExceptionManager">Gestion des
+                exceptions</ulink></para>
+            </listitem>
+
+            <listitem>
+                <para>Gestion de thèmes et de layouts.</para>
+            </listitem>
+
+            <listitem>
+                <para>fonctionnalités <ulink
+                url="http://fr.wikipedia.org/wiki/Asynchronous_JavaScript_and_XML">ajax</ulink></para>
+            </listitem>
+
+            <listitem>
+                <para>front controler</para>
+            </listitem>
+
+            <listitem>
+                <para>Environnements</para>
+            </listitem>
+
+            <listitem>
+                <para>Back office intégré</para>
+            </listitem>
+
+            <listitem>
+                <para>Gestionnaire de tâches intégré</para>
+            </listitem>
+
+            <listitem>
+                <para><ulink url="?class=AutoTest">Tests unitaires
+                intégrés</ulink></para>
+            </listitem>
+
+            <listitem>
+                <para>self-contained,</para>
+            </listitem>
+        </itemizedlist>
+    </sect2>
+
+    <sect2>
+        <title>Principaux modules</title>
+
+        <para></para>
+
+        <sect3>
+            <title>Administration du site</title>
+
+            <para>Fab intègre un back office contenant tous les outils
+            permettant de développer et de gérer l'application. Il est
+            possible de créer de nouveaux modules ou de nouvelles bases de
+            données, de modifier la configuration de l'application, d'écrire
+            du code php ou des templates, et ainsi de suite juste en utilisant
+            un navigateur.</para>
+
+            <itemizedlist>
+                <listitem>
+                    <para><ulink url="/Admin">Accéder au site
+                    d'administration</ulink></para>
+                </listitem>
+
+                <listitem>
+                    <para><ulink url="?class=Admin">API de la classe
+                    Admin</ulink></para>
+                </listitem>
+            </itemizedlist>
+        </sect3>
+
+        <sect3>
+            <title>Tests unitaires</title>
+
+            <para>Fab intègre un mécanisme de <ulink
+            url="http://fr.wikipedia.org/wiki/Test_unitaire">tests
+            unitaires</ulink> basé sur <ulink
+            url="http://www.phpunit.de/">PHPUnit</ulink> permettant de
+            vérifier le bon fonctionnement des classes et des méthodes qu'il
+            contient.</para>
+
+            <warning>
+                <para>Actuellement, seules quelques classes vitales de fab
+                font l'objet de tests unitaires. La couverture sera enrichie à
+                l'avenir.</para>
+            </warning>
+
+            <itemizedlist>
+                <listitem>
+                    <para><ulink url="/AutoTest">Lancer les tests
+                    unitaires</ulink></para>
+                </listitem>
+
+                <listitem>
+                    <para><ulink url="?class=AutoTest">API du module
+                    AutoTest</ulink></para>
+                </listitem>
+            </itemizedlist>
+        </sect3>
+
+        <sect3>
+            <title>Gestion de paniers</title>
+
+            <itemizedlist>
+                <listitem>
+                    <para><ulink url="?class=CartModule">API du module
+                    CartModule</ulink></para>
+                </listitem>
+            </itemizedlist>
+        </sect3>
+
+        <sect3>
+            <title>Gestion de bases de données</title>
+
+            <para>Fab dispose d'un <ulink url="?class=DatabaseModule">module
+            générique de gestion de bases de données</ulink> permettant la
+            publication et la gestion complète sur le web d'une base de
+            données.</para>
+
+            <para>Ce module fonctionne avec des drivers de bases de données
+            spécifiques. Le principal driver utilisé actuellement repose sur
+            Xapian et permet de mettre en place des bases de données dotées de
+            fonctionnalités avancées de recherche en texte intégral.</para>
+
+            <itemizedlist>
+                <listitem>
+                    <para><ulink url="?class=DatabaseModule">API du module
+                    DatabaseModule</ulink></para>
+                </listitem>
+
+                <listitem>
+                    <para><ulink url="?class=Database">API des drivers de
+                    bases de données</ulink></para>
+                </listitem>
+
+                <listitem>
+                    <para><ulink url="?class=XapianDatabaseDriver">API du
+                    driver XapianDatabase</ulink></para>
+                </listitem>
+
+                <listitem>
+                    <para><ulink url="http://www.xapian.org">Site de
+                    Xapian</ulink></para>
+                </listitem>
+
+                <listitem>
+                    <para><ulink
+                    url="http://www.xapian.org/docs/intro_ir.html">Introduction
+                    aux principes sous-jacents à Xapian</ulink> (en
+                    anglais).</para>
+                </listitem>
+
+                <listitem>
+                    <para><ulink
+                    url="http://www.xapian.org/docs/queryparser.html">Syntaxe
+                    des requêtes reconnues par XapianDatabase</ulink> (en
+                    anglais).</para>
+                </listitem>
+            </itemizedlist>
+        </sect3>
+
+        <sect3>
+            <title>DedupModule (dédoublonnage)</title>
+
+            <para></para>
+        </sect3>
+
+        <sect3>
+            <title>ImportModule</title>
+
+            <para></para>
+        </sect3>
+
+        <sect3>
+            <title>TaskManager</title>
+
+            <para></para>
+        </sect3>
+
+        <sect3>
+            <title>ThesaurusModule</title>
+
+            <para></para>
+        </sect3>
+    </sect2>
+</sect1>

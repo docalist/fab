@@ -1,0 +1,50 @@
+************* Bugs à résoudre ***************
+*********************************************
+
+1. Les URLs commençant par '/' et qui comportent des variables n'apparaissent pas dans la sortie :
+elles sont routées par le template autoroute qui ne peut pas instancier la/les variables. Il faudrait examiner
+le code PHP produit pour pouvoir instancier ces variables.
+Une fois le bug résolu, réécrire les URLs sous la forme "/module/action?param1=$param1..."
+
+Corrigé.
+--------------------------------------------------------------------------------------------------------------------
+
+2. Faire fonctionner le routage correctement : actuellement linkFor ne route pas toujours correctement les URL
+du type /module/action. Une fois que c'est le cas, il faudra renommer les URL de tous les projets basés sur Fab
+pour qu'ils fonctionnent sur ce modèle. Par exemple, dans DatabaseModule, getResNavigation ne spécifie pas l'action
+à utiliser dans son URL et celle-ci n'est pas routée par autoroute. Du coup, 'search'/'show', ... apparait dans 
+la sortie final même si on utilise les smart URLs
+
+Corrigé
+--------------------------------------------------------------------------------------------------------------------
+
+3. Si un <loop /> utilise $key et $value comme paramètre "as" et qu'un template match est appelé
+(exemple radio) avec ces paramètres, les variables correspondantes dans le template match ne contiennent
+pas les bonnes valeurs.
+Par exemple, dans list.html de ConfigModule, le bug a été illustré par un code tel que celui-ci :
+
+<loop on="$files" as="$key, $value" order="asc">
+    <radio name="file" value="$key" label="$value" />
+    <br />
+</loop>
+
+Au final, le bouton radio avait son attribut value égal à son label alors que deux valeurs
+différentes étaient passées.
+
+--------------------------------------------------------------------------------------------------------------------
+
+4. Utf8 to ucs2 conversion failed on Windows
+
+Les notices dont le nom de périodique contient un accent (et peut-être une apostrophe ?) posent problème :
+dans le list.html, un clic sur le bouton de présentation ou de localisation (actionInform ou actionLocate) accessibles
+en mode admin et membre génère une erreur Apache : "Internal Server Error".
+
+Reproduction bug : http://apache/AscoFuturSite/web/debug.php/base/recherche?Mots=&MotsCles=&Titres=Le+soin+infirmier+un+soutien+pour+le+patient+douloureux%2C+un+lien+dans+la+pluridisciplinarit%E9&Aut=&Resu=&Dates=&DateText=&Type=Rapport&Rev=&Edit=&Col=&IsbnIssn=&Numeros=&Vol=&DipSpe=&Loc=&ProdFich=&Creation=&LastUpdate=
+puis clic sur bouton localisation ou présentation
+
+Bug officiel : http://issues.apache.org/bugzilla/show_bug.cgi?id=34985
+
+Piste : une conversion de l'URL en minuscules (fonction dans Utils) peut peut-être résoudre le problème.
+Attention toutefois au cas où urlencode appelé avant une éventuelle conversion en minuscules.
+
+--------------------------------------------------------------------------------------------------------------------

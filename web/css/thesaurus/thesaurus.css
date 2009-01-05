@@ -1,0 +1,28 @@
+/* style pour le popup */
+ul.thesaurus div
+{
+    font-weight: bold;
+}
+ul.thesaurus li
+{
+    padding: 0.3em 0;
+}
+
+/* styles pour le show */
+div.term p
+{
+    margin: 0;
+}
+
+div.term p.FRE
+{
+    color: #008;
+    font-weight: bold;
+}
+
+
+div.term span.lib /* les mentions "TG :", "TS :", etc. */
+{
+    color: #000;
+    font-weight: bold;
+}

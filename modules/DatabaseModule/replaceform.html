@@ -1,0 +1,212 @@
+<style>
+.odd
+\{
+    background-color: #eee;
+\}
+th
+\{
+    background-color: #000;
+    color: #fff;
+\}
+tbody tr:hover
+\{
+    background-color: highlight;
+    color: #fff;
+\}
+div.help
+\{
+    background-color: infobackground;
+    color: infotext;
+/*    border: 1px solid infotext; */
+    font-size: larger;
+    padding: 0.5em 0.5em;
+    margin: 1em;
+    display: none;
+    clear:both;
+    -moz-border-radius: 1em;
+\}
+div.help dt
+\{
+    font-weight: bold;
+\}
+</style>
+<template match="//srhelp">
+    <div class="help">{select('node()|@*')}</div>
+</template>
+<slot name="header">
+    <h1>Modification en série</h1>
+    <a href="#" onclick="jQuery('.help').toggle('fast');return false;" style="float: right;">Afficher/masquer l'aide...</a>
+    
+    <p><strong>{$this->selection->count('environ ')} notice(s)</strong> pour l'équation <code>{$this->equation}</code></p>
+</slot>
+<form method="get" action="Replace" class="form">
+    <slot name="formheader" />
+
+    <input type="hidden" name="_equation" value="{htmlspecialchars($this->equation)}" />
+    
+    <fieldset label="Rechercher :">
+        <textbox name="search" style="width: 100%;" /><br />
+        <srhelp>
+            <p>
+                Indiquez la chaîne à rechercher ou laissez cette zone vide pour 
+                sélectionner uniquement les champs qui sont vides.
+            </p>
+            <p>
+                Pour une utilisation avancée, consultez les astuces qui figurent 
+                <a href="#tips">ci-dessous</a>.
+            </p>
+        </srhelp>
+    </fieldset>
+    
+    <fieldset label="Remplacer par :">
+        <textbox name="replace" style="width: 100%;" /><br />
+        <srhelp>
+            <p>
+                Indiquez la chaîne qui viendra remplacer la chaîne recherchée ou 
+                laissez cette zone vide pour supprimer la valeur recherchée.
+            </p>
+        </srhelp>
+    </fieldset>
+
+    <fieldset label="Options : ">
+        <div>
+            <checkbox name="ignoreCase" label="Insensible à la casse" value="true" checked="checked" /><br />
+            <srhelp>
+                <p>
+                    Par défaut, la recherche tient compte de la casse des caractères, 
+                    c'est-à-dire que les majuscules et les minuscules sont considérées
+                    comme des caractères différents. Lorsque cette option est cochée,
+                    la chaîne recherchée sera trouvée quelle que soit la casse des 
+                    caractères.
+                </p>
+                <p>
+                    Remarque : les accents sont toujours considérés comme des caractères
+                    différents de la lettre non accentuée correspondante, que cette 
+                    option soit cochée ou non.
+                </p>
+            </srhelp>
+        </div>
+        <div>
+            <checkbox name="regexp" label="Expression régulière" value="true" 
+                onclick="jQuery('#word').attr('disabled', this.checked ? 'disabled' : '')"
+            /><br />
+            <srhelp>
+                <p>
+                    Une expression régulière permet de définir un motif décrivant un
+                    ensemble de chaînes de caractères que l'on veut rechercher. Par 
+                    exemple, l'expression "cha(ton|taigne)" recherchera les
+                    chaînes "chaton" et "chataigne" en une seule étape.
+                </p>
+                <p> 
+                    <a href="http://lumadis.be/regex/tuto_pcre.php">Tutoriel en français</a>
+                    -
+                    <a href="http://www.regular-expressions.info/">Site de référence</a>.
+                </p>
+            </srhelp>
+        </div>
+        <div>
+            <checkbox name="word" label="Mot entier" value="true" /><br />
+            <srhelp>
+                <p>Sans effet si l'option "Expression régulière" est sélectionnée.</p>
+            </srhelp>
+        </div>
+    </fieldset>
+
+    <fieldset label="Dans les champs suivants : ">
+    
+        <srhelp>
+            <p>
+                Choisissez le ou les champ(s) dans lesquels vous souhaitez effectuer
+                le remplacement. Vous pouvez également cliquer sur la case à cocher 
+                qui figure dans l'entête du tableau pour sélectionner tous les champs
+                de la base.
+            </p>    
+        </srhelp>
+        
+        /* flag utilisé pour alternater la couleur des lignes de la table */
+        <def name="odd" value="{true}" />
+
+        /* Choisit si la liste des noms de champ est triée ou non */
+        <if test="{Config::get('sortfields', true)}">
+            <def name="fields" value="{Utils::ksort($this->selection->getSchema()->fields)}" />
+        </if>
+        <else>
+            <def name="fields" value="{$this->selection->getSchema()->fields}" />
+        </else>
+
+        /* Supprime de la liste les champs à ignorer définis dans la config */
+        <def name="fields" value="{array_diff_key($fields, array_flip(array_map('strtolower', (array) Config::get('ignore'))))}" />
+
+        /* Liste des champs */
+        <table border="0" style="border-collapse: collapse; width: 100%; border: 1px solid #888;">
+            <thead>
+                <tr>
+                    <th>
+                        <input type="checkbox" id="checkall" 
+                            onclick="jQuery('.fields').attr('checked', this.checked)"
+                            title="Sélectionner/désélectionner tout" 
+                        />
+                    </th>
+                    <th>Champ</th>
+                    <th>Libellé</th>
+                </tr>
+            </thead>
+            <tbody>
+                <loop on="$fields" as="$field">
+                    <tr class="{$odd ? 'odd' : ''}" 
+                        onclick="jQuery('#{$field->name}',this).trigger('click');" title="{htmlspecialchars($field->description)}">
+                        <td class="checkbox"><input type="checkbox" name="fields" class="fields" id="{$field->name}" value="{$field->name}" /></td>
+                        <td class="name"><label for="{$field->name}">{$field->name}</label></td>
+                        <td class="label"><label for="{$field->name}">{$field->label}</label></td>
+                    </tr>
+                    <def name="odd" value="{!$odd}" />
+                </loop>
+            </tbody>
+        </table>
+    </fieldset>
+
+    <div class="buttons">
+        <submit label="Remplacer..." />
+        <reset label="Initialiser le formulaire" />
+    </div>
+    
+    <slot name="formfooter" />
+</form>
+<srhelp id="tips">
+    <h2>Astuces, utilisation avancée</h2>
+    <dl>
+        <dt>Limiter le nombre de notices impactées</dt>
+        <dd>
+            <p>
+                Le temps d'exécution du chercher/remplacer dépend directement du
+                nombre de notices à étudier : plus il y a de notices à étudier, 
+                plus cela va prendre longtemps et, inversement, plus votre 
+                équation de recherche sera précise, plus cela ira vite.
+            </p>
+            <p>
+                Prenez un peu de temps pour regarder si vous ne pouvez pas 
+                ajouter quelques critères supplémentaires à votre équation de 
+                recherche...
+            </p>
+        </dd>
+
+        <dt>Injecter une valeur dans un champ vide</dt>
+        <dd>
+            <p>
+                Ne rien saisir dans la zone "rechercher", indiquer dans la zone
+                "Remplacer par" la valeur à injecter puis sélectionner les 
+                champs concernés.
+            </p>
+        </dd>
+
+        <dt>Vider un champ</dt>
+        <dd>
+            <p>
+                Activer l'option "Expression régulière", saisir ".*" (sans les 
+                guillemets) dans la zone "Rechercher", ne rien saisir dans la 
+                zone "Remplacer par" puis sélectionner les champs à vider.
+            </p>
+        </dd>
+    </dl>
+</srhelp>
+<slot name="footer" />

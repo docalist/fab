@@ -1,0 +1,57 @@
+<!-- Fichier de tests des tags et des bloc optionnels qui génèrent des exceptions-->
+
+--TEST--
+Boucles : tag loop ouvrant mal formé
+--FILE--
+<loo on="$arrayVal" as="$i,$j">
+    $i:$j;
+</loop>
+====
+--TEST--
+Boucles : tag loop fermant mal formé
+--FILE--
+<loop on="$arrayVal" as="$i,$j">
+    $i:$j;
+</loop
+====
+--TEST--
+Boucles : attribut on mal formé
+--FILE--
+<loop o="$arrayVal" as="$i, $j">
+    $i:$j
+</loop>
+====
+--TEST--
+Boucles : attribut on vide
+--FILE--
+<loop on="" as="$i">
+    $i
+</loop>
+====
+--TEST--
+Boucles : attribut as mal formé
+--FILE--
+<loop on="$arrayVal" as"$j">
+    $j
+</loop>
+====
+--TEST--
+Boucles : attribut as manquant
+--FILE--
+<loop on="$arrayVal">
+    $i
+</loop>
+====
+--TEST--
+Boucles : attribut as vide
+--FILE--
+<loop on="$arrayVal" as="">
+    $j
+</loop>
+====
+--TEST--
+Boucles : tente d'accéder à une variable non déclarée
+--FILE--
+<loop on="$arrayVal" as="$j">
+    $i:$j
+</loop>

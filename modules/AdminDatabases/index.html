@@ -1,0 +1,51 @@
+<!-- Path des images utilisées -->
+<def name="icons" value="/FabWeb/modules/AdminDatabases/images" />
+
+<h1>{$this->getTitle()}</h1>
+<autopara>{$this->getDescription()}</autopara>
+
+<toolbar style="float: right">
+    <item href="New" img="$icons/database_add.png">Créer une nouvelle base de données...</item>
+</toolbar>
+
+<br style="clear: both" />
+
+<bigmenu>
+    <loop on="$databases" as="$db">
+        <def name="info" value="{AdminDatabases::getDatabaseInfo($db)}" />
+        <item label="$db" img="{$this->getIcon()}" href="/DatabaseInspector/SearchForm?database=$db" title="Inspecter la base $db...">
+            <div class="databaseDetails">    
+                <if test="{$info->error}">
+                    <p>{$info->error}</p>
+                </if>
+                <else>
+                    <div style="position: absolute; top: 0;right: 0; width: 10em; text-align: center; border-left: 1px dotted #000; border-bottom: 1px dotted #000; background-color: #FBFBEF; padding: 0.5em; ">
+                        Type : <strong>{$info->type}</strong><br /> 
+                        Documents : 
+                        <a href="/DatabaseInspector/Search?database=$db&amp;_equation=*" title="Inspecter tous les documents">
+                        <strong>{number_format($info->count, 0, ',', '&#160;')}</strong>
+                        </a>
+                    </div>
+                    
+                    <p><strong>{$info->label}</strong></p>
+                    
+                    <p>{$info->description}</p>
+                    
+                    <toolbar>
+                        <item href="/DatabaseInspector/SearchForm?database=$db" img="$icons/database_go.png">Inspecter</item>
+                        <separator />
+                        <item href="SetSchema?database=$db" img="$icons/database_edit.png">Modifier</item>
+                        <separator />
+                        <item href="Reindex?database=$db" img="$icons/database_lightning.png">Réindexer</item>
+                        <separator />
+                        <item href="Backup?database=$db" img="$icons/table_go.png">Sauvegarder</item>
+                        <separator />
+                        <item href="Restore?database=$db" img="$icons/table_row_insert.png">Restaurer</item>
+                        <separator />
+                        <item href="Delete?database=$db" img="$icons/database_delete.png">Supprimer</item>
+                    </toolbar>
+                </else>
+            </div>
+        </item>
+    </loop>
+</bigmenu>

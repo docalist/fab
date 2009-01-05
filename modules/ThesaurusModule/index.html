@@ -1,0 +1,37 @@
+<h2>Thesaurus</h2>
+<form action="Search">
+    <fieldset>
+        <legend>Rechercher un terme</legend>
+        <textbox name="_equation" id="_equation" size="60" />
+        <submit label="Rechercher..." />
+        <input type="reset" value="Effacer tout" />
+    </fieldset>
+    
+    <br />
+    
+    <fieldset>
+        <legend>Liste des champs sémantiques</legend>
+        <ul>
+            <loop on="$this->selection">
+                <li><a href="Hierarchy?FRE={$this->termToQuery($FRE)}">$Fre</a></li>
+            </loop>
+        </ul>
+        <p style="color:#444; font-size:0.7em;">{$this->selection->count()} réponses</p>
+    </fieldset>
+</form>
+<script type="text/javascript">
+    jQuery(document).ready(
+        function()
+        \{
+            jQuery('#_equation').autocomplete
+            (
+                '{Routing::linkFor("ThesoLookup")}?fre=[%s] OR [%s*]',
+                \{
+                    asValue: true,
+                    height: 300,
+                    onload: ThesoLookup
+                \}
+            );
+        \}
+    );
+</script>

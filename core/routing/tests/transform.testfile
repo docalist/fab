@@ -1,0 +1,430 @@
+Fichier de test unitaires pour Routing::transform()
+Vérifie que les routes sont compilées correctement
+
+Ce test n'utilise aucun fichier .config : c'est la partie --file-- de chaque 
+test qui contient les routes à compiler.
+
+--file-- : routes à compiler
+--expect : tableau obtenu après appel à transform() (utilise var_export)
+
+@version : $Id$
+================================================================================
+--test--
+Routes vides
+--file--
+<config />
+--expect--
+array
+(
+    'urls'    => array(),
+    'modules' => array(),
+)
+================================================================================
+--test--
+Une route simple
+--file--
+<config>
+    <item>
+        <url>/base/recherche</url>
+        <module>Base</module>
+        <action>actionSearch</action>
+    </item>
+</config>
+--expect--
+array
+(
+    'urls' => array
+    (
+        'base' =>array
+        (
+            'recherche' =>array
+            (
+                '@route' =>array
+                (
+                    'url' => '/base/recherche',
+                    'module' => 'Base',
+                    'action' => 'actionSearch',
+                ),
+            ),
+        ),
+    ),
+    'modules' => array
+    (
+        'base-search' => array
+        (
+            0 => array
+            (
+                'url' => '/base/recherche',
+                'module' => 'Base',
+                'action' => 'actionSearch',
+            ),
+        ),
+    ),
+)
+================================================================================
+--test--
+Une route simple avec une variable et un with
+--file--
+<config>
+    <item>
+        <url>/base/voir/$ref</url>
+        <module>Base</module>
+        <action>actionShow</action>
+        <with>
+            <ref>\d+(,\d+){0,4}</ref>
+        </with>
+    </item>
+</config>
+--expect--
+array
+(
+    'urls' => array
+    (
+        'base' =>array
+        (
+            'voir' =>array
+            (
+                '$' => array
+                (
+                    '@route' =>array
+                    (
+                        'url' => '/base/voir/$ref',
+                        'module' => 'Base',
+                        'action' => 'actionShow',
+                        'with' => array
+                        (
+                            'ref' => '~^\\d+(,\\d+){0,4}$~',
+                        ),
+                        'args' => array
+                        (
+                            'ref' => 0,
+                        ),                        
+                    ),
+                ),
+            ),
+        ),
+    ),
+    'modules' => array
+    (
+        'base-show' => array
+        (
+            0 => array
+            (
+                'url' => '/base/voir/$ref',
+                'module' => 'Base',
+                'action' => 'actionShow',
+                'with' => array
+                (
+                    'ref' => '~^\\d+(,\\d+){0,4}$~',
+                ),
+                'args' => array
+                (
+                    'ref' => 11,
+                ),
+            ),
+        ),
+    ),
+)
+================================================================================
+--test--
+Une route simple avec deux variables
+--file--
+<config>
+    <item>
+        <url>/base/$db/$ref</url>
+        <module>Base</module>
+        <action>actionShow</action>
+    </item>
+</config>
+--expect--
+array
+(
+    'urls' => array
+    (
+        'base' => array
+        (
+            '$' => array
+            (
+                '$' => array
+                (
+                    '@route' => array
+                    (
+                        'url' => '/base/$db/$ref',
+                        'module' => 'Base',
+                        'action' => 'actionShow',
+                        'args' => array
+                        (
+                            'db' => 0,
+                            'ref' => 1,
+                        ),
+                    ),
+                ),
+            ),
+        ),
+    ),
+    'modules' => array 
+    (
+        'base-show' => array 
+        (
+            0 => array 
+            (
+                'url' => '/base/$db/$ref',
+                'module' => 'Base',
+                'action' => 'actionShow',
+                'args' => array 
+                (
+                    'ref' => 10,
+                    'db' => 6,
+                ),
+            ),
+        ),
+    ),
+)
+================================================================================
+--test--
+Une route simple avec deux fois le même nom de variable
+--file--
+<config>
+    <item>
+        <url>/base/$ref-$ref</url>
+        <module>Base</module>
+        <action>actionCompare</action>
+    </item>
+</config>
+--expect--
+array
+(
+    'urls' => array
+    (
+        'base' => array
+        (
+            '$' => array
+            (
+                '-' => array
+                (
+                    '$' => array
+                    (
+                        '@route' => array
+                        (
+                            'url' => '/base/$ref-$ref',
+                            'module' => 'Base',
+                            'action' => 'actionCompare',
+                            'args' => array
+                            (
+                                'ref' => array
+                                (
+                                    0 => 0,
+                                    1 => 1,
+                                ),
+                            ),
+                        ),
+                    ),
+                ),
+            ),
+        ),
+    ),
+    'modules' => array
+    (
+        'base-compare' => array
+        (
+            0 => array
+            (
+                'url' => '/base/$ref-$ref',
+                'module' => 'Base',
+                'action' => 'actionCompare',
+                'args' => array
+                (
+                    'ref' => array
+                    (
+                        0 => 11,
+                        1 => 6,
+                    ),
+                ),
+            ),
+        ),
+    ),
+)
+================================================================================
+--test--
+Une route comportant un <add> et deux fois la même variable
+--file--
+<config>
+    <item>
+        <url>/articles/tag/$motcle-$motcle</url>
+        <module>database</module>
+        <action>actionSearch</action>
+        <add>
+            <op>AND_NOT</op>
+        </add>
+    </item>
+</config>
+--expect--
+array
+(
+    'urls' => array
+    (
+        'articles' => array
+        (
+            'tag' => array
+            (
+                '$' => array
+                (
+                    '-' => array
+                    (
+                        '$' => array
+                        (
+                            '@route' => array
+                            (
+                                'url' => '/articles/tag/$motcle-$motcle',
+                                'module' => 'database',
+                                'action' => 'actionSearch',
+                                'add' => array
+                                (
+                                    'op' => 'AND_NOT',
+                                ),
+                                'args' => array
+                                (
+                                    'motcle' => array
+                                    (
+                                        0 => 0,
+                                        1 => 1,
+                                    ),
+                                ),
+                            ),
+                        ),
+                    ),
+                ),
+            ),
+        ),
+    ),
+    'modules' => array
+    (
+        'database-search' => array
+        (
+            0 => array
+            (
+                'url' => '/articles/tag/$motcle-$motcle',
+                'module' => 'database',
+                'action' => 'actionSearch',
+                'add' => array
+                (
+                    'op' => 'AND_NOT',
+                ),
+                'args' => array
+                (
+                    'motcle' => array
+                    (
+                        0 => 22,
+                        1 => 14,
+                    ),
+                ),
+            ),
+        ),
+    ),
+)
+================================================================================
+--test--
+Une route pour laquelle 'module' et 'action' sont indiqués par l'url
+--file--
+<config>
+    <item>
+        <url>/$module/$action</url>
+    </item>
+</config>
+--expect--
+array
+(
+    'urls' => array
+    (
+        '$' => array
+        (
+            '$' => array
+            (
+                '@route' => array
+                (
+                    'url' => '/$module/$action',
+                    'args' => array
+                    (
+                        'module' => 0,
+                        'action' => 1,
+                    ),
+                ),
+            ),
+        ),
+    ),
+    'modules' => array
+    (
+        '$-$' => array
+        (
+            0 => array
+            (
+                'url' => '/$module/$action',
+                'args' => array
+                (
+                    'action' => 9,
+                    'module' => 1,
+                ),
+            ),
+        ),
+    ),
+)
+================================================================================
+--test--
+Une route pour laquelle 'module' et 'action' sont indiqués par la route mais
+dont l'url comporte elle même des paramètres appellés 'module' et 'action'
+--file--
+<config>
+    <item>
+        <url>/admin/config/$module/$action</url>
+        <module>adminModule</module>
+        <action>configure</action>
+    </item>
+</config>
+--expect--
+array
+(
+    'urls' => array
+    (
+        'admin' => array
+        (
+            'config' => array
+            (
+                '$' => array
+                (
+                    '$' => array
+                    (
+                        '@route' => array
+                        (
+                            'url' => '/admin/config/$module/$action',
+                            'module' => 'adminModule',
+                            'action' => 'configure',
+                            'args' => array
+                            (
+                                'module' => 0,
+                                'action' => 1,
+                            ),
+                        ),
+                    ),
+                ),
+            ),
+        ),
+    ),
+    'modules' => array
+    (
+        'adminmodule-configure' => array
+        (
+            0 => array
+            (
+                'url' => '/admin/config/$module/$action',
+                'module' => 'adminModule',
+                'action' => 'configure',
+                'args' => array
+                (
+                    'action' => 22,
+                    'module' => 14,
+                ),
+            ),
+        ),
+    ),
+)
+================================================================================

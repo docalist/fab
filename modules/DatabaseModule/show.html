@@ -1,0 +1,47 @@
+<style>
+table
+\{
+    border-collapse: collapse;
+    border-color: #aaa;
+    border-style: dotted;
+\}
+th
+\{
+    text-align: right;
+    padding: 0 0.5em;
+\}
+td
+\{
+    text-align: left;
+    padding: 0.5em;
+\}
+</style>
+<table border="1">
+    <loop on="{$this->selection->getSchema()->fields}" as="$name,$field">
+        <def name="value" value="{$this->selection[$name]}" />
+        <tr title="{$field->description}">
+            <th>
+                {$field->name}
+            </th>
+            <td>
+                <if test="{is_array($value)}">
+                    <ul>
+                    <loop on="$value" as="$key,$value">
+                        <li style="list-style-image: none; margin: 0; "><dumpvalue value="$key" /> : <dumpvalue value="$value" /></li>
+                    </loop>
+                    </ul>
+                </if>
+                <else>
+                    <dumpvalue value="$value" />
+                </else>
+            </td>
+        </tr>
+    </loop>
+</table>
+
+<template match="//dumpvalue" value="">
+    <if test="{is_null($value)}">null</if>
+    <elseif test="{is_string($value)}">{htmlentities($value)}</elseif>
+    <elseif test="{is_scalar($value)}">{var_export($value,true)}</elseif>
+    <else>type de valeur non géré : {var_export($value,true)}</else>
+</template>

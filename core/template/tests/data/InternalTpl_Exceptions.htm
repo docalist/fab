@@ -1,0 +1,104 @@
+<!-- Fichier de tests des template internes (<template match="...") qui doivent générer des exceptions-->
+
+--TEST--
+Template sans attribut match
+--FILE--
+<template year="2006">
+    Copyright $year BDSP
+</template>
+
+<copyright />
+====
+--TEST--
+Template avec deux attributs match
+--FILE--
+<template match="//copyright" match="//otherMatch" year="2006">
+    <hr/>Copyright $year BDSP
+</template>
+
+<copyright />
+====
+--TEST--
+Template avec attribut match mal formé
+--FILE--
+<template matc="//copyright" year="2006">
+    <hr />Copyright $year BDSP
+</template>
+
+<copyright />
+====
+--TEST--
+Template avec attribut match mal formé : pas de signe "="
+--FILE--
+<template match"//copyrgiht" year="2006">
+    <hr />Copyright $year BDSP
+</template>
+
+<copyright />
+====
+--TEST--
+Template avec attribut valeur de l'attribut match mal formé : fonction au lieu de nom d'élement
+--FILE--
+<!-- TODO: il n'y a pas d'appel, est-ce normal ? -->
+<template match="text()">
+    fonction
+</template>
+====
+--TEST--
+Template avec attribut match vide
+--FILE--
+<template match="" year="2006">
+    <hr />Copyright $year BDSP
+</template>
+
+<copyright />
+====
+--TEST--
+Template avec appel mal formé
+--FILE--
+<template match="//copyright" year="2006">
+    <hr />Copyright $year BDSP
+</template>
+
+</copyright>
+====
+--TEST--
+Select illégal : select plusieurs attributs pour la valeur d'un attribut
+--FILE--
+<template match="//a">
+    <a href="{select('@*')}">{select('text()')</a>
+</template>
+
+<a href="www" title="Web Link"></a>
+====
+--TEST--
+Select illégal : select d'éléments pour la valeur d'un attribut
+--FILE--
+<template match="//ul">
+    <ul class="{select('*')}">
+        {select('*')}
+    </ul>
+</template>
+
+<ul>
+    <li>Elément 1</li>
+    <li>Elément 2</li>
+</ul>
+====
+--TEST--
+Select erroné : expression XPath vide
+--FILE--
+<template match="//a">
+    <a href="{select('')}"></a>
+</template>
+
+<a href="www">Lien</a>
+====
+--TEST--
+Select erroné : expression XPath erronée
+--FILE--
+<template match="//a">
+    <a href="{select('inv=alide')}"></a>
+</template>
+
+<a href="www">Lien</a>

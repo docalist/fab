@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE sect1 PUBLIC "-//OASIS//DTD DocBook XML V4.5//EN"
+    "http://www.oasis-open.org/docbook/xml/4.5/docbookx.dtd">
+<?xml-stylesheet href="../web/css/docbook/dm.css" type="text/css"?>
+<sect1 id="fab.actions">
+
+    <sect1info>
+        <releaseinfo>$Id$</releaseinfo>
+    </sect1info>
+
+    <title>Contrôleurs d'entrée</title>
+    
+    <toc />
+
+    <sect2 id="fab.actions.?">
+    
+        <title>Controleur d'entrée unique</title>
+        
+        <para>
+            todo.
+        </para>
+    </sect2>
+    
+</sect1>

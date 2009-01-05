@@ -1,0 +1,145 @@
+<template match="//sect1info" />
+
+/* SECT 1 */
+<template match="//sect1">
+    <div class="sect1">{select('node()|@*')}</div>
+    <div class="releaseinfo">
+        Version : 
+        {select('translate(//sect1info/releaseinfo/text(), "$", "")')}
+    </div>
+</template>
+<template match="//sect1/title"><h1>{select('node()|@*')}</h1></template>
+
+/* SECT 2 */
+<template match="//sect2"><div class="sect2">{select('node()|@*')}</div></template>
+<template match="//sect2/title"><h2>{select('node()|@*')}</h2></template>
+
+/* SECT 3 */
+<template match="//sect3"><div class="sect3">{select('node()|@*')}</div></template>
+<template match="//sect3/title"><h3>{select('node()|@*')}</h3></template>
+
+/* SECT 4 */
+<template match="//sect4"><div class="sect4">{select('node()|@*')}</div></template>
+<template match="//sect4/title"><h4>{select('node()|@*')}</h4></template>
+
+/* SECT 4 */
+<template match="//sect5"><div class="sect5">{select('node()|@*')}</div></template>
+<template match="//sect5/title"><h5>{select('node()|@*')}</h5></template>
+
+/* Admonitions */
+<template match="//note"><div class="note">{select('node()|@*')}</div></template>
+<template match="//note/title"><div class="title">{select('node()|@*')}</div></template>
+
+<template match="//tip"><div class="tip">{select('node()|@*')}</div></template>
+<template match="//tip/title"><div class="title">{select('node()|@*')}</div></template>
+
+<template match="//example"><div class="example">{select('node()|@*')}</div></template>
+<template match="//example/title"><div class="title">{select('node()|@*')}</div></template>
+
+<template match="//warning"><div class="warning">{select('node()|@*')}</div></template>
+<template match="//warning/title"><div class="title">{select('node()|@*')}</div></template>
+
+<template match="//important"><div class="important">{select('node()|@*')}</div></template>
+<template match="//important/title"><div class="title">{select('node()|@*')}</div></template>
+
+<template match="//caution"><div class="caution">{select('node()|@*')}</div></template>
+<template match="//caution/title"><div class="title">{select('node()|@*')}</div></template>
+
+/* Tables (à mettre plus haut ?) */
+<template match="//table[not(parent::div)]"><div class="table">{select('node()|@*')}</div></template>
+<template match="//table/title"><div class="title">{select('node()|@*')}</div></template>
+<template match="//table/tgroup"><table>{select('node()|@*')}</table></template>
+<template match="//table/tgroup/thead/row"><tr>{select('node()|@*')}</tr></template>
+<template match="//table/tgroup/thead/row/entry"><th>{select('node()|@*')}</th></template>
+<template match="//table/tgroup/tbody/row"><tr>{select('node()|@*')}</tr></template>
+<template match="//table/tgroup/tbody/row/entry"><td>{select('node()|@*')}</td></template>
+
+ 
+/* Blocs de code */
+<template match="//programlisting"><pre class="programlisting prettyprint">{htmlspecialchars(select('string(node())'))}{select('@*')}</pre></template>
+<template match="//screen"><div class="screen">{htmlspecialchars(select('string(node())'))}{select('@*')}</div></template>
+
+/* Paragraphes */
+<template match="//para"><p>{select('node()|@*')}</p></template>
+
+/*
+    actuellement, les templates match de fab n sont pas récursifs.
+    Si on a des para dans des li, ils ne sont pas convertis.
+    On répête le template match //para trois fois pour que ça convertisse
+    jusqu'à 3 niveaux d'imbrication.
+*/
+ 
+/* Listes */
+<template match="//itemizedlist"><ul>{select('node()|@*')}</ul></template>
+<template match="//orderedlist"><ol>{select('node()|@*')}</ol></template>
+<template match="//listitem"><li>{select('node()|@*')}</li></template>
+
+/* Liens (texte = contenu du noeud si présent, url sinon) */
+<template match="//ulink" url=""><a href="$url" class="external">{select('count(node())') ? select('node()') : $url}</a></template>
+ 
+/* Inline divers */
+<template match="//emphasis" role=""><em>{select('node()|@*')}</em></template>
+<template match="//emphasis[@role='strong']" role=""><strong>{select('node()|@*')}</strong></template>
+<template match="//command"><span class="command">{select('node()|@*')}</span></template>
+<template match="//filename"><span class="filename">{select('node()|@*')}</span></template>
+ 
+<template match="//code[not(@class='escaped')]"><code class="escaped">{htmlspecialchars(select('string(node())'))}{select('@*')}</code></template>
+
+/* TOC - Construction de la table des matières */
+
+<template match="//toc">
+    <div class="tableofcontents">
+        <div class="title">Sommaire</div>
+        {select('//sect2')}
+    </div>
+</template>
+<template match="//toc/sect2">
+    <ul>{select('title')}</ul>
+</template>
+
+/* Suppprime l'id qu'on a ajouté au titre */
+/*
+
+<template match="//sect2/title|//sect3/title|//sect4/title" id="">
+    <title id="">{select('node()|@*')}</title>
+</template>
+
+<template match="//tocn">
+    <toc1>{select('//sect2/title')}</toc1>
+</template>
+
+<template match="//toc1">
+    <div class="tableofcontents">
+        <div class="title">Sommaire</div>
+        <ul>{select('node()')}</ul>
+    </div>
+</template>
+
+<template match="//toc1/title" id="">
+    <li>
+        <a href='#$id'>{select('node()')}</a>
+        <ul>{select('//sect2[@id="'.$id.'"]/sect3/title')}</ul>
+    </li>
+</template>
+
+<template match="//ul/title" id="">
+    <li>
+        <a href='#$id'>{select('node()')}</a>
+    </li>
+</template>
+
+<template match="//ul/title" id="">
+    <li>
+        <a href='#$id'>{select('node()')}</a>
+        <ul>{select('//sect3[@id="'.$id.'"]/sect4/title')}</ul>
+    </li>
+</template>
+*/
+
+/* Ajoute aux titres des sections l'id de la section (//sect2[@id=xxx] -> //sect2/title[@id=xxx] */
+/*
+<template match="//sect2/title|//sect3/title|//sect4/title">
+    <title>{select('../@id|node()')}</title>
+</template>
+*/
+/* TOC : fin */

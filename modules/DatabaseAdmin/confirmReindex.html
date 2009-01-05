@@ -1,0 +1,52 @@
+<h1>Réindexation complète de la base $database</h1>
+
+<p>
+    Vous allez lancer une réindexation complète de la base $database
+    ({$this->selection->count()} notices). La réindexation va reconstruire les 
+    index de recherche, les tables de lookup et les clés de tri qui sont définis
+    pour cette base. 
+</p>
+
+<p>
+    Si vous avez supprimé des champs qui existaient auparavant, la réindexation
+    permettra également de purger la base des données relatives à ces champs. 
+</p>    
+
+<p>
+    Le processus de réindexation fonctionne en deux étapes. Tout d'abord, une 
+    nouvelle base de données temporaire (tmp) est créée à partir des données 
+    présentes dans la base existante. Une fois que toutes les données ont été
+    copiées, la base existante est transférée dans le répertoire "old" de la 
+    base puis la base temporaire est installée à la place de la base existante.
+</p>
+
+<p>
+    Le temps nécessaire pour réindexer complètement la base dépend du nombre
+    d'index, de tables et de clés de tri définis dans le schéma de la base,
+    du nombre de notices que contient la base, et du nombre moyen de mots à 
+    indexer par notice.
+</p>
+
+<p>
+    La réindexation peut donc prendre assez longtemps : pour une base contenant
+    des notices de taille moyenne (1&#160;Ko par notice), compter 2 minutes par 
+    tranche de 10&#160;000 notices.
+</p>
+
+<p>
+    Pendant toute la durée de la réindexation, les utilisateurs du site pourront
+    continuer à interroger et à consulter la base. Par contre, aucune 
+    modification ne sera possible.
+</p>
+
+<p>
+    Pour ces raisons, il est conseillé de lancer la réindexation pendant les
+    heures creuses du serveur.
+</p>
+ 
+<form>
+    <button>Lancer la réindexation</button>
+    <button onclick="history.back(); return false;">Annuler</button>
+    <hidden name="confirm" value="true" />
+    <hidden name="database" value="$database" />
+</form>

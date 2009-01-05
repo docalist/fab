@@ -1,0 +1,41 @@
+Fichier de test pour l'analyseur d'expressions du compilateur de templates.
+
+Tableaux
+
+@version : $Id$
+
+================================================================================
+--file-- 
+array()
+--expect--
+array()
+================================================================================
+--file-- 
+array(array(array(array(array(array(array(array("c"))))))))
+--expect--
+array(array(array(array(array(array(array(array('c'))))))))
+================================================================================
+--file-- 
+array(1,'a',"b",32,3.14)
+--expect--
+array(1,'a','b',32,3.14)
+================================================================================
+--file-- 
+array(1=>1)
+--expect--
+array(1=>1)
+================================================================================
+--file-- 
+array('xxx'=>1,'a',"yyy"=>"b",32,"pi"=>3.14)
+--expect--
+array('xxx'=>1,'a','yyy'=>'b',32,'pi'=>3.14)
+================================================================================
+--file-- 
+array(array('os'=>"linux",1,"version"=>1+1+.6),array())
+--expect--
+array(array('os'=>'linux',1,'version'=>2.6),array())
+--skip--
+Pour le moment, les expression d'un array contenant des clés (ce qui suit =>)
+ne sont pas optimisées. Donc le test ne passe pas, on obtient 1+1+.6 et non 
+pas 2.6
+================================================================================
