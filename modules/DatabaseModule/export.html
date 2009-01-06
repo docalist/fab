@@ -1,19 +1,25 @@
 <h1>Export {count($equations)===1 ? "d'un lot" : 'de '.count($equations).' lots'} de notices</h1>
 <form action="{$this->action}">
-/* 
-    Définit un slot qui pourra être utilisé par un module descendant pour
-    "injecter" d'autres paramètres dans le formulaire de recherche.
-    C'est par exemple le cas de DatabaseInspector qui ajoute un champ caché
-    indiquant le nom de la base utilisée.
-*/
-
+    <ul test="$error">
+        <loop on="$error" as="$error">
+            <li class="error">$error</li>
+        </loop>
+    </ul>
+    
+    /* 
+        Définit un slot qui pourra être utilisé par un module descendant pour
+        "injecter" d'autres paramètres dans le formulaire de recherche.
+        C'est par exemple le cas de DatabaseInspector qui ajoute un champ caché
+        indiquant le nom de la base utilisée.
+    */
     <slot name="otherparams" />
-/*
-    S'il n'y a qu'un seul format d'export disponible, inutile de demander à 
-    l'utilisateur de choisir.
-    Si le nombre de réponses obtenues dépasse le max indiqué pour le format,
-    indique la limite à l'utilisateur
-*/
+    
+    /*
+        S'il n'y a qu'un seul format d'export disponible, inutile de demander à 
+        l'utilisateur de choisir.
+        Si le nombre de réponses obtenues dépasse le max indiqué pour le format,
+        indique la limite à l'utilisateur.
+    */
     <if test="{count(Config::get('formats'))==1}">
         <loop on="{Config::get('formats')}" as="$name,$format">
             <p>
@@ -29,87 +35,70 @@
         </loop>
     </if>
 
-/*
-    Sinon, afficha la liste des formats disponibles en affichant la limite
-    éventuelle à chaque fois.
-*/    
+    /*
+        Sinon, affiche la liste des formats disponibles en indiquant la limite
+        éventuelle à chaque fois.
+    */    
     <else>
         <fieldset label="Format">
             <div class="radiolist">
-                <loop on="{Config::get('formats')}" as="$name,$format">
-                    <div class="radio">
-                        <radio 
-                            name="_format" 
-                            value="$name" 
-                            id="$name" 
-                            checked="{Config::userGet('formats.'.$name.'.default') ? 'selected': ''}"
-                            label="{$format['label'].(($format['max']!=-1) ? (' (maximum '.$format['max'].' notices)') : '')}"
-                        />
-                        <p test="{isset($format['description'])}">
-                            <small>{$format['description']}</small>
-                        </p>
-                    </div>
-                </loop>
+                <fill values="$format">
+                    <loop on="{Config::get('formats')}" as="$name,$format">
+                        <div class="radio">
+                            <radio 
+                                name="_format" 
+                                value="$name" 
+                                id="$name" 
+                                label="{$format['label'].(($format['max']!=-1) ? (' (maximum '.$format['max'].' notices)') : '')}"
+                            />
+                            <p test="{isset($format['description'])}">
+                                <small>{$format['description']}</small>
+                            </p>
+                        </div>
+                    </loop>
+                </fill>
             </div>
         </fieldset>
     </else>
     
-    <fieldset label="Options">
-/*
-    Option "Archive ZIP"
-*/
-        <div>
-            <if test="{Config::get('allowzip') and class_exists('ZipArchive')}">
+    <def name="allowzip" value="{Config::get('allowzip')}" />
+    <def name="allowmail" value="{Config::get('allowmail')}" />
+    
+    <fieldset test="{$allowzip || $allowmail}" label="Options">
+    
+        /* Option "Archive ZIP" */
+        <div test="$allowzip">
+            <fill values="$zip">
                 <if test="{Config::get('forcezip')}">
-                    <checkbox label="Archive au format ZIP" disabled="disabled" checked="checked" />
-                    <hidden name="_zip" value="1" />
+                    <checkbox name="_zip" label="Archive au format ZIP" disabled="disabled" checked="checked" />
                 </if>
                 <else>
                     <checkbox name="_zip" value="1" label="Archive au format ZIP" />
-                    <hidden name="_zip" value="" />
                 </else>
-            </if>
-            <else>
-                <checkbox label="Archive au format ZIP" disabled="disabled">
-                    <br /><small>cette option n'est pas disponible sur ce serveur</small>
-                </checkbox>
-                <hidden name="_zip" value="0" />
-            </else>
+            </fill>
         </div>
 
-/*
-    Option "Envoi par e-mail"
-*/
-        <div>
-            <if test="{Config::get('allowmail')}">
+        /* Option "Envoi par e-mail" */
+        <div test="$allowmail">
+            <fill values="$mail">
                 <if test="{Config::get('forcemail')}">
-                    <checkbox label="Envoyer par e-mail" disabled="disabled" checked="checked" />
-                    <hidden name="_mail" value="1" />
+                    <checkbox name="_mail" label="Envoyer par e-mail" disabled="disabled" checked="checked" />
                 </if>
                 <else>
                     <checkbox name="_mail" value="1" label="Envoyer par e-mail" />
-                    <hidden name="_mail" value="" />
                 </else>
-            </if>
-            <else>
-                <checkbox label="Envoyer par e-mail" disabled="disabled">
-                    <br /><small>cette option n'est pas disponible sur ce serveur</small>
-                </checkbox>
-                <hidden name="_mail" value="0" />
-            </else>
+            </fill>
         </div>
     </fieldset>
 
-/*
-    Details de l'e-mail à envoyer
-*/
-    <fieldset label="E-mail" id="_maildetails">
-        <textbox name="_to" label="Destinataire :" size="40" />
+    /* Details de l'e-mail à envoyer */
+    <fieldset test="$allowmail" label="E-mail" id="_maildetails">
+        <textbox name="_to" label="Destinataire :" size="40" value="{htmlentities($to)}" />
         <br />
         <textbox 
             name="_subject" 
             label="Sujet :" 
-            value="{Config::get('mailsubject')}"  
+            value="{htmlentities($subject)}"  
             size="40" />
         <br />
         <textbox 
@@ -117,43 +106,41 @@
             rows="5" 
             cols="40" 
             label="Message : " 
-            value="{Config::get('mailbody')}" />
+            value="{htmlentities($message)}" />
     </fieldset>
 
-/*
-    Champs cachés : équation, sort
-*/
+    /* Champs cachés : équation, filename, sort */
     <loop on="$equations" as="$equation">
         <hidden name="_equation" value="{htmlspecialchars($equation)}" />
     </loop>
-    <loop on="{$this->request->asArray('filename')->ok()}" as="$filename">
+    <loop on="{(array)$filename}" as="$filename">
         <hidden name="filename" value="{htmlspecialchars($filename)}" />
     </loop>
-    <hidden name="_sort" value="{htmlspecialchars($this->request->unique('_sort')->ok())}" />
-/*
-    Boutons du formulaire
-*/    
+    <hidden name="_sort" value="{htmlspecialchars($sort)}" />
+    <hidden name="confirm" value="1" />
+    
+    /* Boutons du formulaire */    
     <div class="buttons">
         <submit label="Lancer l'export..." />
     </div>
 </form>
 
-<script type="text/javascript">
+<script test="$allowmail" type="text/javascript">
 jQuery(document).ready(
     function()
     \{
-        var MailDetails=function()
-        \{
-            if (jQuery('#_mail').is(':checked'))
+        var MailDetails=function(speed)
+        \{ if(!speed) fast='normal';
+            if (jQuery('input[name=_mail]').is(':checked'))
             \{
-                jQuery('#_maildetails').show();
+                jQuery('#_maildetails').show(speed);
             \}
             else
             \{
-                jQuery('#_maildetails').hide();
+                jQuery('#_maildetails').hide(speed);
             \}
         \}
-        jQuery('#_mail').click(MailDetails);
+        jQuery('input[name=_mail]').click(MailDetails);
         MailDetails();
     \}
 );    
