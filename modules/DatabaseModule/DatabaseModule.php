@@ -935,7 +935,7 @@ class DatabaseModule extends Module
      * 
      * Seconde étape : exécution du template correspondant au format d'export 
      * choisi en indiquant le type mime correct.
-	 * 
+     * 
      * @param bool $calledFromPreExecute indique si l'action a été appelée 
      * (<code>true</code>) ou non depuis la méthode {@link preExecute}.
      *
@@ -1110,7 +1110,7 @@ class DatabaseModule extends Module
             // Lance la recherche, si aucune réponse, erreur
             if (! $this->select($equation, $max, 1, $sort))
             {
-            	echo "Aucune réponse pour l'équation $equation<br />";
+                echo "Aucune réponse pour l'équation $equation<br />";
                 continue;
             }
             
@@ -1119,7 +1119,7 @@ class DatabaseModule extends Module
             // Si l'utilisateur a demandé un envoi par mail ou un zip, démarre la capture
             if ($mail or $zip)
             {
-            	Utils::startCapture();
+                Utils::startCapture();
             }
             else
             {
@@ -1182,12 +1182,12 @@ class DatabaseModule extends Module
         // Si l'option zip est active, crée le fichier zip
         if ($zip)
         {
-        	$zipFile=new ZipArchive();
+            $zipFile=new ZipArchive();
             $f=Utils::getTempFile(0, 'export.zip');
             $zipPath=Utils::getFileUri($f);
             fclose($f);
             if (!$zipFile->open($zipPath, ZipArchive::OVERWRITE))
-            	throw new Exception('Impossible de créer le fichier zip');
+                throw new Exception('Impossible de créer le fichier zip');
 //            if (!$zipFile->setArchiveComment('Fichier exporté depuis le site ascodocpsy')) // non affiché par 7-zip            
 //                throw new Exception('Impossible de créer le fichier zip - 1');
             foreach($files as $i=>$path)
@@ -1218,10 +1218,10 @@ class DatabaseModule extends Module
             return true;
             
         // Charge les fichiers Swift
-		require_once Runtime::$fabRoot . 'lib/SwiftMailer/Swift.php';
-		require_once Runtime::$fabRoot . 'lib/SwiftMailer/Swift/Connection/SMTP.php';
+        require_once Runtime::$fabRoot . 'lib/SwiftMailer/Swift.php';
+        require_once Runtime::$fabRoot . 'lib/SwiftMailer/Swift/Connection/SMTP.php';
 
- 		// Crée une nouvelle connexion Swift
+        // Crée une nouvelle connexion Swift
         $swift = new Swift(new Swift_Connection_SMTP(ini_get('SMTP'))); // TODO: mettre dans la config de fab pour ne pas être obligé de changer php.ini
 
         $log = Swift_LogContainer::getLog();
@@ -1230,9 +1230,9 @@ class DatabaseModule extends Module
         // Force swift à utiliser un cache disque pour minimiser la mémoire utilisée
         Swift_CacheFactory::setClassName("Swift_Cache_Disk");
         Swift_Cache_Disk::setSavePath(Utils::getTempDirectory());
- 		
- 		// Crée le message
-		$email = new Swift_Message($subject);
+        
+        // Crée le message
+        $email = new Swift_Message($subject);
         
         // Crée le corps du message
         $template=Config::userGet('mailtemplate');
@@ -1268,11 +1268,11 @@ class DatabaseModule extends Module
 
         $email->attach(new Swift_Message_Part($body, $mimeType));
 
-		// Met les pièces attachées
+        // Met les pièces attachées
         $swiftFiles=array(); // Grrr... Swift ne ferme pas les fichiers avant l'appel à destruct. Garde un handle dessus pour pouvoir appeller nous même $file->close();
         if ($zip)
         {
-    		$swiftFiles[0]=new Swift_File($zipPath);
+            $swiftFiles[0]=new Swift_File($zipPath);
             $email->attach(new Swift_Message_Attachment($swiftFiles[0], 'export.zip', 'application/zip'));
         }
         else
@@ -1285,13 +1285,13 @@ class DatabaseModule extends Module
 //                $piece->setDescription($equations[$i]);
             }
         }
-        	
-		// Envoie le mail
+            
+        // Envoie le mail
         $from=new Swift_Address(Config::get('admin.email'), Config::get('admin.name'));
         $error='';
         try
         {
-    		$sent=$swift->send($email, $to, $from);
+            $sent=$swift->send($email, $to, $from);
         }
         catch (Exception $e)
         {
@@ -1519,7 +1519,7 @@ class DatabaseModule extends Module
         // Détermine le template à utiliser
         if (! $template=$this->getTemplate('errortemplate'))
         {
-        	echo $error ? $error : 'Une erreur est survenue pendant le traitement de la requête';
+            echo $error ? $error : 'Une erreur est survenue pendant le traitement de la requête';
             return;
         }
 
@@ -1972,12 +1972,12 @@ class DatabaseModule extends Module
     {
         echo '<','?xml version="1.0" encoding="iso-8889-1"?','>', "\n";
         echo '<database>', "\n"; 
-    	foreach($this->selection as $record)
+        foreach($this->selection as $record)
         {
             echo '  <record>', "\n"; 
-        	foreach($record as $field=>$value)
+            foreach($record as $field=>$value)
             {
-            	if ($value)
+                if ($value)
                 {
                     if (is_array($value))
                     {
@@ -2067,12 +2067,12 @@ class DatabaseModule extends Module
         {
             // Ne garde que les formats auquel l'utilisateur a accès
             if (isset($format['access']) && ! User::hasAccess($format['access']))
-        	{
+            {
                 Config::clear("formats.$name");
-        	}
-        	
-        	// Initialise label et max
-        	else
+            }
+            
+            // Initialise label et max
+            else
             {
                 if (!isset($format['label']))
                     Config::set("formats.$name.label", $name);
@@ -2084,5 +2084,29 @@ class DatabaseModule extends Module
         return count(Config::get('formats'));
     }
 
+    /**
+     * Fonction utilitaire utilisée par les template rss : retourne le premier
+     * champ renseigné ou la valeur par défaut sinon.
+     * 
+     * @param mixed $fields un nom de champ ou un tableau contenant les noms 
+     * des champs à étudier.
+     * @param string|null la valeur par défaut à retourner si tous les champs
+     * indiqués sont vides.
+     * @return mixed le premier champ rempli.
+     */
+    public function firstFilled($fields, $default=null)
+    {
+        foreach((array)$fields as $field)
+        {
+            $value=$this->selection[$field];
+            
+            if (is_null($value)) continue;
+            if ($value==='') continue;
+            if (is_array($value) && count($value)===0) continue;
+            if (is_array($value)) $value=reset($value);
+            return $value;
+        }
+        return $default;
+    }
 }
 ?>

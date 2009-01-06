@@ -2044,5 +2044,24 @@ final class Utils
         // Retourne le résultat
         return $size;
     }
+    
+    /*
+     * Encode les caractères '<', '>', et '&' en entités numériques 
+     * hexadécimales. 
+     * 
+     * @param string $xml la chaine à encoder.
+     * @return string
+     */
+    public static function xmlEncode($xml)
+    {
+        static $table=array
+        (
+            '<'=>'&#x3C;',
+            '>'=>'&#x3E;',
+            '&'=>'&#x26;',
+        );
+        
+        return strtr($xml, $table);
+    }
 }
 ?>

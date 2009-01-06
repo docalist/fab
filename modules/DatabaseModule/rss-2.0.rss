@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<rss  version="2.0"
+      xmlns:atom="http://www.w3.org/2005/Atom"    
+      xmlns:sy="http://purl.org/rss/1.0/modules/syndication/">
+    <channel>
+        <title>{Config::get('formats.rss.title'):Config::get('title')}</title>
+        <description>{Config::get('formats.rss.description')}</description>
+        <lastBuildDate>{date('r')}</lastBuildDate>
+        <link>{Routing::linkFor('/', true)}</link>
+        <atom:link href="{Routing::linkFor($this->request, true)}" rel="self" type="application/rss+xml" />
+
+        <sy:updatePeriod>weekly</sy:updatePeriod> /* hourly, daily, weekly, monthly, yearly */
+        <sy:updateFrequency>1</sy:updateFrequency>
+        
+        <def name="title" value="{Config::get('formats.rss.fields.title')}" />
+        <def name="description" value="{Config::get('formats.rss.fields.description')}" />
+        <def name="date" value="{Config::get('formats.rss.fields.date')}" />
+        
+        <loop on="$this->selection" as="$record">
+            <item>
+                <title>{Utils::xmlEncode($this->firstFilled($title, 'notice n°'.$REF))}</title>
+                <guid>{Routing::linkFor('/'.$this->module.'/Show?REF='.$REF, true)}</guid>
+                <opt><description>{Utils::xmlEncode($this->firstFilled($description))}</description></opt>
+                <def name="pubDate" value="{$this->firstFilled($date)}" />
+                <pubDate test="$pubDate">{date('r', strtotime($pubDate))}</pubDate>
+/*                <pubDate test="$pubDate">{date('D, d M Y H:i:s +0100', strtotime($pubDate))}</pubDate> */ 
+/*                <pubDate test="$pubDate">{date('D, d M Y H:i:s O', strtotime($pubDate))}</pubDate> */ 
+            </item>
+        </loop>
+    </channel>
+</rss>
