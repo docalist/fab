@@ -1,10 +1,9 @@
 <?php
-
 /**
  * @package     fab
  * @subpackage  modules
  * @author      Daniel Ménard <Daniel.Menard@bdsp.tm.fr>
- * @version     SVN: $Id: Database.php 105 2006-09-21 16:30:25Z dmenard $
+ * @version     SVN: $Id$
  */
 
 /**
@@ -162,7 +161,7 @@ class DatabaseModule extends Module
             array($this, $callback),
             $this->selection->record  
         );  
-
+        
         // Ajoute la requête dans l'historique des équations de recherche
         $history=Config::userGet('history', false);
 
@@ -171,7 +170,7 @@ class DatabaseModule extends Module
 
         if (!is_int($history)) $history=0;
         if ($history>0 && ! Utils::isAjax())
-            $this->updateSearchHistory($history);      
+            $this->updateSearchHistory($history);
     }   
     
     /**
@@ -945,106 +944,72 @@ class DatabaseModule extends Module
      */
     public function actionExport($calledFromPreExecute=false)
     {
-        $showForm=false;
+        $error=null;
         
+        // Détermine la ou les équations de recherche à exécuter
+        $equations=Config::get('equation', $this->request->defaults('_equation','')->asArray()->ok());
+        if (! $equations) throw new Exception('Aucune équation de recherche indiquée.');
+        $equations=(array)$equations;
+        
+        // Détermine l'ordre de tri des réponses
+        $sort=Config::get('sort', $this->request->get('_sort'));
+
+        // Détermine le nom des fichiers à générer
+        $filename=$this->request->get('filename');
+        
+        // Détermine s'il faut envoyer un e-mail
+        if ($mail=$allowmail=(bool)Config::get('allowmail'))
+            if(! $mail=(bool)Config::get('forcemail'))
+                $mail=$this->request->bool('_mail')->unique()->defaults(false)->ok();
+
+        // S'il faut envoyer un e-mail, détermine le destinataire, le sujet et le message de l'e-mail
+        $to=$this->request->defaults('_to','')->unique()->ok();
+        $subject=$this->request->defaults('_subject', (string)Config::get('mailsubject'))->unique()->ok();
+        $message=$this->request->defaults('_message', (string)Config::get('mailbody'))->unique()->ok();
+        
+        if ($mail && !$to) $error[]='Veuillez indiquer l\'adresse du destinataire de l\'e-mail.';
+        
+        // Détermine s'il faut générer une archive au format zip
+        if ($zip=$allowzip=(bool)Config::get('allowzip'))
+            if(! $zip=$forcezip=(bool)Config::get('forcezip'))
+                $zip=$this->request->bool('_zip')->unique()->defaults(false)->ok();
+
+        // Si on a plusieurs fichiers et qu'on n'envoie pas un mail, force l'option zip 
+        if (count($equations)>1 && !$mail)
+            $zip=true;
+
+        // Si l'option zip est activée, vérifie qu'on a l'extension php requise
+        if ($zip && ! class_exists('ZipArchive'))
+            throw new Exception("La création de fichiers ZIP n'est pas possible sur ce serveur : l'extension PHP requise n'est pas disponible.");
+            
         // Charge la liste des formats d'export disponibles
         if ($calledFromPreExecute)
-        {
             if (!$this->loadExportFormats())
                 throw new Exception("Aucun format d'export n'est disponible");
-        }
-
+                
         // Choix du format d'export
-        if(count(Config::get('formats'))===1)                       // Un seul format dispo : on prend celui-là
+        $formats=Config::get('formats');
+        if (count($formats)===1) // Un seul format est proposé, inutile de demander à l'utilisateur
         {
-            foreach(Config::get('formats') as $format=>$fmt);       // point-virgule à la fin, voulu !
-                // boucle vide, exécutée une seule fois, juste pour initialiser $format et $fmt
+            $fmt=reset($formats);
+            $format=key($formats);
         }
-        else                                                        // L'utilisateur a le choix du format
-        {
-            $format=Utils::get($_REQUEST['_format']);               // Regarde dans la query string
-            if ($format)
-            {
-                $fmt=Config::get("formats.$format");                // et vérifie que le format existe et est autorisé
-                if(is_null($fmt))
-                    throw new Exception("Format d'export incorrect");
-            }
-            else
-            {
-                $showForm=true; // on ne sait pas quel format utiliser
-            }
-        }
-        if (isset($fmt['description'])) 
-            $fmt['description']=trim($fmt['description']);
         else
-            $fmt['description']='';
+        {
+            if ($format=$this->request->unique('_format')->ok())
+                if(is_null($fmt=Config::get("formats.$format")))
+                    throw new Exception("Format d'export incorrect");
+        }
             
-        // Option "envoi par mail"
-        if ($mail=(bool)Config::get('allowmail'))                   // seulement si l'option mail est autorisée dans la config
-        {
-            if(! $mail=(bool)Config::get('forcemail'))              // option forcemail à true, on envoie toujours un mail
-            {
-                if (isset($_REQUEST['_mail']))                      // sinon, on regarde si on a l'option dans la query string
-                {
-                    $mail=(bool)Utils::get($_REQUEST['_mail']);         
-                }
-                else
-                {
-                    $showForm=true;
-                }
-            }        
-            $to=$subject=$message=null;
-            if($mail)                                               // s'il faut envoyer un mail, vérifie qu'on a un destinataire
-            {
-                if (!$to=Utils::get($_REQUEST['_to']))              // pas de destinataire : demande à l'utilisateur
-                {
-                    $showForm=true;
-                }
-                else                                                // récupère l'objet et le message, valeurs par défaut si absents
-                {
-                    $subject=Utils::get($_REQUEST['_subject'], 'Export de notices');
-                    $message=Utils::get($_REQUEST['_message'], '');
-                }
-            }
-        }
-        
-        // Equation(s) de recherche à exécuter
-        if (!$equations=Config::get('equation') )                    // équation(s) fixée(s) en dur dans la config, on prend
-            if (!$equations=Utils::get($_REQUEST['_equation']))      // sinon, doi(ven)t être transmis(es) en query string          
-                throw new Exception('Aucune équation de recherche indiquée');
-        $equations=(array)$equations;
-
-        // Option "archive au format ZIP"
-        if ($zip=(bool)Config::get('allowzip') )                    // seulement si l'option zip est autorisée dans la config
-        {
+        // Détermine s'il faut afficher le formulaire
+        $showForm =     $error          // s'il y a une erreur 
+                    ||  ! $format       // ou qu'on n'a pas de format
+                                        // ou que l'utilisateur n'a pas encore choisi parmi les options disponibles  
+                    ||  ($format && ($allowmail || ($allowzip && !$forcezip)) && !$this->request->get('confirm'));
             
-            if(! $zip=(bool)Config::get('forcezip'))                // option forcezip à true, on crée toujours un zip
-            {
-                if (isset($_REQUEST['_zip']))
-                {
-                    $zip=(bool)Utils::get($_REQUEST['_zip']);       // sinon, on regarde si on a l'option dans la query string
-                }
-                else
-                {
-                    $showForm=true;
-                }
-            }
-            if ($zip && ! class_exists('ZipArchive'))                   // zip demandé mais l'extension php_zip n'est pas chargée dans php.ini
-                throw new Exception("La création de fichiers ZIP n'est pas possible sur ce serveur");
-        }
-
-        // TODO: a revoir, que faire si on a plusieurs fichiers et que php_zip.dll n'est pas chargée ?
-        // Si plusieurs équations et ni zip ni mail, problème (on ne peut pas envoyer plusieurs fichiers au navigateur !)
-        if (count($equations)>1 && !$mail && !$showForm)
-        {
-            $zip=true;
-            if (! class_exists('ZipArchive'))                   // zip demandé mais l'extension php_zip n'est pas chargée dans php.ini
-                throw new Exception("La création de fichiers ZIP n'est pas possible sur ce serveur");
-        }
-    
         if ($showForm)
         {
-            if($calledFromPreExecute) return false;
+            if ($calledFromPreExecute) return false;
             
             // Détermine le template à utiliser
             if (! $template=$this->getTemplate())
@@ -1053,6 +1018,16 @@ class DatabaseModule extends Module
             // Détermine le callback à utiliser
             $callback=$this->getCallback();
             
+            // Détermine quel est le format par défaut pour cet utilisateur
+            foreach(Config::get('formats') as $name=>$fmt)
+            {
+                if (Config::userGet('formats.'.$name.'.default'))
+                {
+                    $defaultFormat=$name;
+                    break;
+                }
+            }
+            
             // Exécute le template
             Template::run
             (
@@ -1060,12 +1035,21 @@ class DatabaseModule extends Module
                 array($this, $callback),
                 array
                 (
+                    'error'=>$error,
                     'equations'=>$equations,
+                    'sort'=>$sort,
+                    'filename'=>$filename,
+                    'format'=>$format ? $format : $defaultFormat,
+                    'zip'=>$zip,
+                    'mail'=>$mail,
+                    'to'=>$to,
+                    'subject'=>$subject,
+                    'message'=>$message,
                 )
             );
             return true;
         }
-        
+
         // Tous les paramètres ont été vérifiés, on est prêt à faire l'export
         
         // TODO : basculer vers le TaskManager si nécessaire
@@ -1086,27 +1070,23 @@ class DatabaseModule extends Module
             difficulté supplémentaire :
                 - ça fait quoi quand on clique sur le lien ?            
         */
+        
         // Extrait le nom de fichier indiqué dans le format dans la clé content-disposition
         $basename='export%s';
-        if ($contentDisposition=Utils::get($fmt['content-disposition']))
-        {
-            if (preg_match('~;\s?filename\s?=\s?(?:"([^"]+)"|([^ ;]+))~i', $contentDisposition, $match))
-            {
-                $basename=Utils::get($match[2], $match[1]);
-                if (stripos($basename, '%s')===false)
-                {
-                	$basename=Utils::setExtension($basename,'').'%s'.Utils::getExtension($basename);
-                }
-            }
-        }
-
+        if (preg_match('~;\s?filename\s?=\s?(?:"([^"]+)"|([^ ;]+))~i', Utils::get($fmt['content-disposition']), $match))
+            $basename=Utils::get($match[2], $match[1]);
+        elseif ($template=Utils::get($fmt['template']))
+            $basename=$template;
+            
+        if (stripos($basename, '%s')===false)
+            $basename=Utils::setExtension($basename,'').'%s'.Utils::getExtension($basename);
+            
         // Génère un nom de fichier unique pour chaque fichier en utilisant l'éventuel filename passé en query string
-        $filename=Utils::get($_REQUEST['filename'],'');
         $filenames=array();
         foreach($equations as $i=>$equation)
         {
             $h=is_array($filename) ? Utils::get($filename[$i],'') : $filename;
-            //if ($h) $h='-' . $h;
+            // if (! $h) $h='export';
             $j=1;
             $result=sprintf($basename, $h);
             while(in_array($result, $filenames))
@@ -1128,16 +1108,15 @@ class DatabaseModule extends Module
         foreach($equations as $i=>$equation)
         {        
             // Lance la recherche, si aucune réponse, erreur
-            if (! $this->select($equation, $max, 0))
+            if (! $this->select($equation, $max, 1, $sort))
             {
             	echo "Aucune réponse pour l'équation $equation<br />";
                 continue;
             }
             
-            //echo 'Génération fichier ',$filenames[$i],' pour équation ', $equation, '<br />';
             $counts[$i]=$max===-1 ? $this->selection->count() : (min($max,$this->selection->count()));
             
-            // Si l'utilisateur a demandé un envoi par mail, démarre la capture
+            // Si l'utilisateur a demandé un envoi par mail ou un zip, démarre la capture
             if ($mail or $zip)
             {
             	Utils::startCapture();
@@ -2084,7 +2063,7 @@ class DatabaseModule extends Module
     private function loadExportFormats()
     {
         // Balaye la liste des formats d'export disponibles 
-        foreach(Config::get('formats') as $name=>$format)
+        foreach((array) Config::get('formats') as $name=>$format)
         {
             // Ne garde que les formats auquel l'utilisateur a accès
             if (isset($format['access']) && ! User::hasAccess($format['access']))
