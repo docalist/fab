@@ -507,7 +507,7 @@ return false (ne pas afficher le contenu par défaut)
             // Résout le path s'il est relatif
             if (Utils::isRelativePath($action))
             {
-                if (false === $path=Utils::searchFile($path))
+                if (false === $path=Utils::searchFile($path, Runtime::$root))   // root : permet que le template soit relatif à la racine du site (exemple : wordpress)
                     throw new Exception("Impossible de trouver le template $action. searchPath=".print_r(Utils::$searchPath, true));
             }
     
