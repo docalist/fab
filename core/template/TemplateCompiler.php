@@ -131,7 +131,7 @@ class TemplateCompiler
     {
         return self::$lastId;   
     }
-    
+
     /**
      * Compile un template 
      * 
@@ -202,7 +202,7 @@ class TemplateCompiler
             $catalog='XML_CATALOG_FILES=' . dirname(__FILE__) . '/xmlcatalog/catalog.xml';
             putenv($catalog);
         }
-                    
+        
         // gestion des erreurs : voir comment 1 à http://fr.php.net/manual/en/function.dom-domdocument-loadxml.php
         libxml_clear_errors(); // >PHP5.1
         libxml_use_internal_errors(true);// >PHP5.1
@@ -216,7 +216,7 @@ class TemplateCompiler
             throw new Exception($h);
         }
         unset($source);
-
+        
         // Instancie tous les templates présents dans le document
        self::compileMatches($xml);        
 
@@ -264,6 +264,7 @@ class TemplateCompiler
         $h.=self::PHP_END_TAG;                
 
         list(self::$loop, self::$opt, self::$env)=array_pop(self::$stack);
+        
         return $h;
     }
 
@@ -844,6 +845,7 @@ private static $line=0, $column=0;
             case XML_DOCUMENT_NODE:         return 'XML_DOCUMENT_NODE';
             case XML_DOCUMENT_TYPE_NODE:    return 'XML_DOCUMENT_TYPE_NODE';
             case XML_CDATA_SECTION_NODE:    return 'XML_CDATA_SECTION_NODE';
+            case XML_NAMESPACE_DECL_NODE:   return 'XML_NAMESPACE_DECL_NODE';
             default:
                 return "type de noeud non géré ($node->nodeType)";
         }
@@ -883,7 +885,7 @@ private static $line=0, $column=0;
         switch ($node->nodeType)
         {
             case XML_TEXT_NODE:     // du texte
-                $h=$node->nodeValue;
+                $h=$node->nodeValue; 
                 self::parse($h);
                 echo $h;
                 return;
@@ -1067,14 +1069,17 @@ private static $line=0, $column=0;
         // Génère le début du tag ouvrant
         echo '<', $name;    // si le tag a un préfixe, il figure déjà dans name (e.g. <test:h1>)
 
-        // cas particulier de l'attribut xmlns
-        if ($node->parentNode && $node->namespaceURI !== $node->parentNode->namespaceURI)
-            echo ' xmlns="', $node->namespaceURI, '"'; 
-            
-        // Accès aux attributs xmlns : cf http://bugs.php.net/bug.php?id=38949
-        // apparemment, fixé dans php > 5.1.6, à vérifier
-            
-        // Génère tous les attributs
+        // Génère les attributs xmlns et xmlns:*
+        
+        // remarque : je n'ai trouvé aucune solution permettant de récupérer les attributs xmlns:* présents
+        // dans le node. On procède à coup de preg_match sur le code source généré par saveXml()...
+
+        $h=$node->ownerDocument->saveXml($node);    // laisse libxml génèrer le "bon" code source
+        $h=substr($h, 0, strpos($h,'>'));           // Ne conserve que le tag ouvrant et ses attributs
+        preg_match_all('~xmlns(?::[a-z_0-9.-]+)?\s*=\s*["\'].*?["\']~m', $h, $matches); // extrait les attributs xmlns:*
+        if ($matches[0]) echo ' ', implode(' ', $matches[0]);
+        
+        // Génère les attributs standards
         if ($node->hasAttributes())
         {
             $flags=0;
@@ -1093,10 +1098,11 @@ private static $line=0, $column=0;
                 else
                 {
                     ++self::$opt;
-                    self::parse($value,false,$flags);
+                    self::parse($value, false, $flags);
                     --self::$opt;
     
                     if ($value==='') continue;
+                    
                     $quot=(strpos($value,'"')===false) ? '"' : "'";
                     
                     // Si l'attribut ne contient que des variables (pas de texte), il devient optionnel
@@ -1107,7 +1113,7 @@ private static $line=0, $column=0;
                         echo self::PHP_START_TAG, 'Template::optEnd()', self::PHP_END_TAG; 
                     }
                     else
-                        echo ' ', $attribute->nodeName, '=', $quot, $value, $quot;
+                        echo ' ', $attr, '=', $quot, $value, $quot;
                 }
             }
         }
@@ -2148,26 +2154,28 @@ return false (ne pas afficher le contenu par défaut)
         // Sous forme de code php
         else
         {
+            $autoArray=true;
+            
             $piece=reset($pieces);
             while($piece!==false)
             {
                 if ($piece[0])
                 { 
-                    $source.=$piece[1];
+                    $source.=htmlspecialchars($piece[1], ENT_NOQUOTES);
                     $piece=next($pieces); 
                 }
                 else 
                 {
                     $source.=self::PHP_START_TAG.'echo ';
-                    $source.='is_array($_ee=';
+                    if ($autoArray) $source.='is_array($_ee=';
                     $source.=(self::$opt ? 'Template::filled(' . $piece[1] . ')' : $piece[1]);
-                    $source.=')?implode(\' ¤ \',$_ee):$_ee';
+                    if ($autoArray) $source.=')?implode(\' ¤ \',$_ee):$_ee';
                     while((false !== $piece=next($pieces)) && ($piece[0]===false))
                     {
                         $source.=',';
-                        $source.='is_array($_ee=';
+                        if ($autoArray) $source.='is_array($_ee=';
                         $source.=(self::$opt ? 'Template::filled(' . $piece[1] . ')' : $piece[1]);
-                        $source.=')?implode(\' ¤ \',$_ee):$_ee';
+                        if ($autoArray) $source.=')?implode(\' ¤ \',$_ee):$_ee';
                     }
                     $source.=self::PHP_END_TAG;
                 }
