@@ -125,6 +125,8 @@ class DatabaseModule extends Module
      */
     public function actionSearch()
     {
+        Timer::enter();
+        
         // Ouvre la base de données
         $this->openDatabase();
 
@@ -155,12 +157,14 @@ class DatabaseModule extends Module
         $callback=$this->getCallback();
 
         // Exécute le template
+        Timer::enter('Exécution du template d\'affichage des réponses');
         Template::run
         (
             $template,
             array($this, $callback),
             $this->selection->record  
         );  
+        Timer::leave();
         
         // Ajoute la requête dans l'historique des équations de recherche
         $history=Config::userGet('history', false);
@@ -171,6 +175,7 @@ class DatabaseModule extends Module
         if (!is_int($history)) $history=0;
         if ($history>0 && ! Utils::isAjax())
             $this->updateSearchHistory($history);
+        Timer::leave();
     }   
     
     /**
@@ -196,6 +201,8 @@ class DatabaseModule extends Module
      */
     private function updateSearchHistory($maxHistory=10)
     {
+        Timer::enter('Mise à jour de l\'historique des recherches');
+        
         // Charge les sessions si ce n'est pas le cas (pas mis en config, comme ça la session n'est chargée que si on en a besoin)
         Runtime::startSession();
         
@@ -248,7 +255,7 @@ class DatabaseModule extends Module
             
 //        echo 'Historique de recherche mis à jour : <br/>';
 //        echo '<pre>', print_r($hist,true), '</pre>';
-        
+        Timer::leave();
     }
     
     /**
@@ -1430,8 +1437,10 @@ class DatabaseModule extends Module
         if (is_null($database))
             throw new Exception('La base de données à utiliser n\'a pas été indiquée dans le fichier de configuration du module');
         
+        Timer::enter('Ouverture de la base '.$database);
         debug && Debug::log("Ouverture de la base '%s' en mode '%s'", $database, $readOnly ? 'lecture seule' : 'lecture/écriture');
         $this->selection=Database::open($database, $readOnly);
+        Timer::leave();
     }
 
     /**
@@ -1464,6 +1473,7 @@ class DatabaseModule extends Module
      */
     protected function select($equation, $max=null, $start=null, $sort=null)
     {
+        Timer::enter('Exécution de la requête '.$equation);
         /*
          * Valeurs par défaut des options de recherche
          * 
@@ -1502,7 +1512,9 @@ class DatabaseModule extends Module
                 $this->request->defaults('_opanycase', Config::get('opanycase'))
                     ->ok(),
         );
-        return $this->selection->search($equation, $options);
+        $result=$this->selection->search($equation, $options);
+        Timer::leave();
+        return $result;
     }
    
     /**
