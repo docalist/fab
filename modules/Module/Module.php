@@ -102,58 +102,69 @@ abstract class Module
         // Vérifie que le module est activé
         // if ($config['disabled']) 
         //     throw new Exception('Le module '.$module.' est désactivé');
-            
+        
+        $singleton=false;
         // Si le module a un fichier php, c'est un vrai module, on le charge 
         if (file_exists($path=$moduleDirectory.$module.'.php'))
         {
             // Crée une nouvelle instance du module
-            $object=new $module();
-
-            // Vérifie que c'est bien une classe déscendant de 'Module'
-            if (! $object instanceof Module)
-                throw new ModuleException("Le module '$module' est invalide : il n'hérite pas de la classe ancêtre 'Module' de fab");
-            
-            $object->searchPath=array(Runtime::$fabRoot.'core'.DIRECTORY_SEPARATOR.'template'.DIRECTORY_SEPARATOR); // fixme: on ne devrait pas fixer le searchpath ici
-            
-            $transformer=array($object, 'compileConfiguration');
-            
-            // Crée la liste des classes dont hérite le module
-            $ancestors=array();
-            $class=new ReflectionClass($module);
-            while ($class !== false)
+            $interfaces=class_implements($module);
+            if (isset($interfaces['Singleton']) && call_user_func(array($module, 'hasInstance')))
             {
-                array_unshift($ancestors, $class);
-                $class=$class->getParentClass();
+                $object= call_user_func(array($module, 'getInstance'));
+                $singleton=true;
             }
-
-            // Configuration le module 
-            $config=array();
-            foreach($ancestors as $class)
+            else
             {
-                // Fusionne la config de l'ancêtre avec la config actuelle
-                Config::mergeConfig($config, self::getConfig($class->getName(), $transformer));
+                $object=new $module();
+            
+
+                // Vérifie que c'est bien une classe déscendant de 'Module'
+                if (! $object instanceof Module)
+                    throw new ModuleException("Le module '$module' est invalide : il n'hérite pas de la classe ancêtre 'Module' de fab");
                 
-                // Ajoute le répertoire de l'anêtre dans le searchPath du module
-                $dir=dirname($class->getFileName());
-                array_unshift($object->searchPath, $dir.DIRECTORY_SEPARATOR);
+                $object->searchPath=array(Runtime::$fabRoot.'core'.DIRECTORY_SEPARATOR.'template'.DIRECTORY_SEPARATOR); // fixme: on ne devrait pas fixer le searchpath ici
                 
-                // Si l'application à un répertoire portant le même nom, on l'ajoute aussi dans le searchPath
-                // Pour surcharger des templates, etc.
-                /*
-                    en fait n'a pas de sens : si on crée un répertoire ayant le
-                    même nom, il sera considéré comme un pseudo module
-                */
-                if (strncmp($dir, Runtime::$fabRoot, strlen(Runtime::$fabRoot))===0)
+                $transformer=array($object, 'compileConfiguration');
+                
+                // Crée la liste des classes dont hérite le module
+                $ancestors=array();
+                $class=new ReflectionClass($module);
+                while ($class !== false)
                 {
-                    $appdir=Runtime::$root.substr($dir, strlen(Runtime::$fabRoot));
-                    if (file_exists($appdir))
-                        array_unshift($object->searchPath, $appdir.DIRECTORY_SEPARATOR);
+                    array_unshift($ancestors, $class);
+                    $class=$class->getParentClass();
                 }
-                
-            }
-            
-            // Stocke la config du module
-            $object->config=$config;            
+    
+                // Configuration le module 
+                $config=array();
+                foreach($ancestors as $class)
+                {
+                    // Fusionne la config de l'ancêtre avec la config actuelle
+                    Config::mergeConfig($config, self::getConfig($class->getName(), $transformer));
+                    
+                    // Ajoute le répertoire de l'anêtre dans le searchPath du module
+                    $dir=dirname($class->getFileName());
+                    array_unshift($object->searchPath, $dir.DIRECTORY_SEPARATOR);
+                    
+                    // Si l'application à un répertoire portant le même nom, on l'ajoute aussi dans le searchPath
+                    // Pour surcharger des templates, etc.
+                    /*
+                        en fait n'a pas de sens : si on crée un répertoire ayant le
+                        même nom, il sera considéré comme un pseudo module
+                    */
+                    if (strncmp($dir, Runtime::$fabRoot, strlen(Runtime::$fabRoot))===0)
+                    {
+                        $appdir=Runtime::$root.substr($dir, strlen(Runtime::$fabRoot));
+                        if (file_exists($appdir))
+                            array_unshift($object->searchPath, $appdir.DIRECTORY_SEPARATOR);
+                    }
+                    
+                }
+                        
+                // Stocke la config du module
+                $object->config=$config;
+            }            
         }
         
         // Sinon, il s'agit d'un pseudo-module : on doit avoir un fichier de config avec une clé 'module'
@@ -232,7 +243,7 @@ abstract class Module
         $object->module=$module;
         debug && Debug::log($module . ' : %o', $object);
 
-        $object->initialize();
+        if (!$singleton) $object->initialize();
         return $object;        
     }
     
