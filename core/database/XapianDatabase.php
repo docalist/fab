@@ -3,7 +3,7 @@
  * @package     fab
  * @subpackage  database
  * @author      Daniel Ménard <Daniel.Menard@bdsp.tm.fr>
- * @version     SVN: $Id: XapianDatabase.php 484 2007-10-25 09:33:07Z daniel.menard.bdsp $
+ * @version     SVN: $Id$
  */
 
 require_once Runtime::$fabRoot . 'lib/xapian/xapian.php';
@@ -858,21 +858,40 @@ class XapianDatabaseDriver extends Database
         // Indique au QueryParser la liste des index de base
         foreach($this->schema->indices as $name=>$index)
         {
-//            if($index->boolean)
-//                $this->xapianQueryParser->add_boolean_prefix($name, $index->_id.':');
-//            else
-                $this->xapianQueryParser->add_prefix($name, $index->_id.':');
+            if (!isset($index->_type)) $index->_type=DatabaseSchema::INDEX_PROBABILISTIC; // cas d'un schéma compilé avant que _type ne soit implémenté
+            switch($index->_type)
+            {
+                case DatabaseSchema::INDEX_PROBABILISTIC:
+                    $this->xapianQueryParser->add_prefix($name, $index->_id.':');
+                    break;
+                    
+                case DatabaseSchema::INDEX_BOOLEAN:
+                    $this->xapianQueryParser->add_boolean_prefix($name, $index->_id.':');
+                    break;
+                    
+                default:
+                    throw new Exception('index ' . $name . ' : type incorrect : ' . $index->_type);
+            }
         }
         
         // Indique au QueryParser la liste des alias
         foreach($this->schema->aliases as $aliasName=>$alias)
         {
-            foreach($alias->indices as $name=>$index)
+            if (!isset($alias->_type)) $alias->_type=DatabaseSchema::INDEX_PROBABILISTIC; // cas d'un schéma compilé avant que _type ne soit implémenté
+            switch($alias->_type)
             {
-//                if(false)//($name==='date' || $name==='type')
-//                    $this->xapianQueryParser->add_boolean_prefix($aliasName, $this->schema->indices[$name]->_id.':');
-//                else
-                    $this->xapianQueryParser->add_prefix($aliasName, $this->schema->indices[$name]->_id.':');
+                case DatabaseSchema::INDEX_PROBABILISTIC:
+                    foreach($alias->indices as $name=>$index)
+                        $this->xapianQueryParser->add_prefix($aliasName, $index->_id.':');
+                    break;
+                    
+                case DatabaseSchema::INDEX_BOOLEAN:
+                    foreach($alias->indices as $name=>$index)
+                        $this->xapianQueryParser->add_boolean_prefix($aliasName, $index->_id.':');
+                    break;
+                    
+                default:
+                    throw new Exception('index ' . $name . ' : type incorrect : ' . $index->_type);
             }
         }
         
@@ -1414,7 +1433,7 @@ class XapianDatabaseDriver extends Database
 
     /**
      * Suggère des termes provenant de la table indiquée
-     *
+     * 
      * @param string $table
      * @return array
      */
@@ -1951,9 +1970,9 @@ class XapianDatabaseDriver extends Database
 //        return $result; 
     }
      
-    
+        
     public function dumpTerms($start='', $max=0)
-    {
+        {
         $begin=$this->xapianDatabase->allterms_begin();
         $end=$this->xapianDatabase->allterms_end();
         $begin->skip_to($start);
@@ -1973,7 +1992,7 @@ class XapianDatabaseDriver extends Database
         }
         echo '<strong>', $count, ' termes</strong>';
     }
-    
+
     public function totalCount()
     {
         return $this->xapianDatabase->get_doccount();
