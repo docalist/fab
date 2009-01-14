@@ -158,6 +158,7 @@ class DatabaseModule extends Module
 
         // Exécute le template
         Timer::enter('Exécution du template d\'affichage des réponses');
+
         Template::run
         (
             $template,
@@ -1768,16 +1769,27 @@ class DatabaseModule extends Module
      * La méthode considère que l'équation passée en paramètre est destinée à
      * être combinée en "ET" avec d'autres équations.
      *
-     * Dans sa version actuelle, la méthode ajoute des parenthèses si l'équation
-     * contient des espaces. Idéalement, il faudrait faire un traitement
-     * beaucoup plus compliqué, mais ça revient quasiment à ré-écrire un
-     * query parser...
+     * Dans sa version actuelle, la méthode supprime de l'équation les blocs
+     * parenthésés, les phrases et les articles et ajoute des parenthèses si
+     * ce qui reste contient l'opérateur ou.
+     *
+     * Idéalement, il faudrait faire un traitement beaucoup plus compliqué, mais
+     * ça revient quasiment à ré-écrire un query parser.
+     *
+     * Le traitement actuel est plus simple mais semble fonctionner.
      *
      * @param string $equation l'équation à tester.
      */
     private function addBrackets(& $equation)
     {
-        if (false !== strpos($equation, ' '))
+        $h=$equation;
+        do
+        {
+            $h=preg_replace('~(?:\[.*\])|(?:".*")|(?:\([^()]*\))~', '', $h, -1, $count);
+        }
+        while ($count);
+
+        if (false !== stripos($h, ' OR ') || false !== stripos($h, ' OU '))
             $equation='('.$equation.')';
     }
 
