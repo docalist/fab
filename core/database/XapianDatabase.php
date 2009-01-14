@@ -123,6 +123,15 @@ class XapianDatabaseDriver extends Database
 
 
     /**
+     * L'objet XapianMultiValueSorter utilisé pour réaliser les tris multivalués.
+     *
+     * Initialisé par {@link setSortOrder()}.
+     *
+     * @var XapianMultiValueSorter
+     */
+    private $xapianSorter=null;
+
+    /**
      * L'objet XapianMSet contenant les résultats de la recherche.
      *
      * Vaut null tant que {@link search()} n'a pas été appellée.
@@ -139,6 +148,19 @@ class XapianDatabaseDriver extends Database
      * @var XapianMSetIterator
      */
     private $xapianMSetIterator=null;
+
+    /**
+     * L'équation de recherche en cours.
+     *
+     * @var string
+     */
+    private $equation='';
+
+    /**
+     * Le filtre en cours.
+     * @var string
+     */
+    private $filter='';
 
     /**
      * L'objet XapianQuery contenant l'équation de recherche indiquée par
@@ -203,6 +225,34 @@ class XapianDatabaseDriver extends Database
      * @var bool
      */
     private $opAnyCase=true;
+
+    /**
+     * Indique le numéro d'ordre de la première réponse retournée par la
+     * recherche en cours.
+     *
+     * Initialisé par {@link search()} et utilisé par {@link searchInfo()}.
+     *
+     * @var int
+     */
+    private $start=0;
+
+
+    /**
+     * Indique le nombre maximum de réponses demandées pour la recherche en
+     * cours.
+     *
+     * Initialisé par {@link search()} et utilisé par {@link searchInfo()}.
+     *
+     * @var int
+     */
+    private $max=-1;
+
+    /**
+     * Une estimation du nombre de réponses obtenues pour la recherche en cours.
+     *
+     * @var int
+     */
+    private $count=0;
 
     /**
      * Retourne le schéma de la base de données
@@ -1203,7 +1253,6 @@ class XapianDatabaseDriver extends Database
         $this->max=$max;
 
 
-        //$this->rank=0;
         if ($minscore<0) $minscore=0; elseif($minscore>100) $minscore=100;
 
         // Met en place l'environnement de recherche lors de la première recherche
@@ -1213,6 +1262,7 @@ class XapianDatabaseDriver extends Database
         if ($filter)
         {
             $this->xapianFilter=null;
+            $this->filter=implode(' AND ', $filter);
             foreach($filter as $filter)
             {
                 $filter=$this->parseQuery($filter);
@@ -1224,6 +1274,7 @@ class XapianDatabaseDriver extends Database
         }
 
         // Analyse l'équation de recherche de l'utilisateur
+        $this->equation=$equation;
         $query=$this->xapianQuery=$this->parseQuery($equation);
 
         // Combine l'équation et le filtre pour constituer la requête finale
@@ -1365,13 +1416,7 @@ class XapianDatabaseDriver extends Database
         else
         {
             // On va utiliser un sorter xapian pour créer la clé
-            $this->sorter=new XapianMultiValueSorter();
-            /*
-             * Remarque : on utilise une propriété et non pas une simple variable
-             * locale car xapian ne conserve pas lui-même de référence sur le
-             * sorter. Avec une variable locale, le sorter serait libéré dès la
-             * fin de cette fonction et xapian planterait ensuite.
-             */
+            $this->xapianSorter=new XapianMultiValueSorter();
 
             // Réinitialise l'ordre de tri en cours
             $this->sortOrder='';
@@ -1422,7 +1467,7 @@ class XapianDatabaseDriver extends Database
                         $id=$this->schema->sortkeys[$key]->_id;
 
                         // Ajoute cette clé au sorter
-                        $this->sorter->add($id, $forward);
+                        $this->xapianSorter->add($id, $forward);
 
                         // Mémorise l'ordre de tri en cours (pour searchInfo)
                         $this->sortOrder.=$key . ($forward ? '+ ' : '- ');
@@ -1431,7 +1476,7 @@ class XapianDatabaseDriver extends Database
             }
 
             // Demande à xapian de trier en utilisant la méthode et le sorter obtenu
-            $this->xapianEnquire->$function($this->sorter, false);
+            $this->xapianEnquire->$function($this->xapianSorter, false);
 
             // Supprime l'espace final de l'ordre en cours
             $this->sortOrder=trim($this->sortOrder);
@@ -1603,6 +1648,7 @@ class XapianDatabaseDriver extends Database
         // est le libellé à utiliser (par exemple : 'environ %d ')
         if (is_string($countType))
         {
+            if (is_null($this->xapianMSet)) return 0;
             $count=$this->xapianMSet->get_matches_estimated();
             if ($count===0) return 0;
 
@@ -1657,7 +1703,8 @@ class XapianDatabaseDriver extends Database
         {
             case 'docid': return $this->xapianMSetIterator->get_docid();
 
-            case 'equation': return $this->selection->equation;
+            case 'equation': return $this->equation;
+            case 'filter': return $this->filter;
             case 'rank': return $this->xapianMSetIterator->get_rank()+1;
             case 'start': return $this->start;
             case 'max': return $this->max;
@@ -1775,6 +1822,8 @@ class XapianDatabaseDriver extends Database
     private function getRequestStopWords($internal=false)
     {
         // Liste des mots vides ignorés
+        if (is_null($this->xapianQueryParser)) return array();
+
         $stopwords=array();
         $iterator=$this->xapianQueryParser->stoplist_begin();
         while(! $iterator->equals($this->xapianQueryParser->stoplist_end()))
