@@ -1595,17 +1595,15 @@ class DatabaseModule extends Module
      * - la ou le(s) équation(s) de recherche qui figure dans l'argument
      *   <code>_equation</code> de la {@link $request requête en cours},
      *
-     * - tous les paramètres de la requête dont le nom est un index ou un
-     *   alias de la base.
+     * - tous les paramètres de la requête dont le nom correspond à un nom
+     *   d'index ou d'alias de type probabiliste (ceux sui sont de type
+     *   booléens sont retournés par getFilter).
      *
      * Si aucun des éléments ci-dessus ne retourne une équation de recherche,
      * getEquation() utilise la ou les équation(s) de recherche indiquée(s)
-     * dans la clé <code><equation></code> de la configuration (des équations par
-     * défaut différentes peuvent être indiquées selon les droits de
+     * dans la clé <code><equation></code> de la configuration (des équations
+     * par défaut différentes peuvent être indiquées selon les droits de
      * l'utilisateur, voir {@link Config::userGet()}).
-     *
-     * Si aucune équation par défaut n'a été indiquée, la méthode retourne
-     * null.
      *
      * Les modules qui héritent de DatabaseModule peuvent surcharger cette
      * méthode pour changer le comportement par défaut.
@@ -1615,63 +1613,12 @@ class DatabaseModule extends Module
      */
     protected function getEquation()
     {
-        $equation='';
-
-        // Combine en ET tous les '_equation=' transmis en paramètre
-        if (isset($this->request->_equation))
-        {
-            foreach((array)$this->request->_equation as $eq)
-            {
-                if ('' !== $eq=trim($eq))
-                {
-                    if ($equation) $equation .= ' AND ';
-                    $equation.= $eq;
-                }
-            }
-        }
-        if ($equation !=='') $equation='(' . $equation . ')';
-
-        // Combine en OU tous les paramètres qui sont des noms d'index/alias et combine en ET avec l'équation précédente
-        $schema=$this->selection->getSchema();
-        foreach($this->request->getParameters() as $name=>$value)
-        {
-            if (is_null($value) || $value==='') continue;
-            if (isset($schema->indices[strtolower($name)]) || isset($schema->aliases[strtolower($name)]))
-            {
-                $h='';
-                $addBrackets=false;
-                foreach((array)$value as $value)
-                {
-                    if ('' !== trim($value))
-                    {
-                        if ($h)
-                        {
-                           $h.=' OR ';
-                           $addBrackets=true;
-                        }
-                        $h.=$value;
-                    }
-                }
-                if ($h)
-                {
-                    if ($equation) $equation .= ' AND ';
-                    if (true or $addBrackets) // todo: à revoir, génère des parenthèses inutiles
-                        $equation.= $name.':('.$h.')';
-                    else
-                        $equation.= $name.':'.$h;
-                }
-            }
-        }
-
-        // Retourne l'équation obtenue si on en a une
-        if ($equation !== '') return $equation;
-
-        // L'équation par défaut indiquée dans la config sinon
-        return Config::userGet('equation', null);
+        return $this->getEquationPart('_equation', DatabaseSchema::INDEX_PROBABILISTIC, true);
     }
 
     /**
-     * Détermine le ou les filtres à appliquer à la recherche qui sera exécutée.
+     * Construit l'équation qui sera utilisée comme filtre pour lancer la
+     * recherche dans la base.
      *
      * Les filtres seront combinés à l'équation de recherche retournée par
      * {@link getEquation()} de telle sorte que seuls les enregistrements qui
@@ -1681,31 +1628,157 @@ class DatabaseModule extends Module
      * de base de données utilisé (BisDatabase combine en 'SAUF', XapianDatabase
      * utilise l'opérateur xapian 'FILTER').
      *
-     * Par défaut, getFilter() prend en compte :
+     * Par défaut, getFilter() combine en 'ET' les éléments suivants :
      *
-     * - les filtres éventuels indiqués dans la clé <code><filter></code> de la
-     *   configuration en cours (des filtres différents peuvent être indiqués
-     *   selon les droits de l'utilisateur, voir {@link Config::userGet()}),
+     * - la ou le(s) équation(s) de recherche qui figure dans l'argument
+     *   <code>_filter</code> de la {@link $request requête en cours},
      *
-     * - les filtres éventuels passés dans le paramètre <code>_filter</code> de la
-     * {@link Request requête en cours}.
+     * - tous les paramètres de la requête dont le nom correspond à un nom
+     *   d'index ou d'alias de type boolean (ceux sui sont de type
+     *   probabiliste sont retournés par getEquation).
+     *
+     * Si aucun des éléments ci-dessus ne retourne une équation de recherche,
+     * getFilter() utilise la ou les équation(s) filtres indiquée(s)
+     * dans la clé <code><filter></code> de la configuration (des filtres
+     * différents peuvent être indiquées selon les droits de l'utilisateur,
+     * voir {@link Config::userGet()}).
      *
      * Les modules descendants peuvent surcharger cette méthode pour modifier
      * ce comportement par défaut.
      *
-     * @return array le ou les filtres à appliquer à la recherche. Retourne un
-     * tableau vide s'il n'y a aucun filtre.
+     * @return null|string l'équation de recherche obtenue ou null aucun filtre
+     * n'a été spécifié.
      */
     protected function getFilter()
     {
-        // Charge les filtres indiqués dans la clé 'filter' de la configuration
-        $filters1=(array) Config::userGet('filter');
+        return $this->getEquationPart('_filter', DatabaseSchema::INDEX_BOOLEAN, false);
+    }
 
-        // Charge les filtres indiqués dans les paramètres '_filter' de la requête
-        $filters2=(array) $this->request->_filter;
 
-        // Fusionne les deux
-        return array_merge($filters1, $filters2);
+    /**
+     * Construit la partie probabiliste ou la partie filtre de l'équation de
+     * recherche à exécuter en fonction de la requête et des arguments passés
+     * en paramètres.
+     *
+     * getEquationPart() et la fonction interne utilisée par
+     * {@link getEquation()} et {@link getFilter()} pour construire l'équation
+     * de recherche à exécuter.
+     *
+     * La méthode combine en 'ET' les éléments suivants :
+     *
+     * - la ou le(s) équation(s) de recherche qui figure dans l'argument
+     *   <code>$parameterName</code> de la {@link $request requête en cours},
+     *
+     * - tous les paramètres de la requête dont le nom correspond à un nom
+     *   d'index ou d'alias ayant le type <code>$indexType</code> passé en
+     *   paramètre.
+     *
+     * Si aucun des éléments ci-dessus ne retourne une équation de recherche,
+     * getEquationPart() utilise la ou les équation(s) de recherche indiquée(s)
+     * dans la clé <code>$parameterName</code> de la configuration (en
+     * supprimant le underscore initial éventuel : '_equation' :
+     * config::get('equation').
+     *
+     * Si aucune équation par défaut n'a été indiquée, la méthode retourne
+     * null.
+     *
+     * Les modules qui héritent de DatabaseModule peuvent surcharger cette
+     * méthode pour changer le comportement par défaut.
+     *
+     *
+     * @param $parameterName le nom du paramètre à récupérer dans la query
+     * string (soit '_equation', soit '_filter').
+     *
+     * @param $indexType le type d'index à prendre en compte
+     * (DatabaseSchema::INDEX_PROBABILISTIC ouDatabaseSchema::INDEX_BOOLEAN).
+     * Seuls les arguments correspondant à un index ou un alias de ce type seront
+     * ajoutés à l'équation finale.
+     *
+     * @param boolean $configIsDefault indique si l'équation indiquée dans la
+     * config est une valeur par défaut (elle n'est retournée que si aucune
+     * équation n'a pu être construite) ou non (elle est systématiquement
+     * ajoutée à l'équation de recherche).
+     *
+     * @return null|string l'équation de recherche obtenue ou null si aucune
+     * équation ne peut être construite.
+     */
+    protected function getEquationPart($parameterName, $indexType, $configIsDefault)
+    {
+        // Supprime de la requête tous les paramètres qui sont vides
+        $request=$this->request->copy()->clearNull();
+
+        // Récupère les paramètres "_equation"
+        $equations=$request->asArray($parameterName)->ok();
+
+        // Ajoute tous les paramètres qui sont des index de type probabiliste
+        $schema=$this->selection->getSchema();
+        foreach($request->getParameters() as $name=>$value)
+        {
+            // Détermine s'il s'agit d'un index ou d'un alias
+            $name=strtolower($name);
+            if (isset($schema->indices[$name]))
+                $index=$schema->indices[$name];
+            elseif(isset($schema->aliases[$name]))
+                $index=$schema->aliases[$name];
+            else
+                continue;
+
+            // On ne prend en compte que les index de type probabiliste
+            if ($index->_type !== $indexType) continue;
+
+            // Combine en OU Les paramètres de même nom (e.g. plusieurs dates)
+            if (is_array($value)) $value=implode(' OR ', (array)$value);
+            $this->addBrackets($value);
+            $equations[]=$name.'='.$value;
+        }
+
+        // Détermine l'équation par défaut qui figure dans la configuration
+        $default=Config::userGet(ltrim($parameterName,'_'), null);
+
+        // Si $configIsDefault est à false, on l'ajoute à l'équation
+        if (! $configIsDefault && !is_null($default))
+            $equations[]=$h;
+
+        // Retourne le résultat
+        switch (count($equations))
+        {
+            // Aucune équation : retourne l'équation par défaut
+            case 0:
+                return $default;
+
+            // Une seule équation : retourne tel quel
+            case 1:
+                return array_pop($equations);
+
+            // Plusieurs équations : combine en ET
+            default:
+                // Ajoute des parenthèses si nécessaire
+                foreach($equations as & $equation)
+                    $this->addBrackets($equation);
+
+                // Combine en et
+                return implode(' AND ', $equations);
+        }
+    }
+
+    /**
+     * Ajoute des parenthèses autour de l'équation passée au paramètre si c'est
+     * nécessaire.
+     *
+     * La méthode considère que l'équation passée en paramètre est destinée à
+     * être combinée en "ET" avec d'autres équations.
+     *
+     * Dans sa version actuelle, la méthode ajoute des parenthèses si l'équation
+     * contient des espaces. Idéalement, il faudrait faire un traitement
+     * beaucoup plus compliqué, mais ça revient quasiment à ré-écrire un
+     * query parser...
+     *
+     * @param string $equation l'équation à tester.
+     */
+    private function addBrackets(& $equation)
+    {
+        if (false !== strpos($equation, ' '))
+            $equation='('.$equation.')';
     }
 
     /**
