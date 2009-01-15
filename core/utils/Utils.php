@@ -2063,5 +2063,39 @@ final class Utils
 
         return strtr($xml, $table);
     }
+
+    /**
+     * Met en évidence les corrections apportées à une chaine de caractères en
+     * détectant les mots qui ont été modifiés.
+     *
+     * Cette fonction est destinée à être utilisée avec le correcteur
+     * orthographique de xapian : elle met en "surbrillance" les mots qui ont
+     * été corrigés.
+     *
+     * Elle fonctionne en faisant la liste des mots présents dans la chaine
+     * originale qui ne figurent pas dans la chaine corrigée. Elle ajoute
+     * ensuite les chaines $before et $after devant et après chacun de ces
+     * mots puis retourne le résultat.
+     *
+     * @param string $original la chaine originale.
+     * @param string $corrected la chaine corrigée.
+     * @param string $before le texte à ajouter devant chaque mot corrigé.
+     * @param string $after le texte à ajouter après chaque mot corrigé.
+     * @return string la chaine résultat.
+     */
+    public static function highlightCorrections($original, $corrected, $before='<strong>', $after='</strong>')
+    {
+        // Crée un tableau contenant la liste des mots de $original qui ne sont pas dans $corrected
+        $t1=array_flip(Utils::tokenize($original));
+        $t2=array_flip(Utils::tokenize($corrected));
+        $t=array_diff_key($t2,$t1);
+
+        // Génère un tableau de remplacement pour strtr()
+        foreach($t as $search=>& $replace)
+            $replace=$before.$search.$after;
+
+        // Met les mots en surbrillance et retourne le résultat
+        return strtr($corrected, $t);
+    }
 }
 ?>
