@@ -90,6 +90,10 @@
                     <textbox id="db_indices_label" size="60" class="fullwidth" label="Libellé :" /><br />
                     <textbox id="db_indices_description" class="fullwidth" rows="3" cols="60" label="Description :" /><br />
                     <select id="db_indices_type" src="{array('probabilistic'=>'probabiliste (contribue au score des réponses)', 'boolean'=>'booléen (simple filtre)')}" label="Type :" /><br />
+                    <label class="text" for="db_indices_spelling">Othographe :</label>
+                    <div style="float: left;">
+                        <checkbox id="db_indices_spelling" label="Utiliser cet index dans le correcteur orthographique" /><br />
+                    </div>
                 </fieldset>
                 <fieldset>
                     <legend>Liste des champs à indexer</legend>
