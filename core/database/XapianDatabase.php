@@ -255,6 +255,14 @@ class XapianDatabaseDriver extends Database
     private $count=0;
 
     /**
+     * La version corrigée par le correcteur orthographique de xapian de la
+     * requête en cours.
+     *
+     * @var string
+     */
+    private $correctedEquation='';
+
+    /**
      * Retourne le schéma de la base de données
      *
      * @return DatabaseSchema
@@ -769,7 +777,7 @@ class XapianDatabaseDriver extends Database
                         $this->addTerm($term, $prefix, $field->global, $field->weight, $field->phrases?$position:null);
 
                         // Correcteur orthographique
-                        if (false && $field->spelling) // fixme: ajouter au schema
+                        if ($index->spelling)
                             $this->xapianDatabase->add_spelling($term);
 
                         // Incrémente la position du terme en cours
@@ -1108,9 +1116,18 @@ class XapianDatabaseDriver extends Database
 ////        if (debug) echo "Equation xapian après idtoname... : ", $h, "<br />";
 
         // Correcteur orthographique
-        if ($correctedEquation=$this->xapianQueryParser->get_corrected_query_string())
-            echo '<strong>Essayez avec l\'orthographe suivante : </strong><a href="?_equation='.urlencode($correctedEquation).'">', $correctedEquation, '</a><br />';
+        $this->correctedEquation=$this->xapianQueryParser->get_corrected_query_string();
 
+        //    echo '<strong>Essayez avec l\'orthographe suivante : </strong><a href="?_equation='.urlencode($correctedEquation).'">', $correctedEquation, '</a><br />';
+
+//        $begin=$this->xapianDatabase->spellings_begin();
+//        $end=$this->xapianDatabase->spellings_end();
+//        while (!$begin->equals($end))
+//        {
+//            echo $begin->get_term(), '<br />';
+//            $begin->next();
+//            //die();
+//        }
         return $query;
     }
 
@@ -1708,6 +1725,8 @@ class XapianDatabaseDriver extends Database
             case 'rank': return $this->xapianMSetIterator->get_rank()+1;
             case 'start': return $this->start;
             case 'max': return $this->max;
+
+            case 'correctedequation': return $this->correctedEquation;
 
             // Liste des mots-vides ignorés dans l'équation de recherche
             case 'stopwords': return $this->getRequestStopwords(false);
