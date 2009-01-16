@@ -466,7 +466,7 @@ Config::addArray($this->config);    // fixme: objectif : uniquement $this->confi
     }
 
 
-    private function runAction()
+    public function runAction()
     {
         // Utilise la reflexion pour examiner les paramètres de l'action
         $reflectionModule=new ReflectionObject($this);
@@ -636,7 +636,17 @@ Config::addArray($this->config);    // fixme: objectif : uniquement $this->confi
             debug && Debug::log('Exécution du layout %s', $path);
 
             // Exécute le layout, qui se chargera d'exécuter l'action
-            Template::run($path, array($this,'layoutCallback'));
+            Template::run
+            (
+                $path,
+                array($this,'layoutCallback') // cf note ci-dessous
+            );
+
+            // Avec les nouveaux thèmes utilisant getPageTitle(), getCssLinks()
+            // getJsLinks() et runAction(), layoutCallback ne sert à rien.
+            // On le conserve içi uniquement pour maintenir la compatibilité
+            // ascendante avec les anciens thèmes qui utilisaient $title, $JS,
+            // $CSS et $content. DM, 16/01/09
         }
 
         // Post-exécution
@@ -798,6 +808,89 @@ Config::addArray($this->config);    // fixme: objectif : uniquement $this->confi
         return $path;
     }
 
+    /**
+     * Retourne le titre de la page.
+     *
+     * Typiquement, pour une page html, c'est le titre qui apparaîtra dans la
+     * balise title de la section <code>head</code>.
+     *
+     * Par défaut, la méthode retourne le contenu de la clé <code><title></code>
+     * indiquée dans la configuration, mais les modules descendants peuvent
+     * surcharger cette méthode si un autre comportement est souhaité.
+     *
+     * @return string le titre de la page.
+     */
+    public function getPageTitle()
+    {
+        return Config::get('title','Votre site web');
+    }
+
+    /**
+     * Retourne le code html permettant d'inclure les feuilles de style CSS dont
+     * la page a besoin.
+     *
+     * Typiquement, il s'agit du code html qui sera inclus dans la section
+     * <code>head</code> de la page.
+     *
+     * Par défaut, la méthode construit une balise html <code>link</code> pour
+     * chacune des feuilles de style css indiquée dans la clé <code><css></code>
+     * de la configuration.
+     *
+     * Les modules descendants peuvent surcharger cette méthode s'ils souhaitent
+     * un autre comportement (exemple d'utilisation : compresser toutes les
+     * feuilles de style en une seule).
+     *
+     * @return string le code html à inclure.
+     */
+    public function GetCssLinks()
+    {
+        $result='';
+        foreach($this->CssOrJsPath(Config::get('css'), 'alias') as $path)
+        {
+            $path=Routing::linkFor($path);
+            $result.='<link rel="stylesheet" type="text/css" href="'.$path.'" media="all" />' . "\n    ";
+        }
+        return $result;
+    }
+
+    /**
+     * Retourne le code html permettant d'inclure les fichiers havascript dont
+     * la page a besoin.
+     *
+     * Typiquement, il s'agit du code html qui sera inclus dans la section
+     * <code>head</code> de la page.
+     *
+     * Par défaut, la méthode construit une balise html
+     * <code>script src="..."</code> pour chacun des fichiers indiqués dans la
+     * clé <code><js></code> de la configuration.
+     *
+     * Les modules descendants peuvent surcharger cette méthode s'ils souhaitent
+     * un autre comportement (exemple d'utilisation : utiliser une version
+     * compressée du script en mode production et la version normale sinon).
+     *
+     * @return string le code html à inclure.
+     */
+    public function GetJsLinks()
+    {
+        $result='';
+        foreach($this->CssOrJsPath(Config::get('js'), 'alias') as $path)
+        {
+            $path=Routing::linkFor($path);
+            $result.='<script type="text/javascript" src="'.$path.'"></script>' . "\n    ";
+        }
+        return $result;
+    }
+
+    /**
+     * Callback utilisé par l'ancien système de layout (avec des $title, $CSS,
+     * $JS et $content) dans le thème.
+     *
+     * On conserve uniquement pour maintenir la compatibilité ascendante.
+     *
+     * @deprecated
+     * @param $name
+     * @return unknown_type
+     */
     public function layoutCallback($name)
     {
     	switch($name)
@@ -805,25 +898,13 @@ Config::addArray($this->config);    // fixme: objectif : uniquement $this->confi
         	case 'title':
                 if (Template::$isCompiling) return true;
 
-                return Config::get('title','Votre site web');
+                return $this->getPageTitle();
 
         	case 'CSS':
-                $result='';
-        	    foreach($this->CssOrJsPath(Config::get('css'), 'alias') as $path)
-        	    {
-        	        $path=Routing::linkFor($path);
-                    $result.='<link rel="stylesheet" type="text/css" href="'.$path.'" media="all" />' . "\n    ";
-        	    }
-        	    return $result;
+        	    return $this->getCssLinks();
 
             case 'JS':
-                $result='';
-                foreach($this->CssOrJsPath(Config::get('js'), 'alias') as $path)
-                {
-                    $path=Routing::linkFor($path);
-                    $result.='<script type="text/javascript" src="'.$path.'"></script>' . "\n    ";
-                }
-                return $result;
+                return $this->GetJsLinks();
 
             case 'contents':
                 if (Template::$isCompiling) return true;
