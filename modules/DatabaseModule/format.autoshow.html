@@ -1,0 +1,59 @@
+<style>
+table.autoshow
+\{
+    border-collapse: collapse;
+    border-color: #aaa;
+    border-style: dotted;
+    width: 100%;
+\}
+table.autoshow th
+\{
+    text-align: right;
+    padding: 0.5em;
+    vertical-align: top;
+\}
+table.autoshow td
+\{
+    text-align: left;
+    padding: 0.5em;
+    vertical-align: top;
+\}
+table.autoshow ul
+\{
+    margin: 0;
+    padding: 0;
+    padding-left: 1em;
+\}
+</style>
+
+<def name="fields" value="{$this->selection->getSchema()->fields}" />
+<loop on="{$this->selection}" as="$rank, $record">
+    <table border="1" class="autoshow">
+        <loop on="$fields" as="$name,$field">
+            <def name="value" value="{$this->selection[$name]}" />
+            <tr test="$value" title="{$field->label}">
+                <th>{$field->name}</th>
+                <td>
+                    <if test="{is_array($value)}">
+                        <ul>
+                        <loop on="$value" as="$key,$value">
+                            <li style="list-style-image: none; margin: 0; "><dumpvalue value="$value" /></li>
+                        </loop>
+                        </ul>
+                    </if>
+                    <else>
+                        <dumpvalue value="$value" />
+                    </else>
+                </td>
+            </tr>
+        </loop>
+    </table>
+    <br />
+</loop>
+
+<template match="//dumpvalue" value="">
+    <if test="{is_null($value)}">null</if>
+    <elseif test="{is_string($value)}">{htmlentities($value)}</elseif>
+    <elseif test="{is_scalar($value)}">{var_export($value,true)}</elseif>
+    <else>type de valeur non géré : {var_export($value,true)}</else>
+</template>
