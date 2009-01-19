@@ -180,6 +180,31 @@ class DatabaseModule extends Module
     }
 
     /**
+     * Méthode utilitaire utilisée par le template par défaut de l'action search
+     * (format.autolist.html) pour déterminer quels sont les champs à afficher.
+     *
+     * Retourne un tableau contenant les champs indexés dont le nom ou le
+     * libellé contiennent la chaine 'tit'.
+     *
+     * @return array
+     */
+    public function guessFieldsForAutoList()
+    {
+        $indices=$this->selection->getSchema()->indices;
+        $fields=array();
+        foreach($indices as $name=>$index)
+        {
+            $h=$name . ' ' . $index->label . ' ' . $index->description;
+            if (false !== stripos($h, 'tit'))
+            {
+                foreach ($index->fields as $field)
+                    $fields[$field->name]=true;
+            }
+        }
+        return array_keys($fields);
+    }
+
+    /**
      * Charge l'historique des équations de recherche.
      *
      * @return array tableau des équations de recherche stocké dans la session.

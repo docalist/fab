@@ -1,0 +1,12 @@
+<def name="fields" value="{$this->guessFieldsForAutoList()}" />
+<def name="request" value="{$this->request->copy()->set('_fmt',Config::get('actionShow.template'))->set('_max',1)}" />
+
+<ol start="{$this->selection->searchInfo('rank')}">
+    <loop on="{$this->selection}" as="$rank, $record">
+        <li>
+            <a href="Show?REF=$REF">
+                <loop on="$fields" as="$field">{$record[$field]} </loop>
+            </a>
+        </li>
+    </loop>
+</ol>
