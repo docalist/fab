@@ -1738,7 +1738,7 @@ class DatabaseModule extends Module
 
         // Si $configIsDefault est à false, on l'ajoute à l'équation
         if (! $configIsDefault && !is_null($default))
-            $equations[]=$h;
+            $equations[]=$default;
 
         // Retourne le résultat
         switch (count($equations))
