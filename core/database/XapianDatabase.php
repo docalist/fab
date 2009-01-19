@@ -1294,6 +1294,10 @@ class XapianDatabaseDriver extends Database
         $this->equation=$equation;
         $query=$this->xapianQuery=$this->parseQuery($equation);
 
+        // Problème xapian : si on fait une recherche '*' avec un tri par pertinence,
+        // xapian ne rends pas la main. Du coup on force içi un tri par docid décroissant.
+        if (trim($equation)==='*') $sort='-';
+
         // Combine l'équation et le filtre pour constituer la requête finale
         if ($filter)
             $query=new XapianQuery(XapianQuery::OP_FILTER, $query, $this->xapianFilter);
