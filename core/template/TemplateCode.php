@@ -650,6 +650,7 @@ class TemplateCode
                 'reset',
                 'current',
                 'preg_match',
+                'strtotime',
             ));
             $runtimeFunctions=array_flip(array
             (
