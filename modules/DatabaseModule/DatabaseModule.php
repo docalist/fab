@@ -1749,8 +1749,8 @@ class DatabaseModule extends Module
             else
                 continue;
 
-            // On ne prend en compte que les index de type probabiliste
-            if ($index->_type !== $indexType) continue;
+            // On ne prend en compte que les index ayant le type demandé
+            if (isset($index->_type) && $index->_type !== $indexType) continue;
 
             // Combine en OU Les paramètres de même nom (e.g. plusieurs dates)
             if (is_array($value)) $value=implode(' OR ', (array)$value);
