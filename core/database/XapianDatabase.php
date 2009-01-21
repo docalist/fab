@@ -777,7 +777,7 @@ class XapianDatabaseDriver extends Database
                         $this->addTerm($term, $prefix, $field->global, $field->weight, $field->phrases?$position:null);
 
                         // Correcteur orthographique
-                        if ($index->spelling)
+                        if (isset($index->spelling) && $index->spelling)
                             $this->xapianDatabase->add_spelling($term);
 
                         // Incrémente la position du terme en cours
