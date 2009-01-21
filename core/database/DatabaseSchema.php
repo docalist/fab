@@ -1427,6 +1427,17 @@ class DatabaseSchema
             if ($oldIndex->type !== $newIndex->type)
                 $changes['Changement du type de l\'index ' . $newIndex->name]=0;
 
+            if (!isset($oldIndex->spelling))
+            {
+                if ($newIndex->spelling)
+                    $changes['Activation du correcteur orthographique pour l\'index ' . $newIndex->name]=1;
+            }
+            else
+            {
+                if ($oldIndex->spelling !== $newIndex->spelling)
+                    $changes['Changement des options du correcteur orthographique pour l\'index ' . $newIndex->name]=1;
+            }
+
             // Liste des champs de cet index
             $f1=$this->index($oldIndex->fields);
             $f2=$this->index($newIndex->fields);
