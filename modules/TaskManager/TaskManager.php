@@ -125,7 +125,7 @@ class TaskManager extends DatabaseModule
      * dans le répertoire data/db de fab. Du coup, il ne faut pas qu'on passe
      * par le système d'alias (db.config) habituel.
      *
-     * Remarque : le path obtenu contient toujours un slash ou un antislash
+     * Remarque : le path obtenu ne contient PAS un slash ou un antislash
      * final.
      *
      * @return string
@@ -135,11 +135,11 @@ class TaskManager extends DatabaseModule
         return Runtime::$fabRoot
             . 'data'    . DIRECTORY_SEPARATOR
             . 'db'      . DIRECTORY_SEPARATOR
-            . 'tasks'   . DIRECTORY_SEPARATOR;
+            . 'tasks';
     }
 
     /**
-     * Retourne le prath complet du répertoire dans lequel sont stockés les
+     * Retourne le path complet du répertoire dans lequel sont stockés les
      * fichiers de sortie générés par les tâches.
      *
      * Remarque : le path obtenu contient toujours un slash ou un antislash
