@@ -747,7 +747,29 @@ class TaskManager extends DatabaseModule
         // Sinon, on considère qu'on est sous *nix et utilise le & final
         else
         {
-        	$cmd .= ' &';
+            // Pour que exec puisse lancer la tâche de fond, il faut absolument
+            // que les sorties du process soient redirigées, faute de quoi, la
+            // tâche ne sera pas lancée en tâche de fond.
+
+            // Cf Note dans la documentation de php :
+            // "If a program is started with this function, in order for it to
+            // continue running in the background, the output of the program
+            // must be redirected to a file or another output stream. Failing
+            // to do so will cause PHP to hang until the execution of the
+            // program ends.
+
+            // Merci à Jean-René Rouet du CCIN2P3 d'avoir trouvé la solution et
+            // la syntaxe exacte à utiliser.
+
+            // DM, 30/01/2009
+
+        	$cmd .= ' > /dev/null 2>&1 &';
+
+        	// Explications :
+        	// "> /dev/null" = redirige stdout vers /dev/null
+        	// "2>&1" = redirige la sortie standard n°2 (stderr) au même endroit que stdout
+        	// "&" = lance le tout en tâche de fond.
+
             exec($cmd);
         }
     }
