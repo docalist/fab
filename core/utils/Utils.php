@@ -1702,8 +1702,14 @@ final class Utils
      */
     public static function tokenize($text)
     {
-        static $charFroms = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZÀÁÂÃÄÅŒÆÇÈÉÊËÌÍÎÏĞÑÒÓÔÕÖØÙÚÛÜİßàáâãäåœæçèéêëìíîïğñòóôõöùúûüışÿ-Ş\'';
-        static $charTo    = '0123456789abcdefghijklmnopqrstuvwxyzaaaaaaœæceeeeiiiidnooooo0uuuuysaaaaaaœæceeeeiiiidnooooouuuuyby e ';
+        static $charFroms = 'ABCDEFGHIJKLMNOPQRSTUVWXYZÀÁÂÃÄÅŒÆÇÈÉÊËÌÍÎÏĞÑÒÓÔÕÖØÙÚÛÜİßàáâãäåœæçèéêëìíîïğñòóôõöùúûüışÿ-Ş\'';
+        static $charTo    = 'abcdefghijklmnopqrstuvwxyzaaaaaaœæceeeeiiiidnoooooœuuuuysaaaaaaœæceeeeiiiidnooooouuuuyty t ';
+
+        // Caractères spéciaux :
+        // Ø = "O barré", utilisé en danois, féringien et norvégien, translittération : "oe"
+        // ş et Ş = "thorn" (maju et minu). Translittération standard : "th", remplacé par "t" dans notre table.
+        // Ğ et ğ = "eth" (maju et minu). Translittération : "D"
+        // Sources : wikipedia + http://www.fao.org/DOCREP/003/Q0929F/q0929f04.htm
 
         // Convertit les sigles en mots
         $text=preg_replace_callback('~(?:[a-z0-9]\.){2,9}~i', array(__CLASS__, 'acronymToTerm'), $text);
