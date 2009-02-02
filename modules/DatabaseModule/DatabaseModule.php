@@ -136,8 +136,6 @@ class DatabaseModule extends Module
         // Affiche le formulaire de recherche si on n'a aucun paramètre
         if (is_null($this->equation))
         {
-            if (! $this->request->hasParameters())
-                Runtime::redirect('searchform'); // c'est la seule différence avec ActionShow. Si on avait dans la config 'redirectToSearchForm yes/no', show pourrait être une pseudo action
             $this->showError('Vous n\'avez indiqué aucun critère de recherche.');
             return;
         }
@@ -349,11 +347,11 @@ class DatabaseModule extends Module
         $this->equation=$this->getEquation();
 
         // Si aucun paramètre de recherche n'a été passé, erreur
-        if (is_null($this->equation))
-        {
-            $this->showError('Vous n\'avez indiqué aucun critère permettant de sélectionner les notices à afficher.');
-            return;
-        }
+//        if (is_null($this->equation))
+//        {
+//            $this->showError('Vous n\'avez indiqué aucun critère permettant de sélectionner les notices à afficher.');
+//            return;
+//        }
 
         // Aucune réponse
         if (! $this->select($this->equation))
@@ -1537,6 +1535,8 @@ class DatabaseModule extends Module
             '_opanycase'=>
                 $this->request->defaults('_opanycase', Config::get('opanycase'))
                     ->ok(),
+
+            '_facets' => Config::get('facets'),
         );
         $result=$this->selection->search($equation, $options);
         Timer::leave();
