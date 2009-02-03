@@ -756,7 +756,9 @@ final class Utils
         $port=':' . $_SERVER['SERVER_PORT'];
         if ($port===$defaultPort || $port==='') $port='';
         
-    	return $http . '://' . $_SERVER['SERVER_NAME'] . $port;
+        $host=Utils::get($_SERVER['HTTP_X_FORWARDED_HOST'],$_SERVER['SERVER_NAME']);
+
+        return $http . '://' . $host . $port;
     }
 
 
