@@ -1702,8 +1702,8 @@ final class Utils
      */
     public static function tokenize($text)
     {
-        static $charFroms = 'ABCDEFGHIJKLMNOPQRSTUVWXYZÀÁÂÃÄÅŒÆÇÈÉÊËÌÍÎÏĞÑÒÓÔÕÖØÙÚÛÜİßàáâãäåœæçèéêëìíîïğñòóôõöùúûüışÿ-Ş\'';
-        static $charTo    = 'abcdefghijklmnopqrstuvwxyzaaaaaaœæceeeeiiiidnoooooœuuuuysaaaaaaœæceeeeiiiidnooooouuuuyty t ';
+        static $charFroms = '\'-ABCDEFGHIJKLMNOPQRSTUVWXYZŒœÀÁÂÃÄÅÆÇÈÉÊËÌÍÎÏĞÑÒÓÔÕÖØÙÚÛÜİŞßàáâãäåæçèéêëìíîïğñòóôõöùúûüışÿ';
+        static $charTo    =  '  abcdefghijklmnopqrstuvwxyzœœaaaaaaæceeeeiiiidnoooooœuuuuytsaaaaaaæceeeeiiiidnooooouuuuyty';
 
         // Caractères spéciaux :
         // Ø = "O barré", utilisé en danois, féringien et norvégien, translittération : "oe"
