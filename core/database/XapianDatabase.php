@@ -6,8 +6,6 @@
  * @version     SVN: $Id$
  */
 
-require_once Runtime::$fabRoot . 'lib/xapian/xapian.php';
-
 /**
  * Un driver de base de données pour fab utilisant une base Xapian pour
  * l'indexation et le stockage des données
@@ -17,7 +15,6 @@ require_once Runtime::$fabRoot . 'lib/xapian/xapian.php';
  */
 class XapianDatabaseDriver extends Database
 {
-
     /**
      * Le schéma de la base de données (cf {@link getSchema()}).
      *
@@ -207,7 +204,7 @@ class XapianDatabaseDriver extends Database
      *
      * @var null|array
      */
-    private $sortKey=null;
+    private $sortKey=array();
 
 
     /**
@@ -263,14 +260,22 @@ class XapianDatabaseDriver extends Database
     private $correctedEquation='';
 
     /**
+     * MatchingSpy employé pour créer les facettes de la recherche
+     *
+     * Expérimental (branche MatchSpy de Xapian), cf search().
+     *
+     * @var XapianMatchDecider
+     */
+    private $spy=null;
+
+    /**
      * Retourne le schéma de la base de données
      *
      * @return DatabaseSchema
      */
     public function getSchema()
     {
-        return unserialize($this->xapianDatabase->get_metadata('schema_object'));
-        //return $this->structure;
+        return $this->schema;
     }
 
     // *************************************************************************
@@ -296,6 +301,7 @@ class XapianDatabaseDriver extends Database
 
         // Crée la base xapian
         $this->xapianDatabase=new XapianWritableDatabase($path, Xapian::DB_CREATE_OR_OVERWRITE); // todo: remettre à DB_CREATE
+//        $this->xapianDatabase=Xapian::chert_open($path,Xapian::DB_CREATE_OR_OVERWRITE,8192);
 
         // Enregistre le schema dans la base
         $this->xapianDatabase->set_metadata('schema', $schema->toXml());
@@ -664,8 +670,8 @@ class XapianDatabaseDriver extends Database
         elseif($start !=='')
         {
             $pt=stripos($value, $start); // insensible à la casse mais pas aux accents
-            if ($pt === false) return '';
-            $value=substr($value, $pt+strlen($start));
+            if ($pt !== false)
+                $value=substr($value, $pt+strlen($start));
         }
 
         if (is_int($end))
@@ -694,24 +700,19 @@ class XapianDatabaseDriver extends Database
      *
      * @param string $term le terme à ajouté
      * @param string $prefix le préfixe à ajouter au terme
-     * @param bool $global si true, le terme est ajouté avec et sans préfixe
      * @param int $weight le poids du terme
      * @param null|int $position null : le terme est ajouté sans position,
      * int : le terme est ajouté avec la position indiquée
      */
-    private function addTerm($term, $prefix, $global=false, $weight=1, $position=null)
+    private function addTerm($term, $prefix, $weight=1, $position=null)
     {
         if (is_null($position))
         {
             $this->xapianDocument->add_term($prefix.$term, $weight);
-            if ($global)
-                $this->xapianDocument->add_term($term, $weight);
         }
         else
         {
             $this->xapianDocument->add_posting($prefix.$term, $position, $weight);
-            if ($global)
-                $this->xapianDocument->add_posting($term, $position, $weight);
         }
     }
 
@@ -774,11 +775,11 @@ class XapianDatabaseDriver extends Database
                         if (! self::INDEX_STOP_WORDS && isset($stopwords[$term])) continue;
 
                         // Ajoute le terme dans le document
-                        $this->addTerm($term, $prefix, $field->global, $field->weight, $field->phrases?$position:null);
+                        $this->addTerm($term, $prefix, $field->weight, $field->phrases?$position:null);
 
                         // Correcteur orthographique
                         if (isset($index->spelling) && $index->spelling)
-                            $this->xapianDatabase->add_spelling($term);
+                            $this->xapianDatabase->add_spelling($term); // todo: à étudier, stocker forme riche pour réutilisation dans les lookup terms ?
 
                         // Incrémente la position du terme en cours
                         $position++;
@@ -791,7 +792,7 @@ class XapianDatabaseDriver extends Database
                         if (strlen($term)>self::MAX_TERM-2)
                             $term=substr($term, 0, self::MAX_TERM-2);
                         $term = '_' . $term . '_';
-                        $this->addTerm($term, $prefix, $field->global, $field->weight, null);
+                        $this->addTerm($term, $prefix, $field->weight, null);
                     }
 
                     // Fait de la "place" entre chaque article
@@ -801,7 +802,7 @@ class XapianDatabaseDriver extends Database
 
                 // Indexation empty/notempty
                 if ($field->count)
-                    $this->addTerm($count ? '__has'.$count : '__empty', $prefix, false);
+                    $this->addTerm($count ? '__has'.$count : '__empty', $prefix);
             }
         }
 
@@ -816,6 +817,7 @@ class XapianDatabaseDriver extends Database
             {
                 // Traite tous les champs comme des champs articles
                 $data=(array) $this->fields[$name];
+                $data=array_slice($data, $field->startvalue-1, $field->endvalue===0 ? null : ($field->endvalue));
 
                 // Initialise la liste des mots-vides à utiliser
                 $stopwords=$this->schema->fields[$name]->_stopwords;
@@ -826,23 +828,34 @@ class XapianDatabaseDriver extends Database
                 {
                     // start et end
                     if ($value==='') continue;
+
                     if ($field->start || $field->end)
                         if ('' === $value=$this->startEnd($value, $field->start, $field->end)) continue;
 
                     // Si la valeur est trop longue, on l'ignore
                     if (strlen($value)>self::MAX_ENTRY) continue;
 
-                    // Tokenise et ajoute une entrée dans la table pour chaque terme obtenu
-                    foreach(Utils::tokenize($value) as $term)
+                    // Table de lookup de type simple
+                    if ($lookupTable->_type === DatabaseSchema::LOOKUP_SIMPLE)
                     {
-                        // Vérifie que la longueur du terme est dans les limites autorisées
-                        if (strlen($term)<self::MIN_ENTRY_SLOT || strlen($term)>self::MAX_ENTRY_SLOT) continue;
+                        $this->addTerm($value, $prefix);
+                    }
 
-                        // Vérifie que ce n'est pas un mot-vide
-                        if (isset($stopwords[$term])) continue;
+                    // Table de lookup de type inversée
+                    else
+                    {
+                        // Tokenise et ajoute une entrée dans la table pour chaque terme obtenu
+                        foreach(Utils::tokenize($value) as $term)
+                        {
+                            // Vérifie que la longueur du terme est dans les limites autorisées
+                            if (strlen($term)<self::MIN_ENTRY_SLOT || strlen($term)>self::MAX_ENTRY_SLOT) continue;
 
-                        // Ajoute le terme dans le document
-                        $this->addTerm($term.'='.$value, $prefix);
+                            // Vérifie que ce n'est pas un mot-vide
+                            if (isset($stopwords[$term])) continue;
+
+                            // Ajoute le terme dans le document
+                            $this->addTerm($term.'='.$value, $prefix);
+                        }
                     }
                 }
             }
@@ -937,8 +950,11 @@ class XapianDatabaseDriver extends Database
 */
         // Indique au QueryParser la liste des alias
         foreach($this->schema->aliases as $aliasName=>$alias)
+        {
+            if ($aliasName==='default') $aliasName='';
             foreach($alias->indices as $index)
                 $this->xapianQueryParser->add_prefix($aliasName, $index->_id.':');
+        }
 /*
         foreach($this->schema->aliases as $aliasName=>$alias)
         {
@@ -1044,7 +1060,7 @@ class XapianDatabaseDriver extends Database
                 $h=preg_replace
                 (
                     array('~\b(et|and)\b~','~\b(ou|or)\b~','~\b(sauf|but|not)\b~'),
-                    array('_and_', '_or_', '_not_'),
+                    array('~and~', '~or~', '~not~'),
                     $h
                 );
             }
@@ -1056,7 +1072,7 @@ class XapianDatabaseDriver extends Database
     {
         return str_replace
         (
-            array('_and_', '_or_', '_not_', ':and:', ':or:', ':not:'),
+            array('~and~', '~or~', '~not~', ':and:', ':or:', ':not:'),
             array('and', 'or', 'not', 'AND', 'OR', 'NOT'),
             $equation
         );
@@ -1080,15 +1096,11 @@ class XapianDatabaseDriver extends Database
             return new XapianQuery('');
 
         // Pré-traitement de la requête pour que xapian l'interprête comme on souhaite
-//echo 'Equation originale : ', var_export($equation,true), '<br />';
-//echo 'opanycase : ', var_export($this->opAnyCase,true), '<br />';
         $equation=preg_replace_callback('~(?:[a-z0-9]\.){2,9}~i', array('Utils', 'acronymToTerm'), $equation); // sigles à traiter, xapian ne le fait pas s'ils sont en minu (a.e.d.)
         $equation=preg_replace_callback('~\[(.*?)\]~', array($this,'searchByValueCallback'), $equation);
         $equation=$this->protectOperators($equation);
         $equation=Utils::convertString($equation, 'queryparser'); // FIXME: utiliser la même table que tokenize()
         $equation=$this->restoreOperators($equation);
-
-//echo 'Equation passée à xapian : ', var_export($equation,true), '<br />';
 
         $flags=
             XapianQueryParser::FLAG_BOOLEAN |
@@ -1108,26 +1120,9 @@ class XapianDatabaseDriver extends Database
             $flags
         );
 
-//        $h=utf8_decode($query->get_description());
-//        $h=substr($h, 14, -1);
-//        $h=preg_replace('~:\(pos=\d+?\)~', '', $h);
-////        if (debug) echo "Equation comprise par xapian... : ", $h, "<br />";
-//        $h=preg_replace_callback('~(\d+):~',array($this,'idToName'),$h);
-////        if (debug) echo "Equation xapian après idtoname... : ", $h, "<br />";
-
         // Correcteur orthographique
         $this->correctedEquation=$this->xapianQueryParser->get_corrected_query_string();
 
-        //    echo '<strong>Essayez avec l\'orthographe suivante : </strong><a href="?_equation='.urlencode($correctedEquation).'">', $correctedEquation, '</a><br />';
-
-//        $begin=$this->xapianDatabase->spellings_begin();
-//        $end=$this->xapianDatabase->spellings_end();
-//        while (!$begin->equals($end))
-//        {
-//            echo $begin->get_term(), '<br />';
-//            $begin->next();
-//            //die();
-//        }
         return $query;
     }
 
@@ -1175,6 +1170,30 @@ class XapianDatabaseDriver extends Database
 - voir comment on peut implémenter ça en gardant la compatibilité avec BIS
 
 */
+
+    public function getFacet($table, $sortByCount=false)
+    {
+        if (! $this->spy) return array();
+
+        $key=Utils::ConvertString($table, 'alphanum');
+        if (!isset($this->schema->lookuptables[$key]))
+            throw new Exception("La table de lookup '$table' n'existe pas");
+        $prefix='T' . $this->schema->lookuptables[$key]->_id . ':';
+        $facet=$this->spy->get_terms_as_array($prefix);
+
+        // workaround bug dans TermSpy : si la lettre qui suit le prefix est une maju, l'entrée est ignorée
+//        $t=array();
+//        foreach($facet as $key=>&$value)
+//            $t[substr($key,1)]=$value;
+//        $facet=$t;
+        // fin workaround
+
+        if ($sortByCount)
+            arsort($facet, SORT_NUMERIC);
+        else
+            ksort($facet, SORT_LOCALE_STRING);
+        return $facet;
+    }
 
     /**
      * @inheritdoc
@@ -1243,6 +1262,10 @@ class XapianDatabaseDriver extends Database
             else
                 $this->opAnyCase=true;
 
+            if (isset($options['_facets']))
+                $facets=(array)$options['_facets'];
+            else
+                $facets=array();
         }
         else
         {
@@ -1251,6 +1274,7 @@ class XapianDatabaseDriver extends Database
             $max=-1;
             $filter=null;
             $minscore=0;
+            $facets=array();
         }
 
         // Ajuste start pour que ce soit un multiple de max
@@ -1312,7 +1336,40 @@ class XapianDatabaseDriver extends Database
         if ($minscore) $this->xapianEnquire->set_cutoff($minscore);
 
         // Lance la recherche
-        $this->xapianMSet=$this->xapianEnquire->get_MSet($start, $max, $max+1, $rset);
+
+        // Expérimental : support des facettes de la recherche via un TermCountMatchSpy.
+        // Requiert la version "MatchSpy" de Xapian (en attendant que la branche
+        // MatchSpy ait été intégrée dans le trunk.
+        if ($facets && function_exists('new_TermCountMatchSpy'))
+        {
+            // Fonctionnement : on définit dans la config une clé facets qui
+            // indique les tables de lookup qu'on souhaite utiliser comme facettes.
+            // DatabaseModule::select() nous passe cette liste dans le paramètre
+            // '_facet' du tableau options.
+            // On crée un Spy de type XapianTermCountMatchSpy auquel on
+            // demande de compter tous les termes provenant de ces tables
+            // de lookup.
+            // L'utilisateur peut ensuite récupérer le résultat en utilisant
+            // la méthode getFacet() et en appellant searchInfo() avec les
+            // nouveaus paramètres spy* introduits.
+            $this->spy=new XapianTermCountMatchSpy();
+            foreach($facets as $table)
+            {
+                $key=Utils::ConvertString($table, 'alphanum');
+                if (!isset($this->schema->lookuptables[$key]))
+                    throw new Exception("La table de lookup '$table' n'existe pas");
+                $prefix='T' . $this->schema->lookuptables[$key]->_id . ':';
+                $this->spy->add_prefix($prefix);
+            }
+            $this->xapianMSet=$this->xapianEnquire->get_MSet($start, $max, 1000, $rset, null, $this->spy);
+        }
+        
+        // Recherche standad sans facettes
+        else
+        {
+            $this->spy=null;
+            $this->xapianMSet=$this->xapianEnquire->get_MSet($start, $max, $max+1, $rset);
+        }
 
         // Teste si la requête a retourné des réponses
         if ($this->xapianMSet->is_empty())
@@ -1762,12 +1819,19 @@ class XapianDatabaseDriver extends Database
 
             // La valeur de la clé de tri pour l'enreg en cours
             case 'sortkey':
-                if (is_null($this->sortKey)) return array();
+                //return $this->sortKey;
+                if (empty($this->sortKey)) return array($this->xapianMSetIterator->get_weight());
 
                 $result=array();
                 foreach($this->sortKey as $key=>$id)
                     $result[$key]=$this->xapianDocument->get_value($id);
                 return $result;
+
+            case 'spydocumentsseen':
+                return $this->spy ? $this->spy->get_documents_seen() : 0;
+
+            case 'spytermsseen':
+                return $this->spy ? $this->spy->get_terms_seen() : 0;
 
             default: return null;
         }
@@ -1911,16 +1975,6 @@ class XapianDatabaseDriver extends Database
     public function moveNext()
     {
         if (is_null($this->xapianMSet)) return;
-        if (debug)
-        {
-            if (true && isset($this->sort))
-                echo 'Valeur de la clé pour le tri en cours : <strong><tt style="background-color: #FFFFBB; border: 1px solid yellow;">',
-                    var_export($this->xapianDocument->get_value($this->sort), true),
-                    '</tt></strong>, docid=', $this->xapianMSetIterator->get_docid(),
-                    ', Score : ',$this->xapianMSetIterator->get_percent(), ' %',
-                    '<br/>Match : ', implode(', ', $this->getMatchingTerms()),
-                    '<hr />';
-        }
         $this->xapianMSetIterator->next();
         $this->loadDocument();
         $this->eof=$this->xapianMSetIterator->equals($this->xapianMSet->end());
@@ -1939,116 +1993,186 @@ class XapianDatabaseDriver extends Database
         INDEX_STOP_WORDS=false; // false : les mots-vides sont ignorés lors de l'indexation, true : ils sont ajoutés à l'index (mais ignoré pendant la recherche)
 
     /**
-     * Recherche dans une table des entrées les valeurs qui commence par le terme indiqué.
+     * Suggère à l'utilisateur des entrées ou des termes existant dans l'index
+     * de xapian.
      *
-     * @param string $table le nom de la table des entrées à utiliser.
+     * Lookup prend en paramètre un mot, un début de mot ou une expression
+     * constituée de plusieurs mots ou début de mots et va rechercher dans les
+     * index de xapian des termes, des articles ou des entrées issues des tables
+     * de lookup susceptibles de correspondre à ce que rechercher l'utilisateur.
      *
-     * @param string $term le terme recherché
+     * Lookup teste dans l'ordre que la "table" indiquée en paramètre correspond
+     * au nom d'une table de lookup, d'un alias ou d'un index existant (une
+     * exception sera générée si ce n'est pas le cas).
      *
-     * @param int $max le nombre maximum de valeurs à retourner (0=pas de limite)
+     * Selon la source utilisée, la nature des suggestions retournées sera
+     * différente :
+     * - S'il s'agit d'une table de lookup inversée, lookup retournera des
+     *   entrées en format riche (majuscules et minuscules, accents) contenant
+     *   tous les mots indiqués.
+     * - S'il s'agit d'une table de lookup simple, lookup retournera également
+     *   des entrées en format riche, mais uniquement celles qui commencent par
+     *   l'un des mots indiqués (et qui contiennent tous les autres).
+     * - S'il s'agit d'un index de type "article", lookup retournera des chaines
+     *   "pauvres" (en minuscules non accentuées) qui commencent par l'un des
+     *   mots indiqués et contiennent tous les autres.
+     * - S'il s'agit d'un index de type "mot", seul le dernier mot indiqué dans
+     *   l'expression de recherche sera pris en compte et les suggestions
+     *   retournées sous la forme de "mots" en format pauvre.
+     * - S'il s'agit d'un alias, les suggestions retournées correspondront au
+     *   type des indices composant cet alias (i.e. soit des articles, soit des
+     *   termes).
      *
-     * @param int $sort l'ordre de tri souhaité pour les réponses :
-     *   - 0 : trie les réponses par nombre décroissant d'occurences dans la base (valeur par défaut)
-     *   - 1 : trie les réponses par ordre alphabétique croissant
+     * @param string $table le nom de la table de lookup, de l'alias ou de
+     * l'index à utiliser pour générer des suggestions.
      *
-     * @param bool $splitTerms définit le format du tableau obtenu. Par défaut
-     * (splitTerms à faux), la fonction retourne un tableau simple associatif de la forme
+     * @param string $term le mot, le début de mot ou l'expression à rechercher.
+     *
+     * @param int $max le nombre maximum de suggestions à retourner
+     * (0=pas de limite)
+     *
+     * @param bool $sort indique s'il faut trier les réponses par ordre
+     * alphabétique ou par nombre décroissant d'occurences dans la base.
+     *
+     * Ce paramètre accepte les valeurs suivantes :
+     * - false ou '-' : trier par ordre alphabétique ;
+     * - true ou '%' : trier par nombre d'occurences.
+     *
+     * Par défaut (false ou '-'), les suggestions sont triées en ordre
+     * alphabétique. La recherche s'arrête dès que $max suggestions ont été
+     * trouvées.
+     *
+     * Si $sort est à true (ou '%'), lookup va générer la liste complète de
+     * toutes les suggestions possibles puis va trier le résultat obtenu par
+     * occurences décroissantes et va ensuite conserver les $max meilleures.
+     *
+     * Un lookup avec le tri par défaut (ordre alphabétique) est donc bien plus
+     * efficace.
+     *
+     * @param string $format définit le format à utiliser pour la mise en
+     * surbrillance des termes de recherche de l'utilisateur au sein de chacun
+     * des suggestions trouvées.
+     *
+     * Il s'agit d'une chaine qui sera appliquée à chacune des mots en utilisant
+     * la fonction sprintf() de php (exemple de format : <strong>%s</strong>).
+     *
+     * Si $format est null ou s'il s'agit d'une chaine vide, aucune surbrillance
+     * ne sera appliquée.
+     *
+     * @return array un tableau contenant les suggestions obtenues. Chaque clé
+     * du tableau contient une suggestion et la valeur associée contient le
+     * nombre d'occurences de cette entrée dans la base.
+     *
+     * Exemple :
+     * <code>
      * array
      * (
      *     'droit du malade' => 10,
      *     'information du malade' => 3
      * )
-     * Quand splitTerms est à true, chaque élément du tableau va être un tableau contenant
-     * le nombre d'occurences, la partie à gauche du terme recherché, le mot contenant le terme
-     * recherché et la partie à droite du terme recherché :
-     * array
-     * (
-     *     'droit du malade'=>array(10, 'droit ', 'du', ' malade'),
-     *     'information du malade'=>array(3, 'information ', 'du', ' malade')
-     * )
-     *
-     * @return array
+     * </code>
      */
-    public function lookup($table, $term, $max=0, $sort=0, $splitTerms=false)
+    public function lookup($table, $term, $max=0, $sort=false, $format='<strong>%s</strong>')
     {
-        static $charFroms=
-            "\x00\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f\x10\x11\x12\x13\x14\x15\x16\x17\x18\x19\x1a\x1b\x1c\x1d\x1e\x1f\x20\x21\x22\x23\x24\x25\x26\x27\x28\x29\x2a\x2b\x2c\x2d\x2e\x2f\x30\x31\x32\x33\x34\x35\x36\x37\x38\x39\x3a\x3b\x3c\x3d\x3e\x3f\x40\x41\x42\x43\x44\x45\x46\x47\x48\x49\x4a\x4b\x4c\x4d\x4e\x4f\x50\x51\x52\x53\x54\x55\x56\x57\x58\x59\x5a\x5b\x5c\x5d\x5e\x5f\x60\x61\x62\x63\x64\x65\x66\x67\x68\x69\x6a\x6b\x6c\x6d\x6e\x6f\x70\x71\x72\x73\x74\x75\x76\x77\x78\x79\x7a\x7b\x7c\x7d\x7e\x7f\x80\x81\x82\x83\x84\x85\x86\x87\x88\x89\x8a\x8b\x8c\x8d\x8e\x8f\x90\x91\x92\x93\x94\x95\x96\x97\x98\x99\x9a\x9b\x9c\x9d\x9e\x9f\xa0\xa1\xa2\xa3\xa4\xa5\xa6\xa7\xa8\xa9\xaa\xab\xac\xad\xae\xaf\xb0\xb1\xb2\xb3\xb4\xb5\xb6\xb7\xb8\xb9\xba\xbb\xbc\xbd\xbe\xbf\xc0\xc1\xc2\xc3\xc4\xc5\xc6\xc7\xc8\xc9\xca\xcb\xcc\xcd\xce\xcf\xd0\xd1\xd2\xd3\xd4\xd5\xd6\xd7\xd8\xd9\xda\xdb\xdc\xdd\xde\xdf\xe0\xe1\xe2\xe3\xe4\xe5\xe6\xe7\xe8\xe9\xea\xeb\xec\xed\xee\xef\xf0\xf1\xf2\xf3\xf4\xf5\xf6\xf7\xf8\xf9\xfa\xfb\xfc\xfd\xfe\xff";
+        require_once(dirname(__FILE__) . DIRECTORY_SEPARATOR. 'XapianLookupHelpers.php');
 
-        static $charTo=
-            '                                                0123456789      @abcdefghijklmnopqrstuvwxyz      abcdefghijklmnopqrstuvwxyz                                                                     aaaaaaaceeeeiiiidnooooo 0uuuuy saaaaaaaceeeeiiiidnooooo  uuuuyby';
+        /**
+         * @var LookupHelper
+         */
+        $helper=null;
 
+        // Ajuste $sort
+        if ($sort === false || $sort==='-')
+            $sort = false;
+        elseif($sort===true || $sort==='%')
+            $sort=true;
+        else
+            throw new BadMethodCallException('Valeur incorrecte pour $sort : '.var_export($sort,true));
+
+        // Construit la version "minuscules non accentuées" de la table indiquée
         $key=Utils::ConvertString($table, 'alphanum');
-        if (!isset($this->schema->lookuptables[$key]))
-            throw new Exception("La table de lookup '$table' n'existe pas");
-        $prefix='T' . $this->schema->lookuptables[$key]->_id . ':';
 
-        $begin=$this->xapianDatabase->allterms_begin();
-        $end=$this->xapianDatabase->allterms_end();
-
-        $count=0;
-        if ($max<=0) $max=PHP_INT_MAX;
-        $result=array();
-
-        $term=trim($term);
-        $term=strtr($term, $charFroms, $charTo);
-        if (false === $token=strtok($term, ' '))
-            $token=''; // term=vide : sort les n premiers de la liste
-
-        $length=strlen($term);
-        // fixme: )à revoir, on parcourt toujours tous les termes. si sort=tri alpha, on pourrait s'arrêter avant
-        while($token !== false)
+        // Teste s'il s'agit d'une table de lookup
+        if (isset($this->schema->lookuptables[$key]))
         {
-            $start=$prefix.$token;
-            $begin->skip_to($start);
-
-            while (!$begin->equals($end))
+            switch(Utils::get($this->schema->lookuptables[$key]->_type, DatabaseSchema::LOOKUP_INVERTED))
             {
-                $entry=$begin->get_term();
-
-                if ($start !== substr($entry, 0, strlen($start)))
+                case DatabaseSchema::LOOKUP_SIMPLE:
+                    $helper=new SimpleTableLookup();
                     break;
 
-                $entry=substr($entry, strpos($entry, '=')+1);
-                $h=strtr($entry, $charFroms, $charTo);
-                if (false !== $pt=strpos(' '.$h, ' '.$term))
-                {
-                    if ($splitTerms)
-                    {
-                        $left=substr($entry, 0, $pt);
-                        $middle=substr($entry, $pt, $length);
-                        $right=substr($entry, $pt+$length);
+                case DatabaseSchema::LOOKUP_INVERTED:
+                    $helper=new InvertedTableLookup();
+                    break;
 
-                        if (!isset($result[$entry]))
-                            $result[$entry]=array($begin->get_termfreq(), $left, $middle, $right);
-                    }
-                    else
-                    {
-                        if (!isset($result[$entry]))
-                            $result[$entry]=$begin->get_termfreq();
-                    }
-                }
-                $begin->next();
+                default:
+                    throw new Exception("Impossible de faire un lookup sur la table de lookup '$table' : type de table non géré");
             }
-            $token=strtok(' ');
+            $prefix='T' . $this->schema->lookuptables[$key]->_id . ':';
         }
 
-        // Trie des réponses
-        switch ($sort)
+        // Teste s'il s'agit d'un alias
+        elseif (isset($this->schema->aliases[$key]))
         {
-            case 0:     // Tri par occurences
-                if ($splitTerms)
-                    uasort($result, create_function('$a,$b','return $b[0]-$a[0];')); // nb décroissants
+            $helper=new AliasLookup();
+            $prefix='';
+            foreach($this->schema->aliases[$key]->indices as $name=>$index)
+            {
+                $index=$this->schema->indices[$name];
+                if (reset($index->fields)->values)
+                    $item=new ValueLookup();
                 else
-                    arsort($result, SORT_NUMERIC);
-                break;
-            default:    // Tri alpha
-                ksort($result, SORT_LOCALE_STRING);
-                break;
+                    $item=new TermLookup();
+                $prefix=$index->_id . ':';
+                $item->setIterators($this->xapianDatabase->allterms_begin(), $this->xapianDatabase->allterms_end());
+                $item->setMax($max);
+                $item->setSortByFrequency($sort);
+                $item->setPrefix($prefix);
+                $item->setFormat($format);
+
+                $helper->add($item);
+            }
+
+            $prefix=array();
+            foreach($this->schema->aliases[$key]->indices as $index)
+                $prefix[]=$index->_id . ':';
+            // quel préfixe ?
         }
-//echo count($result);
-        return array_slice($result,0,$max);
-//        return $result;
+
+        // Teste s'il s'agit d'un index
+        elseif (isset($this->schema->indices[$key]))
+        {
+            // Teste s'il s'agit d'un index "à l'article"
+
+            // Remarque : on ne peut pas tester directement l'index, car chacun des
+            // champs peut être indexé à l'article ou au mot. Du coup, on teste
+            // uniquement le type d'indexation du premier champ et on suppose que
+            // les autres champs de l'index sont indexés pareil.
+
+            if (reset($this->schema->indices[$key]->fields)->values)
+                $helper=new ValueLookup();
+            else
+                $helper=new TermLookup();
+            $prefix=$this->schema->indices[$key]->_id . ':';
+        }
+
+        // Impossible de faire un lookup
+        else
+        {
+            throw new Exception("Impossible de faire un lookup sur '$table' : ce n'est ni une table de lookup, ni un alias, ni un index");
+        }
+
+        // Paramétre le helper
+        $helper->setIterators($this->xapianDatabase->allterms_begin(), $this->xapianDatabase->allterms_end());
+        $helper->setMax($max);
+        $helper->setSortByFrequency($sort);
+        $helper->setPrefix($prefix);
+        $helper->setFormat($format);
+echo 'Helper de type ', get_class($helper), '<br />';
+        // Fait le lookup et retourne les résultats
+        return $helper->lookup($term);
     }
+
 
     /**
      * Recherche les tokens de la base qui commencent par le terme indiqué.
@@ -2296,7 +2420,12 @@ class XapianDatabaseDriver extends Database
         // Liste des fichiers pouvant être créés pour une base flint
         $files=array
         (
-            'iamflint',         // le fichier de version doit être le 1er de la liste
+            // les fichiers de version doivent être en premier
+            'iamflint',
+            'iamchert',
+            'uuid', // replication stuff
+
+            // autres fichiers
             'flintlock',
 
             'position.baseA',

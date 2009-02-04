@@ -37,6 +37,9 @@ class DatabaseSchema
         INDEX_PROBABILISTIC    = 1,
         INDEX_BOOLEAN=2;
 
+    const
+        LOOKUP_SIMPLE=1,
+        LOOKUP_INVERTED=2;
 
     /**
      * Ce tableau décrit les propriétés d'une schéma de base de données.
@@ -117,7 +120,7 @@ class DatabaseSchema
                             'phrases'=>false,   // Indexer les phrases
                             'values'=>false,    // Indexer les valeurs
                             'count'=>false,     // Compter le nombre de valeurs (empty, has1, has2...)
-                            'global'=>false,    // Prendre en compte cet index dans l'index 'tous champs'
+                            'global'=>false,    // DEPRECATED : n'est plus utilsé, conservé pour compatibilité
                             'start'=>'',      // Position ou chaine indiquant le début du texte à indexer
                             'end'=>'',        // Position ou chain indquant la fin du texte à indexer
                             'weight'=>1         // Poids des tokens ajoutés à cet index
@@ -134,14 +137,18 @@ class DatabaseSchema
                     'name'=>'',             // Nom de la table
                     'label'=>'',            // Libellé de l'index
                     'description'=>'',      // Description de l'index
+                    'type'=>'simple',       // type de table : "simple" ou "inversée"
+                    '_type'=>self::LOOKUP_SIMPLE, // Traduction de type en entier
                     'fields'=>array         // La liste des champs qui alimentent cette table
                     (
                         'field'=>array
                         (
-                            '_id'=>0,            // Identifiant (numéro unique) du champ
-                            'name'=>'',         // Nom du champ
-                            'start'=>'',      // Position de début ou chaine délimitant le début de la valeur à ajouter à la table
-                            'end'=>''         // Longueur ou chaine délimitant la fin de la valeur à ajouter à la table
+                            '_id'=>0,       // Identifiant (numéro unique) du champ
+                            'name'=>'',     // Nom du champ
+                            'startvalue'=>1,        // Indice du premier article à prendre en compte (1-based)
+                            'endvalue'=>0,        // Indice du dernier article à prendre en compte (0=jusqu'à la fin)
+                            'start'=>'',    // Position de début ou chaine délimitant le début de la valeur à ajouter à la table
+                            'end'=>''       // Longueur ou chaine délimitant la fin de la valeur à ajouter à la table
                         )
                     )
                 )
@@ -799,13 +806,13 @@ class DatabaseSchema
                 if (!isset($fields[$name]))
                     $errors[]="Champ inconnu dans l'index #$i : '$name'";
 
-                // Vérifie les propriétés booléenne words/phrases/values/count et global
+                // Vérifie les propriétés booléenne words/phrases/values/count
                 $field->words=self::boolean($field->words);
                 $field->phrases=self::boolean($field->phrases);
                 if ($field->phrases) $field->words=true;
                 $field->values=self::boolean($field->values);
                 $field->count=self::boolean($field->count);
-                $field->global=self::boolean($field->global);
+//                $field->global=self::boolean($field->global);
 
                 // Vérifie qu'au moins un des types d'indexation est sélectionné
                 if (! ($field->words || $field->phrases || $field->values || $field->count))
@@ -838,6 +845,16 @@ class DatabaseSchema
                 $errors[]="Les tables d'entrées #$i et #$lookuptables[$name] ont le même nom";
             $lookuptables[$name]=$i;
 
+            // Vérifie le type de la table
+            switch($lookuptable->type=strtolower(trim($lookuptable->type)))
+            {
+                case 'simple':
+                case 'inverted':
+                    break;
+                default:
+                    $errors[]="Type incorrect pour la table des entrées #$i";
+            }
+
             // Vérifie que la table a au moins un champ
             if (count($lookuptable->fields)===0)
                 $errors[]="Aucun champ n'a été indiqué pour la table des entrées #$i ($lookuptable->name)";
@@ -847,6 +864,30 @@ class DatabaseSchema
                 $name=trim(Utils::ConvertString($field->name, 'alphanum'));
                 if (!isset($fields[$name]))
                     $errors[]="Champ inconnu dans la table des entrées #$i : '$name'";
+
+                // Vérifie startValue et endValue
+
+                if (! (is_int($field->startvalue) || ctype_digit($field->startvalue)))
+                {
+                    $errors[]="Champ $name de la table des entrées #$i : startvalue doit être un entier";
+                }
+                else
+                {
+                    $field->startvalue=(int)$field->startvalue;
+                    if ($field->startvalue < 1)
+                        $errors[]="Champ $name de la table des entrées #$i : startvalue doit être supérieur à zéro";
+                }
+
+                if (! (is_int($field->endvalue) || ctype_digit($field->endvalue)))
+                {
+                    $errors[]="Champ $name de la table des entrées #$i : endvalue doit être un entier";
+                }
+                else
+                {
+                    $field->endvalue=(int)$field->endvalue;
+                    if ($field->endvalue < 0)
+                        $errors[]="Champ $name de la table des entrées #$i : endvalue ne peut pas être négatif";
+                }
 
                 // Ajuste start et end
                 $this->startEnd($field, $errors, "Champ #$j de la table des entrées #$i : ");
@@ -1158,7 +1199,7 @@ class DatabaseSchema
         // Attribue un ID à tous les éléments des tableaux de premier niveau
         foreach($this as $prop=>$value)
         {
-            if (is_array($value) && count($value))
+            if ($prop[0] !== '_' && is_array($value) && count($value))
             {
                 foreach($value as $item)
                 {
@@ -1204,9 +1245,19 @@ class DatabaseSchema
         }
 
 
-        // Stocke l'ID de chacun des champs des tables des entrées
+        // Tables de lookup
         foreach($this->lookuptables as $lookuptable)
         {
+            // Compile le type de la table
+            switch(strtolower(trim($lookuptable->type)))
+            {
+                case 'simple':      $lookuptable->_type=self::LOOKUP_SIMPLE;  break;
+                case 'inverted':    $lookuptable->_type=self::LOOKUP_INVERTED; break;
+                default:
+                    throw new LogicException('Type de table incorrect, aurait dû être détecté avant : ' . $lookuptable->type);
+            }
+
+            // Stocke l'ID de chacun des champs des tables des entrées
             foreach ($lookuptable->fields as &$field)
                 $field->_id=$this->fields[trim(Utils::ConvertString($field->name, 'alphanum'))]->_id;
             unset($field);
@@ -1255,7 +1306,7 @@ class DatabaseSchema
     {
         foreach($object as $prop=>& $value)
         {
-            if (is_array($value) && count($value))
+            if ($prop[0] !== '_' && is_array($value) && count($value))
             {
                 $result=array();
                 foreach($value as $item)
@@ -1645,7 +1696,7 @@ class DatabaseSchema
             if (array_keys(array_diff_key($f1,$deleted)) !== array_keys(array_diff_key($f2, $added)))
                 $changes['Modification de l\'ordre des champs dans la table de lookup ' . $newTable->name]=0;
 
-            // Champs dde tables de lookup modifiés
+            // Champs de tables de lookup modifiés
             foreach($f2 as $id=>$newField)
             {
                 if (! isset($f1[$id])) continue;

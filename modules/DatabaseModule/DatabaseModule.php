@@ -1387,17 +1387,18 @@ class DatabaseModule extends Module
      * @param string $value le terme recherché.
      * @param int $max le nombre maximum de valeurs à retourner (0=pas de limite).
      */
-    function actionLookup($table, $value='', $max=10)
+    function actionLookup($table, $value='', $max=10, $sort=false)
     {
-        header('Content-type: text/html; charset=iso-8859-1');
+        if (!headers_sent())
+            header('Content-type: text/html; charset=iso-8859-1');
 
-        $max=$this->request->defaults('max', 25)->int()->min(0)->ok();
+        $max=$this->request->defaults('max', 10)->int()->min(0)->ok();
 
         // Ouvre la base
         $this->openDatabase();
 
         // Lance la recherche
-        $terms=$this->selection->lookup($table, $value, $max, 0, true);
+        $terms=$this->selection->lookup($table, $value, $max, $sort);
 
         // Détermine le template à utiliser
         if (! $template=$this->getTemplate())
