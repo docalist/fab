@@ -2087,20 +2087,20 @@ final class Utils
      *
      * @param string $original la chaine originale.
      * @param string $corrected la chaine corrigée.
-     * @param string $before le texte à ajouter devant chaque mot corrigé.
-     * @param string $after le texte à ajouter après chaque mot corrigé.
+     * @param string $format le format (style sprintf) à utiliser pour mettre
+     * en évidence chacun des mots.
      * @return string la chaine résultat.
      */
-    public static function highlightCorrections($original, $corrected, $before='<strong>', $after='</strong>')
+    public static function highlightCorrections($original, $corrected, $format='<strong>%s</strong>')
     {
         // Crée un tableau contenant la liste des mots de $original qui ne sont pas dans $corrected
         $t1=array_flip(Utils::tokenize($original));
         $t2=array_flip(Utils::tokenize($corrected));
-        $t=array_diff_key($t2,$t1);
+        $t=array_diff_key($t2, $t1);
 
         // Génère un tableau de remplacement pour strtr()
         foreach($t as $search=>& $replace)
-            $replace=$before.$search.$after;
+            $replace=sprintf($format, $search);
 
         // Met les mots en surbrillance et retourne le résultat
         return strtr($corrected, $t);
