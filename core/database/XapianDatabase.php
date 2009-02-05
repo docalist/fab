@@ -118,6 +118,13 @@ class XapianDatabaseDriver extends Database
      */
     private $xapianQueryParser=null;
 
+    /**
+     * Un query parser utilisé de façon spéciale pour générer la version
+     * corrigée (orthographe) de la requête de l'utilisateur.
+     *
+     * @var XapianQueryParser
+     */
+    private $xapianSpellChecker=null;
 
     /**
      * L'objet XapianMultiValueSorter utilisé pour réaliser les tris multivalués.
@@ -266,7 +273,7 @@ class XapianDatabaseDriver extends Database
      *
      * @var string
      */
-    private $correctedEquation='';
+    private $correctedEquation=null;
 
     /**
      * MatchingSpy employé pour créer les facettes de la recherche
@@ -1134,7 +1141,7 @@ class XapianDatabaseDriver extends Database
             XapianQueryParser::FLAG_PHRASE |
             XapianQueryParser::FLAG_LOVEHATE |
             XapianQueryParser::FLAG_WILDCARD |
-            XapianQueryParser::FLAG_SPELLING_CORRECTION |
+//          XapianQueryParser::FLAG_SPELLING_CORRECTION |
             XapianQueryParser::FLAG_PURE_NOT;
 
         if ($this->opAnyCase)
@@ -1147,11 +1154,69 @@ class XapianDatabaseDriver extends Database
             $flags
         );
 
-        // Correcteur orthographique
-        $this->correctedEquation=$this->xapianQueryParser->get_corrected_query_string();
-
         return $query;
     }
+
+    /**
+     * Corrige l'orthographe de l'équation de recherche en cours.
+     *
+     * Le queryParser de Xapian sait proposer une version corrigée des équations
+     * de recherche qu'il analyse, mais uniquement pour les mots "globaux" qui
+     * ne sont pas préfixés.
+     *
+     * Dans notre cas, comme on n'a pas d'index global, on n'obtient, par défaut
+     * aucune correction.
+     *
+     * Pour contourner le problème, on utilise un query parser spécial
+     * ($this->xapianSpellChecker) qui est paramétré exactement comme le query
+     * parser ($this->xapianQueryParser) mais qui ne contient aucun index ni
+     * aucun alias et on reparse l'équation de recherche.
+     *
+     * Du coup, cela fonctionne, mais xapian essaie également de trouver des
+     * corrections pour les noms des index (par exemple, titorig devient
+     * vitoria).
+     *
+     * Pour éviter cela, on "protége" les noms des index avant de lancer
+     * l'analyse et on les restaure après.
+     */
+    private function spellcheckEquation()
+    {
+        if (is_null($this->xapianSpellChecker))
+        {
+            $this->xapianSpellChecker=new XapianQueryParser();
+            $this->xapianSpellChecker->set_stopper($this->stopper);
+            $this->xapianSpellChecker->set_default_op($this->defaultOp);
+            $this->xapianSpellChecker->set_database($this->xapianDatabase);
+        }
+
+        // Pré-traitement de la requête pour que xapian l'interprête comme on souhaite
+        $equation=$this->equation;
+        $equation=preg_replace_callback('~(?:[a-z0-9]\.){2,9}~i', array('Utils', 'acronymToTerm'), $equation); // sigles à traiter, xapian ne le fait pas s'ils sont en minu (a.e.d.)
+        $equation=preg_replace_callback('~\[(.*?)\]~', array($this,'searchByValueCallback'), $equation);
+        $equation=$this->protectOperators($equation);
+        $equation=Utils::convertString($equation, 'queryparser'); // FIXME: utiliser la même table que tokenize()
+        $equation=$this->restoreOperators($equation);
+
+        $equation=preg_replace('~\b[a-z]+[:=]~i', 'zzz$0', $equation);
+
+        $flags=
+            XapianQueryParser::FLAG_BOOLEAN |
+            XapianQueryParser::FLAG_PHRASE |
+            XapianQueryParser::FLAG_LOVEHATE |
+            XapianQueryParser::FLAG_WILDCARD |
+            XapianQueryParser::FLAG_SPELLING_CORRECTION |
+            XapianQueryParser::FLAG_PURE_NOT;
+
+        if ($this->opAnyCase)
+            $flags |= XapianQueryParser::FLAG_BOOLEAN_ANY_CASE;
+
+
+        $this->xapianSpellChecker->parse_Query(utf8_encode($equation),$flags);
+        $this->correctedEquation=utf8_decode($this->xapianSpellChecker->get_corrected_query_string());
+
+        $this->correctedEquation=preg_replace('~zzz([a-z]+[:=])~i', '$1', $this->correctedEquation);
+    }
+
 
     /**
      * Fonction expérimentale utilisée par {@link parseQuery()} pour convertir
@@ -1417,7 +1482,6 @@ class XapianDatabaseDriver extends Database
         // Retourne true pour indiquer qu'on a au moins une réponse
         return true;
     }
-
 
     /**
      * Paramètre le MSet pour qu'il retourne les documents selon l'ordre de tri
@@ -1817,7 +1881,10 @@ class XapianDatabaseDriver extends Database
             case 'start': return $this->start;
             case 'max': return $this->max;
 
-            case 'correctedequation': return $this->correctedEquation;
+            case 'correctedequation':
+                if (is_null($this->correctedEquation))
+                    $this->spellcheckEquation();
+                return $this->correctedEquation;
 
             // Liste des mots-vides ignorés dans l'équation de recherche
             case 'stopwords': return $this->getRequestStopwords(false);
