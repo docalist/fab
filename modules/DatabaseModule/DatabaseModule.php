@@ -1537,6 +1537,8 @@ class DatabaseModule extends Module
                 $this->request->defaults('_opanycase', Config::get('opanycase'))
                     ->ok(),
 
+            '_defaultindex'=>Config::get('defaultindex'),
+
             '_facets' => Config::get('facets'),
         );
         $result=$this->selection->search($equation, $options);

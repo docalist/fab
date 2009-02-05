@@ -224,6 +224,15 @@ class XapianDatabaseDriver extends Database
     private $opAnyCase=true;
 
     /**
+     * Indique le nom de l'index "global" par défaut, c'est-à-dire le nom de
+     * l'index ou de l'alias qui sera utilisé si aucun nom de champ n'est
+     * indiqué dans la requête de l'utilisateur.
+     *
+     * @var null|string
+     */
+    private $defaultIndex=null;
+
+    /**
      * Indique le numéro d'ordre de la première réponse retournée par la
      * recherche en cours.
      *
@@ -926,6 +935,25 @@ class XapianDatabaseDriver extends Database
         // Initialise le QueryParser
         $this->xapianQueryParser=new XapianQueryParser();
 
+        // Paramètre l'index par défaut (l'index global)
+        if (! is_null($this->defaultIndex))
+        {
+            $default= Utils::convertString($this->defaultIndex, 'alphanum');
+            if (isset($this->schema->indices[$default]))
+            {
+                $this->xapianQueryParser->add_prefix('', $this->schema->indices[$default]->_id.':');
+            }
+            elseif (isset($this->schema->aliases[$default]))
+            {
+                foreach($this->schema->aliases[$default]->indices as $index)
+                    $this->xapianQueryParser->add_prefix('', $index->_id.':');
+            }
+            else
+            {
+                throw new Exception("Impossible d'utiliser '$default' comme index global : ce n'est ni un index, ni un alias.");
+            }
+        }
+
         // Indique au QueryParser la liste des index de base
         foreach($this->schema->indices as $name=>$index)
             $this->xapianQueryParser->add_prefix($name, $index->_id.':');
@@ -951,7 +979,6 @@ class XapianDatabaseDriver extends Database
         // Indique au QueryParser la liste des alias
         foreach($this->schema->aliases as $aliasName=>$alias)
         {
-            if ($aliasName==='default') $aliasName='';
             foreach($alias->indices as $index)
                 $this->xapianQueryParser->add_prefix($aliasName, $index->_id.':');
         }
@@ -1262,6 +1289,9 @@ class XapianDatabaseDriver extends Database
             else
                 $this->opAnyCase=true;
 
+            if (isset($options['_defaultindex']))
+                $this->defaultIndex=$options['_defaultindex'];
+
             if (isset($options['_facets']))
                 $facets=(array)$options['_facets'];
             else
@@ -1363,7 +1393,7 @@ class XapianDatabaseDriver extends Database
             }
             $this->xapianMSet=$this->xapianEnquire->get_MSet($start, $max, 1000, $rset, null, $this->spy);
         }
-        
+
         // Recherche standad sans facettes
         else
         {
