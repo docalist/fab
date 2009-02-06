@@ -1017,7 +1017,6 @@ class XapianDatabaseDriver extends Database
             $this->stopper->add($stopword);
         $this->xapianQueryParser->set_stopper($this->stopper); // fixme : stopper ne doit pas être une variable locale, sinon segfault
 
-        $this->xapianQueryParser->set_default_op($this->defaultOp);
         $this->xapianQueryParser->set_database($this->xapianDatabase); // indispensable pour FLAG_WILDCARD
 
         // Expérimental : autorise un value range sur le champ REF s'il existe une clé de tri nommée REF
@@ -1393,6 +1392,8 @@ class XapianDatabaseDriver extends Database
 
         // Met en place l'environnement de recherche lors de la première recherche
         if (is_null($this->xapianEnquire)) $this->setupSearch();
+        $this->xapianQueryParser->set_default_op($this->defaultOp);
+
 
         // Analyse les filtres éventuels à appliquer à la recherche
         if ($filter)
