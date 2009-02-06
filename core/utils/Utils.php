@@ -2054,8 +2054,8 @@ final class Utils
     }
 
     /*
-     * Encode les caractères '<', '>', et '&' en entités numériques
-     * hexadécimales.
+     * Encode les caractères '<', '>', '&', '’' (apostrophe courbe) et '–' 
+     * (tirets long) en entités numériques hexadécimales.
      *
      * @param string $xml la chaine à encoder.
      * @return string
@@ -2067,6 +2067,8 @@ final class Utils
             '<'=>'&#x3C;',
             '>'=>'&#x3E;',
             '&'=>'&#x26;',
+            '’'=>'&#x92;',
+            '–'=>'&#x96;'
         );
 
         return strtr($xml, $table);
