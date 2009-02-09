@@ -551,8 +551,8 @@ class TaskManager extends DatabaseModule
 
         echo sprintf
         (
-            '<div class="taskinfo">Tâche #%s : %s<br />Date d\'exécution : %s<br />Requête exécutée : %s<br /></div>',
-            self::$id, $task->getLabel(), strftime('%x %X'), $this->request
+            '<div class="taskinfo">Tâche #%s : %s<br />Date d\'exécution : %s<br />Requête exécutée : %s<br />PID : %d</div>',
+            self::$id, $task->getLabel(), strftime('%x %X'), $this->request, getmypid()
         );
 
         // Construit la requête à exécuter
