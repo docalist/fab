@@ -261,6 +261,25 @@ class XapianDatabaseDriver extends Database
     private $max=-1;
 
     /**
+     * Indique le nombre minimum de documents que xapian doit examiner avant
+     * de retourner la liste des réponses.
+     *
+     * Initialisé par {@link search()} et utilisé par {@link searchInfo()}.
+     *
+     * @var int
+     */
+    private $checkatleast=-1;
+
+    /**
+     * Equation de boost utilisée lors de la dernière recherche.
+     *
+     * Initialisé par {@link search()} et utilisé par {@link searchInfo()}.
+     *
+     * @var string
+     */
+    private $boost=null;
+
+    /**
      * Une estimation du nombre de réponses obtenues pour la recherche en cours.
      *
      * @var int
@@ -1287,6 +1306,75 @@ class XapianDatabaseDriver extends Database
     }
 
     /**
+     * Analyse une équation de recherche utilisée pour "booster" certains
+     * documents.
+     *
+     * Xapian supporte l'opérateur OP_SCALE_WEIGHT qui permet de pondérer le
+     * poids obtenu par une requête. Associé à l'opérateur OP_AND_MAYBE, c'est
+     * un bon moyen de booster certains documents.
+     *
+     * Malheureusement, cet opérateur ne peut pas être utilisée dans une
+     * requête analysée par le query parser standard de xapian : la syntaxe
+     * "factor*query" n'est pas supportée.
+     *
+     * Cette fonction est un analyseur simpliste permettant d'analyser (à coup
+     * d'xpressions régulières) une requête de boost.
+     *
+     * L'équation à analyser doit être une suite de clauses de la forme :
+     * NomIndex:factor*terme ou NomIndex:(factor*terme factor*terme ...)
+     *
+     * Exemple : "DatEdit:3.14159*2009 DatEdit:(9*2008 7*2007) TypDoc:5*article"
+     *
+     * Pour être analysée correctement, la requête ne doit rien contenir
+     * d'autre (pas d'opérateurs, pas de troncature, pas de guillemets, etc.)
+     *
+     * Les noms d'index utilisés doivent obligatoirement être des index de base
+     * (les alias ne sont pas supportés).
+     *
+     * Les facteurs de pondération utilisés sont soit des entiers, soit des
+     * réels (utiliser un point comme séparateur pour les décimales, pas une
+     * virgule) et doivent obligatoirement être supérieurs ou égaux à zéro.
+     *
+     * @param $boost
+     * @return XapianQuery
+     * @throws Exception si l'équation de boost n'est pas valide.
+     */
+    private function parseBoost($boost)
+    {
+        if (is_null($boost) || trim($boost)==='') return null;
+
+        if (! preg_match_all('~(\w+):\s*(?:\(\s*(.*)\s*\)|([^\s]+))~s', $boost, $matches, PREG_SET_ORDER))
+            throw new Exception('Equation incorrecte pour le boost : ' . $boost);
+
+        $q=array();
+        foreach($matches as $match)
+        {
+            $index=$match[1];
+            $value=$match[2] or $value=$match[3];
+
+            // Détermine le préfixe de l'index
+            $index=Utils::ConvertString($index, 'alphanum');
+            if (!isset($this->schema->indices[$index]))
+                throw new Exception("Boost incorrect : l'index $index n'existe pas");
+            $prefix=$this->schema->indices[$index]->_id . ':';
+
+            if (! preg_match_all('~(\d+(?:\.\d+)?)\*([A-Za-z0-9]+)~', $value, $matches, PREG_SET_ORDER))
+                throw new Exception('valeur incorrecte pour le boost : ' . $value);
+
+            foreach($matches as $match)
+            {
+                $weight=$match[1];
+                $term=$match[2];
+
+                $q[]=new XapianQuery(XapianQuery::OP_SCALE_WEIGHT, new XapianQuery($prefix . $term), (float)$weight);
+            }
+        }
+        $boost = new XapianQuery(XapianQuery::OP_OR, $q);
+
+        return $boost;
+    }
+
+    /**
      * @inheritdoc
      */
     public function search($equation=null, $options=null)
@@ -1356,10 +1444,18 @@ class XapianDatabaseDriver extends Database
             if (isset($options['_defaultindex']))
                 $this->defaultIndex=$options['_defaultindex'];
 
+            if (isset($options['_checkatleast']))
+                $checkatleast=$options['_checkatleast'];
+
             if (isset($options['_facets']))
                 $facets=(array)$options['_facets'];
             else
                 $facets=array();
+
+            if (isset($options['_boost']))
+                $this->boost=$this->parseBoost($options['_boost']);
+            else
+                $this->boost=null;
         }
         else
         {
@@ -1369,6 +1465,8 @@ class XapianDatabaseDriver extends Database
             $filter=null;
             $minscore=0;
             $facets=array();
+            $checkatleast=-1;
+            $this->boost=null;
         }
 
         // Ajuste start pour que ce soit un multiple de max
@@ -1386,14 +1484,13 @@ class XapianDatabaseDriver extends Database
         // Stocke les valeurs finales
         $this->start=$start+1;
         $this->max=$max;
-
+        $this->checkatleast=$checkatleast;
 
         if ($minscore<0) $minscore=0; elseif($minscore>100) $minscore=100;
 
         // Met en place l'environnement de recherche lors de la première recherche
         if (is_null($this->xapianEnquire)) $this->setupSearch();
         $this->xapianQueryParser->set_default_op($this->defaultOp);
-
 
         // Analyse les filtres éventuels à appliquer à la recherche
         if ($filter)
@@ -1414,19 +1511,25 @@ class XapianDatabaseDriver extends Database
         $this->equation=$equation;
         $query=$this->xapianQuery=$this->parseQuery($equation);
 
-        // Problème xapian : si on fait une recherche '*' avec un tri par pertinence,
-        // xapian ne rends pas la main. Du coup on force içi un tri par docid décroissant.
-        if (trim($equation)==='*') $sort='-';
-
         // Combine l'équation et le filtre pour constituer la requête finale
         if ($filter)
             $query=new XapianQuery(XapianQuery::OP_FILTER, $query, $this->xapianFilter);
 
-        // Exécute la requête
-        $this->xapianEnquire->set_query($query);
-
         // Définit l'ordre de tri des réponses
+
+        // Problème xapian : si on fait une recherche '*' avec un tri par pertinence,
+        // xapian ne rends pas la main. Du coup on force içi un tri par docid décroissant
+        // si l'ordre de tri actuel est par pertinence.
+        if (trim($equation)==='*' && (is_null($sort) || $sort==='%')) $sort='-';
+
         $this->setSortOrder($sort);
+
+        // Ajoute le boost éventuel
+        if ($this->boost && $sort==='%')
+            $query=new XapianQuery(XapianQuery::OP_AND_MAYBE, $query, $this->boost);
+
+        // Définit la requête à exécuter
+        $this->xapianEnquire->set_query($query);
 
         // Définit le score minimal souhaité
         if ($minscore) $this->xapianEnquire->set_cutoff($minscore);
@@ -1460,11 +1563,11 @@ class XapianDatabaseDriver extends Database
             $this->xapianMSet=$this->xapianEnquire->get_MSet($start, $max, 1000, $rset, null, $this->spy);
         }
 
-        // Recherche standad sans facettes
+        // Recherche standard sans facettes
         else
         {
             $this->spy=null;
-            $this->xapianMSet=$this->xapianEnquire->get_MSet($start, $max, $max+1, $rset);
+            $this->xapianMSet=$this->xapianEnquire->get_MSet($start, $max, $checkatleast, $rset);
         }
 
         // Teste si la requête a retourné des réponses
@@ -1881,6 +1984,7 @@ class XapianDatabaseDriver extends Database
             case 'rank': return $this->xapianMSetIterator->get_rank()+1;
             case 'start': return $this->start;
             case 'max': return $this->max;
+            case 'checkatleast': return $this->checkatleast;
 
             case 'correctedequation':
                 if (is_null($this->correctedEquation))
@@ -2266,7 +2370,7 @@ class XapianDatabaseDriver extends Database
         $helper->setSortByFrequency($sort);
         $helper->setPrefix($prefix);
         $helper->setFormat($format);
-echo 'Helper de type ', get_class($helper), '<br />';
+
         // Fait le lookup et retourne les résultats
         return $helper->lookup($term);
     }
