@@ -224,7 +224,7 @@ class Template
         // Compile le template s'il y a besoin
         if (self::needsCompilation($path, $cachePath))
         {
-            Timer::enter('Template.Compile ' . $path);
+            timer && Timer::enter('Template.Compile ' . $path);
             // Charge le contenu du template
             if (is_null($source))
                 if ( false === $source=file_get_contents($path) )
@@ -243,12 +243,12 @@ class Template
                 debug && Debug::log("Mise en cache de '%s'", $path);
                 Cache::set($cachePath, $source);
                 debug && Debug::log("Exécution à partir du cache");
-                Timer::leave();
+                timer && Timer::leave();
                 require(Cache::getPath($cachePath));
             }
             else
             {
-                Timer::leave();
+                timer && Timer::leave();
                 debug && Debug::log("Cache désactivé, evaluation du template compilé");
                 eval(self::PHP_END_TAG . $source);
             }
@@ -271,7 +271,7 @@ class Template
 
     public static function run($path /* $dataSource1, $dataSource2, ..., $dataSourceN */ )
     {
-        Timer::enter('Template.run '.$path);
+        timer && Timer::enter('Template.run '.$path);
         // Résout le path s'il est relatif
         if (Utils::isRelativePath($path))
         {
@@ -289,7 +289,7 @@ class Template
 
         // Exécute le template
         self::runInternal($path,$data);
-        Timer::leave();
+        timer && Timer::leave();
     }
 
     public static function runSource($path, $source /* $dataSource1, $dataSource2, ..., $dataSourceN */ )
@@ -532,6 +532,27 @@ return false (ne pas afficher le contenu par défaut)
         }
 //echo '</div>';
         return false;
+    }
+
+    private static $lastId='';
+    private static $usedId=array();
+
+    public static function autoId($name='id')
+    {
+        $name=Utils::convertString($name, 'ident');
+        $name=implode('_', str_word_count($name, 1, '0123456789'));
+
+        if (isset(self::$usedId[$name]))
+            $name=$name.(++self::$usedId[$name]);
+        else
+            self::$usedId[$name]=1;
+
+        return self::$lastId=$name;
+    }
+
+    public static function lastId()
+    {
+        return self::$lastId;
     }
 }
 

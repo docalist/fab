@@ -1,18 +1,15 @@
-<!--  TODO: devrait se baser sur le générateur de checkbox dans checkbox.html -->
-<template match="//checklist" name="" label="" src="" class="" tag="span">
-    <label test="$label" class="checklist{rtrim(' '.$class)}">$label</label>
-    <div class="checklist{rtrim(' '.$class)}">
-            <loop on="$src" as="$line, $record">
-                <tag name="$tag" class="check{rtrim(' '.$class)}">{select('@*')}
-                    <input
-                        type="checkbox"
-                        name="$name"
-                        value="{$record['code']}"
-                        class="check{rtrim(' '.$class)}"
-                        id="$name$line" />
-                    <label class="check{rtrim(' '.$class)}" for="$name$line" >{$record['label']}</label>
-                </tag>
-                {select('.//node()')}
-            </loop>
+<template match="//checklist" name="" label="" src="" class="">
+    <div class="holder checklist $class">
+        <label>$label</label>
+        {select('*[@class="before"]')}
+        <loop on="$src" as="$key, $record">
+            <if test="{is_array($record)}">
+                <checkbox name="$name" label="{$record['label']}" value="{$record['code']}">{select('@*')}</checkbox>
+            </if>
+            <else>
+                <checkbox name="$name" label="$record" value="{is_string($key) ? $key : $record}">{select('@*')}</checkbox>
+            </else>
+        </loop>
+        {select('*[not(@class="before")]')}
     </div>
 </template>

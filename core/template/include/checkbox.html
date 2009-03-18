@@ -1,10 +1,10 @@
 <template match="//checkbox" name="" label="" value="" class="" id="">
-    <input
-        type="checkbox"
-        name="$name"
-        value="$value"
-        class="check{rtrim(' '.$class)}"
-        id="{$label? autoId($id:$name:'checkbox') : $id}">{select('@*')}</input>
-
-    <label test="$label" class="check{rtrim(' '.$class)}" for="{lastId()}">$label</label>{select('node()')}
+    <span class="checkbox $class">
+        <input
+            type="checkbox"
+            name="$name"
+            value="$value"
+            id="{Template::autoId($id:$name:'checkbox')}">{select('@*')}</input>
+        <label test="$label" for="{Template::lastId()}">$label</label>{select('node()')}
+    </span>
 </template>

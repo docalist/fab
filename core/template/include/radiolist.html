@@ -1,17 +1,15 @@
-<template match="//radiolist" name="" label="" value="" src="" class="" tag="span">
-    <label test="$label" class="radiolist{rtrim(' '.$class)}">$label</label>
-    <div class="radiolist{rtrim(' '.$class)}">
-        <loop on="$src" as="$line, $record">{select('@*')}
-            <tag name="$tag" class="radio{rtrim(' '.$class)}">
-                <input
-                    type="radio"
-                    name="$name"
-                    value="{$record['code']}"
-                    class="radio{rtrim(' '.$class)}"
-                    id="$name$line" />
-                <label class="radio{rtrim(' '.$class)}" for="$name$line" >{$record['label']}</label>
-            </tag>
-        {select('node()')}
+<template match="//radiolist" name="" label="" src="" class="">
+    <div class="holder radiolist $class">
+        <label>$label</label>
+        {select('*[@class="before"]')}
+        <loop on="$src" as="$key, $record">
+            <if test="{is_array($record)}">
+                <radio name="$name" label="{$record['label']}" value="{$record['code']}" />
+            </if>
+            <else>
+                <radio name="$name" label="$record" value="{is_string($key) ? $key : $record}" />
+            </else>
         </loop>
+        {select('*[not(@class="before")]')}
     </div>
 </template>
