@@ -125,20 +125,13 @@ class DatabaseModule extends Module
      */
     public function actionSearch()
     {
-        Timer::enter();
+        timer && Timer::enter();
 
         // Ouvre la base de données
         $this->openDatabase();
 
         // Détermine la recherche à exécuter
         $this->equation=$this->getEquation();
-
-        // Affiche le formulaire de recherche si on n'a aucun paramètre
-        if (is_null($this->equation))
-        {
-            $this->showError('Vous n\'avez indiqué aucun critère de recherche.');
-            return;
-        }
 
         // Aucune réponse
         if (! $this->select($this->equation))
@@ -155,7 +148,7 @@ class DatabaseModule extends Module
         $callback=$this->getCallback();
 
         // Exécute le template
-        Timer::enter('Exécution du template d\'affichage des réponses');
+        timer && Timer::enter('Exécution du template d\'affichage des réponses');
 
         Template::run
         (
@@ -163,7 +156,7 @@ class DatabaseModule extends Module
             array($this, $callback),
             $this->selection->record
         );
-        Timer::leave();
+        timer && Timer::leave();
 
         // Ajoute la requête dans l'historique des équations de recherche
         $history=Config::userGet('history', false);
@@ -174,7 +167,7 @@ class DatabaseModule extends Module
         if (!is_int($history)) $history=0;
         if ($history>0 && ! Utils::isAjax())
             $this->updateSearchHistory($history);
-        Timer::leave();
+        timer && Timer::leave();
     }
 
     /**
@@ -225,7 +218,7 @@ class DatabaseModule extends Module
      */
     private function updateSearchHistory($maxHistory=10)
     {
-        Timer::enter('Mise à jour de l\'historique des recherches');
+        timer && Timer::enter('Mise à jour de l\'historique des recherches');
 
         // Charge les sessions si ce n'est pas le cas (pas mis en config, comme ça la session n'est chargée que si on en a besoin)
         Runtime::startSession();
@@ -279,7 +272,7 @@ class DatabaseModule extends Module
 
 //        echo 'Historique de recherche mis à jour : <br/>';
 //        echo '<pre>', print_r($hist,true), '</pre>';
-        Timer::leave();
+        timer && Timer::leave();
     }
 
     /**
@@ -419,14 +412,6 @@ class DatabaseModule extends Module
         // Détermine la recherche à exécuter
         $this->equation=$this->getEquation();
 
-        // Erreur, si aucun paramètre de recherche n'a été passé
-        // Erreur, si des paramètres ont été passés, mais tous sont vides et l'équation obtenue est vide
-        if (is_null($this->equation))
-        {
-            $this->showError('Vous n\'avez indiqué aucun critère permettant de sélectionner la notice à modifier.');
-            return;
-        }
-
         // Si un numéro de référence a été indiqué, on charge cette notice
         // Vérifie qu'elle existe
         if (! $this->select($this->equation))
@@ -471,14 +456,6 @@ class DatabaseModule extends Module
 
         // Détermine la recherche à exécuter
         $this->equation=$this->getEquation();
-
-        // Erreur, si aucun paramètre de recherche n'a été passé
-        // Erreur, si des paramètres ont été passés, mais tous sont vides et l'équation obtenue est vide
-        if (is_null($this->equation))
-        {
-            $this->showError('Vous n\'avez indiqué aucun critère permettant de sélectionner la notice à modifier.');
-            return;
-        }
 
         // Si un numéro de référence a été indiqué, on charge cette notice
         // Vérifie qu'elle existe
@@ -668,13 +645,6 @@ class DatabaseModule extends Module
         // Récupère l'équation de recherche qui donne les enregistrements à supprimer
         $this->equation=$this->getEquation();
 
-        // Paramètre equation manquant
-        if (is_null($this->equation))
-        {
-            $this->showError('Le ou les numéros des notices à supprimer n\'ont pas été indiqués.');
-            return;
-        }
-
         // Aucune réponse
         if (! $this->select($this->equation, -1) )
         {
@@ -739,13 +709,6 @@ class DatabaseModule extends Module
 
         // Récupère l'équation de recherche qui donne les enregistrements à supprimer
         $this->equation=$this->getEquation();
-
-        // Paramètre equation manquant
-        if (is_null($this->equation))
-        {
-            $this->showError('Le ou les numéros des notices à supprimer n\'ont pas été indiqués.');
-            return;
-        }
 
         // Aucune réponse
         if (! $this->select($this->equation, -1) )
@@ -1462,10 +1425,10 @@ class DatabaseModule extends Module
         if (is_null($database))
             throw new Exception('La base de données à utiliser n\'a pas été indiquée dans le fichier de configuration du module');
 
-        Timer::enter('Ouverture de la base '.$database);
+        timer && Timer::enter('Ouverture de la base '.$database);
         debug && Debug::log("Ouverture de la base '%s' en mode '%s'", $database, $readOnly ? 'lecture seule' : 'lecture/écriture');
         $this->selection=Database::open($database, $readOnly);
-        Timer::leave();
+        timer && Timer::leave();
     }
 
     /**
@@ -1498,7 +1461,14 @@ class DatabaseModule extends Module
      */
     protected function select($equation, $max=null, $start=null, $sort=null)
     {
-        Timer::enter('Exécution de la requête '.$equation);
+        timer && Timer::enter('Exécution de la requête '.$equation);
+
+        if ($equation==='') $equation=null;
+        $filter=$this->getFilter();
+        if ($filter==='') $filter=null;
+        if (is_null($equation) && is_null($filter))
+            throw new Exception("Vous n'avez indiqué aucun critère de sélection");
+
         /*
          * Valeurs par défaut des options de recherche
          *
@@ -1509,40 +1479,24 @@ class DatabaseModule extends Module
          */
         $options=array
         (
-            '_start'=> isset($start) ? $start :
-                $this->request->defaults('_start', Config::get('start',1))
-                    ->unique()
-                    ->int()
-                    ->min(1)
-                    ->ok(),
-
-            '_max'=> isset($max) ? $max :
-                $this->request->defaults('_max', Config::get('max', 10))
-                    ->unique()
-                    ->int()
-                    ->min(-1)
-                    ->ok(),
-
-            '_sort'=> isset($sort) ? $sort :
-                $this->request->defaults('_sort', Config::get('sort','-'))
-                    ->ok(),
-
-            '_filter'=>$this->getFilter(),
-
-            '_defaultop'=>
-                $this->request->defaults('_defaultop', Config::get('defaultop'))
-                    ->ok(),
-
-            '_opanycase'=>
-                $this->request->defaults('_opanycase', Config::get('opanycase'))
-                    ->ok(),
-
-            '_defaultindex'=>Config::get('defaultindex'),
-
-            '_facets' => Config::get('facets'),
+            'start'=> isset($start) ? $start : $this->request->get('_start'),
+            'max'=> isset($max) ? $max : $this->request->get('_max', Config::get('max')),
+            'sort'=> isset($sort) ? $sort : $this->request->get('_sort', Config::get('sort')),
+            'filter'=>$filter,
+            'defaultop'=>$this->request->get('_defaultop', Config::get('defaultop')),
+            'opanycase'=>$this->request->get('_opanycase', Config::get('opanycase')),
+            'defaultindex'=>Config::get('defaultindex'),
+            'facets' => Config::get('facets'),
+            'boost'=>$this->request->get('_boost', Config::get('boost.default')),
         );
+
+        $options['checkatleast']=Config::get('checkatleast', $options['max']+1);
+
+        if ($boost=$this->request->get('_boost', Config::get('boost.default')))
+            $options['boost']=Config::get('boost.'.$boost);
+
         $result=$this->selection->search($equation, $options);
-        Timer::leave();
+        timer && Timer::leave();
         return $result;
     }
 
@@ -1601,8 +1555,8 @@ class DatabaseModule extends Module
         Template::run
         (
             $template,
-            array($this, $callback),
             array('message'=>$message),
+            array($this, $callback),
             $this->selection->record
 
             // On passe en paramètre la sélection en cours pour permettre
