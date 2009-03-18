@@ -583,7 +583,7 @@ class TemplateCode
     }
 
     /**
-     * Ananlyse et exécute un appel de fonction présent dans l'expression
+     * Analyse et exécute un appel de fonction présent dans l'expression
      */
     private static function parseFunctionCall(& $tokens, $index, $varCallback, $pseudoFunctions)
     {
@@ -604,7 +604,7 @@ class TemplateCode
                 'substr','str_replace','str_repeat','strtr',
                 'strtoupper','strtolower',
                 'implode','explode',
-                'strpos', 'strlen', 'gettype',
+                'strpos', 'stripos', 'strlen', 'gettype',
                 'urlencode',
                 'addslashes',
                 'var_export', 'print_r', 'var_dump',
@@ -651,7 +651,8 @@ class TemplateCode
                 'current',
                 'preg_match',
                 'strtotime',
-                'array_slice'
+                'array_slice',
+                'array_merge'
             ));
             $runtimeFunctions=array_flip(array
             (
@@ -678,9 +679,8 @@ class TemplateCode
         // les méthodes statiques (::) ou d'objet (->) sont toutes autorisées
         if (isset($tokens[$index-1]) && ($tokens[$index-1][0]===T_DOUBLE_COLON || $tokens[$index-1][0]===T_OBJECT_OPERATOR))
         {
-                $functype=2;
-                $canEval=false;
-
+            $functype=2;
+            $canEval=false;
         }
         // les new XXX() ressemble à des fonctions, sont autorisés
         elseif (
@@ -689,8 +689,8 @@ class TemplateCode
                     (isset($tokens[$index-2]) && $tokens[$index-1][0]===T_WHITESPACE && $tokens[$index-2][0]===T_NEW)
                 )
         {
-                $functype=2;
-                $canEval=false;
+            $functype=2;
+            $canEval=false;
 
         }
         elseif ($pseudoFunctions && array_key_exists($handler, $pseudoFunctions))
