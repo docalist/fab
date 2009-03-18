@@ -49,13 +49,6 @@ class TemplateCompiler
 
     private static $stack=array();
 
-    private static $functions=array
-    (
-        'autoId'=>'getAutoId',
-        'lastId'=>'getLastId',
-        'select'=>'executeSelect'
-    );
-
     private static $currentNode=null;
     private static $lastId='';
     private static $usedId=array();
