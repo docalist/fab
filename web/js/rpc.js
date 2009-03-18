@@ -35,7 +35,7 @@ jQuery.AutoCompleteHandler =
                 jQuery('<div id="autocompletePopup" />').
                 
                 // L'ajoute au document
-                appendTo('body').
+                //appendTo('body').
                 
                 // Si la souris survole le popup, on force le controle associé à garder le focus
                 mouseover(function () {
@@ -290,11 +290,17 @@ jQuery.AutoCompleteHandler =
         
         // positionne le popup en bas à gauche de la target avec la même largeur
         // que la target (popup.clientWidth = target.offsetWidth - popup.bordGauche - popup.bordDroite)
+/*        
         popup.
             css('left', offset.left + 'px').
             css('top', offset.top + target.get(0).offsetHeight + 'px').
             width(target.get(0).offsetWidth - popup.get(0).rpcBorderWidth).
             fadeIn('normal');
+*/        
+        popup.
+	        width(target.get(0).offsetWidth - popup.get(0).rpcBorderWidth).
+	        insertAfter(target).
+	        fadeIn('normal');
             
         jQuery.AutoCompleteHandler.visible = true;
         jQuery.AutoCompleteHandler.ensureVisible(
