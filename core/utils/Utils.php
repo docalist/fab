@@ -528,6 +528,26 @@ final class Utils
                     /* D0 */    'dnooooo 0uuuuy s'.
                     /* E0 */    'aaaaaaaceeeeiiii'.
                     /* F0 */    'dnooooo  uuuuyby',
+
+
+                'ident'=> // lettres majus, minus et chiffres (accents et caractères de contrôles supprimés)
+                    /*           0123456789ABCDEF*/
+                    /* 00 */    '                '.
+                    /* 10 */    '                '.
+                    /* 20 */    '                '.
+                    /* 30 */    '0123456789      '.
+                    /* 40 */    ' ABCDEFGHIJKLMNO'.
+                    /* 50 */    'PQRSTUVWXYZ     '.
+                    /* 60 */    ' abcdefghijklmno'.
+                    /* 70 */    'pqrstuvwxyz     '.
+                    /* 80 */    '                '.
+                    /* 90 */    '                '.
+                    /* A0 */    '                '.
+                    /* B0 */    '                '.
+                    /* C0 */    'AAAAAAACEEEEIIII'.
+                    /* D0 */    'DNOOOOO 0UUUUY s'.
+                    /* E0 */    'aaaaaaaceeeeiiii'.
+                    /* F0 */    'dnooooo  uuuuyby',
             );
         }
         if (! isset($tables[$table]))
@@ -2054,7 +2074,7 @@ final class Utils
     }
 
     /*
-     * Encode les caractères '<', '>', '&', '’' (apostrophe courbe) et '–' 
+     * Encode les caractères '<', '>', '&', '’' (apostrophe courbe) et '–'
      * (tirets long) en entités numériques hexadécimales.
      *
      * @param string $xml la chaine à encoder.
