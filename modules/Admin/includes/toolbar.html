@@ -13,7 +13,7 @@
     Par défaut, les boutons de la toolbar sont représentés par un lien <a> 
     contenant l'icone éventuelle et le contenu indiqué.
 */
-<template match="//toolbar//item[not(@type)]" img="" alt="">
+<template match="//toolbar//item[not(@type)]" img="" alt=" ">
     <a class="button {select('@class')}"><if test="$img"><img src="$img" alt="$alt" />&#160;</if>{select('node()')}{select('@*')}</a>
 </template>
 
@@ -22,7 +22,7 @@
     Les boutons qui ont un attribut type sont représentés par un <item> 
     contenant l'icone éventuelle et le contenu indiqué.
 */
-<template match="//toolbar//item[@type]" img="" alt="">
+<template match="//toolbar//item[@type]" img="" alt=" ">
     <button><if test="$img"><img src="$img" alt="$alt" />&#160;</if>{select('node()')}{select('@*')}</button>
 </template>
 
