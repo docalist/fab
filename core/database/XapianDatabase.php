@@ -161,12 +161,6 @@ class XapianDatabaseDriver extends Database
     private $equation='';
 
     /**
-     * Le filtre en cours.
-     * @var string
-     */
-    private $filter='';
-
-    /**
      * L'objet XapianQuery contenant l'équation de recherche indiquée par
      * l'utilisateur (sans les filtres éventuels appliqués).
      *
@@ -213,72 +207,6 @@ class XapianDatabaseDriver extends Database
      */
     private $sortKey=array();
 
-
-    /**
-     * Opérateur par défaut utilisé par le queryparser
-     *
-     * @var null|int
-     */
-    private $defaultOp=null;
-
-    /**
-     * Indique si les opérateurs booléens (and, or, et, ou...) sont reconnus
-     * comme tels quelle que soit leur casse ou s'il ne doivent être reconnus
-     * que lorsqu'il sont en majuscules.
-     *
-     * @var bool
-     */
-    private $opAnyCase=true;
-
-    /**
-     * Indique le nom de l'index "global" par défaut, c'est-à-dire le nom de
-     * l'index ou de l'alias qui sera utilisé si aucun nom de champ n'est
-     * indiqué dans la requête de l'utilisateur.
-     *
-     * @var null|string
-     */
-    private $defaultIndex=null;
-
-    /**
-     * Indique le numéro d'ordre de la première réponse retournée par la
-     * recherche en cours.
-     *
-     * Initialisé par {@link search()} et utilisé par {@link searchInfo()}.
-     *
-     * @var int
-     */
-    private $start=0;
-
-
-    /**
-     * Indique le nombre maximum de réponses demandées pour la recherche en
-     * cours.
-     *
-     * Initialisé par {@link search()} et utilisé par {@link searchInfo()}.
-     *
-     * @var int
-     */
-    private $max=-1;
-
-    /**
-     * Indique le nombre minimum de documents que xapian doit examiner avant
-     * de retourner la liste des réponses.
-     *
-     * Initialisé par {@link search()} et utilisé par {@link searchInfo()}.
-     *
-     * @var int
-     */
-    private $checkatleast=-1;
-
-    /**
-     * Equation de boost utilisée lors de la dernière recherche.
-     *
-     * Initialisé par {@link search()} et utilisé par {@link searchInfo()}.
-     *
-     * @var string
-     */
-    private $boost=null;
-
     /**
      * Une estimation du nombre de réponses obtenues pour la recherche en cours.
      *
@@ -302,6 +230,15 @@ class XapianDatabaseDriver extends Database
      * @var XapianMatchDecider
      */
     private $spy=null;
+
+
+    /**
+     * Le contexte de la dernière recherche exécutée (les options passées à
+     * {@link search()}).
+     *
+     * @var Request // todo: utiliser classe Parameters quand dispo
+     */
+    private $options=null;
 
     /**
      * Retourne le schéma de la base de données
@@ -962,9 +899,10 @@ class XapianDatabaseDriver extends Database
         $this->xapianQueryParser=new XapianQueryParser();
 
         // Paramètre l'index par défaut (l'index global)
-        if (! is_null($this->defaultIndex))
+        $defaultIndex=$this->options->get('defaultindex');
+        if (! is_null($defaultIndex))
         {
-            $default= Utils::convertString($this->defaultIndex, 'alphanum');
+            $default= Utils::convertString($defaultIndex, 'alphanum');
             if (isset($this->schema->indices[$default]))
             {
                 $this->xapianQueryParser->add_prefix('', $this->schema->indices[$default]->_id.':');
@@ -976,7 +914,7 @@ class XapianDatabaseDriver extends Database
             }
             else
             {
-                throw new Exception("Impossible d'utiliser '$default' comme index global : ce n'est ni un index, ni un alias.");
+                throw new Exception("Impossible d'utiliser '$defaultIndex' comme index global : ce n'est ni un index, ni un alias.");
             }
         }
 
@@ -1107,7 +1045,7 @@ class XapianDatabaseDriver extends Database
                 $h
             );
 
-            if ($this->opAnyCase)
+            if ($this->options->get('opanycase'))
             {
                 $h=preg_replace
                 (
@@ -1162,7 +1100,7 @@ class XapianDatabaseDriver extends Database
 //          XapianQueryParser::FLAG_SPELLING_CORRECTION |
             XapianQueryParser::FLAG_PURE_NOT;
 
-        if ($this->opAnyCase)
+        if ($this->options->get('opanycase'))
             $flags |= XapianQueryParser::FLAG_BOOLEAN_ANY_CASE;
 
         // Construit la requête
@@ -1203,7 +1141,7 @@ class XapianDatabaseDriver extends Database
         {
             $this->xapianSpellChecker=new XapianQueryParser();
             $this->xapianSpellChecker->set_stopper($this->stopper);
-            $this->xapianSpellChecker->set_default_op($this->defaultOp);
+            $this->xapianSpellChecker->set_default_op($this->options->get('defaultopcode'));
             $this->xapianSpellChecker->set_database($this->xapianDatabase);
         }
 
@@ -1225,7 +1163,7 @@ class XapianDatabaseDriver extends Database
             XapianQueryParser::FLAG_SPELLING_CORRECTION |
             XapianQueryParser::FLAG_PURE_NOT;
 
-        if ($this->opAnyCase)
+        if ($this->options->get('opanycase'))
             $flags |= XapianQueryParser::FLAG_BOOLEAN_ANY_CASE;
 
 
@@ -1379,131 +1317,99 @@ class XapianDatabaseDriver extends Database
      */
     public function search($equation=null, $options=null)
     {
+        timer && Timer::enter();
+        timer && Timer::enter('Initialisation');
+
+        // Valeurs par défaut de toutes les options de recherche
+        $defaultOptions=array
+        (
+            'sort'         => '-',
+            'start'        => 1,
+            'max'          => 10,
+            'filter'       => null,
+            'minscore'     => 0,
+            'rset'         => null,
+            'defaultop'    => XapianQuery::OP_OR,
+            'opanycase'    => true,
+            'defaultindex' => null,
+            'checkatleast' => 100,
+            'facets'       => null,
+            'boost'        => null,
+        );
+
+        // Combine les options passées en paramètre avec les options par défaut
+        $options = $options + $defaultOptions;
+
+        // Vérifie chacune des options
+        $this->options = Request::create($options)        // fixme: remplacer l'objet request par un objet Parameters
+            ->asArray('sort')->set()
+            ->unique('start')->int()->min(1)->set()
+            ->unique('max')->int()->min(-1)->set()
+            ->asArray('filter')->set()
+            ->unique('minscore')->int()->min(0)->max(100)->set()
+            ->asArray('rset')->int()->min(1)->set()
+            ->unique('defaultop')->oneof('AND','OR')->set()
+            ->unique('opanycase')->bool()->set()
+            ->unique('defaultindex')->set()
+            ->unique('checkatleast')->int()->min(-1)->set()
+            ->asArray('facets')->set()
+            ->unique('boost')->set()
+            ;
+
+        // Traduit l'opérateur par défaut (defaultop) en opérateur Xapian (defaultopcode)
+        $this->options->set
+        (
+            'defaultopcode',
+            $this->options->convert('defaultop', array('and'=>XapianQuery::OP_AND,'or'=>XapianQuery::OP_OR))->ok()
+        );
+
+        // Ajuste start pour que ce soit un multiple de max
+        if ($this->options->get('max') > 0)
+        {
+            /* explication : si on est sur la 2nde page avec max=10, on affiche
+             * la 11ème réponse en premier. Si on demande alors à passer à 50
+             * notices par page, on va alors afficher les notices 11 à 50, mais
+             * on n'aura pas de lien "page précédente".
+             * Le code ci-dessus, dans ce cas, ramène "start" à 1 pour que toutes
+             * les notices soient affichées.
+             */
+            $this->options->set
+            (
+                'start',
+                $this->options->get('start')-(($this->options->get('start')-1) % $this->options->get('max'))
+            );
+        }
+
+        // Si des documents pertinents ont été indiqués, crée le rset correspondant
+        $rset=null;
+        if ($t=$this->options->get('rset'))
+        {
+            $rset=new XapianRset();
+            foreach($t as $id)
+                $rset->add_document($id);
+        }
+
+        // Si une équation de boost a été indiquée, crée le XapianQuery correspondant
+        $boost=$this->parseBoost($this->options->get('boost'));
+
         // a priori, pas de réponses
         $this->eof=true;
 
-        $rset=null;
-        // Analyse les options indiquées (start et sort)
-        $this->defaultOp=XapianQuery::OP_OR;
-        if (is_array($options))
-        {
-            $sort=isset($options['_sort']) ? $options['_sort'] : null;
-            $start=isset($options['_start']) ? ((int)$options['_start'])-1 : 0;
-            if ($start<0) $start=0;
-            $max=isset($options['_max']) ? $options['_max'] : 10;
-            if (is_array($max))
-                foreach ($max as $i)
-                    if ($i) { $max=$i; break;}
-            if (is_numeric($max))
-            {
-                $max=(int)$max;
-                if ($max<-1) $max=10;
-            }
-            else
-                $max=10;
-
-            if (isset($options['_filter']))
-                $filter=(array)$options['_filter'];
-            else
-                $filter=null;
-
-            if (isset($options['_minscore']))
-                $minscore=(int)$options['_minscore'];
-            else
-                $minscore=0;
-
-            if (isset($options['_rset']) && is_array($id=$options['_rset']))
-            {
-                $rset=new XapianRset();
-                foreach($id as $id)
-                    $rset->add_document($id);
-            }
-
-            if (isset($options['_defaultop']))
-            {
-                switch( strtolower(trim($options['_defaultop'])))
-                {
-                    case 'et':
-                    case 'and':
-                        $this->defaultOp=XapianQuery::OP_AND;
-                        break;
-                    case 'ou':
-                    case 'or':
-                        $this->defaultOp=XapianQuery::OP_OR;
-                        break;
-                    default:
-                        throw new Exception('Opérateur par défaut incorrect : '.$options['_defaultop']);
-                }
-            }
-
-            if (isset($options['_opanycase']))
-                $this->opAnyCase=(bool)$options['_opanycase'];
-            else
-                $this->opAnyCase=true;
-
-            if (isset($options['_defaultindex']))
-                $this->defaultIndex=$options['_defaultindex'];
-
-            if (isset($options['_checkatleast']))
-                $checkatleast=$options['_checkatleast'];
-
-            if (isset($options['_facets']))
-                $facets=(array)$options['_facets'];
-            else
-                $facets=array();
-
-            if (isset($options['_boost']))
-                $this->boost=$this->parseBoost($options['_boost']);
-            else
-                $this->boost=null;
-        }
-        else
-        {
-            $sort=null;
-            $start=0;
-            $max=-1;
-            $filter=null;
-            $minscore=0;
-            $facets=array();
-            $checkatleast=-1;
-            $this->boost=null;
-        }
-
-        // Ajuste start pour que ce soit un multiple de max
-        if ($max>0) $start=$start-($start % $max);
-
-        /*
-         * explication : si on est sur la 2nde page avec max=10, on affiche la
-         * 11ème réponse en premier. Si on demande alors à passer à 50 notices par
-         * page, on va alors afficher les notices 11 à 50, mais on n'aura pas
-         * de lien "page précédente".
-         * Le code ci-dessus, dans ce cas, ramène "start" à 1 pour que toutes
-         * les notices soient affichées.
-         */
-
-        // Stocke les valeurs finales
-        $this->start=$start+1;
-        $this->max=$max;
-        $this->checkatleast=$checkatleast;
-
-        if ($minscore<0) $minscore=0; elseif($minscore>100) $minscore=100;
-
         // Met en place l'environnement de recherche lors de la première recherche
         if (is_null($this->xapianEnquire)) $this->setupSearch();
-        $this->xapianQueryParser->set_default_op($this->defaultOp);
+        $this->xapianQueryParser->set_default_op($this->options->get('defaultopcode'));
 
         // Analyse les filtres éventuels à appliquer à la recherche
-        if ($filter)
+        $this->xapianFilter=null;
+        if ($t=$this->options->get('filter'))
         {
-            $this->xapianFilter=null;
-            $this->filter=implode(' AND ', $filter);
-            foreach($filter as $filter)
+            foreach($t as $filter)
             {
                 $filter=$this->parseQuery($filter);
                 if (is_null($this->xapianFilter))
                     $this->xapianFilter=$filter;
                 else
-                    $this->xapianFilter=new XapianQuery(XapianQuery::OP_FILTER, $this->xapianFilter, $filter);
+                    $this->xapianFilter=new XapianQuery(XapianQuery::OP_FILTER, $this->xapianFilter, $filter); // todo: FILTER ou AND ??
             }
         }
 
@@ -1512,34 +1418,36 @@ class XapianDatabaseDriver extends Database
         $query=$this->xapianQuery=$this->parseQuery($equation);
 
         // Combine l'équation et le filtre pour constituer la requête finale
-        if ($filter)
+        if ($this->xapianFilter)
             $query=new XapianQuery(XapianQuery::OP_FILTER, $query, $this->xapianFilter);
 
         // Définit l'ordre de tri des réponses
 
         // Problème xapian : si on fait une recherche '*' avec un tri par pertinence,
-        // xapian ne rends pas la main. Du coup on force içi un tri par docid décroissant
+        // xapian ne rends pas la main. Du coup on force ici un tri par docid décroissant
         // si l'ordre de tri actuel est par pertinence.
-        if (trim($equation)==='*' && (is_null($sort) || $sort==='%')) $sort='-';
+        if (trim($equation)==='*' && $this->options->get('sort')===array('%')) $this->options->set('sort', array('-'));
 
-        $this->setSortOrder($sort);
+        $this->setSortOrder($this->options->get('sort'));
 
-        // Ajoute le boost éventuel
-        if ($this->boost && $sort==='%')
-            $query=new XapianQuery(XapianQuery::OP_AND_MAYBE, $query, $this->boost);
+        // Combine le boost éventuel à la requête
+        if ($boost && $this->options->get('sort')===array('%'))
+            $query=new XapianQuery(XapianQuery::OP_AND_MAYBE, $query, $boost);
 
         // Définit la requête à exécuter
         $this->xapianEnquire->set_query($query);
 
         // Définit le score minimal souhaité
-        if ($minscore) $this->xapianEnquire->set_cutoff($minscore);
+        if ($t=$this->options->get('minscore')) $this->xapianEnquire->set_cutoff($t);
+
+        timer && Timer::leave('Initialisation');
 
         // Lance la recherche
 
         // Expérimental : support des facettes de la recherche via un TermCountMatchSpy.
         // Requiert la version "MatchSpy" de Xapian (en attendant que la branche
         // MatchSpy ait été intégrée dans le trunk.
-        if ($facets && function_exists('new_TermCountMatchSpy'))
+        if ($t=$this->options->get('facets') && function_exists('new_TermCountMatchSpy'))
         {
             // Fonctionnement : on définit dans la config une clé facets qui
             // indique les tables de lookup qu'on souhaite utiliser comme facettes.
@@ -1552,7 +1460,7 @@ class XapianDatabaseDriver extends Database
             // la méthode getFacet() et en appellant searchInfo() avec les
             // nouveaus paramètres spy* introduits.
             $this->spy=new XapianTermCountMatchSpy();
-            foreach($facets as $table)
+            foreach($t as $table)
             {
                 $key=Utils::ConvertString($table, 'alphanum');
                 if (!isset($this->schema->lookuptables[$key]))
@@ -1560,38 +1468,48 @@ class XapianDatabaseDriver extends Database
                 $prefix='T' . $this->schema->lookuptables[$key]->_id . ':';
                 $this->spy->add_prefix($prefix);
             }
-            $this->xapianMSet=$this->xapianEnquire->get_MSet($start, $max, 1000, $rset, null, $this->spy);
+            $this->xapianMSet=$this->xapianEnquire->get_MSet($this->options->get('start')-1, $this->options->get('max'), 1000, $rset, null, $this->spy);
         }
 
         // Recherche standard sans facettes
         else
         {
             $this->spy=null;
-            $this->xapianMSet=$this->xapianEnquire->get_MSet($start, $max, $checkatleast, $rset);
+            timer && Timer::enter('Get_MSet');
+            $this->xapianMSet=$this->xapianEnquire->get_MSet($this->options->get('start')-1, $this->options->get('max'), $this->options->get('checkatleast'), $rset);
+            timer && Timer::leave('Get_MSet');
         }
 
-        // Teste si la requête a retourné des réponses
+        timer && Timer::enter('Finalisation');
+
+        // La requête n'a retourné aucune réponse : retourne false
         if ($this->xapianMSet->is_empty())
         {
             $this->xapianMSetIterator=null;
             $this->count=0;
-            return false;
+            $result=false;
         }
 
-        $this->xapianMSetIterator=$this->xapianMSet->begin();
-        $this->count=$this->xapianMSet->get_matches_estimated();
-        $this->loadDocument();
-        $this->eof=false;
-
         // Retourne true pour indiquer qu'on a au moins une réponse
-        return true;
+        else
+        {
+            $this->xapianMSetIterator=$this->xapianMSet->begin();
+            $this->count=$this->xapianMSet->get_matches_estimated();
+            $this->loadDocument();
+            $this->eof=false;
+            $result=true;
+        }
+
+        timer && Timer::leave('Finalisation');
+        timer && Timer::leave();
+        return $result;
     }
 
     /**
      * Paramètre le MSet pour qu'il retourne les documents selon l'ordre de tri
      * indiqué en paramètre.
      *
-     * @param string|array|null $sort un tableau ou une chaine indiquant les
+     * @param string|array $sort un tableau ou une chaine indiquant les
      * différents critères composant l'ordre de tri souhaité.
      *
      * Les critères de tri possible sont :
@@ -1623,7 +1541,7 @@ class XapianDatabaseDriver extends Database
      * @throws Exception si l'ordre de tri demandé n'est pas possible ou si
      * la clé de tri indiquée n'existe pas dans la base.
      */
-    private function setSortOrder($sort=null)
+    private function setSortOrder($sort)
     {
         // Si $sort est un tableau, on concatène tous les éléments ensembles
         if (is_array($sort))
@@ -1631,10 +1549,6 @@ class XapianDatabaseDriver extends Database
 
         // On a une chaine unique avec tous les critères, on l'explose
         $t=preg_split('~[^a-zA-Z_%+-]+~m', $sort, -1, PREG_SPLIT_NO_EMPTY);
-
-        // Ordre de tri par défaut : par docid décroissants
-        if (empty($t))
-            $t=array('-');
 
         // Cas d'un tri simple (un seul critère indiqué)
         $this->sortKey=array();
@@ -1975,16 +1889,17 @@ class XapianDatabaseDriver extends Database
 
     public function searchInfo($what)
     {
-        switch (strtolower($what))
+        $what=strtolower($what);
+
+        if ($this->options && $this->options->has($what)) return $this->options->get($what);
+
+        switch ($what)
         {
+            case 'options': return $this->options->getParameters();
             case 'docid': return $this->xapianMSetIterator->get_docid();
 
             case 'equation': return $this->equation;
-            case 'filter': return $this->filter;
             case 'rank': return $this->xapianMSetIterator->get_rank()+1;
-            case 'start': return $this->start;
-            case 'max': return $this->max;
-            case 'checkatleast': return $this->checkatleast;
 
             case 'correctedequation':
                 if (is_null($this->correctedEquation))
