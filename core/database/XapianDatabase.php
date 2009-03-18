@@ -1482,7 +1482,29 @@ class XapianDatabaseDriver extends Database
 
         timer && Timer::enter('Finalisation');
 
-        // La requête n'a retourné aucune réponse : retourne false
+        // Détermine le nombre de réponses obtenues
+        $this->count=$this->xapianMSet->get_matches_estimated();
+
+        // Si on n'a aucune réponse parce que start était "trop grand", ré-essaie en ajustant start
+        if ($this->xapianMSet->is_empty() && $this->count > 0 && $this->options->get('start') > $this->count)
+        {
+            // le mset est vide, mais on a des réponses (count > 0) et le start
+            // demandé était supérieur au count obtenu.
+
+            // Modifie start pour qu'il corresponde à la première réponse de la dernière page
+            $this->options->set
+            (
+                'start',
+                $this->count-(($this->count-1) % $this->options->get('max'))
+            );
+
+            // Relance la recherche
+            timer && Timer::enter('Get_MSet (avec ajustement de start)');
+            $this->xapianMSet=$this->xapianEnquire->get_MSet($this->options->get('start')-1, $this->options->get('max'), $this->options->get('checkatleast'), $rset);
+            timer && Timer::leave('Get_MSet (avec ajustement de start)');
+        }
+
+        // Si on n'a aucune réponse, retourne false
         if ($this->xapianMSet->is_empty())
         {
             $this->xapianMSetIterator=null;
@@ -1494,7 +1516,6 @@ class XapianDatabaseDriver extends Database
         else
         {
             $this->xapianMSetIterator=$this->xapianMSet->begin();
-            $this->count=$this->xapianMSet->get_matches_estimated();
             $this->loadDocument();
             $this->eof=false;
             $result=true;
