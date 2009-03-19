@@ -64,6 +64,22 @@ class BisDatabase extends Database
         $this->record=new BisDatabaseRecord($this, $this->selection->fields);
     }
 
+    /**
+     * Retourne la liste des options de recherche reconnues par {@link search()}
+     * et leur valeur par défaut.
+     *
+     * @return array
+     */
+    public function getDefaultOptions()
+    {
+        return array
+        (
+            'sort'         => '-',
+            'start'        => 1,
+            'max'          => 10,
+        );
+    }
+
     public function search($equation=null, $options=null)
     {
 
