@@ -1329,7 +1329,7 @@ class XapianDatabaseDriver extends Database
             'filter'       => null,
             'minscore'     => 0,
             'rset'         => null,
-            'defaultop'    => XapianQuery::OP_OR,
+            'defaultop'    => 'OR',
             'opanycase'    => true,
             'defaultindex' => null,
             'checkatleast' => 100,
