@@ -1346,14 +1346,22 @@ class XapianDatabaseDriver extends Database
         timer && Timer::enter();
         timer && Timer::enter('Initialisation');
 
-        // Supprime des options les valeurs "null" passées en paramètre
-        // Sinon, on ne récupèrera pas la valeur par défaut dans ce cas.
-        foreach($options as $key=>&$value)
-            if ($value===null or $value==='' or $value===array())
-                unset($options[$key]);
+        // Détermine les options de recherche
+        if (is_null($options))
+        {
+            $options = $this->getDefaultOptions();
+        }
+        else
+        {
+            // Supprime des options les valeurs "null" passées en paramètre
+            // Sinon, on ne récupèrera pas la valeur par défaut dans ce cas.
+            foreach($options as $key=>&$value)
+                if ($value===null or $value==='' or $value===array())
+                    unset($options[$key]);
 
-        // Combine les options passées en paramètre avec les options par défaut
-        $options = $options + $this->getDefaultOptions();
+            // Combine les options passées en paramètre avec les options par défaut
+            $options = $options + $this->getDefaultOptions();
+        }
 
         // Crée un objet Request à partir du tableau d'options
         $this->options = Request::create($options);        // fixme: remplacer l'objet request par un objet Parameters
