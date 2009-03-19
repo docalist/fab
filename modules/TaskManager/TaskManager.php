@@ -245,7 +245,7 @@ class TaskManager extends DatabaseModule
         $this->openDatabase(true);
         $equation=sprintf('Status:%s', Task::Waiting);
 
-        if ($this->select($equation, 1, 0, 'next+'))
+        if ($this->select($equation, 1, 1, 'next+'))
             $task=new Task($this->selection);
         else
             $task=null;
