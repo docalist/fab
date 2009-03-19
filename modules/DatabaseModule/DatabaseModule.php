@@ -1470,30 +1470,22 @@ class DatabaseModule extends Module
             throw new Exception("Vous n'avez indiqué aucun critère de sélection");
 
         /*
-         * Valeurs par défaut des options de recherche
-         *
-         * Pour chaque paramètre, on prend dans l'ordre :
-         * - le paramètre transmis si non null
-         * - sinon, ce qu'il y a dans request, si non null, en vérifiant le type
-         * - la valeur indiquée dans la config sinon
+         * Détermine les options de recherche en testant dans l'ordre :
+         * - ce qui est transmis en paramètre,
+         * - ce qu'il y a dans l'objet request,
+         * - ce qu'il y a dans la config.
          */
-        $options=array
-        (
-            'start'=> isset($start) ? $start : $this->request->get('_start'),
-            'max'=> isset($max) ? $max : $this->request->get('_max', Config::get('max')),
-            'sort'=> isset($sort) ? $sort : $this->request->get('_sort', Config::get('sort')),
-            'filter'=>$filter,
-            'defaultop'=>$this->request->get('_defaultop', Config::get('defaultop')),
-            'opanycase'=>$this->request->get('_opanycase', Config::get('opanycase')),
-            'defaultindex'=>Config::get('defaultindex'),
-            'facets' => Config::get('facets'),
-            'boost'=>$this->request->get('_boost', Config::get('boost.default')),
-        );
+        $options=$this->selection->getDefaultOptions();
+        foreach ($options as $name => &$value)
+        {
+            $value = isset($$name) ? $$name
+                : $value=$this->request->get('_' . $name, Config::get($name, $value));
+        }
 
-        $options['checkatleast']=Config::get('checkatleast', $options['max']+1);
-
-        if ($boost=$this->request->get('_boost', Config::get('boost.default')))
-            $options['boost']=Config::get('boost.'.$boost);
+        // L'option boost est gérée à part : on récupère le nom du boost mais
+        // ce qu'on doit passer à search(), c'est l'équation de boost.
+        if ($options['boost']=$this->request->get('_boost', Config::get('boost.default', null)))
+            $options['boost']=Config::get('boost.'.$options['boost']);
 
         $result=$this->selection->search($equation, $options);
         timer && Timer::leave();
