@@ -7,7 +7,7 @@
                 <checkbox name="$name" label="{$record['label']}" value="{$record['code']}">{select('@*')}</checkbox>
             </if>
             <else>
-                <checkbox name="$name" label="$record" value="{is_string($key) ? $key : $record}">{select('@*')}</checkbox>
+                <checkbox name="$name" label="$record" value="{is_string($key) ? trim($key) : $record}">{select('@*')}</checkbox>
             </else>
         </loop>
         {select('*[not(@class="before")]')}

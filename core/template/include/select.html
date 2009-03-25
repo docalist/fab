@@ -11,7 +11,7 @@
                     <option value="{$record['code'] === $record['label'] ? '' : $record['code']}">{$record['label']}</option>
                 </if>
                 <else>
-                    <option value="{is_string($key) ? $key : ''}">$record</option>
+                    <option value="{is_string($key) ? trim($key) : ''}">$record</option>
                 </else>
             </loop>
         </select>

@@ -7,7 +7,7 @@
                 <radio name="$name" label="{$record['label']}" value="{$record['code']}" />
             </if>
             <else>
-                <radio name="$name" label="$record" value="{is_string($key) ? $key : $record}" />
+                <radio name="$name" label="$record" value="{is_string($key) ? trim($key) : $record}" />
             </else>
         </loop>
         {select('*[not(@class="before")]')}
