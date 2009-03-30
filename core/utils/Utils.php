@@ -784,36 +784,49 @@ final class Utils
 
     // répare $_GET, $_REQUEST et $_POST
     // remarque : php://input n'est pas disponible avec enctype="multipart/form-data".
+    /**
+     * Restaure la valeur correcte des paramètres de la requête pour lesquels
+     * plusieurs valeurs ont été transmises.
+     *
+     * Par défaut, en PHP, si on veut plusieurs valeurs pour un même paramètre,
+     * il faut que ce paramètre soit nommé comme un tableau php (i.e. dans un
+     * formulaire, il faudra indiquer <input name="param[]"... />). Si on ne le
+     * fait pas, seule la derniere valeur sera disponible dans PHP (pour
+     * reprendre l'exemple ci-dessus, si on a deux champs input appellés param,
+     * sans les crochets, $_GET['param'] contiendra un scalaire correspondant
+     * à ce qui a été saisi dans le second champ input).
+     * cf http://php.net/language.variables.external.php
+     *
+     * Le but de cette méthode est de modifier ce comportement de php et de
+     * faire en sorte que, si plusieurs valeurs ont été transmises pour un
+     * paramètre, on récupère dans $_GET, $_POST et $_REQUEST non pas la
+     * dernière valeur transmise mais un tableau de paramètre.
+     */
     public static function repairGetPostRequest()
     {
-        // Crée une fonction anonyme : urldecode avec l'argument modifié par référence
-        $urldecode=create_function('&$h','$h=urldecode($h);');
-
-        // Si on est en méthode 'GET', on travaille avec la query_string et le tableau $_GET
+        // En méthode 'GET', on travaille avec la query_string et $_GET
         if (self::isGet())
         {
             $raw = '&'. Runtime::$queryString=$_SERVER['QUERY_STRING'];
             $t= & $_GET;
         }
 
-        // En méthodes POST et PUT, on travaille avec l'entrée standard et le tableau $_POST
+        // En méthodes POST et PUT, on utilise l'entrée standard et $_POST
         else
         {
             $raw = '&'. Runtime::$queryString=file_get_contents('php://input');
             $t = & $_POST;
         }
 
-        // Parcourt tous les arguments et modifient ceux qui sont multivalués
+        // Parcourt tous les arguments et modifie ceux qui sont multivalués
         foreach($t as $key=>$value)
         {
-            if (preg_match_all('/&'.$key.'=([^&]*)/',$raw, $matches, PREG_PATTERN_ORDER) > 1)
+            $re='/&'.preg_quote(urlencode($key),'~').'=([^&]*)/';
+            if (preg_match_all($re,$raw, $matches, PREG_PATTERN_ORDER) > 1)
             {
-                array_walk($matches[1], $urldecode);
-                $_REQUEST[$key]=$t[$key]=$matches[1];
+                $_REQUEST[$key]=$t[$key]=array_map('urldecode', $matches[1]);
             }
         }
-
-        // TODO: voir si array_map peut remplacer la création de la fonction anonyme et l'appel à array_walk
     }
 
 
