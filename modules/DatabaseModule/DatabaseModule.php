@@ -130,15 +130,9 @@ class DatabaseModule extends Module
         // Ouvre la base de données
         $this->openDatabase();
 
-        // Détermine la recherche à exécuter
-        $this->equation=$this->getEquation();
-
-        // Aucune réponse
-        if (! $this->select($this->equation))
-        {
-            $this->showNoAnswer("La requête $this->equation n'a donné aucune réponse.");
-            return;
-        }
+        // Lance la requête
+        if (! $this->select())
+            return $this->showNoAnswer("La requête $this->equation n'a donné aucune réponse.");
 
         // Détermine le template à utiliser
         if (! $template=$this->getTemplate())
@@ -270,8 +264,6 @@ class DatabaseModule extends Module
             'number'=>$number
         );
 
-//        echo 'Historique de recherche mis à jour : <br/>';
-//        echo '<pre>', print_r($hist,true), '</pre>';
         timer && Timer::leave();
     }
 
@@ -336,22 +328,9 @@ class DatabaseModule extends Module
         // Ouvre la base de données
         $this->openDatabase();
 
-        // Détermine la recherche à exécuter
-        $this->equation=$this->getEquation();
-
-        // Si aucun paramètre de recherche n'a été passé, erreur
-//        if (is_null($this->equation))
-//        {
-//            $this->showError('Vous n\'avez indiqué aucun critère permettant de sélectionner les notices à afficher.');
-//            return;
-//        }
-
-        // Aucune réponse
-        if (! $this->select($this->equation))
-        {
-            $this->showNoAnswer("La requête $this->equation n'a donné aucune réponse.");
-            return;
-        }
+        // Lance la recherche
+        if (! $this->select())
+            return $this->showNoAnswer("La requête $this->equation n'a donné aucune réponse.");
 
         // Détermine le template à utiliser
         if (! $template=$this->getTemplate())
@@ -409,16 +388,9 @@ class DatabaseModule extends Module
         // Ouvre la base de données
         $this->openDatabase();
 
-        // Détermine la recherche à exécuter
-        $this->equation=$this->getEquation();
-
-        // Si un numéro de référence a été indiqué, on charge cette notice
-        // Vérifie qu'elle existe
-        if (! $this->select($this->equation))
-        {
-            $this->showNoAnswer("La requête $this->equation n'a donné aucune réponse.");
-            return;
-        }
+        // Lance la recherche
+        if (! $this->select())
+            return $this->showNoAnswer("La requête $this->equation n'a donné aucune réponse.");
 
         // Si sélection contient plusieurs enreg, erreur
         if ($this->selection->count() > 1)
@@ -454,18 +426,11 @@ class DatabaseModule extends Module
         // Ouvre la base de données
         $this->openDatabase();
 
-        // Détermine la recherche à exécuter
-        $this->equation=$this->getEquation();
+        // Lance la recherche
+        if (! $this->select())
+            return $this->showNoAnswer("La requête $this->equation n'a donné aucune réponse.");
 
-        // Si un numéro de référence a été indiqué, on charge cette notice
-        // Vérifie qu'elle existe
-        if (! $this->select($this->equation))
-        {
-            $this->showNoAnswer("La requête $this->equation n'a donné aucune réponse.");
-            return;
-        }
-
-        // Si sélection contient plusieurs enreg, erreur
+        // Si la sélection contient plusieurs enreg, erreur
         if ($this->selection->count() > 1)
         {
             $this->showError('Vous ne pouvez pas éditer plusieurs enregistrements à la fois.');
@@ -531,9 +496,6 @@ class DatabaseModule extends Module
      */
     public function actionSave($REF)
     {
-        // CODE DE DEBUGGAGE : save ne sauvegarde pas la notice si Runtime::redirect ne se termine
-        // pas par exit(0) (voir plus bas)
-
         // TODO: dans la config, on devrait avoir, par défaut, access: admin (ie base modifiable uniquement par les admin)
 
         // Détermine le callback à utiliser
@@ -642,15 +604,9 @@ class DatabaseModule extends Module
         // Ouvre la base de données
         $this->openDatabase(false);
 
-        // Récupère l'équation de recherche qui donne les enregistrements à supprimer
-        $this->equation=$this->getEquation();
-
-        // Aucune réponse
-        if (! $this->select($this->equation, -1) )
-        {
-            $this->showError("Aucune réponse. Equation : $this->equation");
-            return;
-        }
+        // Lance la recherche
+        if (! $this->select(null, -1) )
+            return $this->showError("Aucune réponse. Equation : $this->equation");
 
         // Demande confirmation si ce n'est pas déjà fait
         $confirm=$this->request->int('confirm')->ok();
@@ -707,15 +663,9 @@ class DatabaseModule extends Module
         // Ouvre la base de données
         $this->openDatabase(false);
 
-        // Récupère l'équation de recherche qui donne les enregistrements à supprimer
-        $this->equation=$this->getEquation();
-
-        // Aucune réponse
-        if (! $this->select($this->equation, -1) )
-        {
-            $this->showError("Aucune réponse. Equation : $this->equation");
-            return;
-        }
+        // Lance la recherche
+        if (! $this->select(null, -1) )
+            return $this->showError("Aucune réponse. Equation : $this->equation");
 
         // Récupère le nombre exact de notices à supprimer
         $count=$this->selection->count();
@@ -1390,21 +1340,6 @@ class DatabaseModule extends Module
         Runtime::redirect('/DatabaseAdmin/Reindex?database='.Config::get('database'));
     }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
     /**
      * Ouvre la base de données du module.
      *
@@ -1459,19 +1394,22 @@ class DatabaseModule extends Module
      * @return bool true si au moins une notice a été trouvée, false s'il n'y
      * a aucune réponse.
      */
-    protected function select($equation, $max=null, $start=null, $sort=null)
+    protected function select($equation=null, $max=null, $start=null, $sort=null)
     {
         timer && Timer::enter('Exécution de la requête '.$equation);
 
-        if ($equation==='') $equation=null;
+        // Equation de recherche à exécuter
+        if (is_null($equation))
+            $equation=$this->getEquation();
+        elseif ($equation==='')
+            $equation=null;
+
+        // Valeur de l'option "filter" qui sera transmise à search()
         $filter=$this->getFilter();
-        if ($filter==='') $filter=null;
-        if (is_null($equation) && is_null($filter))
-            throw new Exception("Vous n'avez indiqué aucun critère de sélection");
 
         /*
          * Détermine les options de recherche en testant dans l'ordre :
-         * - ce qui est transmis en paramètre,
+         * - s'il s'agit d'un paramètre ou d'une variable locale existante de notre fonction
          * - ce qu'il y a dans l'objet request,
          * - ce qu'il y a dans la config.
          */
@@ -1479,8 +1417,11 @@ class DatabaseModule extends Module
         foreach ($options as $name => &$value)
         {
             $value = isset($$name) ? $$name
-                : $value=$this->request->get('_' . $name, Config::get($name, $value));
+                : $value=$this->request->get('_' . $name, Config::userGet($name, $value));
         }
+
+        // L'option 'auto' est gérée à part : on passe l'objet request
+        $options['auto']=$this->request->getParameters(); // ->copy() ?
 
         // L'option boost est gérée à part : on récupère le nom du boost mais
         // ce qu'on doit passer à search(), c'est l'équation de boost.
@@ -1488,6 +1429,7 @@ class DatabaseModule extends Module
             $options['boost']=Config::get('boost.'.$options['boost']);
 
         $result=$this->selection->search($equation, $options);
+
         timer && Timer::leave();
         return $result;
     }
@@ -1558,213 +1500,39 @@ class DatabaseModule extends Module
     }
 
     /**
-     * Construit l'équation qui sera utilisée pour lancer la recherche dans
+     * Retourne l'équation qui sera utilisée pour lancer la recherche dans
      * la base.
      *
-     * getEquation() construit une équation de recherche qui sera ensuite
-     * combinée avec les filtres retournés par {@link getFilter()} pour
-     * lancer la recherche.
-     *
-     * Par défaut, getEquation() combine en 'ET' les éléments suivants :
-     *
-     * - la ou le(s) équation(s) de recherche qui figure dans l'argument
-     *   <code>_equation</code> de la {@link $request requête en cours},
-     *
-     * - tous les paramètres de la requête dont le nom correspond à un nom
-     *   d'index ou d'alias de type probabiliste (ceux sui sont de type
-     *   booléens sont retournés par getFilter).
-     *
-     * Si aucun des éléments ci-dessus ne retourne une équation de recherche,
-     * getEquation() utilise la ou les équation(s) de recherche indiquée(s)
-     * dans la clé <code><equation></code> de la configuration (des équations
-     * par défaut différentes peuvent être indiquées selon les droits de
-     * l'utilisateur, voir {@link Config::userGet()}).
+     * getEquation() se contente de retourner la ou les équations de recherche
+     * qui figurent dans le paramêtre "_equation" de la requête en cours.
      *
      * Les modules qui héritent de DatabaseModule peuvent surcharger cette
      * méthode pour changer le comportement par défaut.
      *
-     * @return null|string l'équation de recherche obtenue ou null si aucune
-     * équation ne peut être construite.
+     * @return null|string|array la ou les équations de recherche obtenues ou
+     * null si la requête en cours ne contient pas de paramètre "_equation".
      */
     protected function getEquation()
     {
-        return $this->getEquationPart('_equation', DatabaseSchema::INDEX_PROBABILISTIC, true);
+        return $this->request->_equation;
     }
 
     /**
      * Construit l'équation qui sera utilisée comme filtre pour lancer la
      * recherche dans la base.
      *
-     * Les filtres seront combinés à l'équation de recherche retournée par
-     * {@link getEquation()} de telle sorte que seuls les enregistrements qui
-     * passent les filtres soient pris en compte.
-     *
-     * La manière dont les filtres sont combinés à l'équation dépend du driver
-     * de base de données utilisé (BisDatabase combine en 'SAUF', XapianDatabase
-     * utilise l'opérateur xapian 'FILTER').
-     *
-     * Par défaut, getFilter() combine en 'ET' les éléments suivants :
-     *
-     * - la ou le(s) équation(s) de recherche qui figure dans l'argument
-     *   <code>_filter</code> de la {@link $request requête en cours},
-     *
-     * - tous les paramètres de la requête dont le nom correspond à un nom
-     *   d'index ou d'alias de type boolean (ceux sui sont de type
-     *   probabiliste sont retournés par getEquation).
-     *
-     * Si aucun des éléments ci-dessus ne retourne une équation de recherche,
-     * getFilter() utilise la ou les équation(s) filtres indiquée(s)
-     * dans la clé <code><filter></code> de la configuration (des filtres
-     * différents peuvent être indiquées selon les droits de l'utilisateur,
-     * voir {@link Config::userGet()}).
-     *
-     * Les modules descendants peuvent surcharger cette méthode pour modifier
-     * ce comportement par défaut.
-     *
-     * @return null|string l'équation de recherche obtenue ou null aucun filtre
-     * n'a été spécifié.
-     */
-    protected function getFilter()
-    {
-        return $this->getEquationPart('_filter', DatabaseSchema::INDEX_BOOLEAN, false);
-    }
-
-
-    /**
-     * Construit la partie probabiliste ou la partie filtre de l'équation de
-     * recherche à exécuter en fonction de la requête et des arguments passés
-     * en paramètres.
-     *
-     * getEquationPart() et la fonction interne utilisée par
-     * {@link getEquation()} et {@link getFilter()} pour construire l'équation
-     * de recherche à exécuter.
-     *
-     * La méthode combine en 'ET' les éléments suivants :
-     *
-     * - la ou le(s) équation(s) de recherche qui figure dans l'argument
-     *   <code>$parameterName</code> de la {@link $request requête en cours},
-     *
-     * - tous les paramètres de la requête dont le nom correspond à un nom
-     *   d'index ou d'alias ayant le type <code>$indexType</code> passé en
-     *   paramètre.
-     *
-     * Si aucun des éléments ci-dessus ne retourne une équation de recherche,
-     * getEquationPart() utilise la ou les équation(s) de recherche indiquée(s)
-     * dans la clé <code>$parameterName</code> de la configuration (en
-     * supprimant le underscore initial éventuel : '_equation' :
-     * config::get('equation').
-     *
-     * Si aucune équation par défaut n'a été indiquée, la méthode retourne
-     * null.
+     * getFilter() se contente de retourner la ou les équations de recherche
+     * qui figurent dans le paramêtre "_filter" de la requête en cours.
      *
      * Les modules qui héritent de DatabaseModule peuvent surcharger cette
      * méthode pour changer le comportement par défaut.
      *
-     *
-     * @param $parameterName le nom du paramètre à récupérer dans la query
-     * string (soit '_equation', soit '_filter').
-     *
-     * @param $indexType le type d'index à prendre en compte
-     * (DatabaseSchema::INDEX_PROBABILISTIC ouDatabaseSchema::INDEX_BOOLEAN).
-     * Seuls les arguments correspondant à un index ou un alias de ce type seront
-     * ajoutés à l'équation finale.
-     *
-     * @param boolean $configIsDefault indique si l'équation indiquée dans la
-     * config est une valeur par défaut (elle n'est retournée que si aucune
-     * équation n'a pu être construite) ou non (elle est systématiquement
-     * ajoutée à l'équation de recherche).
-     *
-     * @return null|string l'équation de recherche obtenue ou null si aucune
-     * équation ne peut être construite.
+     * @return null|string|array la ou les équations de recherche obtenues ou
+     * null si la requête en cours ne contient pas de paramètre "_filter".
      */
-    protected function getEquationPart($parameterName, $indexType, $configIsDefault)
+    protected function getFilter()
     {
-        // Supprime de la requête tous les paramètres qui sont vides
-        $request=$this->request->copy()->clearNull();
-
-        // Récupère les paramètres "_equation"
-        $equations=$request->asArray($parameterName)->ok();
-
-        // Ajoute tous les paramètres qui sont des index de type probabiliste
-        $schema=$this->selection->getSchema();
-        foreach($request->getParameters() as $name=>$value)
-        {
-            // Détermine s'il s'agit d'un index ou d'un alias
-            $name=strtolower($name);
-            if (isset($schema->indices[$name]))
-                $index=$schema->indices[$name];
-            elseif(isset($schema->aliases[$name]))
-                $index=$schema->aliases[$name];
-            else
-                continue;
-
-            // On ne prend en compte que les index ayant le type demandé
-            if (isset($index->_type) && $index->_type !== $indexType) continue;
-
-            // Combine en OU Les paramètres de même nom (e.g. plusieurs dates)
-            if (is_array($value)) $value=implode(' OR ', (array)$value);
-            $this->addBrackets($value);
-            $equations[]=$name.'='.$value;
-        }
-
-        // Détermine l'équation par défaut qui figure dans la configuration
-        $default=Config::userGet(ltrim($parameterName,'_'), null);
-
-        // Si $configIsDefault est à false, on l'ajoute à l'équation
-        if (! $configIsDefault && !is_null($default))
-            $equations[]=$default;
-
-        // Retourne le résultat
-        switch (count($equations))
-        {
-            // Aucune équation : retourne l'équation par défaut
-            case 0:
-                return $default;
-
-            // Une seule équation : retourne tel quel
-            case 1:
-                return array_pop($equations);
-
-            // Plusieurs équations : combine en ET
-            default:
-                // Ajoute des parenthèses si nécessaire
-                foreach($equations as & $equation)
-                    $this->addBrackets($equation);
-
-                // Combine en et
-                return implode(' AND ', $equations);
-        }
-    }
-
-    /**
-     * Ajoute des parenthèses autour de l'équation passée au paramètre si c'est
-     * nécessaire.
-     *
-     * La méthode considère que l'équation passée en paramètre est destinée à
-     * être combinée en "ET" avec d'autres équations.
-     *
-     * Dans sa version actuelle, la méthode supprime de l'équation les blocs
-     * parenthésés, les phrases et les articles et ajoute des parenthèses si
-     * ce qui reste contient l'opérateur ou.
-     *
-     * Idéalement, il faudrait faire un traitement beaucoup plus compliqué, mais
-     * ça revient quasiment à ré-écrire un query parser.
-     *
-     * Le traitement actuel est plus simple mais semble fonctionner.
-     *
-     * @param string $equation l'équation à tester.
-     */
-    private function addBrackets(& $equation)
-    {
-        $h=$equation;
-        do
-        {
-            $h=preg_replace('~(?:\[.*\])|(?:".*")|(?:\([^()]*\))~', '', $h, -1, $count);
-        }
-        while ($count);
-
-        if (false !== stripos($h, ' OR ') || false !== stripos($h, ' OU '))
-            $equation='('.$equation.')';
+        return $this->request->_filter;
     }
 
     /**
@@ -1876,8 +1644,6 @@ class DatabaseModule extends Module
         $request.=(strpos($request,'?')===false ? '?' : '&') . '_start=';
         $request=htmlspecialchars($request);
 
-//        echo '<div class="pager">';
-
         echo '<span class="label">';
         if ($start==min($start+$max-1,$count))
             echo 'Réponse ', $start, ' sur ', $this->selection->count('environ %d'), ' ';
@@ -1936,8 +1702,6 @@ class DatabaseModule extends Module
             else
                 echo '<span class="last">', $lastLabel, '</span>';
         }
-
-//        echo '</div>';
     }
 
     /**

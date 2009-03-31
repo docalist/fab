@@ -154,13 +154,6 @@ class XapianDatabaseDriver extends Database
     private $xapianMSetIterator=null;
 
     /**
-     * L'équation de recherche en cours.
-     *
-     * @var string
-     */
-    private $equation='';
-
-    /**
      * L'objet XapianQuery contenant l'équation de recherche indiquée par
      * l'utilisateur (sans les filtres éventuels appliqués).
      *
@@ -182,7 +175,17 @@ class XapianDatabaseDriver extends Database
      *
      * @var XapianQuery
      */
-    private $xapianFilter=null;
+    //private $xapianFilter=null;
+
+
+    /**
+     * L'objet UserQuery contient tous les paramètrs de la requête exécutée.
+     *
+     * Vaut null tant que {@link search()} n'a pas été appellée.
+     *
+     * @var UserQuery
+     */
+    private $query=null;
 
     /**
      * Libellé de l'ordre de tri utilisé lors de la recherche.
@@ -1076,41 +1079,77 @@ class XapianDatabaseDriver extends Database
      * special permettant de rechercher tous les documents présents dans la base
      * est retourné.
      *
-     * @param string $equation
+     * @param string|array $equation équation(s) à analyser.
+     *
+     * @param int $intraOpCode Opérateur par défaut à utiliser au sein de chaque
+     * équation.
+     *
+     * @param int $interOpCode Opérateur à utiliser pour combiner ensemble les
+     * différentes équations (lorsque $equation est un tableau d'équations).
+     *
+     * @param string $index Par défaut la requête est analysée en utilisant
+     * l'index par défaut définit dans le QueryParser. On peut forcer
+     * l'utilisation d'un autre index en indiquant son nom ici.
+     *
      * @return XapianQuery
      */
-    private function parseQuery($equation)
+    private function parseQuery($equation, $intraOpCode=XapianQuery::OP_OR, $interOpCode=XapianQuery::OP_OR, $index=null)
     {
-        // Equation=null ou chaine vide : sélectionne toute la base
-        if (is_null($equation) || $equation==='' || $equation==='*')
-            return new XapianQuery('');
+        // Paramètre l'opérateur par défaut du Query Parser
+        $this->xapianQueryParser->set_default_op($intraOpCode);
 
-        // Pré-traitement de la requête pour que xapian l'interprête comme on souhaite
-        $equation=preg_replace_callback('~(?:[a-z0-9]\.){2,9}~i', array('Utils', 'acronymToTerm'), $equation); // sigles à traiter, xapian ne le fait pas s'ils sont en minu (a.e.d.)
-        $equation=preg_replace_callback('~\[(.*?)\]~', array($this,'searchByValueCallback'), $equation);
-        $equation=$this->protectOperators($equation);
-        $equation=Utils::convertString($equation, 'queryparser'); // FIXME: utiliser la même table que tokenize()
-        $equation=$this->restoreOperators($equation);
-
+        // Détermine les flags du Query Parser
         $flags=
             XapianQueryParser::FLAG_BOOLEAN |
             XapianQueryParser::FLAG_PHRASE |
             XapianQueryParser::FLAG_LOVEHATE |
             XapianQueryParser::FLAG_WILDCARD |
-//          XapianQueryParser::FLAG_SPELLING_CORRECTION |
             XapianQueryParser::FLAG_PURE_NOT;
 
         if ($this->options->opanycase)
             $flags |= XapianQueryParser::FLAG_BOOLEAN_ANY_CASE;
 
-        // Construit la requête
-        $query=$this->xapianQueryParser->parse_Query
-        (
-            utf8_encode($equation),         // à partir de la version 1.0.0, les composants "texte" de xapian attendent de l'utf8
-            $flags
-        );
+        $query=array();
+        $nb=0;
+        foreach((array)$equation as $equation)
+        {
+            $equation=trim($equation);
+            if ($equation==='') continue;
 
-        return $query;
+            if ($equation==='*')
+            {
+                $query[$nb++] = new XapianQuery('');
+                continue;
+            }
+
+            // Pré-traitement de l'équation pour que xapian l'interprête comme on souhaite
+            $equation=preg_replace_callback('~(?:[a-z0-9]\.){2,9}~i', array('Utils', 'acronymToTerm'), $equation); // sigles à traiter, xapian ne le fait pas s'ils sont en minu (a.e.d.)
+            $equation=preg_replace_callback('~\[(.*?)\]~', array($this,'searchByValueCallback'), $equation);
+            $equation=$this->protectOperators($equation);
+            $equation=Utils::convertString($equation, 'queryparser'); // FIXME: utiliser la même table que tokenize()
+            $equation=$this->restoreOperators($equation);
+
+            if (!is_null($index))
+                $equation="$index:($equation)";
+
+            // Construit la requête
+            $query[$nb++]=$this->xapianQueryParser->parse_Query(utf8_encode($equation), $flags);
+        }
+
+        if ($nb===0) return null;
+        if ($nb===1) return $query[0];
+        return new XapianQuery($interOpCode, $query);
+    }
+
+    /**
+     * Indique si la requête xapian passée en paramètre est Xapian::MatchAll.
+     *
+     * @param XapianQuery $query
+     * @return bool
+     */
+    private function isMatchAll(XapianQuery $query)
+    {
+        return $query->get_description()=='Xapian::Query(<alldocuments>)';
     }
 
     /**
@@ -1146,7 +1185,7 @@ class XapianDatabaseDriver extends Database
         }
 
         // Pré-traitement de la requête pour que xapian l'interprête comme on souhaite
-        $equation=$this->equation;
+        $equation=$this->searchInfo('equation');
         $equation=preg_replace_callback('~(?:[a-z0-9]\.){2,9}~i', array('Utils', 'acronymToTerm'), $equation); // sigles à traiter, xapian ne le fait pas s'ils sont en minu (a.e.d.)
         $equation=preg_replace_callback('~\[(.*?)\]~', array($this,'searchByValueCallback'), $equation);
         $equation=$this->protectOperators($equation);
@@ -1186,38 +1225,11 @@ class XapianDatabaseDriver extends Database
     {
         $id=(int)$matches[1];
         foreach($this->schema->indices as $index)
-            if ($index->_id===$id) return $index->name.'=';
+            if ($index->_id===$id) return '<span style="color:#00A;">'.$index->name.'</span>=';
         return $matches[1];
     }
 
-/*
 
-  AMELIORATIONS A APPORTER AU SYSTEME DE RECHERCHE, REFLEXION 21/12/2007
-
-- Dans le schéma de la base (DatabaseSchema, DbEdit) ajouter pour
-  chaque index (que ce soit un vrai index ou un alias) une propriété
-  "type d'index" qui peut prendre les valeurs "index probablistique" ou
-  "filtre".
-
-- Dans le setupSearch(), lorsqu'on ajoute la liste des index/préfixes, utiliser
-  cette propriété pour indiquer à xapian le type d'index :
-
-  * "index probabalistique" : utiliser add_prefix()
-  * "filtre" : utiliser add_boolean_prefix()).
-
-- Lors d'une recherche, ne pas chercher à combiner nous-même les différents
-  champs et les différents bouts d'équations : laisser xapian le faire.
-  Si on nous a transmis "_equation=xxx & date=yyy & type=zzz" en query string,
-  se contenter de concaténer le tout et laisser xapian utiliser le defaultOp().
-  Xapian se chargera tout seul de passer en 'filter' tous les index définis
-  avec add_boolean_prefix().
-
-- Il faut quand même tout parenthéser au cas ou les bouts contiennent plusieurs
-  ce qui nous donne : (xxx) date:(yyy) type:(zzz)
-
-- voir comment on peut implémenter ça en gardant la compatibilité avec BIS
-
-*/
 
     public function getFacet($table, $sortByCount=false)
     {
@@ -1282,7 +1294,7 @@ class XapianDatabaseDriver extends Database
         if (is_null($boost) || trim($boost)==='') return null;
 
         if (! preg_match_all('~(\w+):\s*(?:\(\s*(.*)\s*\)|([^\s]+))~s', $boost, $matches, PREG_SET_ORDER))
-            throw new Exception('Equation incorrecte pour le boost : ' . $boost);
+            throw new Exception('Equation de boost incorrecte : ' . $boost);
 
         $q=array();
         foreach($matches as $match)
@@ -1323,18 +1335,22 @@ class XapianDatabaseDriver extends Database
     {
         return array
         (
-            'sort'         => '-',
-            'start'        => 1,
-            'max'          => 10,
-            'filter'       => null,
-            'minscore'     => 0,
-            'rset'         => null,
-            'defaultop'    => 'OR',
-            'opanycase'    => true,
-            'defaultindex' => null,
-            'checkatleast' => 100,
-            'facets'       => null,
-            'boost'        => null,
+            'sort'              => '-',
+            'start'             => 1,
+            'max'               => 10,
+            'filter'            => null,
+            'minscore'          => 0,
+            'rset'              => null,
+            'defaultop'         => 'OR',
+            'opanycase'         => true,
+            'defaultindex'      => null,
+            'checkatleast'      => 100,
+            'facets'            => null,
+            'boost'             => null,
+//            'equation'          => null,
+            'auto'              => null,
+            'defaultequation'   => null,
+            'defaultfilter'     => null,
         );
     }
 
@@ -1346,7 +1362,7 @@ class XapianDatabaseDriver extends Database
         timer && Timer::enter();
         timer && Timer::enter('Initialisation');
 
-        // Détermine les options de recherche
+        // Combine les options de recherche passées en paramètre avec les options par défaut
         if (is_null($options))
         {
             $options = $this->getDefaultOptions();
@@ -1355,7 +1371,7 @@ class XapianDatabaseDriver extends Database
         {
             // Supprime des options les valeurs "null" passées en paramètre
             // Sinon, on ne récupèrera pas la valeur par défaut dans ce cas.
-            foreach($options as $key=>&$value)
+            foreach($options as $key=>$value)
                 if ($value===null or $value==='' or $value===array())
                     unset($options[$key]);
 
@@ -1366,8 +1382,13 @@ class XapianDatabaseDriver extends Database
         // Crée un objet Request à partir du tableau d'options
         $this->options = Request::create($options);        // fixme: remplacer l'objet request par un objet Parameters
 
-        // Valide les valeurs de chacune des options
+        // Si une équation nous a été transmise en paramètre, on la
+        // stocke comme une option
+        if ($equation) $this->options->add('equation', $equation);
+
+        // Valide la valeur de chacune des options
         $this->options
+            ->asArray('equation')->set()
             ->asArray('sort')->set()
             ->unique('start')->int()->min(1)->set()
             ->unique('max')->int()->min(-1)->set()
@@ -1399,6 +1420,17 @@ class XapianDatabaseDriver extends Database
             $this->options->start=$this->options->start-(($this->options->start-1) % $this->options->max);
         }
 
+//        echo '<h1>Contexte de recherche</h1><pre>', var_export($this->options->getParameters(),true), '</pre>';
+
+        // Met en place l'environnement de recherche lors de la première recherche
+        if (is_null($this->xapianEnquire)) $this->setupSearch();
+
+        // Crée la requête à exécuter en fonction des options indiquées
+        $this->setupRequest();
+
+        // Définit la requête à exécuter
+        $this->xapianEnquire->set_query($this->xapianQuery);
+
         // Si des documents pertinents ont été indiqués, crée le rset correspondant
         $rset=null;
         if ($t=$this->options->rset)
@@ -1408,53 +1440,16 @@ class XapianDatabaseDriver extends Database
                 $rset->add_document($id);
         }
 
-        // Si une équation de boost a été indiquée, crée le XapianQuery correspondant
-        $boost=$this->parseBoost($this->options->boost);
-
         // a priori, pas de réponses
         $this->eof=true;
 
-        // Met en place l'environnement de recherche lors de la première recherche
-        if (is_null($this->xapianEnquire)) $this->setupSearch();
-        $this->xapianQueryParser->set_default_op($this->options->defaultopcode);
-
-        // Analyse les filtres éventuels à appliquer à la recherche
-        $this->xapianFilter=null;
-        if ($t=$this->options->filter)
-        {
-            foreach($t as $filter)
-            {
-                $filter=$this->parseQuery($filter);
-                if (is_null($this->xapianFilter))
-                    $this->xapianFilter=$filter;
-                else
-                    $this->xapianFilter=new XapianQuery(XapianQuery::OP_FILTER, $this->xapianFilter, $filter); // todo: FILTER ou AND ??
-            }
-        }
-
-        // Analyse l'équation de recherche de l'utilisateur
-        $this->equation=$equation;
-        $query=$this->xapianQuery=$this->parseQuery($equation);
-
-        // Combine l'équation et le filtre pour constituer la requête finale
-        if ($this->xapianFilter)
-            $query=new XapianQuery(XapianQuery::OP_FILTER, $query, $this->xapianFilter);
-
         // Définit l'ordre de tri des réponses
 
-        // Problème xapian : si on fait une recherche '*' avec un tri par pertinence,
-        // xapian ne rends pas la main. Du coup on force ici un tri par docid décroissant
-        // si l'ordre de tri actuel est par pertinence.
-        if (trim($equation)==='*' && $this->options->sort===array('%')) $this->options->set('sort', array('-'));
+        // Problème : une recherche '*' triée par pertinence est lente (> 30s).
+        // Force ici un tri par docid décroissant dans ce cas.
+        if ($this->isMatchAll($this->xapianQuery) && $this->options->sort===array('%')) $this->options->set('sort', array('-'));
 
         $this->setSortOrder($this->options->sort);
-
-        // Combine le boost éventuel à la requête
-        if ($boost && $this->options->sort===array('%'))
-            $query=new XapianQuery(XapianQuery::OP_AND_MAYBE, $query, $boost);
-
-        // Définit la requête à exécuter
-        $this->xapianEnquire->set_query($query);
 
         // Définit le score minimal souhaité
         if ($t=$this->options->minscore) $this->xapianEnquire->set_cutoff($t);
@@ -1540,6 +1535,214 @@ class XapianDatabaseDriver extends Database
         timer && Timer::leave();
         return $result;
     }
+
+    /**
+     * Crée la requête xapian à exécuter en fonction des options de recherches
+     * indiquées.
+     *
+     * La méthode crée la requête finale qui sera exécutée par xapian en prenant
+     * en compte :
+     *
+     * - la ou les équations de recherche indiquées dans l'option "equation" ;
+     * - les paramètres indiqués dans l'option "auto" qui correspondent à un
+     *   nom d'index ou d'alias existant ;
+     * - le ou les filtres indiqués dans l'option "filter" ;
+     * - le ou les filtres par défaut indiqués dans l'option "defaultfilter" ;
+     * - le boost éventuel indiqué dans l'option "boost".
+     *
+     * La requête xapian à exécuter est stockée dans {@link $xapianQuery}.
+     */
+    private function setupRequest()
+    {
+    /*
+        Combinatoire utilisé pour construire l'équation de recherche :
+        +----------+-----------------+---------------------+-------------------+
+        | Type de  |    Opérateur    | Opérateur entre les |  Opérateur entre  |
+        | requête  | entre les mots  |  valeurs d'un champ | champs différents |
+        +----------+-----------------+---------------------+-------------------+
+        |   PROB   |    default op   |    default op       |   default op      |
+        +----------+-----------------+---------------------+-------------------+
+        |   BOOL   |    default op   |        OR           |   default op      |
+        +----------+-----------------+---------------------+-------------------+
+        |   LOVE   |       AND       |        AND          |        AND        |
+        +----------+-----------------+---------------------+-------------------+
+        |   HATE   |       OR        |        OR           |        OR         |
+        +----------+-----------------+---------------------+-------------------+
+     */
+        timer && Timer::enter();
+
+        // "equation" : la ou les équations passées en query string dans _equation
+        $query=$this->parseQuery($this->options->equation, $this->options->defaultopcode, XapianQuery::OP_AND);
+
+        // "auto" : index et alias passés en query string
+        if ($this->options->auto)
+        {
+            $love=$hate=$prob=$bool=null;
+
+            // Parcourt tous les paramètres
+            foreach($this->options->auto as $name=>$value)
+            {
+                if ($value===null or $value==='' or $value===array()) continue;
+
+                // Ne garde que ceux qui correspondent à un nom d'index ou d'alias existant
+                $indexName=strtolower(ltrim($name,'+-'));
+                if (isset($this->schema->indices[$indexName]))
+                    $index=$this->schema->indices[$indexName];
+                elseif(isset($this->schema->aliases[$indexName]))
+                    $index=$this->schema->aliases[$indexName];
+                else
+                    continue;
+
+                // Détermine comment il faut analyser la requête et où la stocker
+                switch(substr($name, 0, 1))
+                {
+                    case '+': // Tous les mots sont requis, donc on parse en "ET"
+                        $q=$this->parseQuery($value, XapianQuery::OP_AND, XapianQuery::OP_AND, $indexName);
+                        if (!is_null($q)) $love[]=$q;
+                        break;
+
+                    case '-': // le résultat sera combiné en "AND_NOT hate", donc on parse en "OU"
+                        $q=$this->parseQuery($value, XapianQuery::OP_OR, XapianQuery::OP_OR, $indexName);
+                        if (!is_null($q)) $hate[]=$q;
+                        break;
+
+                    default: // parse en utilisant le default op
+                        if (isset($index->_type) && $index->_type === DatabaseSchema::INDEX_BOOLEAN)
+                        {
+                            $q=$this->parseQuery($value, $this->options->defaultopcode, XapianQuery::OP_OR, $indexName);
+                            if (!is_null($q)) $bool[]=$q;
+                        }
+                        else
+                        {
+                            $q=$this->parseQuery($value, $this->options->defaultopcode, $this->options->defaultopcode, $indexName);
+                            if (!is_null($q)) $prob[]=$q;
+                        }
+                        break;
+                }
+            }
+
+            // Combine entres elles les équations de même nature (les love ensembles, les prob ensembles, etc.)
+            foreach(array
+            (
+            	'love'=>XapianQuery::OP_AND,
+            	'hate'=>XapianQuery::OP_OR,
+            	'prob'=>$this->options->defaultopcode,
+            	'bool'=>$this->options->defaultopcode
+            ) as $type=>$op)
+            {
+                if (count($$type)===0) continue;
+                if (count($$type)==1) $$type=array_pop($$type);
+                $$type=new XapianQuery($op, $$type);
+            }
+
+            // Crée la partie principale de la requête sous la forme :
+            // ((query AND love AND_MAYBE prob) AND_NOT hate) FILTER bool
+            // Si defaultop=AND, le AND_MAYBE devient OP_AND
+            if ($love || $query)
+            {
+                if ($love)
+                {
+                    if (is_null($query) || $this->isMatchAll($query))
+                        $query=$love;
+                    else
+                        $query=new XapianQuery(XapianQuery::OP_AND, $query, $love);
+                }
+
+                if ($prob)
+                {
+                    if (is_null($query) || $this->isMatchAll($query))
+                        $query=$prob;
+                    elseif ($this->options->defaultopcode===XapianQuery::OP_OR)
+                        $query=new XapianQuery(XapianQuery::OP_AND_MAYBE, $query, $prob);
+                    else
+                        $query=new XapianQuery(XapianQuery::OP_AND, $query, $prob);
+                }
+            }
+            else
+            {
+                $query=$prob;
+            }
+
+            if ($hate)
+            {
+                // on ne peut pas faire null AND_NOT xxx. Si query est null, crée une query '*'
+                if (is_null($query)) $query=new XapianQuery('');
+                $query=new XapianQuery(XapianQuery::OP_AND_NOT, $query, $hate);
+            }
+
+            if ($bool)
+            {
+                if (is_null($query) || $this->isMatchAll($query))
+                    $query=$bool;
+                else
+                    $query=new XapianQuery(XapianQuery::OP_FILTER, $query, $bool);
+            }
+        }
+
+        // filter : filtres utilisateur indiqués en query string
+        $filter=$this->parseQuery($this->options->filter, XapianQuery::OP_OR, XapianQuery::OP_AND);
+        if ($filter)
+        {
+            if (is_null($query) || $this->isMatchAll($query))
+                $query=$filter;
+            else
+                $query=new XapianQuery(XapianQuery::OP_FILTER, $query, $filter);
+        }
+
+        // defaultequation : si on n'a toujours pas de requête, utilise l'équation par défaut
+        if (is_null($query))
+        {
+            $query=$this->parseQuery($this->options->defaultequation, XapianQuery::OP_AND, XapianQuery::OP_AND);
+            if (is_null($query))
+                throw new Exception('Vous n\'avez indiqué aucun critère de sélection.');
+        }
+
+        // defaultfilter : filtres par défaut indiqués dans la config
+        $defaultFilter=$this->parseQuery($this->options->defaultfilter, XapianQuery::OP_OR, XapianQuery::OP_AND);
+        if ($defaultFilter)
+        {
+            if (is_null($query) || $this->isMatchAll($query))
+                $query=$defaultFilter;
+            else
+                $query=new XapianQuery(XapianQuery::OP_FILTER, $query, $defaultFilter);
+        }
+
+        // Prend en compte le boost éventuel si on est en tri par pertinence
+        if ($this->options->boost && $this->options->sort===array('%'))
+            $query=new XapianQuery(XapianQuery::OP_AND_MAYBE, $query, $this->parseBoost($this->options->boost));
+
+        // Stocke la requête finale
+        $this->xapianQuery=$query;
+
+        $this->query=new UserQuery($this->options->getParameters(), $this->schema);
+
+        timer && Timer::leave();
+    }
+
+// "pretty print query", débuggage, à virer plus tard.
+private function ppq($q)
+{
+    if (is_null($q))
+    {
+        echo 'nuLL';
+        return;
+    }
+    $h=$q->get_description();
+    $h=preg_replace('~:\(pos=\d+?\)~', '', $h);
+    $h=strtr
+    (
+        $h,
+        array
+        (
+            '('=>'<br />(<div style="margin-left: 2em;border-left: 1px dotted #eee;">',
+            ')'=>'</div>)<br />',
+        )
+    );
+    $h=preg_replace_callback('~(\d+):~',array($this,'idToName'),$h);
+    $h=preg_replace('~AND_MAYBE|AND_NOT|FILTER|AND|OR~', '<br /><strong style="margin-left:-2em">$0</strong><br />', $h);
+    $h=str_replace('<br /><br />', '<br />', $h);
+    echo $h;
+}
 
     /**
      * Paramètre le MSet pour qu'il retourne les documents selon l'ordre de tri
@@ -1948,14 +2151,14 @@ class XapianDatabaseDriver extends Database
     {
         $what=strtolower($what);
 
-        if ($this->options && $this->options->has($what)) return $this->options->get($what);
+        //if ($this->options && $this->options->has($what)) return $this->options->get($what);
 
         switch ($what)
-        {
+        {case 'request' : return $this->request;
             case 'options': return $this->options->getParameters();
             case 'docid': return $this->xapianMSetIterator->get_docid();
 
-            case 'equation': return $this->equation;
+            case 'equation': return $this->query ? $this->query->getEquation() : '';
             case 'rank': return $this->xapianMSetIterator->get_rank()+1;
 
             case 'correctedequation':
@@ -1984,7 +2187,7 @@ class XapianDatabaseDriver extends Database
             case 'maxattainedweight': return $this->xapianMSet->get_max_attained();
 
             case 'internalquery': return $this->xapianQuery->get_description();
-            case 'internalfilter': return is_null($this->xapianFilter) ? null : $this->xapianFilter->get_description();
+//            case 'internalfilter': return is_null($this->xapianFilter) ? null : $this->xapianFilter->get_description();
             case 'internalfinalquery': return $this->xapianEnquire->get_query()->get_description();
 
             // Le libellé de la clé de tri en cours
@@ -2007,7 +2210,9 @@ class XapianDatabaseDriver extends Database
             case 'spytermsseen':
                 return $this->spy ? $this->spy->get_terms_seen() : 0;
 
-            default: return null;
+            default:
+                if ($this->options && $this->options->has($what)) return $this->options->get($what);
+                return null;
         }
     }
 
@@ -3111,6 +3316,216 @@ class DatabaseFieldTypeMismatch extends RuntimeException
     public function __construct($field, $type, $value)
     {
         parent::__construct(sprintf('Valeur incorrecte pour le champ %s (%s) : %s', $field, $type, var_export($value, true)));
+    }
+}
+
+class UserQuery extends Request
+{
+    private $schema=null;
+
+    public function __construct(array $parameters=array(), DatabaseSchema $schema=null)
+    {
+        parent::__construct($parameters);
+        $this->schema=$schema;
+    }
+
+    public function __toString()
+    {
+        return $this->getEquation();
+    }
+
+    public function getEquation()
+    {
+/*
+(
+    +(tous les _equation croisés en AND)
+    tous les champs prob/love/hate concaténés avec des espaces
+)
+AND
+(
+    tous les champs bool croisés en defaultOp (occurences croisées en OR)
+)
+AND
+(
+    tous les _filter croisés en AND
+)
+
+ */
+
+        $result=array();
+
+        // tous les _equation croisés en AND
+        if ($this->equation)
+        {
+            $t=array();
+            $equations=(array) $this->equation;
+            foreach($equations as $value)
+            {
+                if ($value===null or $value==='' or $value===array()) continue;
+                if (count($equations)>1) $this->addBrackets($value);
+                $t[]=$value;
+            }
+            $h=implode(' AND ', $t);
+            $result[0] = $h;
+        }
+
+        // Sépare les champs Bool des autres
+        if ($this->auto)
+        {
+            // Parcourt tous les paramètres
+            $t=$bool=array();
+            foreach($this->auto as $name=>$value)
+            {
+                if ($value===null or $value==='' or $value===array()) continue;
+
+                // Ne garde que ceux qui correspondent à un nom d'index ou d'alias existant
+                $indexName=strtolower(ltrim($name,'+-'));
+                if (isset($this->schema->indices[$indexName]))
+                    $index=$this->schema->indices[$indexName];
+                elseif(isset($this->schema->aliases[$indexName]))
+                    $index=$this->schema->aliases[$indexName];
+                else
+                    continue;
+
+                foreach((array)$value as $value)
+                {
+                    if (trim($value) === '') continue;
+
+                    $this->addBrackets($value);
+
+                    // Détermine comment il faut analyser la requête et où la stocker
+                    switch(substr($name, 0, 1))
+                    {
+                        case '+':
+                            $t[] = $name . '=' . $value;
+                            break;
+
+                        case '-':
+                            $t[] = 'NOT ' . substr($name,1) . '=' . $value;
+                            // xapian ne supporte l'opérateur "hate" que sur un terme simple
+                            // Si l'opérateur porte sur une expression parenthésée, le nom
+                            // du champ sera traité comme un terme ("-champ:(term)" donne "champ AND term")
+                            // Pour contourner le problème, on utilise un "not" plutôt qu'un hate
+                            break;
+
+                        default:
+                            if (isset($index->_type) && $index->_type === DatabaseSchema::INDEX_BOOLEAN)
+                                $bool[$name][] = $name . '=' . $value;
+                            else
+                                $t[] = $name . '=' . $value;
+                            break;
+                    }
+                }
+            }
+
+            if ($t)
+            {
+                $h = implode(' ', $t);
+                if (isset($result[0]))
+                {
+                    $this->addBrackets($result[0]);
+                    $result[0] = '+' . $result[0] . ' ' . $h;
+                }
+                else
+                    $result[0] = $h;
+            }
+
+            if ($bool)
+            {
+                foreach($bool as $name=>&$value)
+                {
+                    $value=implode(' OR ', $value);
+                    $this->addBrackets($value);
+                }
+                $h=implode(' ', $bool);
+                $result[] = $h;
+            }
+        }
+
+
+        // AND (tous les _filter croisés en AND)
+        if ($this->filter)
+        {
+            $t2=array();
+            foreach((array) $this->filter as $equation)
+            {
+                $this->addBrackets($equation);
+                $t2[]=$equation;
+            }
+            $h=implode(' AND ', $t2);
+            $result[] = $h;
+        }
+
+        if (count($result)>1) array_walk($result, array($this, 'addBrackets'));
+        $result=implode(' AND ', $result);
+        return $result;
+    }
+
+    /**
+     * Ajoute des parenthèses autour de l'équation passée au paramètre si c'est
+     * nécessaire.
+     *
+     * La méthode considère que l'équation passée en paramètre est destinée à
+     * être combinée en "ET" avec d'autres équations.
+     *
+     * Dans sa version actuelle, la méthode supprime de l'équation les blocs
+     * parenthésés, les phrases et les articles et ajoute des parenthèses si
+     * ce qui reste contient un ou plusieurs espaces.
+     *
+     * Idéalement, il faudrait faire un traitement beaucoup plus compliqué, mais
+     * ça revient quasiment à ré-écrire un query parser.
+     *
+     * Le traitement actuel est plus simple mais semble fonctionner.
+     *
+     * @param string $equation l'équation à tester.
+     */
+    private function addBrackets(& $equation)
+    {
+        static $re='~\((?:(?>[^()]+)|(?R))*\)|"[^"]*"|\[[^]]*\]~';
+
+        if (false !== strpos(preg_replace($re, '', $equation), ' '))
+            $equation='('.$equation.')';
+
+        /*
+        Explications sur l'expression régulière utilisée.
+        On veut éliminer de l'équation les expressions parenthèsées, les phrases
+        et les articles.
+
+        Une expression parenthèsée est définie par l'expression régulière
+        récursive suivante (source : manuel php, rechercher "masques récursifs"
+        dans la page http://docs.php.net/manual/fr/regexp.reference.php) :
+
+        $parent='
+            \(                  # une parenthèse ouvrante
+            (?:                 # début du groupe qui définit une expression parenthésée
+                (?>             # "atomic grouping", supprime le backtracing (plus rapide)
+                    [^()]+      # une suite quelconque de caractères, hormis des parenthèses
+                )
+                |
+                (?R)            # ou un expression parenthésée (appel récursif : groupe en cours)
+            )*
+            \)                  # une parenthèse fermante
+        ';
+
+        Une phrase, avec le bloc suivant :
+        $phrase='
+            "                   # un guillemet ouvrant
+            [^"]*               # une suite quelconque de caractères, sauf des guillemets
+            "                   # un guillemet fermant
+        ';
+
+        Et une recherche à l'article avec l'expression suivante :
+        $value='
+            \[                  # un crochet ouvrant
+            [^]]*               # une suite quelconque de caractères, sauf un crochet fermant
+            \]                  # un crochet fermant
+        ';
+
+        Si on veut les trois, il suffit de les combiner :
+        $re="~$parent|$phrase|$value~x";
+
+        Ce qui donne l'expression régulière utilisée dans le code :
+        */
     }
 }
 ?>
