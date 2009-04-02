@@ -8,16 +8,16 @@
 
 /**
  * Fonctions de débogage
- * 
+ *
  * @package     fab
  * @subpackage  debug
  */
 class Debug
 {
     public static $log=array();
-    
+
     public static $log2=array();
-    
+
     const LOG=0, NOTICE=1, WARNING=2;
     private static function logMessage($level, $args)
     {
@@ -26,7 +26,7 @@ class Debug
         else
             $h=$args[0];
         self::$log[]=array(Utils::callLevel()-2, Utils::callerClass(3), $level, $h);
-        
+
 //            $args[0].=' (%s)';
 //            $args[]=$log[0].'-'.$log[1];
             $json='';
@@ -37,25 +37,25 @@ class Debug
             }
         self::$log2[]=array(Utils::callLevel()-2, Utils::callerClass(3), $level, $json);
     }
-    
+
     public static function log()
     {
         $t=func_get_args();
         self::logMessage(self::LOG, $t);
     }
-    
+
     public static function notice()
     {
         $t=func_get_args();
         self::logMessage(self::NOTICE, $t);
     }
-    
+
     public static function warning()
     {
         $t=func_get_args();
         self::logMessage(self::WARNING, $t);
     }
-    
+
     public static function sprintfColor()
     {
         $t=func_get_args();
@@ -64,17 +64,17 @@ class Debug
         	$value=Debug::dump($value);
         return vsprintf($format, $t);
     }
-    
+
     public static function dump($var, $sortkeys=true)
     {
         static $id=0;
         static $level=0;
         static $seen=array();
 
-        if (! isset($var) || is_null($var)) 
+        if (! isset($var) || is_null($var))
             return '<span class="debugDumpNull">null</span>';
-            
-        if (is_string($var)) 
+
+        if (is_string($var))
         {
             $h=str_replace
             (
@@ -84,27 +84,27 @@ class Debug
             );
             return '<span class="debugDumpString" title="type: string; len: '.strlen($var).'">'
                 .   ($h=='' ? '(chaine vide)': $h)
-                .   '</span>';  
+                .   '</span>';
         }
-        
-        if (is_bool($var)) 
+
+        if (is_bool($var))
             return '<span class="debugDumpBool" title="type: boolean">'.($var?'true':'false').'</span>';
-            
-        if (is_int($var)) 
+
+        if (is_int($var))
             return '<span class="debugDumpInt" title="type: integer">'.$var.'</span>';
-            
-        if (is_float($var)) 
+
+        if (is_float($var))
             return '<span class="debugDumpInt" title="type: float">'.$var.'</span>';
-            
+
         if (is_array($var))
         {
-            if (count($var)==0) 
+            if (count($var)==0)
                 return '<span class="debugDumpArray" title="type: array; count: 0">array()</span>';
-                
+
             $h='<span class="debugDumpArray" title="type: array; count: '.count($var).'">';
             $h.='<a href="#" onclick="debugToggle(\'dumpvar'.$id.'\');return false;">array&nbsp;...</a>';
             $h.='</span>';
-            
+
             $h.='<div class="debugDumpArrayItems" id="dumpvar'.$id.'" style="display:'.($level==0?'block':'block').';">';
             $id++;
             $level++;
@@ -134,7 +134,7 @@ class Debug
                 $id++;
                 $level++;
                 $seen[]=&$var;
-                
+
     //            uksort($var, 'strnatcasecmp');
                 try // ne marche pas s'il s'agit d'un objet COM (exemple : selection)
                 {
@@ -144,7 +144,7 @@ class Debug
                 }
                 catch (Exception $e)
                 {
-                	
+
                 }
                 $level--;
                 array_pop($seen);
@@ -152,10 +152,10 @@ class Debug
             $h.='<div class="debugDumpObjectItemsEnd"></div>';
             $h.='</div>';
             return $h;
-        	
+
         }
         return 'type non géré dans dump : ' . var_export($var,1);
-        
+
     }
     private static function showLog(&$i=0)
     {
@@ -178,23 +178,23 @@ class Debug
             }
             else
                 echo str_repeat('    ', $level),"<li class=\"debugLog$log[2]\"><strong>$log[1]</strong> - $log[3]</li>\n";
-            
+
             if ($i >= $nb) break;
             $log=&Debug::$log[$i];
 
-            if ($log[0]<$level) break;  
-        }   
+            if ($log[0]<$level) break;
+        }
         if ($i<$nb) echo '<div class="debugDumpLogEnd"></div>';
-        
+
         echo str_repeat('    ', $level-1),"</ul>\n";
     }
-    
+
     private static function firebugShowLog()
     {
-        
+
 //echo '<pre>';
 //print_r(self::$log2);
-//echo '</pre>';        
+//echo '</pre>';
         echo '<script>';
         echo 'function showPhpDebugInformation(){';
 //        for($i=0; $i<count(self::$log); $i++)
@@ -203,7 +203,7 @@ class Debug
         echo 'console.group("$_REQUEST");';
         echo 'console.log(', json_encode(Utils::utf8Encode($_REQUEST)), ');';
         echo 'console.groupEnd();';
-        
+
         echo 'console.group("Configuration");';
         echo 'console.log(', json_encode(Utils::utf8Encode(Config::getAll())), ');';
         echo 'console.groupEnd();';
@@ -211,7 +211,7 @@ class Debug
         echo 'console.group("Include/require");';
         echo 'console.log("%s",', json_encode(Utils::utf8Encode((object)get_included_files())), ');';
         echo 'console.groupEnd();';
-        
+
         echo 'console.group("Trace de l\'exécution");';
         $level=self::$log2[0][0];
         foreach(self::$log2 as $j=>$log)
@@ -224,7 +224,7 @@ class Debug
 
 //            $args[0].=' (%s)';
 //            $args[]=$log[0].'-'.$log[1];
-//            
+//
 //            foreach($args as $i=>$arg)
 //            {
 //                if ($i) $h.=',';
@@ -237,16 +237,16 @@ class Debug
                 case self::LOG:
                     $type='log';
                     break;
-                        
+
                 case self::NOTICE:
                     $type='info';
                     break;
-                    
+
                 case self::WARNING:
                     $type='warn';
                     break;
             }
-            
+
             if (@self::$log2[$j+1][0]>$level)
             {
                   $type='group';
@@ -256,7 +256,7 @@ class Debug
 //                    echo "console.group('here');\n";
             }
             //$level=$log[0];
-            
+
             echo "console.$type($args);\n";
             if((@self::$log2[$j+1][0]<$level))
             {
@@ -267,9 +267,9 @@ class Debug
         }
         echo 'console.groupEnd();';
         echo '}';
-        echo "showPhpDebugInformation();";
+        // echo "showPhpDebugInformation();";
         echo '</script>';
-        
+
         echo '<p onclick="showPhpDebugInformation();">Afficher les informations de débogage dans firebug</p>';
 //            $i++;
 //            if ($i<$nb && Debug::$log[$i][0]>$level)
@@ -283,17 +283,17 @@ class Debug
 //            }
 //            else
 //                echo str_repeat('    ', $level),"<li class=\"debugLog$log[2]\"><strong>$log[1]</strong> - $log[3]</li>\n";
-//            
+//
 //            if ($i >= $nb) break;
 //            $log=&Debug::$log[$i];
 //
-//            if ($log[0]<$level) break;  
-//        }   
+//            if ($log[0]<$level) break;
+//        }
 //        if ($i<$nb) echo '<div class="debugDumpLogEnd"></div>';
-//        
+//
 //        echo str_repeat('    ', $level-1),"</ul>\n";
     }
-    
+
     public static function showBar()
     {
         self::firebugShowLog();
@@ -301,7 +301,7 @@ class Debug
         echo '<div id="debugWebBar">';
         echo '<h1>Barre de débogage</h1>';
         echo '<div id="debugWebBarContent">';
-        
+
         echo '<div class="debugLog">'; // trace : panel
             echo '<div class="accordionTabTitleBar">Trace du programme</div>'; // trace : header
             echo '<div class="accordionTabContentBox">'."\n"; // trace : content
@@ -355,6 +355,6 @@ class Debug
         echo '</div>'; // debugWebBarContent
         echo '</div>'; // debugWebBar
        // echo '<script type="text/javascript">new Rico.Accordion( $("debugWebBarContent"), {panelHeight:400} );</script>';
-    }    
+    }
 }
 ?>
