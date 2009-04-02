@@ -1886,12 +1886,12 @@ class DatabaseModule extends Module
             case 'database': return Config::get('database');
 
             // Items sur la recherche en cours
-            case 'equation': return $this->equation;
-            case 'count':    return is_null($this->equation) ? '' : $this->selection->count();
+            case 'equation': return $this->selection->searchInfo('equation');
+            case 'count':    return is_null($this->selection) ? '' : $this->selection->count();
             case 'fmt':      return $this->request->get('_fmt');
-            case 'sort':     return $this->request->get('_sort');
-            case 'max':      return $this->request->get('_max');
-            case 'start':    return $this->request->get('_start');
+            case 'sort':     return $this->selection->searchInfo('sortorder');
+            case 'max':      return $this->selection->searchInfo('max');
+            case 'start':    return $this->selection->searchInfo('start');
 
             // Items sur l'affichage d'un enregistrement
             case 'ref':      return $this->request->get('REF');
