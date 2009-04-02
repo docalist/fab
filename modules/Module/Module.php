@@ -735,6 +735,7 @@ Config::addArray($this->config);    // fixme: objectif : uniquement $this->confi
      * Noms d'items reconnus par cette méthode :
      * - tous les flags supportés par la fonction {@link strftime()} de php
      * - user.xxx : la propriété 'xxx' de l'utilisateur en cours
+     * - browser.xxx : la propriété 'xxx' du browser en cours (cf get_browser())
      * - ip : l'adresse ip du client
      * - host : le nom d'hôte du serveur en cours
      * - user_agent : la chaine identifiant le navigateur de l'utilisateur
@@ -757,6 +758,17 @@ Config::addArray($this->config);    // fixme: objectif : uniquement $this->confi
 
         // Items sur l'utilisateur en cours
         if (substr($name, 0, 5)==='user.') return User::get(substr($name, 5));
+
+        // Items sur le browser en cours (cf get_browser())
+        if (substr($name, 0, 8)==='browser.')
+        {
+            static $browser=null;
+            if (is_null($browser)) $browser=get_browser();
+            if ($browser===false) return '';
+            $prop=substr($name, 8);
+            if (!isset($browser->$prop)) return '';
+            return $browser->$prop;
+        }
 
         // Autres items
         switch($name)
