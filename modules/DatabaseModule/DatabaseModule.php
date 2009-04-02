@@ -153,14 +153,8 @@ class DatabaseModule extends Module
         timer && Timer::leave();
 
         // Ajoute la requête dans l'historique des équations de recherche
-        $history=Config::userGet('history', false);
+        $this->updateSearchHistory();
 
-        if ($history===true) $history=10;
-        elseif ($history===false) $history=0;
-
-        if (!is_int($history)) $history=0;
-        if ($history>0 && ! Utils::isAjax())
-            $this->updateSearchHistory($history);
         timer && Timer::leave();
     }
 
@@ -190,6 +184,35 @@ class DatabaseModule extends Module
     }
 
     /**
+     * Retourne le nombre maximum de recherches qui peuvent être stockées dans
+     * l'historique des équations de recherche, ou zéro si l'historique est
+     * désactivé.
+     *
+     * @return int la valeur retournée dépend de ce que contient la clé
+     * <code><history></code> de la config :
+     * - null : 0
+     * - false : 0
+     * - true : 10
+     * - entier positif : cet entier
+     * - entier négatif : 0
+     *
+     * Remarque :
+     * La méthode retourne toujours zéro si la requête en cours est une requête
+     * ajax.
+     */
+    protected function getSearchHistoryLimit()
+    {
+        if (Utils::isAjax()) return 0;
+        if (! $history=Config::userGet('history', false)) return 0;
+
+        if ($history===true) return 10;
+
+        if (!is_int($history)) return 0;
+        if ($history > 0) return $history;
+        return 0;
+    }
+
+    /**
      * Charge l'historique des équations de recherche.
      *
      * @return array tableau des équations de recherche stocké dans la session.
@@ -206,12 +229,11 @@ class DatabaseModule extends Module
 
     /**
      * Met à jour l'historique des équations de recherche.
-     *
-     * @param int $maxHistory le nombre maximum d'équations de recherche que
-     * l'historique peut contenir.
      */
-    private function updateSearchHistory($maxHistory=10)
+    private function updateSearchHistory()
     {
+        if (! $maxHistory=$this->getSearchHistoryLimit()) return;
+
         timer && Timer::enter('Mise à jour de l\'historique des recherches');
 
         // Charge les sessions si ce n'est pas le cas (pas mis en config, comme ça la session n'est chargée que si on en a besoin)
