@@ -200,7 +200,7 @@ class DatabaseModule extends Module
      * La méthode retourne toujours zéro si la requête en cours est une requête
      * ajax.
      */
-    protected function getSearchHistoryLimit()
+    public function getSearchHistoryLimit()
     {
         if (Utils::isAjax()) return 0;
         if (! $history=Config::userGet('history', false)) return 0;
