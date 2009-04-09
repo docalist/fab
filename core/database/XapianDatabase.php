@@ -1155,61 +1155,119 @@ class XapianDatabaseDriver extends Database
     /**
      * Corrige l'orthographe de l'équation de recherche en cours.
      *
-     * Le queryParser de Xapian sait proposer une version corrigée des équations
-     * de recherche qu'il analyse, mais uniquement pour les mots "globaux" qui
-     * ne sont pas préfixés.
+     * La méthode extrait tous les mots présents dans la requête en cours en
+     * ignorant les mots de une lettre, les opérateurs, les noms de champs et
+     * les mots-vides.
      *
-     * Dans notre cas, comme on n'a pas d'index global, on n'obtient, par défaut
-     * aucune correction.
+     * Elle appelle ensuite pour chaque mot la méthode
+     * XapianDatabase::->get_spelling_suggestion().
      *
-     * Pour contourner le problème, on utilise un query parser spécial
-     * ($this->xapianSpellChecker) qui est paramétré exactement comme le query
-     * parser ($this->xapianQueryParser) mais qui ne contient aucun index ni
-     * aucun alias et on reparse l'équation de recherche.
+     * Si xapian propose une suggestion, le mot d'origine est remplacé par
+     * la celle-ci dans la requête en cours en utilisant le format passé en
+     * parmaètre.
      *
-     * Du coup, cela fonctionne, mais xapian essaie également de trouver des
-     * corrections pour les noms des index (par exemple, titorig devient
-     * vitoria).
+     * Lors de ce remplacement, la méthode essaie de donner à la suggestion
+     * trouvée la même casse de caractères que le mot d'origine (si le mot était
+     * en majuscules, la suggestion sera en majuscules, s'il était en minuscules
+     * avec une initiale, la suggestion aura la même casse, etc.)
      *
-     * Pour éviter cela, on "protége" les noms des index avant de lancer
-     * l'analyse et on les restaure après.
+     * Les sigle sont également gérés : ils sont transformés en termes puis
+     * réintroduits sous forme de sigles dans l'équation d'origine.
+     *
+     * Remarque : les suggestions faites sont toujours non accentuées.
+     *
+     * @param string $format le format (façon sprintf) à utiliser. Doit
+     * obligatoirement contenir la chaine '%s'.
      */
-    private function spellcheckEquation()
+    private function spellcheckEquation($format='<strong>%s</strong>')
     {
-        if (is_null($this->xapianSpellChecker))
+        // requête utilisée pour les tests :
+        // http://apache/Bdsp2009/web/debug.php/Base/Search?_equation=PZTIENT+Pztient+pztient+P.Z.T.I.E.N.T.+%5BEducation+Sznt%E9%5D+z++-priqe+en+chzrge+chzrge+%9Cuef+AND+pztient+dizb%E9tique+OR+diazbet*+REF%3A12+AutPhys%3A%28Flahzult+A.%29+%2BZ.N.A.E.S.+Titre%3Desai&_defaultop=OR
+
+        timer && Timer::enter();
+
+        // Récupère l'équation de recherche à corriger
+        $corrected=$equation=$this->searchInfo('equation');
+
+        // Crée un tableau contenant tous les mots présents dans l'équation
+        $terms=preg_split('~[^.A-Za-z0-9_ŒœÀÁÂÃÄÅÆÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖØÙÚÛÜÝÞßàáâãäåæçèéêëìíîïðñòóôõöùúûüýþÿ]~', $corrected, -1, PREG_SPLIT_NO_EMPTY | PREG_SPLIT_OFFSET_CAPTURE);
+
+        $cache=array();
+        $offset=0;
+        $hasErrors=false;
+        foreach($terms as $term)
         {
-            $this->xapianSpellChecker=new XapianQueryParser();
-            $this->xapianSpellChecker->set_stopper($this->stopper);
-            $this->xapianSpellChecker->set_default_op($this->options->defaultopcode);
-            $this->xapianSpellChecker->set_database($this->xapianDatabase);
+            $position=$term[1];
+            $term=$term[0];
+
+            // Ignore les mots d'une seule lettre (pas de correction possible)
+            if (strlen($term) === 1) continue;
+
+            // Ignore les opérateurs
+            if (false !== stripos(' et and ou or sauf but not ', " $term ")) continue;
+
+            // Ignore les noms de champs (i.e. le terme est suivi par '=' ou ':')
+            if (false !== strpos(':=', substr($equation, $position + strlen($term), 1))) continue;
+
+            // Ignore les mots qui contiennent des chiffres todo: A voir
+//            if (preg_match('~\d~', $term))
+//            {
+//                echo 'match \d<br />';
+//                continue;
+//            }
+
+            // Ignore les mots vides
+            if ($this->stopper && $this->stopper->apply($term)) continue;
+
+            // Si on a déjà rencontré ce terme, on utilise le cache
+            if (isset($cache[$term]))
+            {
+                $correction=$cache[$term];
+            }
+
+            // Sinon, essaie de trouver une correction et stocke en cache
+            else
+            {
+                // Gère les lettres doubles
+                $search=strtr($term, array('æ'=>'ae', 'œ'=>'oe'));
+
+                // Gère les sigles
+                $acronym=false;
+                if (false !== strpos($search, '.'))
+                {
+                    // Ignore les sigles d'une seule lettre (exemple : initiale d'auteur)
+                    if (strlen($search)===2) continue;
+
+                    $acronym=true;
+
+                    // Transforme le sigle en terme (i.e. supprime les points)
+                    $search=trim(str_replace('.', '', $search));
+                }
+
+                // Recherche une correction et la stocke
+                $correction=$cache[$term]=$this->xapianDatabase->get_spelling_suggestion(Utils::convertString($search, 'alphanum'), 2);
+
+                if ($correction==='') continue;
+
+                // Essaie de donner à la suggestion la même "casse" que le mot d'origine
+                if (ctype_upper($search))
+                    $correction=strtoupper($correction);
+                elseif (ctype_upper($search[0]))
+                    $correction=ucfirst($correction);
+
+                if ($acronym)
+                    $correction = preg_replace('~.~', '$0.', $correction);
+            }
+
+            // Remplace le terme par la suggestion proposée, en gérant le décalage généré
+            $replace=sprintf($format, $correction);
+            $corrected=substr_replace($corrected, $replace, $position + $offset, strlen($term));
+            $offset += (strlen($replace) - strlen($term));
         }
 
-        // Pré-traitement de la requête pour que xapian l'interprête comme on souhaite
-        $equation=$this->searchInfo('equation');
-        $equation=preg_replace_callback('~(?:[a-z0-9]\.){2,9}~i', array('Utils', 'acronymToTerm'), $equation); // sigles à traiter, xapian ne le fait pas s'ils sont en minu (a.e.d.)
-        $equation=preg_replace_callback('~\[(.*?)\]~', array($this,'searchByValueCallback'), $equation);
-        $equation=$this->protectOperators($equation);
-        $equation=Utils::convertString($equation, 'queryparser'); // FIXME: utiliser la même table que tokenize()
-        $equation=$this->restoreOperators($equation);
+        $this->correctedEquation = $offset ? $corrected : '';
 
-        $equation=preg_replace('~\b[a-z]+[:=]~i', 'zzz$0', $equation);
-
-        $flags=
-            XapianQueryParser::FLAG_BOOLEAN |
-            XapianQueryParser::FLAG_PHRASE |
-            XapianQueryParser::FLAG_LOVEHATE |
-            XapianQueryParser::FLAG_WILDCARD |
-            XapianQueryParser::FLAG_SPELLING_CORRECTION |
-            XapianQueryParser::FLAG_PURE_NOT;
-
-        if ($this->options->opanycase)
-            $flags |= XapianQueryParser::FLAG_BOOLEAN_ANY_CASE;
-
-
-        $this->xapianSpellChecker->parse_Query(utf8_encode($equation),$flags);
-        $this->correctedEquation=utf8_decode($this->xapianSpellChecker->get_corrected_query_string());
-
-        $this->correctedEquation=preg_replace('~zzz([a-z]+[:=])~i', '$1', $this->correctedEquation);
+        timer && Timer::leave();
     }
 
 
@@ -1535,6 +1593,7 @@ class XapianDatabaseDriver extends Database
         timer && Timer::leave();
         return $result;
     }
+
 
     /**
      * Crée la requête xapian à exécuter en fonction des options de recherches
@@ -2147,7 +2206,7 @@ private function ppq($q)
     // *************** INFORMATIONS SUR LA RECHERCHE EN COURS ******************
     // *************************************************************************
 
-    public function searchInfo($what)
+    public function searchInfo($what, $arg=null)
     {
         $what=strtolower($what);
 
@@ -2162,9 +2221,24 @@ private function ppq($q)
             case 'rank': return $this->xapianMSetIterator->get_rank()+1;
 
             case 'correctedequation':
+                // Si c'est le premier appel, corrige l'équation en cours
                 if (is_null($this->correctedEquation))
-                    $this->spellcheckEquation();
-                return $this->correctedEquation;
+                    $this->spellcheckEquation('^^^%s$$$');
+
+                // Coupe le format indiqué en "avant"/"après"
+                $delim=explode('%s', $arg, 2);
+                if (! isset($delim[1])) $delim[1]='';
+
+                // Insère les délimiteurs demandés dans l'équation
+                return strtr
+                (
+                    $this->correctedEquation,
+                    array
+                    (
+                        '^^^'=>$delim[0],
+                        '$$$'=>$delim[1],
+                    )
+                );
 
             // Liste des mots-vides ignorés dans l'équation de recherche
             case 'stopwords': return $this->getRequestStopwords(false);
