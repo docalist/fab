@@ -1246,18 +1246,18 @@ class XapianDatabaseDriver extends Database
 
                 // Recherche une correction et la stocke
                 $correction=$cache[$term]=$this->xapianDatabase->get_spelling_suggestion(Utils::convertString($search, 'alphanum'), 2);
-
-                if ($correction==='') continue;
-
-                // Essaie de donner à la suggestion la même "casse" que le mot d'origine
-                if (ctype_upper($search))
-                    $correction=strtoupper($correction);
-                elseif (ctype_upper($search[0]))
-                    $correction=ucfirst($correction);
-
-                if ($acronym)
-                    $correction = preg_replace('~.~', '$0.', $correction);
             }
+
+            if ($correction==='') continue;
+
+            // Essaie de donner à la suggestion la même "casse" que le mot d'origine
+            if (ctype_upper($search))
+                $correction=strtoupper($correction);
+            elseif (ctype_upper($search[0]))
+                $correction=ucfirst($correction);
+
+            if ($acronym)
+                $correction = preg_replace('~.~', '$0.', $correction);
 
             // Remplace le terme par la suggestion proposée, en gérant le décalage généré
             $replace=sprintf($format, $correction);
@@ -1594,6 +1594,84 @@ class XapianDatabaseDriver extends Database
         return $result;
     }
 
+    /**
+     * Retourne un nuage de tags pour le ou les champs indiqués.
+     *
+     * @param string|array $fields un ou plusieurs champs pour lesquels vous
+     * voulez récupérer un nuage de tags.
+     * @param $max le nombre maximum de tags dans chaque nuage
+     * @param $checkAtLeast le nombre minimum de documents à examiner
+     * @return array soit un tableau de tags (si $fields est une chaine) sous la
+     * forme tag=>occurences, soit un tableau de tableaux de tags sous la forme
+     * field =>array($tag=>occurences)
+     */
+    public function getTags($fields, $max=25, $checkAtLeast=50)
+    {
+        timer && Timer::enter();
+
+        // Détermine l'ID de chacun des champs demandés
+        $result=$fieldsId=array();
+        foreach((array)$fields as $name)
+        {
+            $key=Utils::ConvertString($name, 'alphanum');
+            if (! isset($this->schema->fields[$key]))
+                throw new Exception("Le champ $name n'existe pas");
+            $result[$name]=array();
+            $fieldsId[$this->schema->fields[$key]->_id] = &$result[$name];
+        }
+
+        // Définit un tri par pertinence
+        $this->setSortOrder($this->options->sort);
+
+        // Relance la recherche
+        timer && Timer::enter('tags.get_MSet');
+        $mSet=$this->xapianEnquire->get_MSet(0, $checkAtLeast, $checkAtLeast/*, todo: $rset*/);
+        timer && Timer::leave('tags.get_MSet');
+
+        // Parcourt les notices
+        timer && Timer::enter('tags.loop');
+        $begin=$mSet->begin();
+        $end=$mSet->end();
+        while (! $begin->equals($end))
+        {
+            $data=unserialize($begin->get_document()->get_data());
+            foreach($fieldsId as $id=>&$tags)
+            {
+                if (! isset($data[$id])) continue;
+                if (empty($data[$id])) continue;
+                foreach((array)$data[$id] as $tag)
+                {
+                    if (isset($tags[$tag]))
+                        ++$tags[$tag];
+                    else
+                        $tags[$tag]=1;
+                }
+            }
+            $begin->next();
+        }
+//        echo 'tableau initial : <br />';
+//        var_export($result);
+
+        foreach($result as &$tags)
+        {
+            arsort($tags, SORT_NUMERIC);
+            if (count($tags)>$max)
+                $tags=array_slice($tags, 0, $max, true);
+        }
+//        echo 'tableau final : <br />';
+//        var_export($result);
+
+
+        timer && Timer::leave('tags.loop');
+
+
+        // Remet l'ordre de tri initial
+        $this->setSortOrder($this->options->sort);
+
+        timer && Timer::leave();
+
+        return is_array($fields) ? $result : array_pop($result);
+    }
 
     /**
      * Crée la requête xapian à exécuter en fonction des options de recherches
@@ -1683,10 +1761,10 @@ class XapianDatabaseDriver extends Database
             // Combine entres elles les équations de même nature (les love ensembles, les prob ensembles, etc.)
             foreach(array
             (
-            	'love'=>XapianQuery::OP_AND,
-            	'hate'=>XapianQuery::OP_OR,
-            	'prob'=>$this->options->defaultopcode,
-            	'bool'=>$this->options->defaultopcode
+                'love'=>XapianQuery::OP_AND,
+                'hate'=>XapianQuery::OP_OR,
+                'prob'=>$this->options->defaultopcode,
+                'bool'=>$this->options->defaultopcode
             ) as $type=>$op)
             {
                 if (count($$type)===0) continue;
@@ -1857,6 +1935,19 @@ private function ppq($q)
             {
                 // Par pertinence
                 case '%':
+//                    $this->xapianEnquire->set_weighting_scheme
+//                    (
+//                        new XapianBM25Weight
+//                        (
+//                            1.0, // k1  governs the importance of within document frequency. Must be >= 0. 0 means ignore wdf. Default is 1.
+//                            0.0, // k2  compensation factor for the high wdf values in large documents. Must be >= 0. 0 means no compensation. Default is 0.
+//                            1.0, // k3  governs the importance of within query frequency. Must be >= 0. 0 means ignore wqf. Default is 1.
+//                            0.0, // b   Relative importance of within document frequency and document length. Must be >= 0 and <= 1. Default is 0.5.
+//                            0.5  // min_normlen specifies a cutoff on the minimum value that can be used for a normalised document length - smaller values will be forced up to this cutoff. This prevents very small documents getting a huge bonus weight. Default is 0.5.
+//                        )
+//                    );
+//                    $this->xapianEnquire->set_weighting_scheme(new XapianBoolWeight());
+//                    $this->xapianEnquire->set_weighting_scheme(new XapianTradWeight(0.0));
                     $this->xapianEnquire->set_Sort_By_Relevance();
                     break;
 
