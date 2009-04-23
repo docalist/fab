@@ -1597,28 +1597,88 @@ class XapianDatabaseDriver extends Database
     /**
      * Retourne un nuage de tags pour le ou les champs indiqués.
      *
+     * La méthode ne peut être appellée qu'après qu'une recherche ait été
+     * exécutée. Elle relance la recherche en cours en forçant un tri par
+     * pertinence et en générant un MSet contenant $checkAtLeast réponses.
+     *
+     * Elle parcourt ensuite toutes les réponses obtenues et stocke les
+     * différentes valeurs rencontrées dans les champs ($fields) demandés.
+     *
+     * Les valeurs rencontrées pour chaque champ sont ensuite triées par
+     * fréquences décroissantes et filtrées.
+     *
+     * Le filtrage consiste à :
+     * - supprimer les mots et les articles qui figurent déjà dans la requête de
+     *   l'utilisateur.
+     * - supprimer les termes qui ont une fréquence dans la base supérieure à
+     *   la fréquence maximale autorisée (cf plus bas, format de $fields).
+     * - supprimer les termes qui correspondent à l'expression régulière
+     *   ($ignoreRegExp) indiquée.
+     *
      * @param string|array $fields un ou plusieurs champs pour lesquels vous
-     * voulez récupérer un nuage de tags.
-     * @param $max le nombre maximum de tags dans chaque nuage
-     * @param $checkAtLeast le nombre minimum de documents à examiner
+     * voulez récupérer un nuage de tags. Si $fields est un tableau, le nom de
+     * chaque champ peut être indiqué soit dans la clé, soit dans la valeur.
+     * S'il est indiqué dans la clé, la valeur indique alors une fréquence
+     * maximale (sous forme d'un pourcentage entre 0 et 100) et les termes ayant
+     * dans la base une fréquence supérieure à ce seuil seront ignorés.
+     *
+     * @param int $max le nombre maximum de tags dans chaque nuage (zéro = pas de
+     * limite).
+     *
+     * @param int $checkAtLeast le nombre minimum de documents à examiner.
+     *
+     * @param string $ignoreRegExp expression régulière utilisée pour ignorer
+     * certains termes. Les termes qui correspondent à l'expression régulière
+     * indiquée seront ignorés.
+     *
      * @return array soit un tableau de tags (si $fields est une chaine) sous la
      * forme tag=>occurences, soit un tableau de tableaux de tags sous la forme
-     * field =>array($tag=>occurences)
+     * field =>array($tag=>occurences). Dans les deux cas, les tags obtenus sont
+     * triés par fréquence décroissante.
      */
-    public function getTags($fields, $max=25, $checkAtLeast=50)
+    public function getTags($fields, $max=25, $checkAtLeast=50, $ignoreRegExp=null)
     {
         timer && Timer::enter();
 
         // Détermine l'ID de chacun des champs demandés
-        $result=$fieldsId=array();
-        foreach((array)$fields as $name)
+        $result=$maxFrequency=$fieldsId=$indexId=array();
+        foreach((array)$fields as $key=>$value)
         {
+            // champ de la forme Field=>maxFrequency
+            if (is_string($key))
+            {
+                $name=$key;
+                $maxFreq=$value;
+            }
+
+            // champ de la forme int=>Field
+            else
+            {
+                $name=$value;
+                $maxFreq=0;
+            }
+
+            // Vérifie que le champ demandé existe
             $key=Utils::ConvertString($name, 'alphanum');
             if (! isset($this->schema->fields[$key]))
                 throw new Exception("Le champ $name n'existe pas");
+
+            // Stocke l'id du champ
+            $id=$this->schema->fields[$key]->_id;
             $result[$name]=array();
-            $fieldsId[$this->schema->fields[$key]->_id] = &$result[$name];
+            $fieldsId[$id] = &$result[$name];
+
+            // Détermine l'ID de l'index correspondant au champ (s'il existe)
+            if (isset($this->schema->indices[$key]))
+                $indexId[$id]=$this->schema->indices[$key]->_id;
+            else
+                $indexId[$id]=0;
+
+            $maxFrequency[$id]=$maxFreq;
         }
+
+        // Récupère les termes de la recherche en cours
+        $searchTerms=array_flip($this->searchInfo('internalqueryterms'));
 
         // Définit un tri par pertinence
         $this->setSortOrder($this->options->sort);
@@ -1632,6 +1692,7 @@ class XapianDatabaseDriver extends Database
         timer && Timer::enter('tags.loop');
         $begin=$mSet->begin();
         $end=$mSet->end();
+
         while (! $begin->equals($end))
         {
             $data=unserialize($begin->get_document()->get_data());
@@ -1641,6 +1702,7 @@ class XapianDatabaseDriver extends Database
                 if (empty($data[$id])) continue;
                 foreach((array)$data[$id] as $tag)
                 {
+                    // Met à jour le nombre d'occurences de ce tag
                     if (isset($tags[$tag]))
                         ++$tags[$tag];
                     else
@@ -1649,28 +1711,111 @@ class XapianDatabaseDriver extends Database
             }
             $begin->next();
         }
-//        echo 'tableau initial : <br />';
-//        var_export($result);
 
-        foreach($result as &$tags)
+        // Teste s'il faut garder chacun des tags obtenus
+        $docCount=$this->xapianDatabase->get_doccount();
+        foreach($fieldsId as $id=>&$tags)
         {
+            // Trie le tableau par occurences décroissantes
             arsort($tags, SORT_NUMERIC);
-            if (count($tags)>$max)
+
+            $nb=0;
+            foreach($tags as $tag=>$freq)
+            {
+                // Tolenize le tag
+                $tokens=Utils::tokenize($tag);
+
+                // Si le tag est un mot unique déjà présent dans la requête, on l'ignore
+                if (count($tokens)===1)
+                {
+                    $term=$indexId[$id] . ':' . current($tokens);
+                    if (isset($searchTerms[$term]))
+                    {
+                        unset($tags[$tag]);
+                        continue;
+                    }
+                }
+
+                // Si le tag est un article déjà présent dans la requête, on l'ignore
+                $term = $indexId[$id].':_' . implode('_', $tokens) . '_';
+                if (isset($searchTerms[$term]))
+                {
+                    unset($tags[$tag]);
+                    continue;
+                }
+
+                // Si le tag matche l'expression régulière indiquée, on l'ignore
+                if ($ignoreRegExp && preg_match($ignoreRegExp, $tag))
+                {
+                    unset($tags[$tag]);
+                    continue;
+                }
+
+                // Si le tag est présent dans plus de x% des notices, on l'ignore
+                if ($maxFrequency[$id])
+                {
+                    $percent=round(100 * $this->xapianDatabase->get_termfreq($term) / $docCount);
+                    if ($percent > $maxFrequency[$id])
+                    {
+                        unset($tags[$tag]);
+                        continue;
+                    }
+                }
+
+                // Si on a obtenu plus de $max tag, terminé
+                ++$nb;
+                if ($max && $nb >= $max) break;
+            }
+
+            // Tronque le tableau si nécessaire
+            if ($max && count($tags)>$max)
                 $tags=array_slice($tags, 0, $max, true);
         }
-//        echo 'tableau final : <br />';
-//        var_export($result);
-
-
         timer && Timer::leave('tags.loop');
 
-
-        // Remet l'ordre de tri initial
+        // Remet l'ordre de tri initial tel qu'il était (peu utile mais au cas où...)
         $this->setSortOrder($this->options->sort);
 
         timer && Timer::leave();
 
         return is_array($fields) ? $result : array_pop($result);
+    }
+
+
+    /**
+     * Indique si la requête en cours contient au moins un terme probabiliste.
+     *
+     * La méthode examine les termes présents dans la requête en cours et
+     * retourne vrai si au moins l'un de ces termes porte sur un index de type
+     * probabiliste.
+     *
+     * @return bool
+     */
+    public function isProbabilisticQuery()
+    {
+        // Récupère la liste des termes de la requête
+        $terms=$this->searchInfo('internalqueryterms');
+        if (empty($terms) || $terms===array('')) return false;
+        // array('') : bug xapian corrigé dans http://trac.xapian.org/changeset/12136
+
+        // Constitue la liste des id d'index présents dans les termes
+        $t=array();
+        foreach($terms as $term)
+        {
+            if (false === $pt=strpos($term, ':')) continue;
+            $t[(int) substr($term, 0, $pt)] = true;
+        }
+
+        // Parcourt tous les index et teste si on en trouve un de type probabiliste
+        foreach($this->schema->indices as $index)
+        {
+            if (isset($index->_type) && $index->_type===DatabaseSchema::INDEX_BOOLEAN) continue;
+
+            if (isset($t[$index->_id])) return true;
+        }
+
+        // Pas de terme dans la requête
+        return false;
     }
 
     /**
