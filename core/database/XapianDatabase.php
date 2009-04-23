@@ -2080,15 +2080,13 @@ private function ppq($q)
         {
             if ($this->isProbabilisticQuery())
             {
-                echo 'prob query<br />';
                 $this->setSortOrder('%');
                 $this->sortOrder='auto (%)';
             }
             else
             {
-                echo 'bool query<br />';
                 $this->setSortOrder($this->options->autosort);
-                $this->sortOrder='auto (' . $this->options->autosort . ')';
+                $this->sortOrder='auto (' . $this->sortOrder . ')';
             }
             return;
         }
