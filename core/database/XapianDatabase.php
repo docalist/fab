@@ -1409,6 +1409,7 @@ class XapianDatabaseDriver extends Database
             'auto'              => null,
             'defaultequation'   => null,
             'defaultfilter'     => null,
+            'autosort'          => '-', // tri auto : ordre pour une requête booléenne, cf setSortOrder.
         );
     }
 
@@ -1459,6 +1460,7 @@ class XapianDatabaseDriver extends Database
             ->unique('checkatleast')->defaults($this->options->max+1)->int()->min(-1)->set()
             ->asArray('facets')->set()
             ->unique('boost')->set()
+            ->unique('autosort')->set()
             ;
 
         // Traduit l'opérateur par défaut (defaultop) en opérateur Xapian (defaultopcode)
@@ -2072,6 +2074,24 @@ private function ppq($q)
         // Si $sort est un tableau, on concatène tous les éléments ensembles
         if (is_array($sort))
             $sort=implode(',', $sort);
+
+        // Cas particulier : tri "auto"
+        if ($sort==='auto')
+        {
+            if ($this->isProbabilisticQuery())
+            {
+                echo 'prob query<br />';
+                $this->setSortOrder('%');
+                $this->sortOrder='auto (%)';
+            }
+            else
+            {
+                echo 'bool query<br />';
+                $this->setSortOrder($this->options->autosort);
+                $this->sortOrder='auto (' . $this->options->autosort . ')';
+            }
+            return;
+        }
 
         // On a une chaine unique avec tous les critères, on l'explose
         $t=preg_split('~[^a-zA-Z_%+-]+~m', $sort, -1, PREG_SPLIT_NO_EMPTY);
