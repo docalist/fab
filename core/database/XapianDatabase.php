@@ -1505,7 +1505,8 @@ class XapianDatabaseDriver extends Database
 
         // Problème : une recherche '*' triée par pertinence est lente (> 30s).
         // Force ici un tri par docid décroissant dans ce cas.
-        if ($this->isMatchAll($this->xapianQuery) && $this->options->sort===array('%')) $this->options->set('sort', array('-'));
+        // if ($this->isMatchAll($this->xapianQuery) && $this->options->sort===array('%')) $this->options->set('sort', array('-'));
+        // Depuis xapian >= 1.0.9, ce n'est plus nécessaire.
 
         $this->setSortOrder($this->options->sort);
 
@@ -1681,7 +1682,7 @@ class XapianDatabaseDriver extends Database
         $searchTerms=array_flip($this->searchInfo('internalqueryterms'));
 
         // Définit un tri par pertinence
-        $this->setSortOrder($this->options->sort);
+        $this->setSortOrder('%');
 
         // Relance la recherche
         timer && Timer::enter('tags.get_MSet');
@@ -1795,8 +1796,12 @@ class XapianDatabaseDriver extends Database
     {
         // Récupère la liste des termes de la requête
         $terms=$this->searchInfo('internalqueryterms');
-        if (empty($terms) || $terms===array('')) return false;
-        // array('') : bug xapian corrigé dans http://trac.xapian.org/changeset/12136
+
+        if (empty($terms)) return false;
+        // xapian < 1.0.11 avait un bug qui faisait que le terme '' était retourné
+        // si on avait une requête du type MatchAll. Pour contourner, il fallait
+        // tester si terms était un tableau vide ou un tableau contenant une
+        // chaine vide. C'est inutile maintenant.
 
         // Constitue la liste des id d'index présents dans les termes
         $t=array();
@@ -2112,11 +2117,11 @@ private function ppq($q)
                 default:
                     // Détermine l'ordre (croissant/décroissant)
                     $lastChar=substr($key, -1);
-                    $forward=true;
+                    $reverse=false;
                     if ($lastChar==='+' || $lastChar==='-')
                     {
                         $key=substr($key, 0, -1);
-                        $forward=($lastChar==='+');
+                        if ($lastChar==='-') $reverse=true;
                     }
 
                     // Vérifie que la clé de tri existe dans la base
@@ -2128,10 +2133,10 @@ private function ppq($q)
                     $id=$this->schema->sortkeys[$key]->_id;
 
                     // Trie sur cette valeur
-                    $this->xapianEnquire->set_sort_by_value($id, !$forward);
+                    $this->xapianEnquire->set_sort_by_value($id, $reverse);
 
                     // Mémorise l'ordre de tri en cours (pour searchInfo)
-                    $this->sortOrder=$key . ($forward ? '+' : '-');
+                    $this->sortOrder=$key . ($reverse ? '-' : '+');
                     $this->sortKey[$key]=$id;
             }
         }
