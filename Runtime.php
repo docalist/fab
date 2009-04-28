@@ -210,6 +210,10 @@ class Runtime
             else
                 die("Impossible d'initialiser l'application, REQUEST_URI non disponible");
     
+            // Supprime la query string de l'url
+            if (false !== $pt=strpos(self::$url,'?'))
+                self::$url=substr(self::$url,0,$pt);
+
             // Préfixe de l'url : partie de l'url entre le nom du serveur et le nom du front controler
             if (false !== $pt=stripos(self::$url, self::$fcName))
             {
@@ -244,8 +248,6 @@ class Runtime
             else
             {
                 self::$url=substr(self::$url, strlen(self::$home)-1);
-                if (false !== $pt=strpos(self::$url,'?'))
-                    self::$url=substr(self::$url,0,$pt);
             }
         }
     }
