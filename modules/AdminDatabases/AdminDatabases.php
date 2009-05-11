@@ -187,7 +187,7 @@ class AdminDatabases extends Admin
 
         // Ouvre la base et vérifie qu'elle contient des notices
         $this->selection=Database::open($database, true);
-        $this->selection->search(null, array('_max'=>-1, '_sort'=>'+'));
+        $this->selection->search('*', array('max'=>-1, 'sort'=>'+'));
         if ($this->selection->count()==0)
         {
             echo '<p>La base ', $database, ' ne contient aucun document, il est inutile de lancer une réindexation complète.</p>';
@@ -652,7 +652,7 @@ class AdminDatabases extends Admin
         echo '<p>Date du dump : ', strftime('%x %X'), '</p>';
 
         $selection=Database::open($database, true);
-        $selection->search('', array('_sort'=>'+', "_max"=>-1));
+        $selection->search('*', array('sort'=>'+', 'max'=>-1));
         $count=$selection->count();
         echo '<p>La base contient ', $count, ' notices</p>';
 

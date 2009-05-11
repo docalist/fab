@@ -120,7 +120,7 @@ class ImportModule extends DatabaseModule
 //        echo 'Equation de recherche : <code>', $equation, '</code><br />';
         
         // Recherche les Refs indiquées (max=toutes, ordre des enregs dans la base)
-        $this->selection->search($equation, array('_max'=>-1, '_sort'=>'+'));
+        $this->selection->search($equation, array('max'=>-1, 'sort'=>'+'));
 //        echo 'Nombre de réponses : ', $this->selection->count(), '<br />';
         
         // Si on a moins de réponses que de REF, c'est qu'au moins une des REF n'était pas valide
@@ -205,7 +205,7 @@ class ImportModule extends DatabaseModule
 //            echo '1ère ouverture de la base en écriture<br />';
 
             // Recherche la fiche du fichier à importer
-            if (! $this->selection->search($equation, array('_max'=>-1, '_sort'=>'+')))
+            if (! $this->selection->search($equation, array('max'=>-1, 'sort'=>'+')))
             {
                 echo "<p style='color:red; font-weight: bold;'>Numéro de référence invalide : $REF (le fichier correspondant n'existe pas)</p>";
                 //unset($this->selection);
@@ -283,7 +283,7 @@ class ImportModule extends DatabaseModule
             }
             
             // Met à jour le statut du fichier et renseigne le champ Notes
-            if ($this->selection->search("REF=$REF", array('_max'=>1)))
+            if ($this->selection->search("REF=$REF", array('max'=>1)))
             {
                 $this->selection->editRecord();                
                 $this->selection['Status']=($ok) ? 'import_ok' : 'import_error';

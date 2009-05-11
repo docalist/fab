@@ -65,7 +65,7 @@ class DedupModule extends Module
     public function actionIndex($_equation, $confirm=false)
     {
         // Lance la recherche dans la base
-        $this->selection=$this->search($_equation, array('_max'=>-1));
+        $this->selection=$this->search($_equation, array('max'=>-1));
         
         // Demande confirmation à l'utilisateur
         if (!$confirm)
@@ -98,7 +98,7 @@ class DedupModule extends Module
     public function actionDedup($_equation)
     {
         // Lance la recherche dans la base
-        $this->selection=$this->search($_equation, array('_max'=>-1, '_sort'=>'+'));
+        $this->selection=$this->search($_equation, array('max'=>-1, 'sort'=>'+'));
         
         echo '<h1>Recherche de doublons pour l\'équation ', $_equation, ' : ', $this->selection->count(), ' notice(s) à étudier</h1>';
         
@@ -250,7 +250,7 @@ class DedupModule extends Module
 
             if (debug) echo 'Equation générée : <a href="',Routing::linkFor('/Base/Search?_defaultop=or&_equation='.urlencode($equation)), '">', $equation, '</a><br />';
 
-            if ($duplicates->search($equation, array('_sort'=>'%', '_max'=>50)))
+            if ($duplicates->search($equation, array('sort'=>'%', 'max'=>50)))
             {
                 if (debug) echo $duplicates->searchInfo('internalquery'), '<br />';
                 if (debug) echo $duplicates->count(), ' réponses<br />';

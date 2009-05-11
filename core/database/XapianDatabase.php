@@ -3026,7 +3026,7 @@ private function ppq($q)
         echo '<h1>Réindexation complète de la base ', basename($path), '</h1>';
 
         // Sélectionne toutes les notices
-        $this->search(null, array('_sort'=>'+', '_max'=>-1));
+        $this->search('*', array('sort'=>'+', 'max'=>-1));
         $count=$this->count();
         if ($count==0)
         {
@@ -3216,7 +3216,7 @@ private function ppq($q)
         // Réouvre la base
         echo '<li>Ré-ouverture de la base...</li>';
         $this->doOpen($path, false);
-        $this->search(null, array('_sort'=>'+', '_max'=>-1));
+        $this->search('*', array('sort'=>'+', 'max'=>-1));
 
         echo '<li>La réindexation est terminée.</li>';
         echo '<li>Statistiques :';
