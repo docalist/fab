@@ -4,7 +4,7 @@
 <ol start="{$this->selection->searchInfo('rank')}">
     <loop on="{$this->selection}" as="$rank, $record">
         <li>
-            <a href="Show?REF=$REF">
+            <a href="/{$this->module}/Show?REF=$REF">
                 <loop on="$fields" as="$field">{$record[$field]} </loop>
             </a>
         </li>
