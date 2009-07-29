@@ -354,9 +354,18 @@ class Runtime
         // Répare les tableaux $_GET, $_POST et $_REQUEST
         Utils::repairGetPostRequest();
 
-        // Définir les constantes utilisées pour le mode debug et le mpde timer
+        // Définit la constante utilisée pour le mode debug
         define('debug', (bool)config::get('debug',false));
-        define('timer', (bool)config::get('timer',false));
+
+        // Définit la constante utilisée pour le timer
+        // remarque : en mode cli, le timer est toujours désactivé.
+        // raison : les tâches peuvent être très longues et du coup, le
+        // nombre total d'objets timer créés peut suffire à consommer toute
+        // la mémoire disponible.
+        if (php_sapi_name()=='cli')
+            define('timer', false);
+        else
+            define('timer', (bool)config::get('timer',false));
 
         // Chronomètre le temps d'intialisation de fab
         if (timer)
