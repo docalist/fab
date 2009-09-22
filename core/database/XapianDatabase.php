@@ -2000,38 +2000,63 @@ class XapianDatabaseDriver extends Database
         if ($this->options->boost && $this->options->sort===array('%'))
             $query=new XapianQuery(XapianQuery::OP_AND_MAYBE, $query, $this->parseBoost($this->options->boost));
 
+        $this->query=new UserQuery($this->options->getParameters(), $this->schema);
+
         // Stocke la requête finale
         $this->xapianQuery=$query;
-
-        $this->query=new UserQuery($this->options->getParameters(), $this->schema);
 
         timer && Timer::leave();
     }
 
-// "pretty print query", débuggage, à virer plus tard.
-private function ppq($q)
-{
-    if (is_null($q))
+
+    /**
+     * Traduit la requête interne générée par Xapian en équation de recherche.
+     *
+     * Cette fonction est utilisée en interne par
+     * {@link searchInfo('ExplainQuery')} pour expliquer la requête à
+     * l'utilisateur.
+     *
+     * @param XapianQuery $query la requête à examiner.
+     * @return string
+     */
+    private function explainQuery(XapianQuery $query)
     {
-        echo 'nuLL';
-        return;
-    }
-    $h=$q->get_description();
-    $h=preg_replace('~:\(pos=\d+?\)~', '', $h);
-    $h=strtr
-    (
-        $h,
-        array
+        if (is_null($query)) return '';
+
+        // Récupère la description de la requête Xapian
+        $h=$query->get_description();
+
+        // Supprime le libellé "XapianQuery()" et le premier niveau de parenthèses
+        if (substr($h, 0, 14) === 'Xapian::Query(') $h=substr($h, 15, -2);
+
+        // Supprime les mentions "(pos=n)" présentes dans la requête
+        $h=preg_replace('~:\(pos=\d+?\)~', '', $h);
+
+        // Traduits les préfixes utilisés en noms de champs
+        $h=preg_replace_callback('~(\d+):~',array($this,'idToName'),$h);
+
+        // Met les opérateurs booléens en gras
+        $h=preg_replace('~AND_MAYBE|AND_NOT|FILTER|AND|OR|PHRASE \d+~', '<strong>$0</strong>', $h);
+
+        // Va à la ligne et indente à chaque niveau de parenthèse
+        $h=strtr
         (
-            '('=>'<br />(<div style="margin-left: 2em;border-left: 1px dotted #eee;">',
-            ')'=>'</div>)<br />',
-        )
-    );
-    $h=preg_replace_callback('~(\d+):~',array($this,'idToName'),$h);
-    $h=preg_replace('~AND_MAYBE|AND_NOT|FILTER|AND|OR~', '<br /><strong style="margin-left:-2em">$0</strong><br />', $h);
-    $h=str_replace('<br /><br />', '<br />', $h);
-    echo $h;
-}
+            $h,
+            array
+            (
+                '('=>'<br />(<div style="margin-left: 2em;">',
+                ')'=>'</div>)<br />',
+            )
+        );
+
+        // Supprime les <br /> superflus
+        $h=str_replace('<br /><br />', '<br />', $h);
+        $h=preg_replace('~^<br />|<br />$~', '', $h);
+        $h=preg_replace('~(<div.*?>)<br />(\(<div)~', '$1$2', $h);
+
+        // Retourne le résultat
+        return $h;
+    }
 
     /**
      * Paramètre le MSet pour qu'il retourne les documents selon l'ordre de tri
@@ -2436,6 +2461,8 @@ private function ppq($q)
             if ($round < $this->options->start)
                 $round=max(1,round($count / $unit)+1) * $unit;
 
+            $round = number_format($round, 0, '.', ' ');
+
             if ($unit===0.1)
                 return '~&#160;' . $round; //  ou '±&#160;'
 
@@ -2444,7 +2471,7 @@ private function ppq($q)
                 ?
                 $countType . $round
                 :
-                sprintf($countType, $round);
+                sprintf(str_replace('%d', '%s', $countType), $round);
 
             if ($this->options->checkatleast !== -1)
             {
@@ -2472,7 +2499,9 @@ private function ppq($q)
         //if ($this->options && $this->options->has($what)) return $this->options->get($what);
 
         switch ($what)
-        {case 'request' : return $this->request;
+        {
+            case 'explainquery': return $this->explainQuery($this->xapianQuery);
+            case 'query' : return $this->query;
             case 'options': return $this->options->getParameters();
             case 'docid': return $this->xapianMSetIterator->get_docid();
 
