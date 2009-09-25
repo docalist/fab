@@ -3691,6 +3691,11 @@ class UserQuery extends Request
         $this->schema=$schema;
     }
 
+    public static function create(array $parameters=array(), DatabaseSchema $schema=null)
+    {
+        return new UserQuery($parameters, $schema);
+    }
+
     public function __toString()
     {
         return $this->getEquation();
@@ -3763,11 +3768,7 @@ AND
                             break;
 
                         case '-':
-                            $t[] = 'NOT ' . substr($name,1) . '=' . $value;
-                            // xapian ne supporte l'opérateur "hate" que sur un terme simple
-                            // Si l'opérateur porte sur une expression parenthésée, le nom
-                            // du champ sera traité comme un terme ("-champ:(term)" donne "champ AND term")
-                            // Pour contourner le problème, on utilise un "not" plutôt qu'un hate
+                            $t[] = '-' . substr($name,1) . '=' . $value;
                             break;
 
                         default:
@@ -3780,18 +3781,6 @@ AND
                 }
             }
 
-            if ($t)
-            {
-                $h = implode(' ', $t);
-                if (isset($result[0]))
-                {
-                    $this->addBrackets($result[0]);
-                    $result[0] = '+' . $result[0] . ' ' . $h;
-                }
-                else
-                    $result[0] = $h;
-            }
-
             if ($bool)
             {
                 foreach($bool as $name=>&$value)
@@ -3801,6 +3790,18 @@ AND
                 }
                 $h=implode(' ', $bool);
                 $result[] = $h;
+            }
+
+            if ($t)
+            {
+                $h = implode(' ', $t);
+                if (isset($result[0]))
+                {
+                    $this->addBrackets($result[0]);
+                    $result[0] = '' . $result[0] . ' ' . $h;
+                }
+                else
+                    $result[0] = $h;
             }
         }
 
