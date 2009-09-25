@@ -709,7 +709,7 @@ class Request
         }
         $value=$this->check($key);
 
-        if (is_null($value))
+        if (is_null($value) || $value==='')
         {
             $this->_check=$default;
         }
