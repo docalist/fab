@@ -652,7 +652,9 @@ class TemplateCode
                 'preg_match',
                 'strtotime',
                 'array_slice',
-                'array_merge'
+                'array_merge',
+                'min',
+                'max'
             ));
             $runtimeFunctions=array_flip(array
             (
