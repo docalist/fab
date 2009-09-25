@@ -109,15 +109,18 @@
             value="{htmlentities($message)}" />
     </fieldset>
 
-    /* Champs cachés : équation, filename, sort */
+    /* Champs cachés : équation, filename, sort, etc. */
     <loop on="$equations" as="$equation">
         <hidden name="_equation" value="{htmlspecialchars($equation)}" />
     </loop>
-    <loop on="{(array)$filename}" as="$filename">
-        <hidden name="filename" value="{htmlspecialchars($filename)}" />
-    </loop>
-    <hidden name="_sort" value="{htmlspecialchars($sort)}" />
+    
     <hidden name="confirm" value="1" />
+    
+    <loop on="{$this->request->copy()->clear('_equation')->getParameters()}" as="$name,$value">
+        <loop on="{(array)$value}" as="$value">
+            <hidden name="$name" value="{htmlspecialchars($value)}" />
+        </loop>
+    </loop>
     
     /* Boutons du formulaire */    
     <div class="buttons">

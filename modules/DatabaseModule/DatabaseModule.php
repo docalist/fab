@@ -918,7 +918,10 @@ class DatabaseModule extends Module
         $equations=(array)$equations;
 
         // Détermine l'ordre de tri des réponses
-        $sort=Config::get('sort', $this->request->get('_sort'));
+        $sort=$this->request->get('_sort', Config::get('sort', $this->request->get('_sort')));
+
+        // Détermine l'ordre de tri des réponses
+        $start=$this->request->get('_start',1);
 
         // Détermine le nom des fichiers à générer
         $filename=$this->request->get('filename');
@@ -985,14 +988,7 @@ class DatabaseModule extends Module
             $callback=$this->getCallback();
 
             // Détermine quel est le format par défaut pour cet utilisateur
-            foreach(Config::get('formats') as $name=>$fmt)
-            {
-                if (Config::userGet('formats.'.$name.'.default'))
-                {
-                    $defaultFormat=$name;
-                    break;
-                }
-            }
+            $defaultFormat = Config::userGet('defaultFormat');
 
             // Exécute le template
             Template::run
@@ -1003,8 +999,8 @@ class DatabaseModule extends Module
                 (
                     'error'=>$error,
                     'equations'=>$equations,
-                    'sort'=>$sort,
-                    'filename'=>$filename,
+                    // 'sort'=>$sort,
+                    // 'filename'=>$filename,
                     'format'=>$format ? $format : $defaultFormat,
                     'zip'=>$zip,
                     'mail'=>$mail,
@@ -1063,6 +1059,13 @@ class DatabaseModule extends Module
 
         // Détermine le nombre maximum de notices que l'utilisateur a le droit d'exporter
         $max=Config::userGet("formats.$format.max",10);
+        $max=$this->request
+                ->defaults('_max', $max)
+                ->unique()
+                ->int()
+                ->min(1)
+                ->max($max)
+                ->ok();
 
         // Ouvre la base de données
         $this->openDatabase();
@@ -1074,7 +1077,7 @@ class DatabaseModule extends Module
         foreach($equations as $i=>$equation)
         {
             // Lance la recherche, si aucune réponse, erreur
-            if (! $this->select($equation, $max, 1, $sort))
+            if (! $this->select($equation, $max, $start, $sort))
             {
                 echo "Aucune réponse pour l'équation $equation<br />";
                 continue;
@@ -1416,7 +1419,7 @@ class DatabaseModule extends Module
      * @return bool true si au moins une notice a été trouvée, false s'il n'y
      * a aucune réponse.
      */
-    protected function select($equation=null, $max=null, $start=null, $sort=null)
+    public function select($equation=null, $max=null, $start=null, $sort=null)
     {
         timer && Timer::enter('Exécution de la requête '.$equation);
 
@@ -1622,7 +1625,7 @@ class DatabaseModule extends Module
      * @param string $firstLabel libellé du lien "Première page", "«" par défaut.
      * @param string $lastLabel libellé du lien "Dernière page", "»" par défaut.
      */
-    public function getNavigation($links = 9, $previousLabel = '‹', $nextLabel = '›', $firstLabel = '«', $lastLabel = '»')
+    public function getNavigation($links = 9, $previousLabel = '‹', $nextLabel = '›', $firstLabel = '«', $lastLabel = '»', $addLabel=true)
     {
         /*
                                 $max réponses par page
@@ -1666,18 +1669,21 @@ class DatabaseModule extends Module
         $request.=(strpos($request,'?')===false ? '?' : '&') . '_start=';
         $request=htmlspecialchars($request);
 
-        echo '<span class="label">';
-        if ($start==min($start+$max-1,$count))
-            echo 'Réponse ', $start, ' sur ', $this->selection->count('environ %d'), ' ';
-        else
-            echo 'Réponses ', $start, ' à ', min($start+$max-1, $count), ' sur ', $this->selection->count('environ %d'), ' ';
-        echo '</span>';
+        if ($addLabel)
+        {
+            echo '<span class="label">';
+            if ($start==min($start+$max-1,$count))
+                echo 'Réponse ', $start, ' sur ', $this->selection->count('environ %d'), ' ';
+            else
+                echo 'Réponses ', $start, ' à ', min($start+$max-1, $count), ' sur ', $this->selection->count('environ %d'), ' ';
+            echo '</span>';
+        }
 
         // Lien vers la première page
         if ($firstLabel)
         {
             if ($current > 1)
-                echo '<a class="first" href="',$request, 1,'" title="première page">', $firstLabel, '</a>';
+                echo '<a class="first" href="',$request, 1,'" title="Première page">', $firstLabel, '</a>';
             else
                 echo '<span class="first">', $firstLabel, '</span>';
         }
@@ -1686,7 +1692,7 @@ class DatabaseModule extends Module
         if ($previousLabel)
         {
             if ($current > 1)
-                echo '<a class="previous" href="', $request, 1+($current-2)*$max,'" title="page précédente">', $previousLabel, '</a>';
+                echo '<a class="previous" href="', $request, 1+($current-2)*$max,'" title="Page précédente">', $previousLabel, '</a>';
             else
                 echo '<span class="previous">', $previousLabel, '</span>';
 
@@ -1710,7 +1716,7 @@ class DatabaseModule extends Module
         if ($nextLabel)
         {
             if ($current < $maxlast)
-                echo '<a class="next" href="', $request, 1+($current)*$max,'" title="page suivante">', $nextLabel, '</a>';
+                echo '<a class="next" href="', $request, 1+($current)*$max,'" title="Page suivante">', $nextLabel, '</a>';
             else
                 echo '<span class="next">', $nextLabel, '</span>';
 
@@ -1720,7 +1726,7 @@ class DatabaseModule extends Module
         if ($lastLabel)
         {
             if ($current < $maxlast)
-                echo '<a class="last" href="', $request, 1+($maxlast-1)*$max,'" title="dernière page">', $lastLabel, '</a>';
+                echo '<a class="last" href="', $request, 1+($maxlast-1)*$max,'" title="Dernière page">', $lastLabel, '</a>';
             else
                 echo '<span class="last">', $lastLabel, '</span>';
         }
@@ -1922,6 +1928,13 @@ class DatabaseModule extends Module
         // Balaye la liste des formats d'export disponibles
         foreach((array) Config::get('formats') as $name=>$format)
         {
+            if ($name==='default')
+            {
+                Config::set('defaultFormat', $format);
+                Config::clear('formats.default');
+                break;
+            }
+
             // Ne garde que les formats auquel l'utilisateur a accès
             if (isset($format['access']) && ! User::hasAccess($format['access']))
             {
