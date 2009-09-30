@@ -1,5 +1,6 @@
 <h1>Export {count($equations)===1 ? "d'un lot" : 'de '.count($equations).' lots'} de notices</h1>
-<form action="{$this->action}">
+
+<form action="{$this->action}" class="form">
     <ul test="$error">
         <loop on="$error" as="$error">
             <li class="error">$error</li>
@@ -40,7 +41,7 @@
         éventuelle à chaque fois.
     */    
     <else>
-        <fieldset label="Format">
+        <fieldset label="Choisissez le format du fichier à générer :">
             <div class="radiolist">
                 <fill values="$format">
                     <loop on="{Config::get('formats')}" as="$name,$format">
@@ -64,16 +65,16 @@
     <def name="allowzip" value="{Config::get('allowzip')}" />
     <def name="allowmail" value="{Config::get('allowmail')}" />
     
-    <fieldset test="{$allowzip || $allowmail}" label="Options">
+    <fieldset test="{$allowzip || $allowmail}" label="Options :">
     
         /* Option "Archive ZIP" */
         <div test="$allowzip">
             <fill values="$zip">
                 <if test="{Config::get('forcezip')}">
-                    <checkbox name="_zip" label="Archive au format ZIP" disabled="disabled" checked="checked" />
+                    <checkbox name="_zip" label="Compresser le fichier et créer une archive au format ZIP" disabled="disabled" checked="checked" />
                 </if>
                 <else>
-                    <checkbox name="_zip" value="1" label="Archive au format ZIP" />
+                    <checkbox name="_zip" value="1" label="Compresser le fichier et créer une archive au format ZIP" />
                 </else>
             </fill>
         </div>
@@ -82,32 +83,33 @@
         <div test="$allowmail">
             <fill values="$mail">
                 <if test="{Config::get('forcemail')}">
-                    <checkbox name="_mail" label="Envoyer par e-mail" disabled="disabled" checked="checked" />
+                    <checkbox name="_mail" label="Envoyer le fichier obtenu par messagerie" disabled="disabled" checked="checked" />
                 </if>
                 <else>
-                    <checkbox name="_mail" value="1" label="Envoyer par e-mail" />
+                    <checkbox name="_mail" value="1" label="Envoyer le fichier obtenu par messagerie" />
+                    
+                    /* Details de l'e-mail à envoyer */
+                    <holder class="vertical" test="$allowmail" id="_maildetails" style="margin-left: 1.3em;">
+	                    <textbox name="_to" label="Destinataire :" size="40" value="{htmlentities($to)}" />
+	                    <br />
+	                    <textbox 
+	                        name="_subject" 
+	                        label="Sujet :" 
+	                        value="{htmlentities($subject)}"  
+	                        size="40" />
+	                    <br />
+	                    <textbox 
+	                        name="_message" 
+	                        rows="5" 
+	                        cols="40" 
+	                        label="Message : " 
+	                        value="{htmlentities($message)}" />
+                    </holder>
                 </else>
             </fill>
         </div>
     </fieldset>
 
-    /* Details de l'e-mail à envoyer */
-    <fieldset test="$allowmail" label="E-mail" id="_maildetails">
-        <textbox name="_to" label="Destinataire :" size="40" value="{htmlentities($to)}" />
-        <br />
-        <textbox 
-            name="_subject" 
-            label="Sujet :" 
-            value="{htmlentities($subject)}"  
-            size="40" />
-        <br />
-        <textbox 
-            name="_message" 
-            rows="5" 
-            cols="40" 
-            label="Message : " 
-            value="{htmlentities($message)}" />
-    </fieldset>
 
     /* Champs cachés : équation, filename, sort, etc. */
     <loop on="$equations" as="$equation">
@@ -123,9 +125,9 @@
     </loop>
     
     /* Boutons du formulaire */    
-    <div class="buttons">
-        <submit label="Lancer l'export..." />
-    </div>
+    <toolbar>
+        <item type="submit" class="positive">Lancer l'export...</item>
+    </toolbar>
 </form>
 
 <script test="$allowmail" type="text/javascript">
