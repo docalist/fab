@@ -1833,7 +1833,7 @@ class DatabaseModule extends Module
      */
     public function exportXml($format)
     {
-        echo '<','?xml version="1.0" encoding="iso-8889-1"?','>', "\n";
+        echo '<','?xml version="1.0" encoding="iso-8859-1"?','>', "\n";
         echo '<database>', "\n";
         foreach($this->selection as $record)
         {
