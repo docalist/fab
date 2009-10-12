@@ -734,30 +734,35 @@ class XapianDatabaseDriver extends Database
                         if ('' === $value=$this->startEnd($value, $field->start, $field->end)) continue;
 
                     // Compte le nombre de valeurs non nulles
-                    $count++;
+                    ++$count;
 
-                    // Si c'est juste un index de type "count", on n'a rien d'autre à faire
+                    // Si le champ n'est pas indexé au mot ou à l'article, on a fini
                     if (! $field->words && ! $field->values) continue;
 
-                    // Indexation au mot et à la phrase
+                    // Tokenise le champ
                     $tokens=Utils::tokenize($value);
-                    foreach($tokens as $term)
+
+                    // Indexation au mot et à la phrase
+                    if ($field->words)
                     {
-                        // Vérifie que la longueur du terme est dans les limites autorisées
-                        if (strlen($term)<self::MIN_TERM or strlen($term)>self::MAX_TERM) continue;
+                        foreach($tokens as $term)
+                        {
+                            // Vérifie que la longueur du terme est dans les limites autorisées
+                            if (strlen($term)<self::MIN_TERM or strlen($term)>self::MAX_TERM) continue;
 
-                        // Si c'est un mot vide et que l'option "indexStopWords" est à false, on ignore le terme
-                        if (! $this->schema->indexstopwords && isset($stopwords[$term])) continue;
+                            // Si c'est un mot vide et que l'option "indexStopWords" est à false, on ignore le terme
+                            if (! $this->schema->indexstopwords && isset($stopwords[$term])) continue;
 
-                        // Ajoute le terme dans le document
-                        $this->addTerm($term, $prefix, $field->weight, $field->phrases?$position:null);
+                            // Ajoute le terme dans le document
+                            $this->addTerm($term, $prefix, $field->weight, $field->phrases?$position:null);
 
-                        // Correcteur orthographique
-                        if (isset($index->spelling) && $index->spelling)
-                            $this->xapianDatabase->add_spelling($term); // todo: à étudier, stocker forme riche pour réutilisation dans les lookup terms ?
+                            // Correcteur orthographique
+                            if (isset($index->spelling) && $index->spelling)
+                                $this->xapianDatabase->add_spelling($term);
 
-                        // Incrémente la position du terme en cours
-                        $position++;
+                            // Incrémente la position du terme en cours
+                            $position++;
+                        }
                     }
 
                     // Indexation à l'article
@@ -775,7 +780,7 @@ class XapianDatabaseDriver extends Database
                     $position-=$position % 100;
                 }
 
-                // Indexation empty/notempty
+                // Indexation de type "count"
                 if ($field->count)
                     $this->addTerm($count ? '__has'.$count : '__empty', $prefix);
             }
