@@ -746,8 +746,8 @@ class XapianDatabaseDriver extends Database
                         // Vérifie que la longueur du terme est dans les limites autorisées
                         if (strlen($term)<self::MIN_TERM or strlen($term)>self::MAX_TERM) continue;
 
-                        // Vérifie que ce n'est pas un mot-vide
-                        if (! self::INDEX_STOP_WORDS && isset($stopwords[$term])) continue;
+                        // Si c'est un mot vide et que l'option "indexStopWords" est à false, on ignore le terme
+                        if (! $this->schema->indexstopwords && isset($stopwords[$term])) continue;
 
                         // Ajoute le terme dans le document
                         $this->addTerm($term, $prefix, $field->weight, $field->phrases?$position:null);
@@ -2730,8 +2730,6 @@ class XapianDatabaseDriver extends Database
         MAX_ENTRY_SLOT=20,      // longueur maximale d'un mot de base dans une table de lookup
         MAX_ENTRY=219           // =MAX_KEY-MAX_ENTRY_SLOT-1, longueur maximale d'une valeur dans une table des entrées (e.g. masson:Editions Masson)
         ;
-    const
-        INDEX_STOP_WORDS=false; // false : les mots-vides sont ignorés lors de l'indexation, true : ils sont ajoutés à l'index (mais ignoré pendant la recherche)
 
     /**
      * Suggère à l'utilisateur des entrées ou des termes existant dans l'index
