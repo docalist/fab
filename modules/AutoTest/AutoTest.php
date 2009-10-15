@@ -227,9 +227,6 @@ class SimpleTestListener implements PHPUnit_Framework_TestListener
 
     public function addFailure(PHPUnit_Framework_Test $test, PHPUnit_Framework_AssertionFailedError $e, $time)
     {
-        $location=$e->getLocation();
-        $line=$location['line'];
-
         if ($e instanceof AssertionNoDiffFailed)
         {
             echo
@@ -529,7 +526,7 @@ class AutoTestFile extends AutoTestCase
         }
     }
 
-    public function getName()
+    public function getName($withDataSet = TRUE)
     {
         $test=$this->test;
         $file=$test['file'];
