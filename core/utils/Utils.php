@@ -1590,28 +1590,44 @@ final class Utils
      * Retourne la durée écoulée passée en paramètre sous forme "humaine"
      * (Par exemple 1 jour 2 heures 20 minutes et 5 secondes)
      *
-     * @param int $time
+     * @param int|float $time durée écoulée en secondes.
      * @return string
      */
     public static function friendlyElapsedTime($time)
     {
-        if ($time<1) return round($time*1000) . ' ms';
-        $h='';
-        if (is_float($time) && $time>60) $time=round($time);
+        /*
+         * Remarque DM+SF, 11/12/09 :
+         * Les floats de php ne sont pas simples à manipuler...
+         *
+         * Dans la version précédente, une même valeur (par exemple 4620) ne
+         * donnait pas toujours le même résultat (parfois le bon : "1 h 17 min"
+         * et parfois "1 h 16,: min").
+         *
+         * Nous n'avons pas réussi à comprendre le problème (bug php), mais le
+         * fait de caster les floats en int résoud le problème.
+         *
+         * => ne pas enlever les (int) qui figurent devant les appels à floor()
+         * et round()
+         */
+//        if ($time<1) return ((int) round($time*1000)) . ' ms';
+        if ($time<1) return round($time,2) . ' secondes';
 
-        $days = floor($time/60/60/24);
+        $h='';
+        if (is_float($time) && $time>60) $time=(int) round($time);
+
+        $days = (int) floor($time/60/60/24);
         $time -= $days*60*60*24;
         if ($days) $h.= $days . ' jour' . ($days>1 ? 's' : '') . ' ';
 
-        $hours = floor($time/60/60);
+        $hours = (int) floor($time/60/60);
         $time -= $hours*60*60;
         if ($days || $hours) $h.= $hours . ' heure' . ($hours>1 ? 's' : '') . ' ';
 
-        $mins = floor($time/60);
+        $mins = (int) floor($time/60);
         $time -= $mins*60;
         if ($days || $hours || $mins) $h.= $mins . ' minute' . ($mins>1 ? 's' : '') . ' ';
 
-        $secs = round($time,2);
+        $secs = (int)round($time,2);
         if ($h==='' || $secs>0)
             $h.= ($h ? 'et ' : '') . $secs . ' seconde' . ($secs >1 ? 's' : '');
 
