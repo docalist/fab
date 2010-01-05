@@ -1,0 +1,19 @@
+<template match="//display" 
+    name=""         /* le nom du champ à générer */
+    label="&#160;"  /* le libellé à générer devant le champ */
+    value=""        /* la valeur initiale du champ */
+    class=""        /* classe supplémentaire à appliquer à la div container */
+    id=""           /* l'id spécifique du controle */
+    title=""        /* bulle d'aide du champ */
+    test="{true}"   /* la condition d'affichage */
+    >
+	<div test="$test" class="holder textbox $class">
+        <label>$label</label>
+	    {select('node()[contains(@class,"before")]')}
+	    <div
+	        class="display"
+	        title="$title"
+	        id="{Template::autoId($id:$name:'textbox')}">{select('@*')}$value </div>/* espace insécable à la fin au cas où $value soit vide */
+	    {select('node()[not(contains(@class,"before"))]')}
+	</div>
+</template>
