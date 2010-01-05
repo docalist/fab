@@ -2608,6 +2608,11 @@ class XapianDatabaseDriver extends Database
     private function getQueryTerms($internal=false)
     {
         $terms=array();
+
+        // Si aucune requête n'a été exécutée, retourne un tableau vide
+        if (is_null($this->xapianQuery)) return $terms;
+
+        // Récupère tous les termes présents dans la requête en cours
         $begin=$this->xapianQuery->get_terms_begin();
         $end=$this->xapianQuery->get_terms_end();
         while (!$begin->equals($end))
