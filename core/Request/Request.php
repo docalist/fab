@@ -149,7 +149,7 @@ class Request
             }
 
             // Existe déjà, c'est un tableau, ajoute la valeur à la fin
-            if (is_array($value))
+            if (is_array($this->_parameters[$key]))
             {
                 // tableau + tableau
                 if (is_array($value))
@@ -989,15 +989,21 @@ class Request
      * A l'issue du test, la valeur du paramètre en cours de validation est
      * toujours strictement identique à l'une des valeurs autorisées.
      *
+     * Vous pouvez appeller de deux façons différentes :
+     * - soit en indiquant les valeurs autorisées en paramètres
+     * - soit en passant un paramètre unique de type tableau contenant les
+     *   différentes valeurs autorisées.
+     *
      * Exemples d'utilisation :
      *
      * <code>
      * $request->oneof('nb',2,4,6)->ok();
+     * $request->oneof('nb',array(2,4,6))->ok(); // valeurs autorisées sous forme de tableau
      * $request->oneof('author', 'azimov', 'bradbury')->ok();
      * $request->required('nb')->oneof(2,4,6)->ok();
      * </code>
      *
-     * @param string|null $key
+     * @param string|array|null $key
      * @return Request $this pour permettre le chainage des appels de méthodes
      *
      * @throws RequestParameterBadValue si le test échoue
@@ -1015,6 +1021,9 @@ class Request
         }
 
         $this->check($key);
+
+        if (count($values) === 1 && is_array(reset($values)))
+            $values = array_shift($values);
 
         foreach((array)$this->_check as $i=>$value)
         {
