@@ -11,9 +11,11 @@
 <div class="index">
     <slot name="api" action="/AutoDoc/Api" />
     <def name="current" value="{$this->request->get('class'):$this->request->get('filename'):'index.xml'}" />
-    <script test="$current">
-        jQuery('*[@id="$current"]').addClass('selected');
-        /* jQuery('#$current') ne marche pas : jquery a un pb avec les points */
+    <script test="$current" type="text/javascript">
+        /* si un id a des '.' ou autres, il faut faire précéder de deux \
+           cf http://docs.jquery.com/Frequently_Asked_Questions#How_do_I_select_an_element_by_an_ID_that_has_characters_used_in_CSS_notation.3F
+         */
+        jQuery("#{str_replace('.', '\\\\.', $current)}").addClass('selected');
     </script>
     
 </div>
