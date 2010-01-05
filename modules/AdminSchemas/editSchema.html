@@ -1,22 +1,5 @@
 <def name="icons" value="/FabWeb/modules/AdminSchemas/EditSchema/images" />
 
-<template match="//select[@src]" name="" label="" src="" class="" size="" sep="" id="">
-    <label test="$label" class="select{$size ? rtrim(' multiline '.$class) : rtrim(' '.$class)}" for="{autoId($id:$name:'select')}">$label</label>
-        <select
-            name="$name"
-            size="$size"
-            class="select{$size ? rtrim(' multiline '.$class) : rtrim(' '.$class)}"
-            id="{$label ? lastId() : $id}">{select('@*')}{select('./node()')}
-            <loop on="$src" as="$line, $record">
-                <if test="{is_array($record)}">
-                    <option value="{$record['code'] === $record['label'] ? '' : $record['code']}">{$record['label']}</option>
-                </if>
-                <else>
-                    <option>$record</option>
-                </else>
-            </loop>
-        </select>
-</template>
 <h1 style="font-size: 1.1em; text-align: center;">$title</h1>
 <div id="errors">
     <h1 class="title jqDrag" >Des erreurs on été détectées</h1>
