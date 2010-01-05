@@ -386,6 +386,9 @@ class DatabaseModule extends Module
 
         $callback = $this->getCallback();
 
+        // Ouvre la base de données : permet au formulaire de consulter le schéma
+        $this->openDatabase();
+
         // On exécute le template correspondant
         Template::run
         (
