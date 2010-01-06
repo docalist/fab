@@ -1,7 +1,7 @@
 /* TOC - Construction de la table des matières */
  
 <template match="//toc"> /* ci dessous : deux fois "../" car le toc est dans un if */
-    <div id="{select('../../@id')}.tableofcontents" class="sect2 tableofcontents" test="{select('count(ul)')}">
+    <div id="{select('string(../../@id)')}.tableofcontents" class="sect2 tableofcontents" test="{select('count(ul)')}">
         <h2>Table des matières</h2>
         {select('node()')}
     </div>
@@ -14,7 +14,7 @@
 <template match="//toc//sect4" id="">
     <li>
         <p><a strip="{$id==''}" href="#$id">{select('title/node()')}</a></p>
-        <ul test="{count(select('.//sect5'))}">{select('.//sect5')}
+        <ul test="{select('count(.//sect5)')}">{select('.//sect5')}
         </ul>
     </li>
 </template>
@@ -22,7 +22,7 @@
 <template match="//toc//sect3" id="">
     <li>
         <p><a strip="{$id==''}" href="#$id">{select('title/node()')}</a></p>
-        <ul test="{count(select('.//sect4'))}">{select('.//sect4')}
+        <ul test="{select('count(.//sect4)')}">{select('.//sect4')}
         </ul>
     </li>
 </template>
@@ -30,7 +30,7 @@
 <template match="//toc//sect2" id="">
     <li>
         <p><a strip="{$id==''}" href="#$id">{select('title/node()')}</a></p>
-        <ul test="{count(select('.//sect3'))}">{select('.//sect3')}
+        <ul test="{select('count(.//sect3)')}">{select('.//sect3')}
         </ul>
     </li>
 </template>
