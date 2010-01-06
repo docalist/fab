@@ -16,7 +16,7 @@
                             <loop on="$names" as="$name">
                                 <li id="$name">
                                     <if test="{Utils::getExtension($name)===''}">
-                                        <a href="/{$this->module}?class=$name" title="{Utils::lcFirst($this->getClassSummary($name))}"><span>$name</span></a>
+                                        <a href="/{$this->module}?class=$name" title="{htmlentities(Utils::lcFirst($this->getClassSummary($name)))}"><span>$name</span></a>
                                     </if>
                                     <else>
                                         <a href="/{$this->module}?filename=$name"><span>{$this->getDocbookSummary($name)}</span></a>
