@@ -13,9 +13,9 @@
     </bigmenu>
 */
 <template match="//bigmenu" img="">
-    <ul class="bigmenu">{select('node()')}{select('@*')}</ul>
+    <ul class="bigmenu">{select('node()|@*')}</ul>
 </template>
 <template match="//bigmenu//item" label="" href="" img="" title="">
-    <li><h2><a href="$href" title="$title"><img src="$img" alt="" />$label</a></h2>{select('@*')}{select('node()')}</li>
+    <li><h2><a href="$href" title="$title"><img src="$img" alt="" />$label</a></h2>{select('node()|@*')}</li>
 </template>
 
