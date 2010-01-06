@@ -9,5 +9,5 @@
     <autopara><p>test</p></autopara>        -> <p>test</p>
     <autopara><div>test</div></autopara>    -> <div>test</div>
 */
-<template match="//autopara"><if test="{select('text()')}"><p>{select('node()')}</p></if>
+<template match="//autopara"><if test="{select('count(text())')}"><p>{select('node()')}</p></if>
 <else>{select('node()')}</else></template>
