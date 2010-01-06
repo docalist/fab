@@ -1,3 +1,5 @@
+<template match="//p[div]">{select('node()')}</template>
+
 <template match="//sect1info" />
 
 /* SECT 1 */
@@ -46,14 +48,13 @@
 <template match="//caution/title"><div class="title">{select('node()|@*')}</div></template>
 
 /* Tables (à mettre plus haut ?) */
-<template match="//table[not(parent::div)]"><div class="table">{select('node()|@*')}</div></template>
+<template match="//table[child::table]"><div class="table">{select('node()|@*')}</div></template>
 <template match="//table/title"><div class="title">{select('node()|@*')}</div></template>
-<template match="//table/tgroup"><table>{select('node()|@*')}</table></template>
+<template match="//table/tgroup"><table>{select('node()')}</table></template>/* Inutile de récupérer les attributs */
 <template match="//table/tgroup/thead/row"><tr>{select('node()|@*')}</tr></template>
 <template match="//table/tgroup/thead/row/entry"><th>{select('node()|@*')}</th></template>
 <template match="//table/tgroup/tbody/row"><tr>{select('node()|@*')}</tr></template>
 <template match="//table/tgroup/tbody/row/entry"><td>{select('node()|@*')}</td></template>
-
  
 /* Blocs de code */
 <template match="//programlisting"><pre class="programlisting prettyprint">{htmlspecialchars(select('string(node())'))}{select('@*')}</pre></template>
@@ -62,13 +63,6 @@
 /* Paragraphes */
 <template match="//para"><p>{select('node()|@*')}</p></template>
 
-/*
-    actuellement, les templates match de fab n sont pas récursifs.
-    Si on a des para dans des li, ils ne sont pas convertis.
-    On répête le template match //para trois fois pour que ça convertisse
-    jusqu'à 3 niveaux d'imbrication.
-*/
- 
 /* Listes */
 <template match="//itemizedlist"><ul>{select('node()|@*')}</ul></template>
 <template match="//orderedlist"><ol>{select('node()|@*')}</ol></template>
@@ -86,7 +80,6 @@
 <template match="//code[not(@class='escaped')]"><code class="escaped">{htmlspecialchars(select('string(node())'))}{select('@*')}</code></template>
 
 /* TOC - Construction de la table des matières */
-
 <template match="//toc">
     <div class="tableofcontents">
         <div class="title">Sommaire</div>
@@ -96,50 +89,3 @@
 <template match="//toc/sect2">
     <ul>{select('title')}</ul>
 </template>
-
-/* Suppprime l'id qu'on a ajouté au titre */
-/*
-
-<template match="//sect2/title|//sect3/title|//sect4/title" id="">
-    <title id="">{select('node()|@*')}</title>
-</template>
-
-<template match="//tocn">
-    <toc1>{select('//sect2/title')}</toc1>
-</template>
-
-<template match="//toc1">
-    <div class="tableofcontents">
-        <div class="title">Sommaire</div>
-        <ul>{select('node()')}</ul>
-    </div>
-</template>
-
-<template match="//toc1/title" id="">
-    <li>
-        <a href='#$id'>{select('node()')}</a>
-        <ul>{select('//sect2[@id="'.$id.'"]/sect3/title')}</ul>
-    </li>
-</template>
-
-<template match="//ul/title" id="">
-    <li>
-        <a href='#$id'>{select('node()')}</a>
-    </li>
-</template>
-
-<template match="//ul/title" id="">
-    <li>
-        <a href='#$id'>{select('node()')}</a>
-        <ul>{select('//sect3[@id="'.$id.'"]/sect4/title')}</ul>
-    </li>
-</template>
-*/
-
-/* Ajoute aux titres des sections l'id de la section (//sect2[@id=xxx] -> //sect2/title[@id=xxx] */
-/*
-<template match="//sect2/title|//sect3/title|//sect4/title">
-    <title>{select('../@id|node()')}</title>
-</template>
-*/
-/* TOC : fin */
