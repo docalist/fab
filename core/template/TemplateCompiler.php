@@ -1107,19 +1107,6 @@ private static $line=0, $column=0;
 
     private static function compileElement(DOMElement $node, $attrPhpCode=null)
     {
-        // liste des attributs pour lesquels il faut appliquer le routage (Routing::linkFor)
-        // Pour chaque tag, on a un tableau contenant la liste des attributs à router
-        static $attrToRoute=array
-        (
-            'a'         => array('href'=>true),
-            'img'       => array('src'=>true),
-            'form'      => array('action'=>true),
-            'frame'     => array('src'=>true),
-            'iframe'    => array('src'=>true),
-            'link'      => array('href'=>true),
-            'script'    => array('src'=>true),
-        );
-
         // Gère l'attribut "test" : supprime tout le noeud si l'expression retourne false
         $test='';
         if ($node->hasAttribute('test'))
