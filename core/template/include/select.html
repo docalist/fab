@@ -1,7 +1,7 @@
-<template match="//select[@src]" name="" label="" src="" class="" size="" id="">
-    <div class="holder select $class {$size ? 'multiline' : ''}">
+<template match="//select[@src]" name="" label="" src="" class="" size="" id="" test="{true}">
+    <div test="$test" class="holder select $class {$size ? 'multiline' : ''}">
         <label for="{Template::autoId($id:$name:'select')}">$label</label>
-        {select('*[@class="before"]')}
+        {select('node()[contains(@class,"before")]')}
         <select
             name="$name"
             size="$size"
@@ -15,6 +15,6 @@
                 </else>
             </loop>
         </select>
-        {select('*[not(@class="before")]')}
+        {select('node()[not(contains(@class,"before"))]')}
     </div>
 </template>

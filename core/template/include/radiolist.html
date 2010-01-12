@@ -1,15 +1,15 @@
-<template match="//radiolist" name="" label="" src="" class="">
-    <div class="holder radiolist $class">
+<template match="//radiolist" name="" label="" src="" class="" test="{true}">
+    <div test="$test" class="holder radiolist $class">
         <label>$label</label>
-        {select('*[@class="before"]')}
+        {select('node()[contains(@class,"before")]')}
         <loop on="$src" as="$key, $record">
             <if test="{is_array($record)}">
-                <radio name="$name" label="{$record['label']}" value="{$record['code']}" />
+                <radio    name="$name" label="{$record['label']}" value="{$record['code']}">{select('@*')}</radio>
             </if>
             <else>
-                <radio name="$name" label="$record" value="{is_string($key) ? trim($key) : $record}" />
+                <radio    name="$name" label="$record" value="{is_string($key) ? trim($key) : $record}">{select('@*')}</radio>
             </else>
         </loop>
-        {select('*[not(@class="before")]')}
+        {select('node()[not(contains(@class,"before"))]')}
     </div>
 </template>

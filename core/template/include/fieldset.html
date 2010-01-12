@@ -1,6 +1,28 @@
 <template match="//fieldset[@label]" label="">
-    <fieldset>{select('@*')}
+    <fieldset>
         <legend>$label</legend>
-        {select('./node()')}
+        {select('node()|@*')}
     </fieldset>
 </template>
+/*
+DM/SF , 12/10/09
+
+Il faudrait permettre d'avoir des tags dans le label passé en paramètre.
+Actuellement, comme c'est juste un attribut, on ne peut pas.
+Pour cela, il faudrait changer le comportement en indiquant que :
+- label peut être passé en paramètre sous la forme d'un attribut
+- OU label peut être indiqué comme noeud fils descendant direct du tag fieldset.
+- Si les deux sont indiques, ils se retrouvent concaténés.
+Pour cela, il faudrait que le code du template match soit le suivant : (testé, fonctionne).
+ 
+<template match="//fieldset[@label]" label="">
+    <fieldset>{select('@*')}
+        <legend>$label{select('./label/node()')}</legend>
+        {select('text()|*[not(name()="label")]')}
+    </fieldset>
+</template>
+
+remarque : dans le select('*'), il faut exclure l'éventuel fils <label> présent
+le text() permet de récupérer aussi l'éventuel texte non wrappé qui figure dans le
+fieldset.
+*/

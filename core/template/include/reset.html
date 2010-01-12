@@ -2,6 +2,6 @@
     <input
         type="reset"
         name="$name"
-        value="{select('string(@label)')}{select('.//text()')}"
+        value="$label{select('string()')}"
         class="button reset{rtrim(' '.$class)}">{select('@*')}</input>
 </template>

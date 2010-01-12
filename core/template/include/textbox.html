@@ -13,18 +13,20 @@
 ***************************************************************************** */
 <template match="//textbox" 
     name=""         /* le nom du champ à générer */
-    label="&#160;"  /* le libellé à générer devant le champ */
+    label=""        /* le libellé à générer devant le champ */
     value=""        /* la valeur initiale du champ */
     class=""        /* classe supplémentaire à appliquer à la div container */
     id=""           /* l'id spécifique du controle */
     rows=""         /* génère un textarea de $rows ligne plutôt qu'un input */ 
     cols="20"       /* nombre de colonnes du textarea */
     title=""        /* bulle d'aide du champ */
+    test="{true}"   /* la condition d'affichage */
     >
-    <div class="holder textbox $class">
+    <div test="$test" class="holder textbox $class">
         <if test="{$rows}">
-            <label for="{Template::autoId($id:$name:'textarea')}">$label</label>
-            {select('*[@class="before"]')}
+            <def name="id" value="{Template::autoId($id:$name:'textarea')}" />
+            <label test="$label" for="$id">$label</label>
+            {select('node()[contains(@class,"before")]')}
             <textarea
                 name="$name"
                 title="$title"
@@ -33,8 +35,9 @@
                 id="{Template::lastId()}">$value{select('@*')}</textarea>
         </if>
         <else>
-            <label for="{Template::autoId($id:$name:'textbox')}">$label</label>
-            {select('*[@class="before"]')}
+            <def name="id" value="{Template::autoId($id:$name:'textbox')}" />
+            <label test="$label" for="$id">$label</label>
+            {select('node()[contains(@class,"before")]')}
             <input
                 type="text" 
                 name="$name" 
@@ -42,6 +45,6 @@
                 value="$value"
                 id="{Template::lastId()}">{select('@*')}</input>
         </else>
-        {select('*[not(@class="before")]')}
+        {select('node()[not(contains(@class,"before"))]')}
     </div>
 </template>

@@ -1,42 +1,40 @@
 /*
     DatePicker : un contrôle permettant de choisir une date
     basé sur jquery/ui.datepicker.js
-*/ 
-<template match="//datepicker" id="" name="" value="" size="10" label="" class="" style="" format="dd/mm/yy">
-    <script type="text/javascript" src="/FabWeb/js/lib/jquery/ui.datepicker/ui.datepicker.min.js"></script>
-    <script type="text/javascript" src="/FabWeb/js/lib/jquery/ui.datepicker/i18n/ui.datepicker-fr.js"></script>
-    <link rel="stylesheet" type="text/css" href="/FabWeb/js/lib/jquery/ui.datepicker/ui.datepicker.css" media="all" />
-    <def name="calId" value="{autoId($id:$name:'calendar')}" />
-
-    <label test="$label" class="calendar{rtrim(' '.$class)}" for="$calId">$label</label>
-
-    <input
-        type="text" 
-        name="$name" 
-        value="$value{select('node()')}"
-        size="$size"
-        id="$calId"
-        class="text calendar{rtrim(' '.$class)}"
-        style="$style"
-        autocomplete="off" 
-        >{select('@*')}</input>
-    
-    <script type="text/javascript">
-        jQuery(document).ready(
-        function()\{
-            jQuery('#$calId').datepicker(\{
-                firstDay: 1,            // La semaine commence le lundi
-                changeFirstDay: false,  // Interdit de changer le 1er jour de la semaine
-                minDate: new Date(),    // Interdit les dates dépassées
-                dateFormat: '$format',  // Format des dates : jj/mm/aaaa
-                closeAtTop: false,      // Boutons 'effacer/fermer' en bas
-                hideIfNoPrevNext: true,
-                changeMonth: false,
-                changeYear: false,
-                //numberOfMonths: 20,
-                //appendText: 'hello',
-                zzz: true
-            \});
-        \});
-    </script>
+*/
+<template match="//datepicker" size="10" format="dd/mm/yy" class="" test="{true}">
+    <if test="$test">
+	    /* Si on n'a pas encore chargé les scripts de jquery.ui, on le fait maintenant */
+	    <def name="loaded" value="{select('count(//script[@id=&quot;ui.datepicker.min.js&quot;])')}" /> /* on ne peut pas utiliser id() car on n'a pas toujours un dtd */
+	    <if test="{! $loaded}">
+	        <script type="text/javascript" src="/FabWeb/js/lib/jquery/ui.datepicker/ui.datepicker.min.js" id="ui.datepicker.min.js"></script>
+	        <script type="text/javascript" src="/FabWeb/js/lib/jquery/ui.datepicker/i18n/ui.datepicker-fr.js"></script>
+	        <link rel="stylesheet" type="text/css" href="/FabWeb/js/lib/jquery/ui.datepicker/ui.datepicker.css" media="all" />
+	    </if>
+	    
+	    /* Génère une textbox pour saisir la date */
+	    <textbox
+	        size="$size"
+	        class="calendar{rtrim(' '.$class)}"
+	        autocomplete="off" 
+	        style="width: auto" /* au cas où on soit en "fullwidth" */
+	        >{select('node()|@*')}</textbox>
+	
+	    /* Active le date picker pour cette textbox */
+	    <script type="text/javascript">
+	        jQuery(document).ready(
+	        function()\{
+	            jQuery('#{Template::lastId()}').datepicker(\{
+	                firstDay: 1,            /* La semaine commence le lundi */
+	                changeFirstDay: false,  /* Interdit de changer le 1er jour de la semaine */
+	                minDate: new Date(),    /* Interdit les dates dépassées */
+	                dateFormat: '$format',  /* Format des dates : jj/mm/aaaa */
+	                closeAtTop: false,      /* Boutons 'effacer/fermer' en bas */
+	                hideIfNoPrevNext: true,
+	                changeMonth: false,
+	                changeYear: false
+	            \});
+	        \});
+	    </script>
+    </if>
 </template>
