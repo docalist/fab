@@ -1694,10 +1694,10 @@ final class Utils
         $Ident      = '[\w-]+';                             // un 'mot' du nom de domaine
         $Domain     = "$Ident(?:\.$Ident)*$TopDomain";      // nom de domaine
         $Port       = '\:\d+';                              // port TCP
-        $UrlPath    = '(?:/[^# /\\n\\r<]+)+';               // path d'un document (y compris éventuelle query string)
+        $UrlPath    = '(?:/[^#) /\\n\\r<]+)+';               // path d'un document (y compris éventuelle query string)
         $Bookmark   = '#\w+';                               // ancre au sein du document (=id hml valide)
         $DomainIP  = "$Domain|$IP";                         // Une nom de domaine ou une adresse IP
-        $Url        = "($Protocol|www\.|ftp\.)(?:$DomainIP)(?:$Port)?(?:$UrlPath)?(?:$Bookmark)?";    // url complète
+        $Url        = "($Protocol|www\.|ftp\.)(?:$DomainIP)(?:$Port)?(?:$UrlPath)?/?(?:$Bookmark)?";    // url complète
         $Email      = "$Ident(?:\.$Ident)*@$Domain";         // Adresse e-mail
         $lead       = '(?:<\w+.*?>)?';                      // utilisé pour tester si l'url est déjà dans un <a>...</a>
 
