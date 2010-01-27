@@ -177,7 +177,7 @@ class Runtime
                 self::$realHome=dirname(self::$home);
 
                 // Garantit que home et realHome contiennent toujours un slash final
-                self::$realHome=rtrim(self::$realHome,'/').'/';
+                self::$realHome=rtrim(self::$realHome,'/\\').'/';
                 self::$home=rtrim(self::$home,'/').'/';
             }
 
