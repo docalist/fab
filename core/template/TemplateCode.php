@@ -601,6 +601,7 @@ class TemplateCode
             (
                 'addslashes',
                 'array_diff_key',
+                'array_filter',
                 'array_flip',
                 'array_intersect_key',
                 'array_map',
