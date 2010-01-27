@@ -2032,16 +2032,29 @@ class XapianDatabaseDriver extends Database
         $h=$query->get_description();
 
         // Supprime le libellé "XapianQuery()" et le premier niveau de parenthèses
-        if (substr($h, 0, 14) === 'Xapian::Query(') $h=substr($h, 15, -2);
+        if (substr($h, 0, 14) === 'Xapian::Query(') $h=substr($h, 14, -1);
 
         // Supprime les mentions "(pos=n)" présentes dans la requête
         $h=preg_replace('~:\(pos=\d+?\)~', '', $h);
+
+        // Reconstruit les expressions entre guillemets
+        $h=preg_replace_callback('~\((\d+:)[a-z0-9@_]+(?: (PHRASE \d+ )\1[a-z0-9@_]+)+\)~', array($this, 'makePhrase'), $h);
+
+        // Reconstruit les recherches à l'article
+        //echo "<br /><br /><br /><pre>";var_export($h);echo '</pre>';
+        $h=preg_replace_callback('~_[a-z0-9@_]+_~', array($this, 'makeValue'), $h);
 
         // Traduits les préfixes utilisés en noms de champs
         $h=preg_replace_callback('~(\d+):~',array($this,'idToName'),$h);
 
         // Met les opérateurs booléens en gras
         $h=preg_replace('~AND_MAYBE|AND_NOT|FILTER|AND|OR|PHRASE \d+~', '<strong>$0</strong>', $h);
+
+        // Si l'expression obtenue commence par une parenthèse, c'est qu'on a un niveau de parenthèses en trop
+        if (substr($h,0,1)==='(' && substr($h, -1)===')')
+        {
+            $h = substr($h, 1, -1);
+        }
 
         // Va à la ligne et indente à chaque niveau de parenthèse
         $h=strtr
@@ -2061,6 +2074,42 @@ class XapianDatabaseDriver extends Database
 
         // Retourne le résultat
         return $h;
+    }
+
+    /**
+     * Callback utilisé par {@link explainQuery()}.
+     *
+     * Reconstruit une recherche "à l'article" à partir de la description faite
+     * par Xapian de la requête exécutée.
+     *
+     * Exemple : _a_b_ -> [a b]
+     *
+     * @param array $matches le tableau généré par preg_replace_callback
+     * @return string
+     */
+    private function makeValue($matches)
+    {
+        return '[' . trim(strtr($matches[0], '_', ' ')) . ']';
+    }
+
+    /**
+     * Callback utilisé par {@link explainQuery()}.
+     *
+     * Reconstruit une expression entre guillemets à partir de la description faite
+     * par Xapian de la requête exécutée.
+     *
+     * Exemple : a PHRASE 2 b -> "a b"
+     *
+     * @param array $matches le tableau généré par preg_replace_callback
+     * @return string
+     */
+    private function makePhrase($matches)
+    {
+        $query = substr($matches[0], 1, -1); // l'expression est toujours entourée de parenthèses (inutiles)
+        $id = $matches[1];
+        $op = $matches[2];
+        $result = $id . '"' . strtr($query, array($id=>'', $op=>'')) . '"';
+        return $result;
     }
 
     /**
