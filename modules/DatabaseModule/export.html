@@ -90,18 +90,18 @@
                     
                     /* Details de l'e-mail à envoyer */
                     <holder class="vertical" test="$allowmail" id="_maildetails" style="margin-left: 1.3em;">
-	                    <textbox name="_to" label="Destinataire :" size="40" value="{htmlentities($to)}" />
+	                    <textbox name="_to" label="Destinataire :" size="80" value="{htmlentities($to)}" />
 	                    <br />
 	                    <textbox 
 	                        name="_subject" 
 	                        label="Sujet :" 
 	                        value="{htmlentities($subject)}"  
-	                        size="40" />
+	                        size="80" />
 	                    <br />
 	                    <textbox 
 	                        name="_message" 
-	                        rows="5" 
-	                        cols="40" 
+	                        rows="10" 
+	                        cols="78" 
 	                        label="Message : " 
 	                        value="{htmlentities($message)}" />
                     </holder>
