@@ -241,26 +241,33 @@ abstract class LookupHelper
         // Si aucun format de surbrillance n'a été indiqué, terminé
         if (is_null($this->format)) return $entry;
 
-        // On va rechercher les mots dans alphanum et on va les remplacer par
-        // sprintf($format) das la chaine $entry en ajustant à chaque fois les
-        // positions pour gérer le décalage obtenu.
-        $dec=0;
-        $alphanumEntry = ' ' . $alphanumEntry;
-        foreach($this->words as $required)
+        // Expression régulière utilisée pour matcher les termes tapés par l'utilisateur
+        static $re=null, $replace;
+
+        // re est statique pour qu'on ne l'initialise qu'une fois (il ne faut pas que $this->words change)
+        if (is_null($re))
         {
-            $pt=0;
-            while (false !== $pt=strpos($alphanumEntry, ' '.$required, $pt))
-            {
-                $word=substr($entry, $pt+$dec, strlen($required));
-                $replace=sprintf($this->format, $word);
-                $entry=substr_replace($entry, $replace, $pt+$dec, strlen($required));
-                $dec += (strlen($replace) - strlen($word));
-                $pt += strlen($required);
-            }
+            $re = implode('|', $this->words);
+            $re=strtr
+            (
+                $re,
+                array
+                (
+                    'a'=>'[aáàâäà]',
+                    'e'=>'[eéèêë]',
+                    'i'=>'[iíìîï]',
+                    'o'=>'[oóòôö]',
+                    'u'=>'[uúùûü]',
+                    'c'=>'[cç]',
+                    'n'=>'[nñ]'
+                )
+            );
+            $re = '~\b(' . $re . ')~i';
+            $replace=sprintf($this->format, '$1');
         }
 
-        // Retourne la chaine obtenue
-        return $entry;
+        // Met en surbrillance
+        return preg_replace($re, $replace, $entry);
     }
 
     /**
