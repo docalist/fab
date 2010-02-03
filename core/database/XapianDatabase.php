@@ -2916,12 +2916,33 @@ class XapianDatabaseDriver extends Database
             $prefix='';
             foreach($this->schema->aliases[$key]->indices as $name=>$index)
             {
-                $index=$this->schema->indices[$name];
-                if (reset($index->fields)->values)
-                    $item=new ValueLookup();
+                // S'il existe une table de lookup avec ce nom, on l'utilise plutôt que l'index
+                if (isset($this->schema->lookuptables[$name]))
+                {
+                    switch(Utils::get($this->schema->lookuptables[$name]->_type, DatabaseSchema::LOOKUP_INVERTED))
+                    {
+                        case DatabaseSchema::LOOKUP_SIMPLE:
+                            $item=new SimpleTableLookup();
+                            break;
+
+                        case DatabaseSchema::LOOKUP_INVERTED:
+                            $item=new InvertedTableLookup();
+                            break;
+
+                        default:
+                            throw new Exception("Impossible de faire un lookup sur la table de lookup '$name' : type de table non géré");
+                    }
+                    $prefix='T' . $this->schema->lookuptables[$name]->_id . ':';
+                }
                 else
-                    $item=new TermLookup();
-                $prefix=$index->_id . ':';
+                {
+                    $index=$this->schema->indices[$name];
+                    if (reset($index->fields)->values)
+                        $item=new ValueLookup();
+                    else
+                        $item=new TermLookup();
+                    $prefix=$index->_id . ':';
+                }
                 $item->setIterators($this->xapianDatabase->allterms_begin(), $this->xapianDatabase->allterms_end());
                 $item->setMax($max);
                 $item->setSortByFrequency($sort);
@@ -2931,10 +2952,7 @@ class XapianDatabaseDriver extends Database
                 $helper->add($item);
             }
 
-            $prefix=array();
-            foreach($this->schema->aliases[$key]->indices as $index)
-                $prefix[]=$index->_id . ':';
-            // quel préfixe ?
+            $prefix=''; // AliasLookup n'utilise pas les préfixes
         }
 
         // Teste s'il s'agit d'un index
