@@ -1849,20 +1849,21 @@ class XapianDatabaseDriver extends Database
     private function setupRequest()
     {
     /*
-        Combinatoire utilisé pour construire l'équation de recherche :
+        Combinatoire utilisée pour construire l'équation de recherche :
         +----------+-----------------+---------------------+-------------------+
         | Type de  |    Opérateur    | Opérateur entre les |  Opérateur entre  |
         | requête  | entre les mots  |  valeurs d'un champ | champs différents |
         +----------+-----------------+---------------------+-------------------+
-        |   PROB   |    default op   |    default op       |   default op      |
+        |   PROB   |    default op   |        AND          |        AND        |
         +----------+-----------------+---------------------+-------------------+
-        |   BOOL   |    default op   |        OR           |   default op      |
+        |   BOOL   |    default op   |        OR           |        AND        |
         +----------+-----------------+---------------------+-------------------+
-        |   LOVE   |       AND       |        AND          |        AND        |
+        |   LOVE   |    default op   |        AND          |        AND        |
         +----------+-----------------+---------------------+-------------------+
-        |   HATE   |       OR        |        OR           |        OR         |
+        |   HATE   |    default op   |        OR           |        OR         |
         +----------+-----------------+---------------------+-------------------+
      */
+
         timer && Timer::enter();
 
         // "equation" : la ou les équations passées en query string dans _equation
@@ -1891,12 +1892,12 @@ class XapianDatabaseDriver extends Database
                 switch(substr($name, 0, 1))
                 {
                     case '+': // Tous les mots sont requis, donc on parse en "ET"
-                        $q=$this->parseQuery($value, XapianQuery::OP_AND, XapianQuery::OP_AND, $indexName);
+                        $q=$this->parseQuery($value, $this->options->defaultopcode, XapianQuery::OP_AND, $indexName);
                         if (!is_null($q)) $love[]=$q;
                         break;
 
                     case '-': // le résultat sera combiné en "AND_NOT hate", donc on parse en "OU"
-                        $q=$this->parseQuery($value, XapianQuery::OP_OR, XapianQuery::OP_OR, $indexName);
+                        $q=$this->parseQuery($value, $this->options->defaultopcode, XapianQuery::OP_OR, $indexName);
                         if (!is_null($q)) $hate[]=$q;
                         break;
 
@@ -1908,7 +1909,7 @@ class XapianDatabaseDriver extends Database
                         }
                         else
                         {
-                            $q=$this->parseQuery($value, $this->options->defaultopcode, $this->options->defaultopcode, $indexName);
+                            $q=$this->parseQuery($value, $this->options->defaultopcode, XapianQuery::OP_AND, $indexName);
                             if (!is_null($q)) $prob[]=$q;
                         }
                         break;
@@ -1920,8 +1921,8 @@ class XapianDatabaseDriver extends Database
             (
                 'love'=>XapianQuery::OP_AND,
                 'hate'=>XapianQuery::OP_OR,
-                'prob'=>$this->options->defaultopcode,
-                'bool'=>$this->options->defaultopcode
+                'prob'=>XapianQuery::OP_AND,
+                'bool'=>XapianQuery::OP_AND,
             ) as $type=>$op)
             {
                 if (count($$type)===0) continue;
@@ -3778,6 +3779,7 @@ class UserQuery extends Request
 
     public function getEquation()
     {
+
 /*
 (
     +(tous les _equation croisés en AND)
@@ -3793,6 +3795,16 @@ AND
 )
 
  */
+
+        /*
+            Par défaut, la requête générée va être de la forme :
+            +(_equation _equation) autres_critères
+
+            Quand defaultop===AND, le + de début est inutile et il alourdit la lecture
+            de l'équation. Du coup, on ne le génère que si on est en "OU".
+         */
+        $plus = ($this->get('defaultopcode') === XapianQuery::OP_OR) ? '+' : '';
+
 
         $result=array();
 
@@ -3815,7 +3827,7 @@ AND
         if ($this->auto)
         {
             // Parcourt tous les paramètres
-            $t=$bool=array();
+            $t=$bool=$hate=array();
             foreach($this->auto as $name=>$value)
             {
                 if ($value===null or $value==='' or $value===array()) continue;
@@ -3843,7 +3855,7 @@ AND
                             break;
 
                         case '-':
-                            $t[] = '-' . substr($name,1) . '=' . $value;
+                            $hate[] = '-' . substr($name,1) . '=' . $value;
                             break;
 
                         default:
@@ -3863,13 +3875,25 @@ AND
                     $value=implode(' OR ', $value);
                     $this->addBrackets($value);
                 }
-                $h=implode(' ', $bool);
+                $h=implode(' AND ', $bool);
                 $result[] = $h;
             }
 
             if ($t)
             {
-                $h = implode(' ', $t);
+                $h = implode(' AND ', $t);
+                if (isset($result[0]))
+                {
+                    $this->addBrackets($result[0]);
+                    $result[0] = $plus . $result[0] . ' ' . $h;
+                }
+                else
+                    $result[0] = $h;
+            }
+
+            if ($hate)
+            {
+                $h = implode(' ', $hate);
                 if (isset($result[0]))
                 {
                     $this->addBrackets($result[0]);
@@ -3878,6 +3902,7 @@ AND
                 else
                     $result[0] = $h;
             }
+
         }
 
 
