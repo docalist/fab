@@ -1,0 +1,11 @@
+<h1>{Config::get('title')}</h1>
+<form class="form" action="Login" method="POST">
+    <p test="$error" class="error">$error</p>
+    <textbox name="login" value="$login" label="Identifiant : " />
+    <password name="password" value="$password" label="Mot de passe: " />
+    <fill values="$remember">
+        <checkbox name="remember" value="1" label="Se souvenir de moi" />
+    </fill>
+    <submit label="Se connecter..." />
+    <hidden name="redirect" value="$redirect" />
+</form>
