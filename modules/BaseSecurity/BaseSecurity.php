@@ -20,7 +20,7 @@
  *
  * - a tous les droits (hasRight retourne toujours true)
  */
-abstract class BaseSecurity extends Module
+class BaseSecurity extends Module
 {
     /**
      * @var string Les droits de l'utilisateur.
