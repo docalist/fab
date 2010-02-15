@@ -365,10 +365,14 @@ class AutoDoc extends Module
         $path=Utils::makePath(Runtime::$root, 'doc', $filename);
         if (! file_exists($path))
         {
-            $path=Runtime::$fabRoot . "doc/$filename.xml";
             $path=Utils::makePath(Runtime::$fabRoot, 'doc', $filename);
             if (! file_exists($path))
-                die('impossible de trouver le fichier '.$path);
+            {
+                if ($filename==='index.xml')
+                    $path=Utils::makePath(Runtime::$fabRoot, 'doc', 'fab.index.xml');
+                else
+                    die('impossible de trouver le fichier '.$path);
+            }
         }
 
         $source=file_get_contents($path);
