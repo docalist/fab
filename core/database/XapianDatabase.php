@@ -1042,26 +1042,18 @@ class XapianDatabaseDriver extends Database
      */
     private function protectOperators($equation)
     {
+        if ($this->options->opanycase)
+            $search = array('~\b(ET|AND)\b~i','~\b(OU|OR)\b~i','~\b(SAUF|BUT|NOT)\b~i');
+        else
+            $search = array('~\b(ET|AND)\b~','~\b(OU|OR)\b~','~\b(SAUF|BUT|NOT)\b~');
+
+        $replace = array(':AND:', ':OR:', ':NOT:');
+
         $t=explode('"', $equation);
         foreach($t as $i=>&$h)
         {
             if ($i%2==1) continue;
-            $h=preg_replace
-            (
-                array('~\b(ET|AND)\b~','~\b(OU|OR)\b~','~\b(SAUF|BUT|NOT)\b~'),
-                array(':AND:', ':OR:', ':NOT:'),
-                $h
-            );
-
-            if ($this->options->opanycase)
-            {
-                $h=preg_replace
-                (
-                    array('~\b(et|and)\b~','~\b(ou|or)\b~','~\b(sauf|but|not)\b~'),
-                    array('~and~', '~or~', '~not~'),
-                    $h
-                );
-            }
+            $h=preg_replace($search, $replace, $h);
         }
         return implode('"', $t);
     }
@@ -1070,8 +1062,8 @@ class XapianDatabaseDriver extends Database
     {
         return str_replace
         (
-            array('~and~', '~or~', '~not~', ':and:', ':or:', ':not:'),
-            array('and', 'or', 'not', 'AND', 'OR', 'NOT'),
+            array(':and:', ':or:', ':not:'),
+            array('AND', 'OR', 'NOT'),
             $equation
         );
     }
