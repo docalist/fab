@@ -1,0 +1,316 @@
+/* -------------------------------------------------------------------------- */
+/* Formulaires                                                                */
+/* -------------------------------------------------------------------------- */
+form.form
+{
+}
+
+.form .holder
+{
+    padding: 5px 0;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Disposition verticale (disposition par défaut)                             */
+/* -------------------------------------------------------------------------- */
+.form label,
+.vertical label
+{
+    display: block;
+    width: 100%;
+}
+
+.form span.checkbox label,
+.form span.radio label
+{
+    display: inline;
+    padding-bottom: 0;
+    padding-right: 0.5em;
+}
+
+.form label
+{
+    font-weight: bold;
+}
+
+.form span.checkbox label, 
+.form span.radio label
+{
+    font-weight: normal;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Disposition horizontale                                                    */
+/* -------------------------------------------------------------------------- */
+.form .holder
+{
+    clear: both;
+}
+
+.horizontal .holder
+{
+    padding-left: 200px;
+}
+
+.horizontal .holder label
+{
+    width: 190px;
+    margin-left: -200px;
+    float: left;
+    display: inline;
+}
+
+.horizontal.label100 .holder { padding-left: 100px; }
+.horizontal.label100 .holder label { width: 95px; margin-left: -100px; }
+
+.horizontal.label150 .holder { padding-left: 150px; }
+.horizontal.label150 .holder label { width: 145px; margin-left: -150px; }
+
+.horizontal.label200 .holder { padding-left: 200px; }
+.horizontal.label200 .holder label { width: 195px; margin-left: -200px; }
+
+.horizontal.label250 .holder { padding-left: 250px; }
+.horizontal.label250 .holder label { width: 245px; margin-left: -250px; }
+
+.horizontal.label300 .holder { padding-left: 300px; }
+.horizontal.label300 .holder label { width: 295px; margin-left: -300px; }
+
+.horizontal .holder.labelinline { padding-left: 0; }
+.horizontal .labelinline label { width: auto !important; margin-left: 0 !important; float: left; margin-right: 5px;}
+
+.form .checkbox label,
+.form .radio label
+{
+    width: auto !important;
+    margin-left: 0 !important;
+    float: none !important;
+}
+
+.horizontal .holder:after
+{   
+    content: ".";
+    display: block; 
+    clear: left; 
+    height: 0; 
+    line-height: 0; 
+    font-size: 0; 
+    min-height: 0; 
+    visibility: hidden; 
+}
+
+/* -------------------------------------------------------------------------- */
+/* Alignement des libellés (utilisable uniquement en disposition horizontale) */
+/* -------------------------------------------------------------------------- */
+.horizontal .alignleft  , .horizontal.alignleft   label { text-align: left   }
+.horizontal .aligncenter, .horizontal.aligncenter label { text-align: center }
+.horizontal .alignright , .horizontal.alignright  label { text-align: right  }
+
+.form span.checkbox label,
+.form span.radio label
+{
+    text-align: left;
+}
+
+
+/* -------------------------------------------------------------------------- */
+/* Fieldsets                                                                  */
+/* -------------------------------------------------------------------------- */
+.form fieldset
+{
+    border: none; 
+    margin: 0 0 1em 0;
+    padding: 0;
+    width: 100%;
+}
+
+.form fieldset legend
+{
+    font-weight: bold; 
+    font-size: 120%; 
+    margin: 0; 
+    padding: 0;
+}
+
+/* IE décale la légende par rapport aux fieldset. On utilise des hack pour corriger ça */ 
+* html .form fieldset legend {margin-left: -7px;} /* ie6 */
+*+html .form fieldset legend {margin-left: -7px;} /* ie7 */
+
+
+/* -------------------------------------------------------------------------- */
+/* Largeurs standards des zones de saisie                                     */
+/* -------------------------------------------------------------------------- */
+/*
+    Largeurs standards (small, medium, large, fullwidth) pour les controles
+    input[type="text"] et textarea.
+    
+    A chaque fois, la largeur peut être mise sur un container ancêtre (par
+    exemple si on met fullwidth directement au tag form, tous les textbox seront
+    en fullwidth) ou sur la zone textbox elle-même.
+    
+    Si une textbox a une largeur spécifique différente de celle indiquée dans un
+    container ancêtre, la largeur indiquée pour la textbox doit être 
+    prioritaire. Pour cela, la règle propre au textbox est plus spécifique (on
+    a ajouté form) que les règles qui s'appliquent aux containers).
+*/
+
+.form .small.textbox     input,.small        .textbox input { width: 30% }
+.form .medium.textbox    input,.medium       .textbox input { width: 50% }
+.form .large.textbox     input,.large        .textbox input { width: 66% }
+.form .fullwidth.textbox input,.fullwidth    .textbox input { width: 98% }
+
+.form .small.textbox     textarea,.small     .textbox textarea { width: 30% }
+.form .medium.textbox    textarea,.medium    .textbox textarea { width: 50% }
+.form .large.textbox     textarea,.large     .textbox textarea { width: 66% }
+.form .fullwidth.textbox textarea,.fullwidth .textbox textarea { width: 98% }
+
+.form .small.textbox     div,.small     .textbox div.display { width: 30% }
+.form .medium.textbox    div,.medium    .textbox div.display { width: 50% }
+.form .large.textbox     div,.large     .textbox div.display { width: 66% }
+.form .fullwidth.textbox div,.fullwidth .textbox div.display { width: 98% }
+
+
+/* -------------------------------------------------------------------------- */
+/* Affichage en colonne des checkbox et des radios                            */
+/* -------------------------------------------------------------------------- */
+.col1 span.checkbox, .col1 span.radio {display: block; width: 100%; float: left;}
+.col2 span.checkbox, .col2 span.radio {display: block; width: 50%; float: left;}
+.col3 span.checkbox, .col3 span.radio {display: block; width: 33%; float: left;}
+.col4 span.checkbox, .col4 span.radio {display: block; width: 25%; float: left;}
+.col5 span.checkbox, .col5 span.radio {display: block; width: 20%; float: left;}
+
+/* -------------------------------------------------------------------------- */
+/* Style des textbox                                                          */
+/* -------------------------------------------------------------------------- */
+.form .textbox input,
+.form .textbox textarea,
+.form .textbox div.display
+{
+    padding: 2px 0;
+    font-family: monospace;
+    font-size: 13px; /* Nécessaire pour que AutoHeight fonctionne sous IE (sinon, on a des font-size de cinglés : 955px, etc. */
+}
+
+textarea.autoheight, 
+.autoheight textarea
+{
+    overflow-y: hidden;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Pointeur de souris spécifique pour les labels                              */
+/* -------------------------------------------------------------------------- */
+.form .textbox label,
+.form .select label,
+.form span.radio label, 
+.form span.checkbox label
+{
+    cursor: pointer;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Auto-complete                                                              */
+/* -------------------------------------------------------------------------- */
+.form .autocomplete
+{
+}
+
+/* -------------------------------------------------------------------------- */
+/* Gestion des erreurs                                                        */
+/* -------------------------------------------------------------------------- */
+
+/* le style de la div qui affiche le message d'erreur pour un champ */
+form.form div.errorField 
+{
+    color: red;
+    font-weight: bold;
+    font-size: 11px;
+}
+
+form.form label.required
+{
+}
+
+form.form label.required em
+{
+    margin-left: 0.3em;
+    border: 5px solid transparent;
+    border-left: 5px solid red;
+    display: inline-block;
+    height: 0px;
+}
+
+
+/* la classe appliquée au parent d'un champ en erreur */
+form.form .hasError    
+{
+}
+
+/* -------------------------------------------------------------------------- */
+/* Divers                                                                     */
+/* -------------------------------------------------------------------------- */
+.form,
+.form fieldset,
+.form .holder
+{
+    zoom: 1; /* pour IE */
+}
+
+/* -------------------------------------------------------------------------- */
+/* Couleurs, icones, bordures, etc.                                           */
+/* -------------------------------------------------------------------------- */
+.form legend
+{
+    color: #3399CC; 
+}
+
+.form .textbox textarea, .form .textbox input
+{
+    border: 1px solid #3399cc;
+}
+
+/* Les "display" s'affichent comme une textbox désactivée */
+.form .textbox div.display
+{
+    border: 1px solid #eee;
+}
+
+.form .autocomplete
+{
+    background: #fff url('bullet_key.png') no-repeat right top;
+}
+
+form.form label.required em
+{
+    background: url(cross-small.png) no-repeat center left;
+    padding-left: 16px;
+}
+
+/* la classe appliquée au parent d'un champ en erreur */
+form.form .hasError    
+{
+    background: #ffdfdf;
+    margin-bottom: 1px;
+}
+
+.form .hint
+{
+    color: #999;
+    font-size: 11px;
+    line-height: normal;
+    margin: 4px 0 4px 0;
+}
+
+.form .holder.focused
+{
+    background: #fffcdf;
+}
+
+.form .holder label
+{
+    color: #5C5C5C;
+}
+
+.form .holder.focused label
+{
+    color: #000;
+}
