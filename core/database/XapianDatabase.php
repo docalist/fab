@@ -1407,6 +1407,7 @@ class XapianDatabaseDriver extends Database
             'defaultequation'   => null,
             'defaultfilter'     => null,
             'autosort'          => '-', // tri auto : ordre pour une requête booléenne, cf setSortOrder.
+            'docset'            => null, // un tableau de termes : array('REF'=>array(1,2,3,4...));
         );
     }
 
@@ -1458,6 +1459,7 @@ class XapianDatabaseDriver extends Database
             ->asArray('facets')->set()
             ->unique('boost')->set()
             ->unique('autosort')->set()
+            // docset : n'est pris en compte que si c'est un tableau de tableaux
             ;
 
         // Traduit l'opérateur par défaut (defaultop) en opérateur Xapian (defaultopcode)
@@ -1976,6 +1978,37 @@ class XapianDatabaseDriver extends Database
                 $query=new XapianQuery(XapianQuery::OP_FILTER, $query, $filter);
         }
 
+        // DocSet. tableau de tableaux. la clé indique l'index
+        if (is_array($this->options->docset))
+        {
+            $docset = null;
+            foreach($this->options->docset as $index=>$values)
+            {
+                $terms = array();
+
+                // Détermine le préfixe de l'index
+                $index=Utils::ConvertString($index, 'alphanum');
+                if (!isset($this->schema->indices[$index]))
+                    throw new Exception("DocSet incorrect : l'index $index n'existe pas");
+                $prefix=$this->schema->indices[$index]->_id . ':';
+
+                foreach((array)$values as $value)
+                {
+                    $terms[]=$prefix . $value; // todo faire un convertString ?
+                }
+
+                if (is_null($docset))
+                    $docset = new XapianQuery(XapianQuery::OP_OR, $terms); // todo: OP_SYNONYM
+                else
+                    $docset = new XapianQuery(XapianQuery::OP_AND, XapianQuery(XapianQuery::OP_OR, $terms));
+            }
+            // echo 'DocSet : <pre>', $docset->get_description(), '</pre>';
+            if (is_null($query))
+                $query = $docset;
+            else
+                $query=new XapianQuery(XapianQuery::OP_FILTER, $query, $docset);
+        }
+
         // defaultequation : si on n'a toujours pas de requête, utilise l'équation par défaut
         if (is_null($query))
         {
@@ -2349,6 +2382,7 @@ class XapianDatabaseDriver extends Database
 
         return array_keys($terms);
     }
+
 
     private function loadDocument()
     {
