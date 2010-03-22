@@ -4,10 +4,11 @@
 <head>
     <title>$title</title>
     <meta http-equiv="Content-Type" content="application/xhtml+xml; charset=iso-8859-1" />
-    $CSS
-    $JS
+    {$this->getJsLinks()}
+    {$this->getCssLinks()}
 </head>
 <body>
 $contents 
+<if test="{timer and debug}">{Timer::printOut(true)}</if>
 </body>
 </html>
