@@ -281,13 +281,12 @@ final class Utils
         for ($i=1; $i<$nb; $i++)
         {
             $dir=func_get_arg($i);
-            debug && Debug::log("Recherche du fichier [%s]. result=[%s]", $file, realpath(rtrim($dir,'/\/').DIRECTORY_SEPARATOR.$file));
-            if ($path=realpath(rtrim($dir,'/\/').DIRECTORY_SEPARATOR.$file))
+            if (false !== $path=Utils::realpath(rtrim($dir,'/\/').DIRECTORY_SEPARATOR.$file))
                 return $path;
         }
 
         foreach(self::$searchPath as $dir)
-            if ($path=realpath($dir.DIRECTORY_SEPARATOR.$file))
+            if (false !== $path=Utils::realpath($dir.DIRECTORY_SEPARATOR.$file))
                 return $path;
 
         return false;
@@ -296,7 +295,7 @@ final class Utils
     static $searchPath=array();
     public static function clearSearchPath()
     {
-        self::$searchPath=array(realpath(Runtime::$fabRoot.'core/template'));
+        self::$searchPath=array(Utils::realpath(Runtime::$fabRoot.'core/template'));
         // HACK: le fait de toujours avoir core/template dans le chemin est un hack
         // il faudrait gérer des "états" et pouvoir revenir à un état donné
     }
@@ -328,7 +327,7 @@ final class Utils
         for ($i=1; $i<$nb; $i++)
         {
             $dir=rtrim(func_get_arg($i), '/\\');
-            if (($handle=opendir($dir))!==false) // si le répertoire n'existe pas, on ignore
+            if (is_dir($dir) &&  false !== $handle=opendir($dir)) // si le répertoire n'existe pas, on ignore
             {
                 while (($thisFile=readdir($handle)) !==false)
                 {
@@ -339,7 +338,7 @@ final class Utils
                         // un fichier et un sous-répertoire portant le même nom
 
                         closedir($handle);
-                        return realpath($dir . DIRECTORY_SEPARATOR . $thisFile);
+                        return Utils::realpath($dir . DIRECTORY_SEPARATOR . $thisFile);
                     }
                 }
                 closedir($handle);
@@ -2155,6 +2154,26 @@ final class Utils
 
         // Met les mots en surbrillance et retourne le résultat
         return strtr($corrected, $t);
+    }
+
+
+    /**
+     * Méthode de remplacement de la fonction php {@link realpath()}.
+     *
+     * Le comportement de realpath() a changé à partir de php 5.2.4 : la fonction peut parfois
+     * retourner <code>true</code> pour des fichiers qui n'existe pas.
+     * (source : http://php.net/manual/en/function.realpath.php#82770).
+     *
+     * Bug rencontré sur Mac OS X (avec Bruno Bernard Simon).
+     *
+     * @param string $path le chemin du fichier à tester.
+     * @return string|false retourne le chemin canonique du fichier ou <code>false</code> si le
+     * fichier indiqué n'existe pas.
+     */
+    public static function realpath($path)
+    {
+        if (! file_exists($path)) return false;
+        return realpath($path);
     }
 }
 ?>

@@ -61,7 +61,7 @@ class Config
     public static function loadFile($configPath, array $transformer=null)
     {
         // Vérifie que le fichier demandé existe
-        if (false === $path=realpath($configPath))
+        if (false === $path=Utils::realpath($configPath))
             throw new Exception("Impossible de trouver le fichier de configuration '$configPath'");
 
         // Retourne le fichier depuis le cache s'il existe et est à jour
