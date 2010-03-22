@@ -374,11 +374,13 @@ class FileBasedSecurity extends BaseSecurity
      */
     private function setCookie($user, $remember=false)
     {
+        $cookie = $this->config['cookie'];
+
         // Calcule la date d'expiration du cookie
         if ($remember)
         {
             // expire après la durée indiquée dans la config
-            $validUntil = $expire = time() + $this->config['cookie']['lifetime'];
+            $validUntil = $expire = time() + $cookie['lifetime'];
         }
         else
         {
@@ -402,15 +404,15 @@ class FileBasedSecurity extends BaseSecurity
         // Crée le cookie
         setcookie
         (
-            $this->config['cookie']['name'],
+            $cookie['name'],
             $value,
             $expire,
-            $this->config['cookie']['path'],
-            $this->config['cookie']['domain'],
+            $cookie['path'],
+            $cookie['domain'],
             false,
-            $this->config['cookie']['http-only']
+            $cookie['http-only']
         );
-        $_COOKIE[$this->config['cookie']['name']]=$value;
+        $_COOKIE[$cookie['name']]=$value;
     }
 
 
@@ -420,18 +422,20 @@ class FileBasedSecurity extends BaseSecurity
      */
     private function clearCookie()
     {
+        $cookie = $this->config['cookie'];
+
         // Efface le cookie
         setcookie
         (
-            $this->config['cookie']['name'],
+            $cookie['name'],
             false,
             0,
-            $this->config['cookie']['path'],
-            $this->config['cookie']['domain'],
+            $cookie['path'],
+            $cookie['domain'],
             false,
-            $this->config['cookie']['http-only']
+            $cookie['http-only']
         );
-        unset($_COOKIE[$this->config['cookie']['name']]);
+        unset($_COOKIE[$cookie['name']]);
     }
 
 
