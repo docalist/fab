@@ -1686,18 +1686,18 @@ class DatabaseModule extends Module
         if ($firstLabel)
         {
             if ($current > 1)
-                echo '<a class="first" href="',$request, 1,'" title="Première page">', $firstLabel, '</a>';
+                echo ' <a class="first" href="',$request, 1,'" title="Première page">', $firstLabel, '</a> ';
             else
-                echo '<span class="first">', $firstLabel, '</span>';
+                echo ' <span class="first">', $firstLabel, '</span> ';
         }
 
         // Lien vers la page précédente
         if ($previousLabel)
         {
             if ($current > 1)
-                echo '<a class="previous" href="', $request, 1+($current-2)*$max,'" title="Page précédente">', $previousLabel, '</a>';
+                echo ' <a class="previous" href="', $request, 1+($current-2)*$max,'" title="Page précédente">', $previousLabel, '</a> ';
             else
-                echo '<span class="previous">', $previousLabel, '</span>';
+                echo ' <span class="previous">', $previousLabel, '</span> ';
 
         }
 
@@ -1706,12 +1706,12 @@ class DatabaseModule extends Module
         {
             if ($i===$current)
             {
-                echo '<span class="current">', $i, '</span>';
+                echo ' <span class="current">', $i, '</span> ';
             }
             else
             {
                 $title='Réponses '.(1+($i-1)*$max) . ' à ' . min($count, $i*$max);
-                echo '<a href="', $request, 1+($i-1)*$max,'" title="', $title, '">', $i, '</a>';
+                echo ' <a href="', $request, 1+($i-1)*$max,'" title="', $title, '">', $i, '</a> ';
             }
         }
 
@@ -1719,9 +1719,9 @@ class DatabaseModule extends Module
         if ($nextLabel)
         {
             if ($current < $maxlast)
-                echo '<a class="next" href="', $request, 1+($current)*$max,'" title="Page suivante">', $nextLabel, '</a>';
+                echo ' <a class="next" href="', $request, 1+($current)*$max,'" title="Page suivante">', $nextLabel, '</a> ';
             else
-                echo '<span class="next">', $nextLabel, '</span>';
+                echo ' <span class="next">', $nextLabel, '</span> ';
 
         }
 
@@ -1729,9 +1729,9 @@ class DatabaseModule extends Module
         if ($lastLabel)
         {
             if ($current < $maxlast)
-                echo '<a class="last" href="', $request, 1+($maxlast-1)*$max,'" title="Dernière page">', $lastLabel, '</a>';
+                echo ' <a class="last" href="', $request, 1+($maxlast-1)*$max,'" title="Dernière page">', $lastLabel, '</a> ';
             else
-                echo '<span class="last">', $lastLabel, '</span>';
+                echo ' <span class="last">', $lastLabel, '</span> ';
         }
     }
 
