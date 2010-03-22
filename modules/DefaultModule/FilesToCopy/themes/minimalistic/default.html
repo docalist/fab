@@ -1,0 +1,65 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <title>$title</title>    
+    <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1" />
+    <link rel="stylesheet" type="text/css" href="/css/minimalistic/minimalistic.css" media="screen" />
+    {$this->getCssLinks()}
+    {$this->getJsLinks()}
+</head>
+<body>
+<div id="page">
+    <div id="header">
+        <h1><a href="/">$title</a></h1>
+    </div>
+    
+    <div id="wrapper">
+        <div id="content">$contents</div>
+    
+        <div id="sidebar"> 
+            <h2>Connexion/déconnexion</h2>
+            <ul>
+                <if test="{! User::isConnected()}">
+                    <li><a href="/FileBasedSecurity/Login?redirect={$this->request}">Connexion au site</a></li>
+                </if>
+                <else>
+                    <li><a href="/FileBasedSecurity/Logout?redirect={$this->request}">Déconnexion {User::get('login')}</a></li>
+                </else>
+            </ul>            
+
+            <h2>Outils</h2>
+            <ul>
+                <li test="{User::hasAccess('Admin')}"><a href="/Admin/">Administration du site</a></li>
+                <li test="{User::hasAccess('Admin')}"><a href="/TaskManager/">Gestionnaire de tâches</a></li>
+                <li><a href="/AutoDoc/">Consulter la documentation</a></li>
+                <li><a href="/PhpInfo/">Afficher le PhpInfo</a></li>
+                <li><a href="/debug.php{$this->request}">Passer en mode "debug"</a></li>
+            </ul>            
+            
+            <h2>Liens</h2>
+            
+            <ul>
+            <li><a href="http://fab.googlecode.com/">Fab</a></li> 
+            <li><a href="http://www.bdsp.ehesp.fr/">Banque de données santé publique</a></li> 
+            <li><a href="http://www.xapian.org/">Xapian</a></li> 
+            </ul>
+            
+            <p style="text-align: center">
+                <a href="http://www.bdsp.ehesp.fr/"><img src="/images/bdsp-64x83.png" alt="Bdsp" /></a>
+            </p>
+            <br />            
+            <p style="text-align: center">
+                <a href="http://www.xapian.org/"><img src="/images/xapian-powered.png" alt="Xapian" /></a>
+            </p>            
+        </div>
+        
+        <div style="clear: both;"> </div>
+    </div>
+    
+    <div id="footer">
+        <p>Design by <a href="http://www.minimalistic-design.net">Minimalistic Design</a></p>
+    </div>
+
+</div>
+</body>
+</html>

@@ -1,0 +1,23 @@
+<h1>Création d'une nouvelle application</h1>
+
+<p class="error">$error</p>
+<form action="">
+    <fieldset label="Paramètres de l'application">
+        <textbox name="name" label="Nom de l'application :"  value="$name" onkeyup="jQuery('#path').val('$basedir' + jQuery('#name').val() + '/');"  size="80" />
+        <textbox name="title" label="Titre de l'application :" value="{$title:'Mon application web'}" size="80" />
+        <textbox name="path" label="Répertoire d'installation :" value="$path" size="80" />
+    </fieldset>
+    
+    <fieldset label="Administrateur du site">
+        <p>
+            Un compte administrateur va être créé. Choisissez l'identifiant et le mot de passe 
+            à utiliser.
+        </p>
+        <textbox name="login" label="Identifiant :"  value="{$login:'admin'}" size="80" />
+        <textbox name="password" label="Mot de passe :" value="$password" size="80" />
+        <textbox name="password2" label="Retapez le mot de passe :" value="$password2" size="80" />
+    </fieldset>
+
+    <hidden name="confirm" value="1" />
+    <submit label="Créer l'application..." />
+</form>

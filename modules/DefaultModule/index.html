@@ -1,8 +1,68 @@
+<h1>Bienvenue !</h1>
+
+<p>Votre nouvelle application vient d'être créée.</p>
+
+<p>Pour le moment, elle utilise la configuration par défaut.</p>
+
+<h2>Configuration</h2>
+
 <p>
-    Cette application est en cours de construction.
+    Le fichier de configuration principal s'appelle 
+    <a href="/AdminConfig/Edit?file=general.config">general.config</a> et il a été créé pour vous
+    dans le répertoire <a href="/AdminConfig/">/config</a> de votre application.
+    Par la suite, vous allez créer de nouveaux fichiers de configuration pour chacun des modules
+    de votre application.
 </p>
 
-<ul>
-    <li><a href="/Admin">Admin</a></li>
-    <li><a href="/AutoDoc">doc</a></li>
-</ul>
+<p>
+    <a href="/AutoDoc/?filename=fab.config">Consultez la documentation</a> pour obtenir des 
+    informations supplémentaires sur les fichiers de configuration.
+</p>
+
+<h2>Look de votre application</h2>
+
+<p>
+    Un thème a été créé pour vous. Il s'appelle "minimalistic" et il se trouve dans le répertoire 
+    <a href="/AdminFiles/?directory=themes">/themes/</a> de votre application. Deux dispositions 
+    différentes sont disponibles : 
+    <a href="/AdminFiles/Edit?directory=themes\minimalistic&amp;file=default.html">default.html</a>
+    qui a une barre latérale à gauche, et  
+    <a href="/AdminFiles/Edit?directory=themes\minimalistic&amp;file=nomenu.html">nomenu.html</a> 
+    qui n'en a pas (<a href="/Admin/">exemple</a>).
+</p>
+
+
+<h2>Création des bases de données</h2>
+
+<p>
+    Vous souhaitez probablement créer des bases de données pour votre application :
+    pour chaque base de données, commencez par créer 
+    <a href="/AutoDoc/?filename=fab.schemas">son schéma</a> (c'est-à-dire sa structure) en
+    utilisant <a href="/AdminSchemas/">l'éditeur intégré</a> puis 
+    <a href="/AdminDatabases/">créez la base de données</a> à partir de ce schéma.
+</p>
+
+
+<h2>Création de nouveaux modules</h2>
+
+<p>
+    Fab dispose de quelques modules prêts à l'emploi que vous n'avez plus qu'à configurer et
+    à personnaliser. Vous pouvez également fabriquer vos propres modules en créant un nouveau 
+    répertoire dans le répertoire <a href="/AdminModules/">modules</a> de votre application.
+</p>
+<p>
+    <a href="/AutoDoc/?filename=fab.modules">Consultez la documentation</a> pour plus d'informations.
+</p>
+
+<h2>Templates</h2>
+
+<p>
+    Fab dispose d'un système de templates qui permet d'avoir une séparation nette entre la 
+    présentation du site et le code PHP sous-jacent. Les templates peuvent être utilisés pour 
+    générer n'importe quelle sortie au format texte (texte brut, xml, html, rtf, etc.)
+    Ils constituent une solution simples, rapide, évolutive et modulaire pour toutes les pages 
+    de votre application.
+</p>
+<p>
+    <a href="/AutoDoc/?filename=fab.templates">Consultez la documentation</a> pour plus d'informations.
+</p>
