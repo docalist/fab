@@ -28,7 +28,7 @@ depuis des modules différents (DatabaseModule, TaskManager) */
     </fieldset>
 
     <hidden name="confirm" value="{time()}" />
-    <hidden name="_equation" value="{htmlspecialchars($this->equation)}" />
+    <hidden name="_equation" value="{htmlspecialchars($this->selection->searchInfo('equation'))}" />
     <submit label="Supprimer..." />
 
 </form>
