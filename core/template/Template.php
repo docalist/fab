@@ -172,7 +172,7 @@ class Template
      * quand source est non null, on n'essaie pas de charger le fichier $path, on utilise dirtectement
      * le source
      */
-    private static function runInternal($path, array $data, $source=null)
+    public static function runInternal($path, array $data, $source=null)
     {
 //echo '<div style="background:#888;padding: 1em;border: 1px solid red;"><div>','TEMPLATE ', $path,'</div>';
         debug && Debug::log('Exécution du template %s', $path);
