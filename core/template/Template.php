@@ -492,7 +492,7 @@ return false (ne pas afficher le contenu par défaut)
             $savConfig=Config::getAll();
             Config::clear();
             Config::addArray(Runtime::$baseConfig);
-            Module::runAs($request, $module, $action);
+            Module::runAs($request, $module, $action, true);
             Config::clear();
             Config::addArray($savConfig);
             Runtime::$request->setModule($sav);
