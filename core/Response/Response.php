@@ -43,13 +43,45 @@
 class Response
 {
     /**
+     * Version du protocole http utilisée pour la réponse (<code>'1.0'</code> ou <code>'1.1'</code>).
+     *
+     * @var string
+     */
+    protected $version = null;
+
+
+    /**
+     * Code http de la réponse tel que définit par {@link setStatus()}.
+     *
+     * Par défaut, la propriété est à <code>null</code> ce qui signifie qu'on n'envoie rien
+     * nous-même et qu'on laisse l'action exécutée, php et/ou apache fournir (ou non) une valeur
+     * par défaut.
+     *
+     * @var int
+     */
+    protected $status = null;
+
+
+    /**
+     * Entêtes http générés par la réponse tels que définits par {@link setHeader()}.
+     *
+     * @var array()
+     */
+    protected $headers = array();
+
+
+    /**
      * {@link http://fr.wikipedia.org/wiki/Type_MIME Type mime} de la requête. Cette propriété est
      * destinée à être surchargée par les classes descendantes. Le constructeur ajoute
      * automatiquement un entête http 'Content-Type' contenant le type mime indiqué.
      *
+     * Par défaut, la propriété est à <code>null</code> ce qui signifie qu'on n'envoie rien
+     * nous-même et qu'on laisse l'action exécutée, php et/ou apache fournir (ou non) une valeur
+     * par défaut.
+     *
      * @var string
      */
-    protected $contentType = 'text/plain';
+    protected $contentType = null;
 
 
     /**
@@ -59,9 +91,24 @@ class Response
      * est automatiquement ajouté au contenu de la propriété {@link $contentType} pour former
      * l'entête http Content-Type.
      *
+     * Par défaut, la propriété est à <code>null</code> ce qui signifie qu'on n'envoie rien
+     * nous-même et qu'on laisse l'action exécutée, php et/ou apache fournir (ou non) une valeur
+     * par défaut.
+     *
      * @var string
      */
-    protected $charset = 'ISO-8859-1';
+    protected $charset = null;
+
+
+    /**
+     * Cookies générés par la réponse (cf {@link cookie()}).
+     *
+     * Chaque élément est un tableau contenant les arguments passés en paramètres lors de l'appel à
+     * la méthode {@link setCookie()}.
+     *
+     * @var array
+     */
+    protected $cookies = array();
 
 
     /**
@@ -86,40 +133,6 @@ class Response
      * @var string
      */
     protected $templateData = null;
-
-
-    /**
-     * Code http de la réponse tel que définit par {@link setStatus()}.
-     *
-     * @var int
-     */
-    protected $status = 200;
-
-
-    /**
-     * Version du protocole http utilisée pour la réponse (<code>'1.0'</code> ou <code>'1.1'</code>).
-     *
-     * @var string
-     */
-    protected $version = null;
-
-
-    /**
-     * Entêtes http générés par la réponse tels que définits par {@link setHeader()}.
-     * @var array()
-     */
-    protected $headers = array();
-
-
-    /**
-     * Cookies générés par la réponse (cf {@link cookie()}).
-     *
-     * Chaque élément est un tableau contenant les arguments passés en paramètres lors de l'appel à
-     * la méthode {@link setCookie()}.
-     *
-     * @var array
-     */
-    protected $cookies = array();
 
 
     /**
@@ -193,22 +206,25 @@ class Response
         505 => 'HTTP Version not supported',
         507 => 'Insufficient storage', // WebDav
         509 => 'Bandwidth Limit Exceeded', // Non officiel : dépassement de quota
-  );
+    );
+
 
     /**
-     * Contructeur
+     * Crée un objet Response.
      *
-     * Remarque :
-     * Dans sa version actuelle, le constructeur ne fait rien de particulier, mais sa présence
-     * garantit que toutes les classes descendantes ont bel et bien un constructeur et cela
-     * évite un warning dans la méthode {@link Response::create()}.
+     * Si un type mime {@link $contentType a été défini}, ajoute une entête http Content-Type à la
+     * réponse.
      */
     public function __construct()
     {
         if ($this->contentType)
         {
-            if ($this->charset) $charset = ';charset=' . $this->charset; else $charset = '';
-            $this->setHeader('Content-Type', $this->contentType . $charset);
+            if ($this->charset)
+                $content = $this->contentType . ';charset=' . $this->charset;
+            else
+                $content = $this->contentType;
+
+            $this->setHeader('Content-Type', $content);
         }
     }
 
@@ -275,7 +291,7 @@ class Response
 
         // Stocke le chemin absolu du template
         if (Utils::isRelativePath($path) &&  false === $path=Utils::searchFile($sav=$path))
-            throw new Exception("Impossible de trouver le template $sav. searchPath=".print_r(Utils::$searchPath, true));
+            throw new Exception("Impossible de trouver le template $sav.");
         $this->template = $path;
 
         // Stocke les données du template
@@ -284,6 +300,7 @@ class Response
 
         return $this;
     }
+
 
     /**
      * Définit le contenu statique à utiliser pour générer la réponse.
@@ -327,7 +344,6 @@ class Response
     public function appendContent($content)
     {
         $this->content .= $content;
-
         return $this;
     }
 
@@ -339,13 +355,49 @@ class Response
      */
     public function __toString()
     {
-        $result = $this->getType();
-        if ($this->template)
-            $result .= ' : template(' . $this->template . ')';
-        else
-            $result .= ' : content(' . var_export($this->content,true) . ')';
-        return $result;
+        ob_start();
+
+        // Class type
+        printf("<pre>%s :\n{\n", get_class($this));
+
+        // Statut http
+        if ($this->status)
+        {
+            if (is_null($this->version)) $this->setVersion();
+            printf("    HTTP/%s %s %s\n", $this->version, $this->status, self::$httpStatus[$this->status]);
+        }
+
+        // Entêtes http
+        foreach ($this->headers as $name => $value)
+            foreach((array)$value as $item)
+                printf("    %s: %s\n", $name, $item);
+
+        // Cookies
+        foreach ($this->getCookies() as $cookie)
+        {
+            $name = isset($cookie['name']) ? $cookie['name'] : 'null';
+            unset($cookie['name']);
+            $value = isset($cookie['value']) ? $cookie['value'] : 'null';
+            unset($cookie['value']);
+            $properties = '';
+            if ($cookie)
+            {
+                foreach($cookie as $k=>$v)
+                    $properties[] = $k . '=' . $v;
+                $properties = '(' . implode(',', $properties) . ')';
+            }
+
+            printf("    Set-Cookie: %s=%s%s\n", $name, $value, $properties);
+        }
+
+        print("\n");
+        echo htmlspecialchars($this->render());
+
+        printf("\n}</pre>");
+
+        return ob_get_clean();
     }
+
 
     /**
      * Définit le code http de la réponse.
@@ -454,6 +506,7 @@ class Response
             return $this;
         }
 
+        // Ajout d'une nouvelle valeur à un entête déjà défini
         if (is_array($this->headers[$name]))
             $this->headers[$name][] = $value;
         else
@@ -464,17 +517,18 @@ class Response
 
 
     /**
-     * Retourne la valeur actuelle de l'entête http indiqué ou null si l'entête n'a pas
-     * été définit.
+     * Retourne la valeur actuelle de l'entête http indiqué ou <code>false</code> si l'entête n'a
+     * pas été défini.
      *
      * @param string $name
-     * @return string|null
+     * @return string|false
      */
     public function getHeader($name)
     {
         $name = $this->headerName($name);
-        if (isset($this->headers[$name])) return $this->headers[$name];
-        // return null; // inutile
+        if (isset($this->headers[$name]))
+            return $this->headers[$name];
+        return false;
     }
 
 
@@ -496,7 +550,7 @@ class Response
      *
      * @return array un tableau contenant tous les entêtes. Les clés du tableaux correspondent aux
      * noms des entêtes ajoutés. Les valeurs correspondent aux valeurs passées en paramètre lors
-     * de l'appel à la méthode {@link header()}. Si un meêm entête a été définit plusieurs fois,
+     * de l'appel à la méthode {@link header()}. Si un même entête a été définit plusieurs fois,
      * dans ce cas la valeur correspondante dans le tableau sera un tableau contenant les
      * différentes valeurs.
      */
@@ -524,7 +578,7 @@ class Response
      * @param string $name
      * @return string
      */
-    public function headerName($name)
+    protected function headerName($name)
     {
         return strtr(ucwords(strtolower(strtr(trim($name), '-_', '  '))), ' ', '-');
     }
@@ -606,7 +660,7 @@ class Response
         $result = array();
         foreach($this->cookies as $name=>$cookie)
             $result[$name] = $this->getCookie($name);
-        return $this->cookies;
+        return $result;
     }
 
 
@@ -631,14 +685,17 @@ class Response
      *
      * @return Response $this
      */
-    protected function sendHeaders()
+    protected function outputHeaders()
     {
         // Si les entêtes ont déjà été envoyés, on ne peut pas envoyer les notres
         if (headers_sent()) return $this;
 
         // Statut http
-        if (is_null($this->version)) $this->setVersion();
-        header(sprintf('HTTP/%s %s %s', $this->version, $this->status, self::$httpStatus[$this->status]));
+        if ($this->status)
+        {
+            if (is_null($this->version)) $this->setVersion();
+            header(sprintf('HTTP/%s %s %s', $this->version, $this->status, self::$httpStatus[$this->status]));
+        }
 
         // Entêtes http
         foreach ($this->headers as $name => $value)
@@ -654,19 +711,12 @@ class Response
 
 
     /**
-     * Exécute la réponse et envoie le résultat sur la sortie standard.
-     *
-     * @param object $context le contexte d'exécution (typiquement le {@link Module module} qui a
-     * exécuté la requête). Actuellement, ce n'est utilisé que par {@link LayoutResponse} et ses
-     * classes descendantes pour exécuter le layout dans le bon contexte.
+     * Génère le contenu de la réponse.
      *
      * @return Response $this
      */
-    public function output($context)
+    public function outputContent()
     {
-        // Entêtes http
-        $this->sendHeaders();
-
         // Contenu statique
         echo $this->content;
 
@@ -680,7 +730,21 @@ class Response
 
 
     /**
-     * Exécute la réponse et retourne le résultat sous forme de chaine de caractères.
+     * Génère la répoonse complète ({@link outputHeaders() entêtes} et
+     * {@link outputContent() contenu}).
+     *
+     * @return Response $this
+     */
+    public function output()
+    {
+        $this->outputHeaders();
+        $this->outputContent();
+        return $this;
+    }
+
+
+    /**
+     * Génère le contenu de la réponse et le retourne sous forme de chaine de caractères.
      *
      * Remarque : <code>render()</code> ne génère que la réponse. Les entêtes http, les cookies et
      * le layout éventuel ne sont ni retournés, ni envoyés au navigateur.
@@ -690,9 +754,7 @@ class Response
     public function render()
     {
         ob_start();
-        echo $this->content;
-        if ($this->template)
-            Template::runInternal($this->template, $this->templateData);
+        $this->outputContent();
         return ob_get_clean();
     }
 
@@ -706,5 +768,18 @@ class Response
     public function hasLayout()
     {
         return $this instanceof LayoutResponse;
+    }
+
+
+    /**
+     * Méthode utilitaire permettant de générer une exception de type BadMethodCallException si
+     * l'appel d'une méthode n'est pas autorisé.
+     *
+     * @param string|null $message texte additionnel à ajouter au mesage de l'exception.
+     */
+    protected function illegal($message=null)
+    {
+        if ($message) $message = ' : ' . $message;
+        throw new BadMethodCallException('Opération illégale pour une réponse de type '. get_class($this) . $message);
     }
 }
