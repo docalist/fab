@@ -31,6 +31,14 @@ abstract class Module
 
 
     /**
+     * La réponse générée par l'action exécutée.
+     *
+     * @var Response
+     */
+    protected $response = null;
+
+
+    /**
      * Permet à un module de s'initialiser une fois que sa configuration
      * a été chargée.
      *
@@ -440,13 +448,13 @@ Config::addArray($this->config);    // fixme: objectif : uniquement $this->confi
         return $module;
     }
 
-    public static function runAs(Request $request, $module, $action)
+    public static function runAs(Request $request, $module, $action, $asSlot=false)
     {
         Utils::clearSearchPath();
         $module=self::loadModule($module);
         $module->request=$request;
         $module->configureAction($action);
-        $module->execute();
+        $module->execute($asSlot);
 
         // Expérimental : enregistre les données du formulaire si un paramètre "_autosave" a été transmis
         if ($request->has('_autosave'))
@@ -465,82 +473,6 @@ Config::addArray($this->config);    // fixme: objectif : uniquement $this->confi
         return $_SESSION['autosave'][$name];
     }
 
-
-    public function runAction()
-    {
-        // Utilise la reflexion pour examiner les paramètres de l'action
-        $reflectionModule=new ReflectionObject($this);
-        $reflectionMethod=$reflectionModule->getMethod($this->method);
-        $params=$reflectionMethod->getParameters();
-
-        // On va construire un tableau args contenant tous les paramètres
-        $args=array();
-        foreach($params as $i=>$param)
-        {
-            // Récupère le nom du paramètre
-            $name=$param->getName();
-
-            // La requête a une valeur non vide pour ce paramètre : on le vérifie et on l'ajoute
-            if ($this->request->has($name))
-            {
-                $value=$this->request->get($name);
-
-                if ($value!=='' && !is_null($value))
-                {
-                    // Tableau attendu : caste la valeur en tableau
-                    if ($param->isArray() && !is_array($value))
-                    {
-                        $args[$name]=array($value);
-                        continue;
-                    }
-
-                    // Objet attendu, vérifie le type
-                    if ($class=$param->getClass())
-                    {
-                        $class=$class->getName();
-                        if (! is_null($class) && !$value instanceof $class)
-                        {
-                            throw new InvalidArgumentException
-                            (
-                                sprintf
-                                (
-                                    '%s doit être un objet de type %s',
-                                    $name,
-                                    $class
-                                )
-                            );
-                        }
-                        $args[$name]=$value;
-                        continue;
-                    }
-
-                    // tout est ok
-                    $args[$name]=$value;
-                    continue;
-                }
-            }
-
-            // Sinon, on utilise la valeur par défaut s'il y en a une
-            if (!$param->isDefaultValueAvailable())
-            {
-                throw new InvalidArgumentException
-                (
-                    sprintf
-                    (
-                        '%s est obligatoire',
-                        $name
-                    )
-                );
-            }
-
-            // ok
-            $args[$name]=$param->getDefaultValue();
-        }
-
-        // Appelle la méthode avec la liste d'arguments obtenus
-        debug && Debug::log('Appel de la méthode %s->%s()', get_class($this), $this->method);
-        $reflectionMethod->invokeArgs($this, $args);
-    }
 
     /**
      * Fonction appelée avant l'exécution de l'action demandée.
@@ -563,96 +495,181 @@ Config::addArray($this->config);    // fixme: objectif : uniquement $this->confi
     {
     }
 
-    static $layoutSent=false;
-    public final function execute()
+    /**
+     * Exécute l'action demandée
+     *
+     *    Cas de figure :
+     *    1. Action fonctionnant selon le nouveau mode : l'action ne fait aucun echo, elle
+     *       se contente de retourner un objet Response.
+     *       - on se contente d'appeller Response::output()
+     *       - le buffering mis en place ne sert à rien dans ce cas (mais il n'a rien "consommé"
+     *         non plus comme on n'a fait aucun echo).
+     *    2. Action fonctionnant selon le nouveau mode, retourne un objet Response mais quelques
+     *       echos ont été faits au préalable.
+     *       - le buffering mis en place a collecté les echos
+     *       - on fait Response::prependContent() avec ces echos
+     *       - quand on exécute la réponse, cela génère : le layout, les echos, le template.
+     *    3. Action ancien mode : fait des echo ou des appels à template::Run. Ne retourne rien
+     *       ou retourne autre chose qu'un objet Response.
+     *       - le buffering mis en place a collecté les echos
+     *       - on crée une HtmlResponse vide
+     *       - on fait Response::prependContent() avec ces echos
+     *       - quand on exécute la réponse, cela génère : le layout, les echos.
+     *    4. Exécution d'une tâche
+     *       - dans ce cas, pas de buffering (sapi == cli)
+     *       - l'action fait ses echos, ils sont envoyés directement
+     *       - pb : le layout n'a pas été envoyé. en fait, ce n'est pas un problème : une tâche n'a
+     *         pas de layout.
+     *    5. Une action veut absolument envoyer elle-même son contenu
+     *       - pas de buffering (config : <output-buffering>false</output-buffering>)
+     *       - ok si pas de layout
+     *       - pb si layout : le résultat de l'action est envoyé avant le layout. Non géré pour
+     *         le moment, volontairement (ci-dessous : output buffering)
+     *
+     */
+    public final function execute($asSlot=false)
     {
-        debug && Debug::log('Exécution de %s', get_class($this));
+        // Propose au module de gérer lui-même l'exécution complète de l'action
+        if (true === $this->preExecute()) return;
 
-        if (Utils::isAjax())
-        {
-            $this->setLayout('none');
-            Config::set('debug', false);
-            Config::set('showdebug', false);
-            header('Content-Type: text/html; charset=ISO-8859-1'); // TODO : avoir une rubrique php dans general.config permettant de "forcer" les options de php.ini
-        }
-
-        // Pré-exécution
-        debug && Debug::log('Appel de %s->preExecute()', get_class($this));
-        if ($this->preExecute() === true)
-        {
-            debug && Debug::log('%s->preExecute a retourné %s, terminé', get_class($this), 'true');
-            return;
-        }
-
-        // Vérifie les droits
+        // Vérifie que l'utilisateur en cours a le droit d'exécuter l'action demandée
         $access=Config::get('access');
         if (! empty($access)) User::checkAccess($access);
 
-        // Vérifie que l'action existe
-//        pre($this->method);
+        // Vérifie que l'action demandée existe
         if ( is_null($this->method) || ! method_exists($this, $this->method))
-        {
             throw new ModuleActionNotFoundException($this->module, $this->action);
-        }
 
-        // A ce stade, le module doit avoir définit le layout, les CSS/JS, le titre, les metas
-        // et compagnie, soit via son fichier de configuration, soit via des appels à setLayout,
-        // addCSS, addJavascript, etc.
-        // On lance l'exécution du layout choisi. Le layout contient obligatoirement une balise
-        // [contents]. C'est au moment où celle-ci sera évaluée par notre callback (layoutCallback)
-        // que la méthode action du module sera appellée.
+        // Cas particulier : l'action veut absolument fonctionner "comme avant"
+//        if (false === Config::get('output-buffering', true))
+//        {
+//            $this->response = new LayoutResponse(); TODO : ne pas générer de statut et d'entêtes dans ce cas.
+//            $this->response->output($this);
+//        }
+//        else
+//        {
+            // Détermine s'il faut bufferiser ou non la sortie générée par l'action
+            $buffering = php_sapi_name() !== 'cli';
 
-        if (Config::get('sessions.use'))
-            Runtime::startSession();
+            // Exécute l'action demandée
+            if ($buffering) ob_start();
 
-        if (self::$layoutSent)
-        {
-            $this->runAction();
-            return;
-        }
-        self::$layoutSent=true;
+            $this->response = $this->callActionMethod();
 
-        // Détermine le thème et le layout à utiliser
-        $theme='themes' . DIRECTORY_SEPARATOR . Config::get('theme') . DIRECTORY_SEPARATOR;
-        $defaultTheme='themes' . DIRECTORY_SEPARATOR . 'default' . DIRECTORY_SEPARATOR;
-        $layout=Config::get('layout');
-        if (strcasecmp($layout,'none')==0)
-        {
-            $this->runAction();
-        }
-        else
-        {
-            $path=Utils::searchFile
-            (
-                $layout,                                // On recherche le layout :
-                Runtime::$root.$theme,                  // Thème en cours, dans l'application
-                Runtime::$fabRoot.$theme,               // Thème en cours, dans le framework
-                Runtime::$root.$defaultTheme,           // Thème par défaut, dans l'application
-                Runtime::$fabRoot.$defaultTheme         // Thème par défaut, dans le framework
-            );
-            if (!$path)
-                throw new Exception("Impossible de trouver le layout $layout");
+            if (! $this->response instanceof Response)
+                $this->response = new LayoutResponse();
 
-            debug && Debug::log('Exécution du layout %s', $path);
+            if ($buffering)
+                if ($output = ob_get_clean())
+                    $this->response->prependContent($output);
 
-            // Exécute le layout, qui se chargera d'exécuter l'action
-            Template::run
-            (
-                $path,
-                array($this,'layoutCallback') // cf note ci-dessous
-            );
-
-            // Avec les nouveaux thèmes utilisant getPageTitle(), getCssLinks()
-            // getJsLinks() et runAction(), layoutCallback ne sert à rien.
-            // On le conserve içi uniquement pour maintenir la compatibilité
-            // ascendante avec les anciens thèmes qui utilisaient $title, $JS,
-            // $CSS et $content. DM, 16/01/09
-        }
+            // Génère la réponse
+            if ($asSlot)
+                $this->response->outputContent();
+            elseif ($this->response->hasLayout())
+                $this->response->outputLayout($this);
+            else
+                $this->response->output();
+//        }
 
         // Post-exécution
-        debug && Debug::log('Appel de %s->postExecute()', get_class($this));
         $this->postExecute();
     }
+
+    /**
+     * Méthode appellée par les layouts pour afficher le contenu utile de la réponse.
+     */
+    public function runAction()
+    {
+//        if (false === Config::get('output-buffering', true))
+//            $this->callActionMethod();
+//        else
+            $this->response->outputContent();
+    }
+
+
+    /**
+     * Appelle la méthode correspondant à l'action demandée en lui passant en paramètre
+     * les arguments de la requête.
+     *
+     * @return mixed Retourne ce qu'a retourné la méthode (normallement, un objet Response).
+     */
+    private function callActionMethod()
+    {
+        // Utilise la reflexion pour examiner les paramètres de l'action
+        $reflectionModule = new ReflectionObject($this);
+        $reflectionMethod = $reflectionModule->getMethod($this->method);
+        $params = $reflectionMethod->getParameters();
+
+        // On va construire un tableau args contenant tous les paramètres
+        $args=array();
+        foreach($params as $i=>$param)
+        {
+            // Récupère le nom du paramètre
+            $name=$param->getName();
+
+            // La requête a une valeur non vide pour ce paramètre : on le vérifie et on l'ajoute
+            if ($this->request->has($name))
+            {
+                $value = $this->request->get($name);
+
+                if ($value !== '' && !is_null($value))
+                {
+                    // Tableau attendu : caste la valeur en tableau
+                    if ($param->isArray() && !is_array($value))
+                    {
+                        $args[$name] = array($value);
+                        continue;
+                    }
+
+                    // Objet attendu, vérifie le type
+                    if ($class = $param->getClass())
+                    {
+                        $class = $class->getName();
+                        if (! is_null($class) && !$value instanceof $class)
+                        {
+                            throw new InvalidArgumentException
+                            (
+                                sprintf
+                                (
+                                    '%s doit être un objet de type %s',
+                                    $name,
+                                    $class
+                                )
+                            );
+                        }
+                        $args[$name]=$value;
+                        continue;
+                    }
+
+                    // tout est ok
+                    $args[$name] = $value;
+                    continue;
+                }
+            }
+
+            // Sinon, on utilise la valeur par défaut s'il y en a une
+            if (!$param->isDefaultValueAvailable())
+            {
+                throw new InvalidArgumentException
+                (
+                    sprintf
+                    (
+                        '%s est obligatoire',
+                        $name
+                    )
+                );
+            }
+
+            // ok
+            $args[$name] = $param->getDefaultValue();
+        }
+
+        // Appelle la méthode avec la liste d'arguments obtenus
+        debug && Debug::log('Appel de la méthode %s->%s()', get_class($this), $this->method);
+        return $reflectionMethod->invokeArgs($this, $args);
+    }
+
 
     /**
      * Méthode appelée après l'exécution de l'action demandée.
