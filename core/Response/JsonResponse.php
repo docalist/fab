@@ -66,7 +66,7 @@ class JsonResponse extends TextResponse
      */
     public function prependContent($content)
     {
-        throw new Exception('Illegal pour une réponse de type ' . get_class($this));
+        $this->illegal();
     }
 
 
@@ -79,6 +79,6 @@ class JsonResponse extends TextResponse
      */
     public function appendContent($content)
     {
-        throw new Exception('Illegal pour une réponse de type ' . get_class($this));
+        $this->illegal();
     }
 }
