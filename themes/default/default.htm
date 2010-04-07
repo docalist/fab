@@ -2,13 +2,13 @@
 "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="fr">
 <head>
-    <title>$title</title>
+    <title>{$this->getPageTitle()}</title>
     <meta http-equiv="Content-Type" content="application/xhtml+xml; charset=iso-8859-1" />
     {$this->getJsLinks()}
     {$this->getCssLinks()}
 </head>
 <body>
-$contents 
+{$this->runAction()}
 <if test="{timer and debug}">{Timer::printOut(true)}</if>
 </body>
 </html>
