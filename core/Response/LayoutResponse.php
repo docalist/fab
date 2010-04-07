@@ -53,42 +53,26 @@ class LayoutResponse extends Response
      * Exécute le layout et envoie le résultat sur la sortie standard.
      *
      * Dans notre cas (LayoutResponse), la méthode travaille en collaboration avec la méthode
-     * runAction() de Module. La méthode output() se contente en fait d'envoyer le layout.
+     * runAction() de Module. La méthode outputLayout() se contente en fait d'envoyer le layout.
      *
      * Celui-ci, lors de son exécution, va appeller Module::runAction() qui (c'est là qu'est la
-     * collaboration) va appeller notre méthode spécifique outputContent().
+     * collaboration) va appeller la méthode outputContent() pour afficher le contenu utile de la
+     * réponse.
      *
-     * @param object $context le contexte d'exécution (typiquement le module qui a exécuté la
-     * requête).
+     * @param object $context le contexte d'exécution du template utilisé comme layout (typiquement
+     * le module qui a exécuté la requête).
      *
      * @return LayoutResponse $this
      */
-    public function output($context)
+    public function outputLayout($context)
     {
-        $this->sendHeaders();
+        $this->outputHeaders();
 
         if (false === ($layout = $this->getLayout()))
-            return parent::output($context);
+            return $this->outputContent();
 
         Template::runInternal($layout, array(array('this'=>$context)));
 
         return $this;
     }
-
-
-    /**
-     * Exécute la réponse.
-     *
-     * Cette méthode est appellée par Module::runAction() quand un layout est exécuté.
-     *
-     * @param object $context le contexte d'exécution (typiquement le module qui a exécuté la
-     * requête).
-     *
-     * @return LayoutResponse $this
-     */
-    public function outputContent($context)
-    {
-        return parent::output($context);
-    }
-
 }
