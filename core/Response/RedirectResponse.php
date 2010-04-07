@@ -81,7 +81,7 @@ class RedirectResponse extends Response
         $this->setHeader('Location', $location);
 
         // Définit le template qui sera utilisé pour générer la réponse
-        parent::template
+        parent::setTemplate
         (
             $this,
             dirname(__FILE__) . '/RedirectResponse.html',
@@ -104,7 +104,7 @@ class RedirectResponse extends Response
      */
     public function setContent($content = null)
     {
-        throw new Exception('Impossible de définir un contenu pour une réponse de type '. get_class($this));
+        $this->illegal();
     }
 
 
@@ -117,7 +117,7 @@ class RedirectResponse extends Response
      */
     public function prependContent($content)
     {
-        throw new Exception('Illegal pour une réponse de type ' . get_class($this));
+        $this->illegal();
     }
 
 
@@ -130,7 +130,7 @@ class RedirectResponse extends Response
      */
     public function appendContent($content)
     {
-        throw new Exception('Illegal pour une réponse de type ' . get_class($this));
+        $this->illegal();
     }
 
     /**
@@ -144,6 +144,6 @@ class RedirectResponse extends Response
      */
     public function setTemplate($context, $path, $data=null)
     {
-        $this->content(''); // évite de dupliquer le code de l'exception
+        $this->illegal();
     }
 }
