@@ -43,10 +43,10 @@ class RedirectResponse extends Response
     /**
      * Construit la redirection.
      *
-     * @param string|null $location l'adresse vers laquelle l'utilisateur sera redirigée. Il peut
-     * s'agit d'une url relative ou absolue ou encore d'une fab-url. Si vous n'indiquez pas
-     * d'adresse, le contenu de la vairable d'environnement HTTP_REFERER est utilisée. Si celle-ci
-     * est vide, une exception est générée.
+     * @param string|Request|null $location l'adresse vers laquelle l'utilisateur sera redirigée.
+     * Il peut s'agir d'une url relative ou absolue, d'une fab-url ou d'un objet Request.
+     * Si vous n'indiquez pas d'adresse, le contenu de la vairable d'environnement HTTP_REFERER
+     * est utilisée mais si celle-ci est vide, une exception est générée.
      *
      * @param bool $permanent par défaut la requête génére une redirection temporaire (302). Si vous
      * indiquez true pour ce paramètre, une redirection permanente (301) sera générée à la place.
@@ -68,8 +68,6 @@ class RedirectResponse extends Response
         }
 
         // Route l'adresse en url absolue
-        if (preg_match('~^[a-zA-Z]{3,6}:~', $location) === 0)
-            $location = Utils::getHost() . $location;
         else
             $location = Routing::linkFor($location, true);
 
