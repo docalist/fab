@@ -28,45 +28,6 @@ class DatabaseModule extends Module
      */
     public $selection=null;
 
-    /**
-     * Permet à l'action {@link actionExport() Export} d'avoir un layout s'il faut
-     * afficher le formulaire d'export, et de ne pas en avoir un si on dispose
-     * de tous les paramètres requis pour lancer l'export.
-     *
-     * @return bool retourne true pour interrompre l'exécution de l'action, l'export
-     * a été fait.
-     */
-    public function preExecute()
-    {
-        // HACK: permet à l'action export d'avoir un layout s'il faut afficher le formulaire d'export
-        // et de ne pas en avoir si tous les paramètres requis pour lancer l'export sont OK.
-        // TODO: il faudrait que fab offre plus de flexibilité sur le choix du layout
-        // Actuellement, on peut définir le layout dans la config ou dans preExecute. Lorsque l'action
-        // commence à s'exécuter, le début du layout a déjà été envoyé. Il faudrait avoir un système qui
-        // permette à l'action, jusqu'au dernier moment, de choisir le layout.
-        // Pistes étudiées :
-        // 1. action réelle export avec layout (afficher le formulaire) et pseudo action doexport avec
-        // layout none pour faire l'export à proprement parler.
-        // 2. hack dans preExecute : si tous les paramètres sont bon, faire un setLayout() (ce qu'on fait ci-dessous)
-        // 3. hack avec preExecute : appeller l'action dès le preExecute, si l'action retourne true, arrêter fab
-        // sinon, continuer l'exécution normale (qui va appeller à nouveau l'action)
-        // 4. (non testé) avoir une fonction runLayout() qu'on pourrait appeller dans l'action et qui ensuite appellerait
-        // à nouveau l'action (tordu !)
-        // 5. lazy layout magique : avoir un système qui détecte le premier echo effectué (un ob_handler) et qui, si un
-        // layout a été défini, commence à l'envoyer (suppose de savoir couper les layout en deux)
-        // 6. lazy layout manuel : le layout n'est jamais envoyé automatiquement. L'action doit appeller startLayout()
-        // quand elle commmence à envoyer des données. Dans Template::Run, un test if (!layoutSent) startLayout(), ce qui fait
-        // que ce serait transparent pour toutes les actions qui se contente d'afficher un template.
-        if ($this->method==='actionExport')
-        {
-            $defaultLayout=Config::get('layout');
-            $this->setLayout('none');               // essaie de faire l'export, pour ça on met layout à none
-            if ($this->actionExport(true)===true)   // l'export a été fait, terminé, demande à fab de s'arrêter
-                return true;
-            $this->setLayout($defaultLayout);       // export non fait, il faut afficher le formulaire, remet le layout initial
-        }
-    }
-
 
     // *************************************************************************
     //                            ACTIONS DU MODULE
@@ -92,8 +53,9 @@ class DatabaseModule extends Module
         $callback=$this->getCallback();
 
         // Exécute le template
-        Template::run
+        return Response::create('Html')->setTemplate
         (
+            $this,
             $template,
             array($this, $callback)
         );
@@ -141,21 +103,33 @@ class DatabaseModule extends Module
         // Détermine le callback à utiliser
         $callback=$this->getCallback();
 
-        // Exécute le template
-        timer && Timer::enter('Exécution du template d\'affichage des réponses');
-
-        Template::run
+        // Génère la réponse
+        $response = Response::create('Html')->setTemplate
         (
+            $this,
             $template,
             array($this, $callback),
             $this->selection->record
         );
-        timer && Timer::leave();
-
-        // Ajoute la requête dans l'historique des équations de recherche
-        $this->updateSearchHistory();
 
         timer && Timer::leave();
+        return $response;
+    }
+
+    /**
+     * Méthode appellée par fab après une fois que l'action demandée a été exécutée et que la
+     * réponse a été envoyée au client.
+     *
+     * Traitement effectué :
+     * 1. Mise à jour de l'historique des recherches : appelle updateSearchHistory si l'action
+     *    demandée était actionSearch ou une pseudo-action descendante.
+     */
+    public function postExecute()
+    {
+        if ($this->method==='actionSearch')
+            $this->updateSearchHistory();
+
+        parent::postExecute();
     }
 
     /**
@@ -321,7 +295,7 @@ class DatabaseModule extends Module
             }
         }
 
-        Runtime::redirect($_SERVER['HTTP_REFERER']);
+        return Response::create('Redirect');
     }
 
     /**
@@ -362,8 +336,9 @@ class DatabaseModule extends Module
         $callback=$this->getCallback();
 
         // Exécute le template
-        Template::run
+        return Response::create('Html')->setTemplate
         (
+            $this,
             $template,
             array($this, $callback),
             $this->selection->record
@@ -390,8 +365,9 @@ class DatabaseModule extends Module
         $this->openDatabase();
 
         // On exécute le template correspondant
-        Template::run
+        return Response::create('Html')->setTemplate
         (
+            $this,
             $template,
             array('REF'=>'0'),        // indique qu'on veut créer une nouvelle notice
             array($this, $callback)
@@ -419,10 +395,7 @@ class DatabaseModule extends Module
 
         // Si sélection contient plusieurs enreg, erreur
         if ($this->selection->count() > 1)
-        {
-            $this->showError('Vous ne pouvez pas éditer plusieurs enregistrements à la fois.');
-            return;
-        }
+            return $this->showError('Vous ne pouvez pas éditer plusieurs enregistrements à la fois.');
 
         // Détermine le template à utiliser
         if (! $template=$this->getTemplate())
@@ -431,8 +404,9 @@ class DatabaseModule extends Module
         // Détermine le callback à utiliser
         $callback=$this->getCallback();
 
-        Template::run
+        return Response::create('Html')->setTemplate
         (
+            $this,
             $template,
             array($this, $callback),
             $this->selection->record
@@ -457,10 +431,7 @@ class DatabaseModule extends Module
 
         // Si la sélection contient plusieurs enreg, erreur
         if ($this->selection->count() > 1)
-        {
-            $this->showError('Vous ne pouvez pas éditer plusieurs enregistrements à la fois.');
-            return;
-        }
+            return $this->showError('Vous ne pouvez pas éditer plusieurs enregistrements à la fois.');
 
         // Détermine le template à utiliser
         if (! $template=$this->getTemplate())
@@ -487,8 +458,9 @@ class DatabaseModule extends Module
         }
 
         // Affiche le formulaire de saisie/modification
-        Template::run
+        return Response::create('Html')->setTemplate
         (
+            $this,
             $template,
             array
             (
@@ -580,21 +552,16 @@ class DatabaseModule extends Module
 
         // Redirige vers le template s'il y en a un, vers l'action Show sinon
         if (! $template=$this->getTemplate())
-        {
-            // Redirige l'utilisateur vers l'action show
-            debug && Debug::log('Redirection pour afficher la notice enregistrée %s', $REF);
-            Runtime::redirect('Show?REF='.$REF);
-        }
-        else
-        {
-            Template::run
-            (
-                $template,
-                array('equationAnswers'=>'NA'),
-                $this->selection->record,
-                array('selection',$this->selection)
-            );
-        }
+            return Response::create('Redirect', 'Show?REF='.$REF);
+
+        return Response::create('Html')->setTemplate
+        (
+            $this,
+            $template,
+            array('equationAnswers'=>'NA'),
+            $this->selection->record,
+            array('selection',$this->selection)
+        );
     }
 
     /**
@@ -637,7 +604,7 @@ class DatabaseModule extends Module
         $confirm=$this->request->int('confirm')->ok();
         $confirm=time()-$confirm;
         if($confirm<0 || $confirm>Config::get('timetoconfirm',30))  // laisse timetoconfirm secondes à l'utilisateur pour confirmer
-            Runtime::redirect($this->request->setAction('confirmDelete'));
+            return Response::create('Redirect', $this->request->setAction('confirmDelete'));
 
         // Récupère le nombre exact de notices à supprimer
         $count=$this->selection->count();
@@ -654,8 +621,7 @@ class DatabaseModule extends Module
                 ->save()
                 ->getId();
 
-            Runtime::redirect('/TaskManager/TaskStatus?id='.$id);
-            return;
+            return Response::create('Redirect', '/TaskManager/TaskStatus?id='.$id);
         }
 
         // Supprime toutes les notices de la sélection
@@ -663,15 +629,12 @@ class DatabaseModule extends Module
             $this->selection->deleteRecord();
 
         // Exécute le template
-        Template::run
+        return Response::create('Html')->setTemplate
         (
+            $this,
             $this->getTemplate(),
             array($this, $this->getCallback())
         );
-
-        // Ferme la base maintenant
-        // FIXME: optionnel, voir si on garde
-        unset($this->selection);
     }
 
     /**
@@ -758,10 +721,7 @@ class DatabaseModule extends Module
         // Vérifie qu'on a des notices à modifier
         $this->openDatabase(false);
         if (! $this->select($this->equation, -1) )
-        {
-            $this->showError("Aucune réponse. Equation : $this->equation");
-            return;
-        }
+            return $this->showError("Aucune réponse. Equation : $this->equation");
 
         $count=$this->selection->count();
 
@@ -795,8 +755,7 @@ class DatabaseModule extends Module
                 ->save()
                 ->getId();
 
-            Runtime::redirect('/TaskManager/TaskStatus?id='.$id);
-            return;
+            return Response::create('Redirect', '/TaskManager/TaskStatus?id='.$id);
         }
 
         // Sinon, au boulot !
@@ -905,13 +864,10 @@ class DatabaseModule extends Module
      * Seconde étape : exécution du template correspondant au format d'export
      * choisi en indiquant le type mime correct.
      *
-     * @param bool $calledFromPreExecute indique si l'action a été appelée
-     * (<code>true</code>) ou non depuis la méthode {@link preExecute}.
-     *
      * @return bool retourne true pour indiquer que l'export a été fait, false pour
      * afficher le formulaire d'export.
      */
-    public function actionExport($calledFromPreExecute=false)
+    public function actionExport()
     {
         $error=null;
 
@@ -939,7 +895,8 @@ class DatabaseModule extends Module
         $subject=$this->request->defaults('_subject', (string)Config::get('mailsubject'))->unique()->ok();
         $message=$this->request->defaults('_message', (string)Config::get('mailbody'))->unique()->ok();
 
-        if ($mail && !$to) $error[]='Veuillez indiquer l\'adresse du destinataire de l\'e-mail.';
+        $confirm = $this->request->get('confirm');
+        if ($mail && !$to && $confirm) $error[]='Veuillez indiquer l\'adresse du destinataire de l\'e-mail.';
 
         // Détermine s'il faut générer une archive au format zip
         if ($zip=$allowzip=(bool)Config::get('allowzip'))
@@ -955,9 +912,8 @@ class DatabaseModule extends Module
             throw new Exception("La création de fichiers ZIP n'est pas possible sur ce serveur : l'extension PHP requise n'est pas disponible.");
 
         // Charge la liste des formats d'export disponibles
-        if ($calledFromPreExecute)
-            if (!$this->loadExportFormats())
-                throw new Exception("Aucun format d'export n'est disponible");
+        if (!$this->loadExportFormats())
+            throw new Exception("Aucun format d'export n'est disponible");
 
         // Choix du format d'export
         $formats=Config::get('formats');
@@ -969,20 +925,24 @@ class DatabaseModule extends Module
         else
         {
             if ($format=$this->request->unique('_format')->ok())
+            {
                 if(is_null($fmt=Config::get("formats.$format")))
                     throw new Exception("Format d'export incorrect");
+            }
+            elseif($confirm)
+            {
+                $error[]='Veuillez choisir le format à utiliser.';
+            }
         }
 
         // Détermine s'il faut afficher le formulaire
         $showForm =     $error          // s'il y a une erreur
                     ||  ! $format       // ou qu'on n'a pas de format
                                         // ou que l'utilisateur n'a pas encore choisi parmi les options disponibles
-                    ||  ($format && ($allowmail || ($allowzip && !$forcezip)) && !$this->request->get('confirm'));
+                    ||  ($format && ($allowmail || ($allowzip && !$forcezip)) && !$confirm);
 
         if ($showForm)
         {
-            if ($calledFromPreExecute) return false;
-
             // Détermine le template à utiliser
             if (! $template=$this->getTemplate())
                 throw new Exception('Le template à utiliser n\'a pas été indiqué');
@@ -994,8 +954,9 @@ class DatabaseModule extends Module
             $defaultFormat = Config::userGet('defaultFormat');
 
             // Exécute le template
-            Template::run
+            return Response::create('html')->setTemplate
             (
+                $this,
                 $template,
                 array($this, $callback),
                 array
@@ -1012,7 +973,6 @@ class DatabaseModule extends Module
                     'message'=>$message,
                 )
             );
-            return true;
         }
 
         // Tous les paramètres ont été vérifiés, on est prêt à faire l'export
@@ -1079,76 +1039,58 @@ class DatabaseModule extends Module
         $filesizes=array();
         foreach($equations as $i=>$equation)
         {
+            $response = new Response();
+
             // Lance la recherche, si aucune réponse, erreur
             if (! $this->select($equation, $max, $start, $sort))
             {
-                echo "Aucune réponse pour l'équation $equation<br />";
+                $response->appendContent("<p>Aucune réponse pour l'équation $equation</p>");
                 continue;
             }
 
             $counts[$i]=$max===-1 ? $this->selection->count() : (min($max,$this->selection->count()));
 
-            // Si l'utilisateur a demandé un envoi par mail ou un zip, démarre la capture
-            if ($mail or $zip)
-            {
-                Utils::startCapture();
-            }
-            else
-            {
-                // Sinon, définit les entêtes http du fichier généré
-                if (isset($fmt['content-type']))
-                    header('content-type: ' . $fmt['content-type']);
+            // Définit les entêtes http du fichier généré
+            if (isset($fmt['content-type']))
+                $response->setHeader('Content-Type', $fmt['content-type']);
 
-                if (isset($fmt['content-disposition']))
-                    header('content-disposition: ' . sprintf($fmt['content-disposition'],Utils::setExtension($filenames[$i])));
-            }
+            if (isset($fmt['content-disposition']))
+                $response->setHeader('Content-Disposition', sprintf($fmt['content-disposition'],Utils::setExtension($filenames[$i])));
 
-            // Si un générateur spécifique a été définit pour ce format, on l'exécute
+            // Si le format utilise un générateur, on utilise un template spécifique qui se
+            // contente d'appeller la méthode indiquée comme générateur.
             if (isset($fmt['generator']))
-            {
-                $generator=trim($fmt['generator']);
-                if (strtolower($generator)!=='')
-                    $this->$generator($fmt);
-            }
+                $template = 'exportGenerator.txt';
 
-            // Sinon, on utilise le générateur par défaut
-            else
-            {
-                // Détermine le template à utiliser
-                if (! $template=Config::userGet("formats.$format.template"))
-                {
-                    if ($mail or $zip) Utils::endCapture(); // sinon on ne "verra" pas l'erreur
-                    throw new Exception("Le template à utiliser pour l'export en format $format n'a pas été indiqué");
-                }
+            // Sinon, on utilise le template indiqué pour le format
+            elseif (! $template=Config::userGet("formats.$format.template"))
+                throw new Exception("Le template à utiliser pour l'export en format $format n'a pas été indiqué");
 
-                // Détermine le callback à utiliser
-                $callback=Config::userGet("formats.$format.callback");
+            // Détermine le callback à utiliser
+//            $callback=Config::userGet("formats.$format.callback"); plus de callbacks. ça pose pb ?
 
-                // Exécute le template
-                try
-                {
-                    Template::run
-                    (
-                        $template,
-                        array($this, $callback),
-                        array('format'=>$format),
-                        array('fmt'=>$fmt),
-                        $this->selection->record
-                    );
-                }
-                catch(Exception $e)
-                {
-                    if ($mail or $zip) Utils::endCapture(); // sinon on ne "verra" pas l'erreur
-                    throw $e; // re génère l'exception
-                }
-            }
+            // Exécute le template
+            $response->setTemplate
+            (
+                $this,
+                $template,
+//                array($this, $callback),
+                array('format'=>$format),
+                array('fmt'=>$fmt),
+                $this->selection->record
+            );
 
             // Pour un export classique, on a fini
-            if (!($mail or $zip)) continue;
+            if (!$mail && !$zip) return $response;
 
             // Termine la capture du fichier d'export généré et stocke le nom du fichier temporaire
-            $files[$i]=Utils::endCapture();
-            $filesizes[$i]=filesize($files[$i]);
+            $files[$i] = $response->render(); // Utils::endCapture()
+            $filesizes[$i] = strlen($files[$i]); // FIXME. filesize($files[$i]);
+
+            // remarque : on est obligé de faire le rendu dans la boucle des équations sinon,
+            // lorsqu'on a plusieurs équations, la sélection aura changé au moment ou on essaiera
+            // de le faire
+            // todo: faire le rendu en mémoire ou dans un fichier temporaire ?
         }
 
         // Si l'option zip est active, crée le fichier zip
@@ -1162,9 +1104,9 @@ class DatabaseModule extends Module
                 throw new Exception('Impossible de créer le fichier zip');
 //            if (!$zipFile->setArchiveComment('Fichier exporté depuis le site ascodocpsy')) // non affiché par 7-zip
 //                throw new Exception('Impossible de créer le fichier zip - 1');
-            foreach($files as $i=>$path)
+            foreach($files as $i=>$content)
             {
-                if (!$zipFile->addFile($files[$i], Utils::convertString($filenames[$i],'CP1252 to CP437')))
+                if (!$zipFile->addFromString(Utils::convertString($filenames[$i],'CP1252 to CP437'), $content))
                     throw new Exception('Impossible de créer le fichier zip - 2');
                 if (!$zipFile->setCommentIndex($i, Utils::convertString($equations[$i],'CP1252 to CP437')))
                     throw new Exception('Impossible de créer le fichier zip - 3');
@@ -1178,16 +1120,11 @@ class DatabaseModule extends Module
 
             // Si l'option mail n'est pas demandée, envoie le zip
             if (!$mail)
-            {
-                header('content-type: application/zip');// type mime 'officiel', source : http://en.wikipedia.org/wiki/ZIP_(file_format)
-                header('content-disposition: attachment; filename="export.zip"');
-                readfile($zipPath);
-                return true;
-            }
+                return Response::create('File')
+                    ->setHeader('Content-Type', 'application/zip') // type mime 'officiel', source : http://en.wikipedia.org/wiki/ZIP_(file_format)
+                    ->setHeader('Content-Disposition', 'attachment; filename="export.zip"')
+                    ->setContent($zipPath);
         }
-
-        if (!$mail)
-            return true;
 
         // Charge les fichiers Swift
         require_once Runtime::$fabRoot . 'lib/SwiftMailer/Swift.php';
@@ -1249,11 +1186,11 @@ class DatabaseModule extends Module
         }
         else
         {
-            foreach($files as $i=>$path)
+            foreach($files as $i=>$content)
             {
-                $swiftFiles[$i]=new Swift_File($path);
+                //$swiftFiles[$i]=new Swift_File($path);
                 $mimeType=strtok($fmt['content-type'],';');
-                $email->attach(new Swift_Message_Attachment($swiftFiles[$i], $filenames[$i], $mimeType));
+                $email->attach(new Swift_Message_Attachment($content/* $swiftFiles[$i] */, $filenames[$i], $mimeType));
 //                $piece->setDescription($equations[$i]);
             }
         }
@@ -1280,8 +1217,9 @@ class DatabaseModule extends Module
             $template=$this->getTemplate('mailsenttemplate');
             if ($template)
             {
-                Template::run
+                return Response::create('Html')->setTemplate
                 (
+                    $this,
                     $template,
                     array
                     (
@@ -1300,17 +1238,24 @@ class DatabaseModule extends Module
                 );
             }
             else
-                echo '<p>Vos notices ont été envoyées par courriel.';
+                return Response::create('Html')
+                    ->setContent('<p>Vos notices ont été envoyées par courriel.');
         }
         else
         {
-            echo '<h1>Erreur</h1>';
-            echo "<fieldset>Impossible d'envoyer l'e-mail à l'adresse <strong><code>$to</code></strong></fieldset>";
-            if ($error)
-                echo "<p>Erreur retournée par le serveur : <strong><code>$error</code></strong></p>";
-            echo "<fieldset><legend>Log de la transaction</legend> <pre>";
-            echo $log->dump(true);
-            echo "</pre></fieldset>";
+            return Response::create('Html')->setContent
+            (
+                sprintf
+                (
+                    '<h1>Erreur</h1>' .
+                    '<fieldset>Impossible d\'envoyer l\'e-mail à l\'adresse <strong><code>%s</code></strong></fieldset>'.
+                    '<p>Erreur retournée par le serveur : <strong><code>%s</code></strong></p>' .
+                    '<fieldset><legend>Log de la transaction</legend> <pre>%s</pre></fieldset>',
+                    $to,
+                    $error,
+                    $log->dump(true)
+                )
+            );
         }
         return true;
     }
@@ -1330,27 +1275,25 @@ class DatabaseModule extends Module
      */
     function actionLookup($table, $value='', $max=10, $sort=false)
     {
-        if (!headers_sent())
-            header('Content-type: text/html; charset=iso-8859-1');
-
         $max=$this->request->defaults('max', 10)->int()->min(0)->ok();
 
         // Ouvre la base
         $this->openDatabase();
 
         // Lance la recherche
-        $terms=$this->selection->lookup($table, $value, $max, $sort);
+        $terms = $this->selection->lookup($table, $value, $max, $sort);
 
         // Détermine le template à utiliser
-        if (! $template=$this->getTemplate())
+        if (! $template = $this->getTemplate())
             throw new Exception('Le template à utiliser n\'a pas été indiqué');
 
         // Détermine le callback à utiliser
-        $callback=$this->getCallback();
+        $callback = $this->getCallback();
 
         // Exécute le template
-        Template::run
+        return Response::create('Html')->setTemplate
         (
+            $this,
             $template,
             array($this, $callback),
             array('search'=>$value, 'table'=>$table, 'terms'=>$terms)
@@ -1365,7 +1308,7 @@ class DatabaseModule extends Module
      */
     public function actionReindex()
     {
-        Runtime::redirect('/DatabaseAdmin/Reindex?database='.Config::get('database'));
+        return Response::create('Redirect', '/DatabaseAdmin/Reindex?database='.Config::get('database'));
     }
 
     /**
@@ -1475,17 +1418,18 @@ class DatabaseModule extends Module
     {
         // Détermine le template à utiliser
         if (! $template=$this->getTemplate('errortemplate'))
-        {
-            echo $error ? $error : 'Une erreur est survenue pendant le traitement de la requête';
-            return;
-        }
+            return Response::create('Html')->setContent
+            (
+                $error ? $error : 'Une erreur est survenue pendant le traitement de la requête'
+            );
 
         // Détermine le callback à utiliser
         $callback=$this->getCallback();
 
         // Exécute le template
-        Template::run
+        return Response::create('Html')->setTemplate
         (
+            $this,
             $template,
             array($this, $callback),
             array('error'=>$error)
@@ -1505,17 +1449,18 @@ class DatabaseModule extends Module
     {
         // Détermine le template à utiliser
         if (! $template=$this->getTemplate('noanswertemplate'))
-        {
-            echo $message ? $message : 'La requête n\'a retourné aucune réponse';
-            return;
-        }
+            return Response::create('Html')->setContent
+            (
+                $message ? $message : 'La requête n\'a retourné aucune réponse'
+            );
 
         // Détermine le callback à utiliser
         $callback=$this->getCallback();
 
         // Exécute le template
-        Template::run
+        return Response::create('Html')->setTemplate
         (
+            $this,
             $template,
             array('message'=>$message),
             array($this, $callback),
