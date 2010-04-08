@@ -134,8 +134,9 @@ class AdminDatabases extends Admin
      */
     public function actionIndex()
     {
-        Template::run
+        return Response::create('Html')->setTemplate
         (
+            $this,
             Config::get('template'),
             array('databases'=>self::getDatabases())
         );
@@ -189,21 +190,19 @@ class AdminDatabases extends Admin
         $this->selection=Database::open($database, true);
         $this->selection->search('*', array('max'=>-1, 'sort'=>'+'));
         if ($this->selection->count()==0)
-        {
-            echo '<p>La base ', $database, ' ne contient aucun document, il est inutile de lancer une réindexation complète.</p>';
-            return;
-        }
+            return Response::create('Html')->setContent
+            (
+                '<p>La base ', $database, ' ne contient aucun document, il est inutile de lancer une réindexation complète.</p>'
+            );
 
         // Demande confirmation à l'utilisateur
         if (!$confirm)
-        {
-            Template::run
+            return Response::create('Html')->setTemplate
             (
+                $this,
                 config::get('template'),
                 array('database'=>$database)
             );
-            return;
-        }
 
         // Crée une tâche au sein du gestionnaire de tâches
         $id=Task::create()
@@ -214,7 +213,7 @@ class AdminDatabases extends Admin
             ->save()
             ->getId();
 
-        Runtime::redirect('/TaskManager/TaskStatus?id='.$id);
+        return Response::create('Redirect', '/TaskManager/TaskStatus?id='.$id);
     }
 
 
@@ -273,18 +272,15 @@ class AdminDatabases extends Admin
     {
         // Choisit le schéma à appliquer à la base
         if($schema==='')
-        {
-            $schemas=AdminSchemas::getSchemas();
-            Template::run
+            return Response::create('Html')->setTemplate
             (
+                $this,
                 'chooseSchema.html',
                 array
                 (
                     'database' => $database
                 )
             );
-            return;
-        }
 
         // Vérifie que le schéma indiqué existe
         if (Utils::isRelativePath($schema) || ! file_exists($schema))
@@ -302,9 +298,9 @@ class AdminDatabases extends Admin
 
         // Affiche une erreur si aucune modification n'a été apportée
         if (count($changes)===0)
-        {
-            Template::run
+            return Response::create('Html')->setTemplate
             (
+                $this,
                 'nodiff.html',
                 array
                 (
@@ -313,15 +309,11 @@ class AdminDatabases extends Admin
                 )
             );
 
-            return;
-        }
-
         // Affiche la liste des modifications apportées et demande confirmation à l'utilisateur
         if (! $confirm)
-        {
-            // Affiche le template de confirmation
-            Template::run
+            return Response::create('Html')->setTemplate
             (
+                $this,
                 config::get('template'),
                 array
                 (
@@ -332,15 +324,13 @@ class AdminDatabases extends Admin
                 )
             );
 
-            return;
-        }
-
         // Applique la nouvelle structure à la base
         $this->selection->setSchema($newSchema);
 
         // Affiche le résultat et propose (éventuellement) de réindexer
-        Template::run
+        return Response::create('Html')->setTemplate
         (
+            $this,
             config::get('template'),
             array
             (
@@ -405,9 +395,9 @@ class AdminDatabases extends Admin
 
         // Demande le nom de la base à créer
         if ($database === '' || $error !== '')
-        {
-            Template::run
+            return Response::create('Html')->setTemplate
             (
+                $this,
                 'new.html',
                 array
                 (
@@ -415,8 +405,6 @@ class AdminDatabases extends Admin
                     'error'=>$error
                 )
             );
-            return;
-        }
 
         // Vérifie le nom du schéma indiqué
         if ($schema !== '')
@@ -433,9 +421,9 @@ class AdminDatabases extends Admin
 
         // Affiche le template si nécessaire
         if ($schema === '' || $error !== '')
-        {
-            Template::run
+            return Response::create('Html')->setTemplate
             (
+                $this,
                 'newChooseSchema.html',
                 array
                 (
@@ -444,8 +432,6 @@ class AdminDatabases extends Admin
                     'error'=>$error
                 )
             );
-            return;
-        }
 
         // OK, on a tous les paramètres et ils sont tous vérifiés
 
@@ -474,7 +460,7 @@ class AdminDatabases extends Admin
         file_put_contents($pathConfig, $data);
 
         // Redirige vers la page d'accueil
-        Runtime::redirect('/'.$this->module);
+        return Response::create('Redirect', '/'.$this->module);
     }
 
     private function xmlEntities($data)
@@ -616,10 +602,12 @@ class AdminDatabases extends Admin
         {
             // 1. Permet à l'utilisateur de planifier le dump
             if ($taskTime==='')
-            {
-                Template::Run('backup.html', array('error'=>''));
-                return;
-            }
+                return Response::create('Html')->setTemplate
+                (
+                    $this,
+                    'backup.html',
+                    array('error'=>'')
+                );
 
             // Détermine un titre pour la tâche de dump
             $title=sprintf
@@ -640,10 +628,9 @@ class AdminDatabases extends Admin
                 ->getId();
 
             if ($taskTime===0 || abs(time()-$taskTime)<30)
-                Runtime::redirect('/TaskManager/TaskStatus?id='.$id);
+                return Response::create('Redirect', '/TaskManager/TaskStatus?id='.$id);
             else
-                Runtime::redirect('/TaskManager/Index');
-            return;
+                return Response::create('Redirect', '/TaskManager/Index');
         }
 
         // 3. Lance le dump
@@ -911,8 +898,9 @@ class AdminDatabases extends Admin
             ksort($otherFiles, SORT_LOCALE_STRING);
 
             // Demande à l'utilisateur de choisir le dump
-            Template::Run
+            return Response::create('Html')->setTemplate
             (
+                $this,
                 'chooseDump.html',
                 array
                 (
@@ -921,7 +909,6 @@ class AdminDatabases extends Admin
                     'otherFiles'=>$otherFiles
                 )
             );
-            return;
         }
 
         // Détermine le path complet du fichier de dump et vérifie qu'il existe
@@ -931,10 +918,9 @@ class AdminDatabases extends Admin
 
         // Demande de confirmation
         if (! $confirm)
-        {
-            // Demande à l'utilisateur de choisir le dump
-            Template::Run
+            return Response::create('Html')->setTemplate
             (
+                $this,
                 'confirmRestore.html',
                 array
                 (
@@ -942,8 +928,6 @@ class AdminDatabases extends Admin
                     'file'=>$file
                 )
             );
-            return;
-        }
 
         // Crée une tâche au sein du taskmanager
         if (! User::hasAccess('cli'))
@@ -958,11 +942,8 @@ class AdminDatabases extends Admin
                 ->save()
                 ->getId();
 
-//            if ($taskTime===0 || abs(time()-$taskTime)<30)
-                Runtime::redirect('/TaskManager/TaskStatus?id='.$id);
-//            else
-//                Runtime::redirect('/TaskManager/Index');
-//            return;
+            return Response::create('Redirect', '/TaskManager/TaskStatus?id='.$id);
+
         }
 
         $gzPath='compress.zlib://'.$path;
@@ -1072,10 +1053,12 @@ class AdminDatabases extends Admin
     public function actionDelete($database, $confirm=false)
     {
         if (! $confirm)
-        {
-            Template::run('confirmDelete.html', array('database'=>$database));
-            return ;
-        }
+            return Response::create('Html')->setTemplate
+            (
+                $this,
+                'confirmDelete.html',
+                array('database'=>$database)
+            );
 
         // Utilise /config/db.config pour convertir l'alias en chemin et déterminer le type de base
         $path=Config::get("db.$database.path", $database);
@@ -1107,7 +1090,7 @@ class AdminDatabases extends Admin
         }
 
         // Redirige vers la page d'accueil
-        Runtime::redirect('/'.$this->module);
+        return Response::create('Redirect', '/'.$this->module);
     }
 
     /**
