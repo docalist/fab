@@ -1,12 +1,13 @@
 <h1>Export {count($equations)===1 ? "d'un lot" : 'de '.count($equations).' lots'} de notices</h1>
 
 <form action="{$this->action}" class="form">
-    <ul test="$error">
-        <loop on="$error" as="$error">
-            <li class="error">$error</li>
-        </loop>
-    </ul>
-    
+    <div test="$error" class="hasError errorField">
+        <ul>
+            <loop on="$error" as="$error">
+                <li>$error</li>
+            </loop>
+        </ul>
+    </div>
     /* 
         Définit un slot qui pourra être utilisé par un module descendant pour
         "injecter" d'autres paramètres dans le formulaire de recherche.
@@ -42,10 +43,10 @@
     */    
     <else>
         <fieldset label="Choisissez le format du fichier à générer :">
-            <div class="radiolist">
+            <holder class="radiolist">
                 <fill values="$format">
                     <loop on="{Config::get('formats')}" as="$name,$format">
-                        <div class="radio">
+                        <holder class="radio">
                             <radio 
                                 name="_format" 
                                 value="$name" 
@@ -55,57 +56,47 @@
                             <p test="{isset($format['description'])}">
                                 <small>{$format['description']}</small>
                             </p>
-                        </div>
+                        </holder>
                     </loop>
                 </fill>
-            </div>
+            </holder>
         </fieldset>
     </else>
     
     <def name="allowzip" value="{Config::get('allowzip')}" />
     <def name="allowmail" value="{Config::get('allowmail')}" />
     
-    <fieldset test="{$allowzip || $allowmail}" label="Options :">
-    
-        /* Option "Archive ZIP" */
-        <div test="$allowzip">
-            <fill values="$zip">
-                <if test="{Config::get('forcezip')}">
-                    <checkbox name="_zip" label="Compresser le fichier et créer une archive au format ZIP" disabled="disabled" checked="checked" />
-                </if>
-                <else>
-                    <checkbox name="_zip" value="1" label="Compresser le fichier et créer une archive au format ZIP" />
-                </else>
-            </fill>
-        </div>
+    <fieldset test="{$allowzip || $allowmail}" label="{Config::get('forcemail') ? 'Envoi par messagerie :' : 'Options :'}">
 
         /* Option "Envoi par e-mail" */
         <div test="$allowmail">
             <fill values="$mail">
-                <if test="{Config::get('forcemail')}">
-                    <checkbox name="_mail" label="Envoyer le fichier obtenu par messagerie" disabled="disabled" checked="checked" />
-                </if>
-                <else>
-                    <checkbox name="_mail" value="1" label="Envoyer le fichier obtenu par messagerie" />
+                <checkbox test="{! Config::get('forcemail')}" name="_mail" value="1" label="Envoyer le fichier obtenu par messagerie" />
+            </fill>
                     
-                    /* Details de l'e-mail à envoyer */
-                    <holder class="vertical" test="$allowmail" id="_maildetails" style="margin-left: 1.3em;">
-	                    <textbox name="_to" label="Destinataire :" size="80" value="{htmlentities($to)}" />
-	                    <br />
-	                    <textbox 
-	                        name="_subject" 
-	                        label="Sujet :" 
-	                        value="{htmlentities($subject)}"  
-	                        size="80" />
-	                    <br />
-	                    <textbox 
-	                        name="_message" 
-	                        rows="10" 
-	                        cols="78" 
-	                        label="Message : " 
-	                        value="{htmlentities($message)}" />
-                    </holder>
-                </else>
+            /* Details de l'e-mail à envoyer */
+            <holder class="vertical" test="$allowmail" id="_maildetails" style="margin-left: 1.3em;">
+                <textbox name="_to" label="Destinataire :" size="80" value="{htmlentities($to)}" />
+                <br />
+                <textbox 
+                    name="_subject" 
+                    label="Sujet :" 
+                    value="{htmlentities($subject)}"  
+                    size="80" />
+                <br />
+                <textbox 
+                    name="_message" 
+                    rows="10" 
+                    cols="78" 
+                    label="Message : " 
+                    value="{htmlentities($message)}" />
+            </holder>
+        </div>
+    
+        /* Option "Archive ZIP" */
+        <div test="$allowzip">
+            <fill values="$zip">
+                <checkbox test="{! Config::get('forcezip')}" name="_zip" value="1" label="Compresser le fichier et créer une archive au format ZIP" />
             </fill>
         </div>
     </fieldset>
@@ -118,17 +109,11 @@
     
     <hidden name="confirm" value="1" />
     
-    <loop on="{$this->request->copy()->clear('_equation')->getParameters()}" as="$name,$value">
-        <loop on="{(array)$value}" as="$value">
-            <hidden name="$name" value="{htmlspecialchars($value)}" />
-        </loop>
-    </loop>
-    
     /* Boutons du formulaire */
     <submit label="Lancer l'export..." />    
 </form>
 
-<script test="$allowmail" type="text/javascript">
+<script test="{$allowmail and ! Config::get('forcemail')}" type="text/javascript">
 jQuery(document).ready(
     function()
     \{
