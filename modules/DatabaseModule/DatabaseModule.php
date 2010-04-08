@@ -1175,6 +1175,10 @@ class DatabaseModule extends Module
             $mimeType='text/html'; // fixme: on ne devrait pas fixer en dur le type mime. Clé de config ?
         }
 
+        // Transforme les éventuels liens relatifs présents dans l'e-mail en liens absolus
+        $body=preg_replace('~( (?:action|href|src)\s*=\s*")/(.*?)(")~', '$1' . Utils::getHost() . Runtime::$realHome . '$2$3', $body);
+
+        // Ajoute le corps du message dans le mail
         $email->attach(new Swift_Message_Part($body, $mimeType));
 
         // Met les pièces attachées
