@@ -1,4 +1,6 @@
-<h1>Export {count($equations)===1 ? "d'un lot" : 'de '.count($equations).' lots'} de notices</h1>
+<h1>{$this->getTitle()}</h1>
+
+/* <p>Export {count($equations)===1 ? "d'un lot" : 'de '.count($equations).' lots'} de notices</p> */
 
 <form action="{$this->action}" class="form">
     <div test="$error" class="hasError errorField">
