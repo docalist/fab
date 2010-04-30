@@ -1224,6 +1224,7 @@ private static $line=0, $column=0;
         static $attrToRoute=array
         (
             'a'         => array('href'=>true),
+            'area'      => array('href'=>true),
             'img'       => array('src'=>true),
             'form'      => array('action'=>true),
             'frame'     => array('src'=>true),
