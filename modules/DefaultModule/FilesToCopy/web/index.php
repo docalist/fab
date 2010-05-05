@@ -1,3 +1,3 @@
 <?php
-require_once(dirname(__FILE__).'/../../fab/Runtime.php');
+require_once('#fabroot#Runtime.php');
 Runtime::setup();
