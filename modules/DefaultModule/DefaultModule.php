@@ -104,9 +104,7 @@ class DefaultModule extends Module
         foreach($directories as $dir=>$role)
         {
             echo "<li><strong>$dir</strong> : $role...";
-            if (Utils::makeDirectory(Utils::makePath($path, $dir)))
-                echo 'OK.';
-            else
+            if (! Utils::makeDirectory(Utils::makePath($path, $dir)))
                 echo 'ERREUR !';
             echo '</li>';
         }
@@ -139,14 +137,41 @@ class DefaultModule extends Module
         foreach($files as $name=>$role)
         {
             echo "<li><strong>$name</strong> : $role...";
-            if (copy($dir . $name, Utils::makePath($path, $name)))
-                echo 'OK.';
+            $extension = Utils::getExtension($name);
+            if ($extension === '.php')
+            {
+                file_put_contents
+                (
+                    Utils::makePath($path, $name),
+                    preg_replace_callback
+                    (
+                        '~#([a-zA-Z0-9_-]+)#~',
+                        array($this, 'expandVarsCallback'),
+                        file_get_contents($dir . $name)
+                    )
+                );
+            }
             else
-                echo 'ERREUR !';
+            {
+                if (! copy($dir . $name, Utils::makePath($path, $name)))
+                    echo 'ERREUR !';
+            }
             echo '</li>';
         }
         echo '</ul>';
 
+    }
+
+    private function expandVarsCallback($match)
+    {
+        switch(strtolower($match[1]))
+        {
+            case 'fabroot':
+                return Runtime::$fabRoot;
+            default:
+                echo 'Variables non gérée : ', $match[1], '<br />';
+                return 'Unknown var : #' . $match[1] . '#';
+        }
     }
 }
 ?>
