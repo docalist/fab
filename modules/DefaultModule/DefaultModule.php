@@ -33,15 +33,13 @@ class DefaultModule extends Module
                 $error = 'Les deux mots de passe ne correspondent pas.';
 
             if ($error === '')
-            {//var_export($login);
-                //die('create');
-
+            {
+                $this->createApplication($path);
                 file_put_contents
                 (
                     Utils::makePath($path, 'data', 'users.txt'),
                     "login,password,rights\n$login,$password,Admin\n"
                 );
-                $this->createApplication($path);
 
                 $url = sprintf
                 (
