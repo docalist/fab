@@ -457,24 +457,14 @@ return false (ne pas afficher le contenu par défaut)
 */
     public static function runSlot($name, $defaultAction='', array $args=null)
     {
-//        echo "Début d'exécution du slot $name, action par défaut : $defaultAction, args=", var_export($args,true),"<br />";
         $action=Config::get("slots.$name", $defaultAction);
-//        echo "Action à exécuter : $action<br />";
 
-        if ($action==='')
-        {
-//            echo "contenu par défaut\n";
-            debug && Debug::log('slot %s : affichage du contenu par défaut', $name);
-            return true;
-        }
-        if ($action==='none')
-        {
-//            echo 'désactivé<br />';
-            debug && Debug::log('slot %s désactivé', $name);
-        	return false;
-        }
+        if ($action==='') return true;
+
+        if ($action==='none') return false;
+
         debug && Debug::log('slot %s : %s', $name, $action);
-//echo '<div style="background:#888;padding: 1em;border: 1px solid red;"><div>','SLOT ', $name,'=',($action?$action:'(contenu par défaut)'),'</div>';
+
         // S'il s'agit d'une action, on l'exécute
         if ($action[0]==='/')
         {
@@ -510,27 +500,21 @@ return false (ne pas afficher le contenu par défaut)
                     throw new Exception("Impossible de trouver le template $action. searchPath=".print_r(Utils::$searchPath, true));
             }
 
-            // Ajoute les arguments passés en paramètre aux sources de données en cours
+            // Ajoute les arguments passés en paramètre aux sources de données en cours.
+            // Le premier élément de self::$data est un tableau qui contient $this
+            // (et éventuellement d'autres données).
+            // On fusionne les arguments passés au slot dans ce tableau. Le slot a ainsi
+            // accès à toutes les données de ses "ancêtres", mais les données spécifiques
+            // qu'on lui a passé sont prioritaires.
+            // En utilisant array_merge(), si une même clé existe à la fois dans $args
+            // et dans data[0], la valeur présente dans $args écrasera la valeur existante
+            // (cas d'un slot récursive comme pour les localisations emploi bdsp).
             $data=self::$data;
-            if (!is_null($args))
-            {
-                // Le premier élément de self::$data correspond à $this
-                // On l'enlève de data (array_shift)
-                // on l'ajoute comme premier élément de args (+)
-                // et on ajoute le tout au début de data (array_unshift)
-                array_unshift($data,array_shift($data)+$args);
-
-                // for the record : j'ai cherché longtemps comment utiliser array_shift pour
-                // ajouter un élément en conservant la clé. En fait il suffit suffit d'utiliser
-                // l'opérateur de tableaux '+'...
-
-                // echo '<h1>data final</h1>', Debug::dump($data,false);
-            }
+            if (!is_null($args)) $data[0] = array_merge($data[0], $args);
 
             // Exécute le template
             self::runInternal($path,$data);
         }
-//echo '</div>';
         return false;
     }
 
@@ -555,5 +539,3 @@ return false (ne pas afficher le contenu par défaut)
         return self::$lastId;
     }
 }
-
-?>
