@@ -224,21 +224,8 @@ form.form div.errorField
     color: red;
     font-weight: bold;
     font-size: 11px;
+    margin: 0.5em 0;
 }
-
-form.form label.required
-{
-}
-
-form.form label.required em
-{
-    margin-left: 0.3em;
-    border: 5px solid transparent;
-    border-left: 5px solid red;
-    display: inline-block;
-    height: 0px;
-}
-
 
 /* la classe appliquée au parent d'un champ en erreur */
 form.form .hasError    
@@ -279,10 +266,12 @@ form.form .hasError
     background: #fff url('bullet_key.png') no-repeat right top;
 }
 
-form.form label.required em
+form.form label.required em 
 {
-    background: url(cross-small.png) no-repeat center left;
-    padding-left: 16px;
+    color: #F00;
+    font-family:Verdana,Arial,Helvetica,sans-serif;
+    font-size: 13px;
+    font-weight:bold;
 }
 
 /* la classe appliquée au parent d'un champ en erreur */
