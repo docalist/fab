@@ -158,6 +158,7 @@ class TemplateCompiler
         $templates='<if test="{false}">';
         foreach((array) Config::get('templates.autoinclude') as $file)
         {
+            if (empty($file)) continue;
             if (false === $path=Utils::searchFile($file))
                 throw new Exception("Impossible de trouver le fichier include $file spécifié dans la config");
 
