@@ -1,0 +1,24 @@
+/*
+    Compresse le code html en remplaçant toutes les suites de blancs par un espace unique.
+    
+    Principe : 
+    - normalize-space remplace les suites de blancs par un espace unique et fait un trim.
+    - on ne veut pas du trim au début et à la fin car sinon tous les textes se retrouvent collés.
+    - on ajoute un caractère au début et à la fin de la chaine
+    - on fait un normalize-space() dessus
+    - on extrait ce qui reste entre les deux caractères ajoutés.
+    - toutes les suites de blancs sont remplacées par un espace unique et ce également au début et
+      à la fin de la chaine   
+    - one ne fait rien pour les tags pre
+*/
+<template match="//*[not(local-name()='pre')]/text()">{
+select
+('
+    substring
+    (
+        normalize-space(concat("X", string(.), "X")),
+        2,
+        string-length(normalize-space(concat("X", string(.), "X"))) - 2
+    )
+')
+}</template>
