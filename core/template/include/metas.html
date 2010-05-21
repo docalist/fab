@@ -1,0 +1,24 @@
+<template match="//*[name()='metas']" placement="all">
+    <loop on="{$this->getMetas($placement)}" as="$item">
+        /*
+            Génère le début du commentaire conditionnel éventuel.
+            Comme on ne peut pas taper directement le signe inférieur, on passe par htmlspecialchars_decode.
+        */
+        <if test="{$item['condition']}">
+        {htmlspecialchars_decode('&lt;')}!--[{$item['condition']}]{htmlspecialchars_decode('&gt;')}
+        </if>
+        
+        /* Génère le tag */
+        <meta
+            name       = "{$item['name']}"
+            http-equiv = "{$item['http-equiv']}"
+            content    = "{$item['content']}"
+            scheme     = "{$item['scheme']}"
+        />
+        
+        /* Génère la fin du commentaire conditionnel éventuel */
+        <if test="{$item['condition']}">
+        {htmlspecialchars_decode('&lt;')}![endif]--{htmlspecialchars_decode('&gt;')}
+        </if>
+    </loop>
+</template>

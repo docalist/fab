@@ -1,0 +1,24 @@
+<template match="//*[name()='scripts']" placement="all">
+    <loop on="{$this->getScripts($placement)}" as="$item">
+        /*
+            Génère le début du commentaire conditionnel éventuel.
+            Comme on ne peut pas taper directement le signe inférieur, on passe par htmlspecialchars_decode.
+        */
+        <if test="{$item['condition']}">
+        {htmlspecialchars_decode('&lt;')}!--[{$item['condition']}]{htmlspecialchars_decode('&gt;')}
+        </if>
+        
+        /* Génère le tag */
+        <script
+            charset = "{$item['charset']}"
+            defer   = "{$item['defer']}"
+            src     = "{$item['src']}"
+            type    = "{$item['type']}"
+        />
+        
+        /* Génère la fin du commentaire conditionnel éventuel */
+        <if test="{$item['condition']}">
+        {htmlspecialchars_decode('&lt;')}![endif]--{htmlspecialchars_decode('&gt;')}
+        </if>
+    </loop>
+</template>

@@ -882,6 +882,215 @@ Config::addArray($this->config);    // fixme: objectif : uniquement $this->confi
         return $result;
     }
 
+
+    /**
+     * Retourne un tableau d'éléments à inclure dans la page html générée tels que les scripts
+     * javascripts, les feuilles de styles css, les metas, les liens, etc.
+     *
+     * @param string $type le type d'asset à charger. Doit correspondre aux clés existantes dans
+     * la config. Valeurs possibles pour le moment : 'js','css','metas' ou 'links'.
+     *
+     * @param string $placement filtre utilisé pour charger les assets. Seuls les items dont
+     * l'attribut placement correspond à la valeur indiquée seront chargés.
+     * Valeurs possibles : 'all','top','bottom' ou une valeur personnalisée propre à l'application.
+     * Lorsque placement vaut 'all', tous les assers sont chargés sans conditions.
+     *
+     * @param array $defaults les attributs à retourner et leur valeur par défaut.
+     *
+     * @param string $defaultAttribute le nom de l'attribut par défaut. Dans la configuration, si
+     * un asset est déclaré sous sa forme courte (exemple <item>jquery.js</item>) la valeur sera
+     * stocké dans l'attribut indiqué et les autres attributs seront initialisés avec leur
+     * valeur par défaut.
+     *
+     * @return array un tableau d'assets. Chaque élement est un tableau ayant exactement les clés
+     * indiquées dans $defaults.
+     */
+    protected function getAssets($type, $placement='all', $defaults=array(), $defaultAttribute='src')
+    {
+        $alias=Config::get('alias');
+
+        $result = array();
+        foreach ((array) Config::get($type) as $item)
+        {
+            if (is_scalar($item))
+                $item=array($defaultAttribute=>$item);
+
+            $item = array_merge($defaults, $item);
+
+            if ($placement === 'all' || $item['placement'] === $placement)
+            {
+                if (isset($alias[$item[$defaultAttribute]])) $item[$defaultAttribute] = $alias[$item[$defaultAttribute]];
+                $result[] = $item;
+            }
+        }
+        return $result;
+    }
+
+
+    /**
+     * Retourne la liste des scripts javascript à inclure dans la page.
+     *
+     * @param string $placement filtre de placement à utiliser. Seuls les items dont l'attribut
+     * "placement" correspond à la valeur indiquée seront retournée. La valeur "all" charge tous les
+     * items sans condition.
+     *
+     * @return array un tableau décrivant les items à inclure. Chaque élément est un tableau ayant
+     * les clés suivantes :
+     * - placement
+     * - condition
+     * - charset
+     * - defer
+     * - src
+     * - type
+     */
+    public function getScripts($placement='all')
+    {
+        return $this->getAssets
+        (
+            'js',
+            $placement,
+            array
+            (
+                'placement' =>'bottom',
+                'condition' =>'',
+                'charset'   => '',
+                'defer'     => '',
+                'src'       => '',
+                'type'      => 'text/javascript',
+            ),
+            'src'
+        );
+    }
+
+
+    /**
+     * Retourne la liste des feuilles de style CSS à inclure dans la page.
+     *
+     * @param string $placement filtre de placement à utiliser. Seuls les items dont l'attribut
+     * "placement" correspond à la valeur indiquée seront retournée. La valeur "all" charge tous les
+     * items sans condition.
+     *
+     * @return array un tableau décrivant les items à inclure. Chaque élément est un tableau ayant
+     * les clés suivantes :
+     * - placement
+     * - condition
+     * - charset
+     * - href
+     * - hreflang
+     * - id
+     * - media
+     * - rel
+     * - rev
+     * - title
+     * - type
+     */
+    public function getCss($placement='all')
+    {
+        return $this->getAssets
+        (
+            'css',
+            $placement,
+            array
+            (
+                'placement' => 'top',
+                'condition' => '',
+                'charset'   => '',
+                'href'      => '',
+                'hreflang'  => '',
+                'id'        => '',
+                'media'     => '',
+                'rel'       => 'stylesheet',
+                'rev'       => '',
+                'title'     => '',
+                'type'      => 'text/css',
+            ),
+            'href'
+        );
+    }
+
+
+    /**
+     * Retourne la liste des liens (balises link) à inclure dans la page.
+     *
+     * @param string $placement filtre de placement à utiliser. Seuls les items dont l'attribut
+     * "placement" correspond à la valeur indiquée seront retournée. La valeur "all" charge tous les
+     * items sans condition.
+     *
+     * @return array un tableau décrivant les items à inclure. Chaque élément est un tableau ayant
+     * les clés suivantes :
+     * - placement
+     * - condition
+     * - charset
+     * - href
+     * - hreflang
+     * - id
+     * - media
+     * - rel
+     * - rev
+     * - title
+     * - type
+     */
+    public function getLinks($placement='all')
+    {
+        return $this->getAssets
+        (
+            'links',
+            $placement,
+            array
+            (
+                'placement' => 'top',
+                'condition' => '',
+                'charset'   => '',
+                'href'      => '',
+                'hreflang'  => '',
+                'id'        => '',
+                'media'     => '',
+                'rel'       => '',
+                'rev'       => '',
+                'title'     => '',
+                'type'      => '',
+            ),
+            'href'
+        );
+    }
+
+
+    /**
+     * Retourne la liste des meta tags à inclure dans la page.
+     *
+     * @param string $placement filtre de placement à utiliser. Seuls les items dont l'attribut
+     * "placement" correspond à la valeur indiquée seront retournée. La valeur "all" charge tous les
+     * items sans condition.
+     *
+     * @return array un tableau décrivant les items à inclure. Chaque élément est un tableau ayant
+     * les clés suivantes :
+     * - placement
+     * - condition
+     * - name
+     * - http-equiv
+     * - content
+     * - scheme
+     */
+    public function getMetas($placement='all')
+    {
+        return $this->getAssets
+        (
+            'metas',
+            $placement,
+            array
+            (
+                'placement'  => 'top',
+                'condition'  => '',
+                'name'       => '',
+                'http-equiv' => '',
+                'content'    => '',
+                'scheme'     => '',
+            ),
+            'content'
+        );
+    }
+
+
     /**
      * Retourne le code html permettant d'inclure les fichiers havascript dont
      * la page a besoin.

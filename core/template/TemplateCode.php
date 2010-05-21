@@ -671,6 +671,7 @@ class TemplateCode
                 'filectime',
                 'filemtime',
                 'filesize',
+                'htmlspecialchars_decode', // laisse en fonction runtime pour permettre de générer des commentaires xml dans un template
                 'is_dir',
                 'is_file',
                 'is_link',
