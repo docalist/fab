@@ -153,6 +153,7 @@ class TaskManager extends DatabaseModule
             . DIRECTORY_SEPARATOR
             . 'files' . DIRECTORY_SEPARATOR;
     }
+
     /**
      * Méthode appellée avant l'exécution d'une action du TaskManager.
      *
@@ -786,6 +787,7 @@ class TaskManager extends DatabaseModule
      * @param int $id l'identifiant de la tâche à afficher.
      * @param int $start un offset indiquant la partie de la sortie générée
      * par la tâche à récupérer.
+     * @return Response
      */
     public function actionTaskStatus($id, $start=0)
     {
@@ -795,17 +797,18 @@ class TaskManager extends DatabaseModule
         // Charge la tâche indiquée
         $task=new Task($id);
 
+        // Crée la réponse. Si on est en mode ajax, supprime le layout
+        $response = Response::create('html');
+        if (Utils::isAjax())
+            Config::set('layout','none');
+
+        // Ajoute le contenu du fichier de sortie de la tâche dans la réponse
         $outputFile=self::getOutputDirectory().$task->getId(false) . '.html';
-
-        $ftell=0;
-
         if (file_exists($outputFile))
         {
-            $file=fopen($outputFile, 'r');
-            if ($start) fseek($file, $start);
-            fpassthru($file);
-            $ftell=ftell($file);
-            fclose($file);
+            $data = file_get_contents($outputFile, false, null, $start);
+            $response->appendContent($data);
+            $start += strlen($data);
         }
 
         switch ($status=$task->getStatus())
@@ -813,18 +816,20 @@ class TaskManager extends DatabaseModule
             case Task::Waiting :
             case Task::Starting :
             case Task::Running :
-
                 $progress=self::request('getprogress '.$id);
                 if ($progress==='')
                     $step=$max=0;
                 else
                     sscanf($progress, '%d %d', $step, $max);
 
-                echo sprintf
+                $response->appendContent
                 (
-                    '<span id="updater" url="%s" step="%d" max="%d"></span>',
-                    Routing::linkFor($this->request->copy()->set('start', $ftell)->getUrl()),
-                    $step, $max
+                    sprintf
+                    (
+                        '<span id="updater" url="%s" step="%d" max="%d"></span>',
+                        Routing::linkFor($this->request->copy()->set('start', $start)->getUrl()),
+                        $step, $max
+                    )
                 );
                 break;
 
@@ -834,9 +839,10 @@ class TaskManager extends DatabaseModule
 
             case Task::Disabled:
             case Task::Expired:
-                echo '<p>La tâche est en statut "', $status, '".</p>';
+                $response->appendContent('<p>La tâche est en statut "' . $status . '".</p>');
                 break;
         }
+        return $response;
     }
 
     /**
@@ -844,11 +850,13 @@ class TaskManager extends DatabaseModule
      *
      * La fonction {@link start()} est appellée puis l'utilisateur est redirigé
      * vers la page d'accueil du gestionnaire de tâches.
+     *
+     * @return Response
      */
     public function actionStart()
     {
         self::start();
-        Runtime::redirect('index');
+        return new RedirectResponse('index');
     }
 
     /**
@@ -856,6 +864,8 @@ class TaskManager extends DatabaseModule
      *
      * La fonction {@link stop()} est appellée puis l'utilisateur est redirigé
      * vers la page d'accueil du gestionnaire de tâches.
+     *
+     * @return Response
      */
     public function actionStop()
     {
@@ -865,10 +875,9 @@ class TaskManager extends DatabaseModule
         }
         catch (Exception $e)
         {
-            echo 'Erreur : ', $e->getMessage();
-            return;
+            return Response::create('html')->setContent('Erreur : ' . $e->getMessage());
         }
-        Runtime::redirect('index');
+        return new RedirectResponse('index');
     }
 
     /**
@@ -876,11 +885,13 @@ class TaskManager extends DatabaseModule
      *
      * La fonction {@link restart()} est appellée puis l'utilisateur est
      * redirigé vers la page d'accueil du gestionnaire de tâches.
+     *
+     * @return Response
      */
     public function actionRestart()
     {
         self::restart();
-        Runtime::redirect('index');
+        return new RedirectResponse('index');
     }
 
 	// ================================================================
@@ -1077,82 +1088,4 @@ class TaskManager extends DatabaseModule
     {
         self::request(sprintf('setprogress %d %d %d', self::$id, $step, $max));
     }
-
-    /**
-     * Fonction de test pour le TaskManager, à supprimer
-     *
-     */
-    public function actionTest()
-    {
-        $t=array
-        (
-//            null, null, null,
-            0, null, null,
-//            2, null, array('p1'=>10, 'p2'=>20, 'p3'=>array(4,5,6), 'p4'=>5.1111123),
-//            3, null, null,
-//            4, null, null,
-//            1, '20 sec', null,
-//            0, '10 sec', null,
-        );
-
-        echo '<pre>';
-        for($i=0; $i<count($t); $i=$i+3)
-        {
-            $time=$t[$i];
-            $repeat=$t[$i+1];
-            $parameters=$t[$i+2];
-
-            if ($time===0)
-                $title='Asap';
-            else
-            {
-                $title='Dans '.$time.' min.';
-                $title="Un essai de titre particulièrement long pour une tâche (histoire de voir comment ça s'affiche et comment le navigateur gère le retour à la ligne)";
-                $title='test';
-                $time=time()+$time*60;
-            }
-
-            if (! is_null($parameters)) $title.='<br /> params='.Utils::varExport($parameters,true);
-
-            $task=new Task();
-            $task->setLabel($title);
-            $task->setTime($time);
-            //$task->setLast($time);
-            if (! is_null($repeat))
-                $task->setRepeat($repeat);
-
-            $request=Request::create()
-                ->setModule('TaskManager')
-                ->setAction('TestTask');
-            if (! is_null($parameters))
-                $request->addParameters($parameters);
-            $task->setRequest($request);
-            $task->setStatus(Task::Waiting);
-            $task->save();
-            Runtime::redirect('/TaskManager/TaskStatus?id='.$task->getId(false));
-            //echo 'Id de la tâche créée : ', $task->getId(false), "\n";
-        }
-    }
-
-    /**
-     * Tâche de test pour le TaskManager, à supprimer
-     *
-     */
-    public function actionTestTask()
-    {
-        echo 'Début d\'exécution de la tâche. Mon id=', self::$id, ', url=',$this->request,'<br />';
-        for($i=1;$i<3;$i++)
-        {
-            echo '<h1>Etape ', $i, '</h1>';
-            for($j=1;$j<=100;$j++)
-            {
-                TaskManager::progress($j, 100);
-                usleep(200000);
-                if (rand(0,9)>8) echo '<p>aléatoire</p>';
-            }
-            echo '<p>Etape ', $i, ' terminée.</p>';
-        }
-        echo 'Fin d\'exécution de la tâche<br />';
-    }
 }
-?>
