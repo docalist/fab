@@ -1650,7 +1650,7 @@ class DatabaseModule extends Module
 
         }
 
-        echo '<span class="number">';
+        if ($links) echo '<span class="number">';
 
         // Lien vers les pages de la fenêtre
         for($i=$first; $i <= $last; $i++)
@@ -1665,7 +1665,7 @@ class DatabaseModule extends Module
                 echo ' <a href="', $request, 1+($i-1)*$max,'" title="', $title, '">', $i, '</a> ';
             }
         }
-        echo '</span>';
+        if ($links) echo '</span>';
 
         // Lien vers la page suivante
         if ($nextLabel)
