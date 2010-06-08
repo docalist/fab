@@ -24,8 +24,7 @@
     >
     <div test="$test" class="holder textbox $class">
         <if test="{$rows}">
-            <def name="id" value="{Template::autoId($id:$name:'textarea')}" />
-            <label test="$label" for="$id">$label</label>
+            <label test="$label" for="{Template::autoId($id:$name:'textarea')}">$label</label>
             {select('node()[contains(@class,"before")]')}
             <textarea
                 name="$name"
@@ -35,8 +34,7 @@
                 id="{Template::lastId()}">$value{select('@*')}</textarea>
         </if>
         <else>
-            <def name="id" value="{Template::autoId($id:$name:'textbox')}" />
-            <label test="$label" for="$id">$label</label>
+            <label test="$label" for="{Template::autoId($id:$name:'textbox')}">$label</label>
             {select('node()[contains(@class,"before")]')}
             <input
                 type="text" 
