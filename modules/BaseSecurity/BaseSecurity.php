@@ -139,5 +139,19 @@ class BaseSecurity extends Module
     {
     	throw new Exception('Accès refusé');
     }
+
+    /**
+     * Accorde des droits supplémentaire à l'utilisateur.
+     *
+     * @param string $rights les droits à accorder
+     */
+    public function grantAccess($rights)
+    {
+        if ($this->rights)
+            $this->rights .= ',' . $rights;
+        else
+            $this->rights .= $rights;
+    }
+
 }
 ?>

@@ -8,7 +8,7 @@
 
 /**
  * Gestion des droits et des utilisateurs
- * 
+ *
  * @package     fab
  * @subpackage  user
  */
@@ -18,11 +18,11 @@ class User
      * @var User L'utilisateur en cours
      */
     public static $user=null;
-    
-    
+
+
     /**
      * Teste si l'utilisateur est connecté (authentifié)
-     * 
+     *
      * @return boolean true si l'utilisateur est connecté, false s'il
      * s'agit d'un visiteur anonyme
      */
@@ -51,7 +51,7 @@ class User
 
     /**
      * Teste si l'utilisateur dispose des droits indiqués.
-     * 
+     *
      * @param string $level le ou les droit(s) à tester
      * @return boolean true si l'utilisateur dispose du droit requis,
      * false sinon
@@ -64,14 +64,14 @@ class User
     /**
      * Vérifie que l'utilisateur dispose des droits indiqués et génère une
      * erreur 'access denied' sinon.
-     * 
+     *
      * @param string $level le droit à tester
      */
     public static function checkAccess($rights)
     {
         self::$user->checkAccess($rights);
     }
-    
+
     /**
      * Génère une erreur 'access denied'
      */
@@ -79,7 +79,7 @@ class User
     {
         self::$user->accessDenied();
     }
-    
+
     public static function get($propertyName)
     {
         try
@@ -91,7 +91,17 @@ class User
             return '';
         }
     }
-    
+
+    /**
+     * Accorde des droits supplémentaire à l'utilisateur.
+     *
+     * @param string $rights les droits à accorder
+     */
+    public static function grantAccess($rights)
+    {
+        self::$user->grantAccess($rights);
+    }
+
     // dans $_SERVER, on pourrait extraire :
     // User::browser   : [HTTP_USER_AGENT] => Mozilla/5.0 (Windows; U; Windows NT 5.1; fr; rv:1.8.0.3) Gecko/20060426 Firefox/1.5.0.3
     // User::mimeTypes : [HTTP_ACCEPT] => text/xml,application/xml,application/xhtml+xml,text/html;q=0.9,text/plain;q=0.8,image/png,*/*;q=0.5
@@ -99,6 +109,6 @@ class User
     // User::encoding  : [HTTP_ACCEPT_ENCODING] => gzip,deflate
     // User::charset   : [HTTP_ACCEPT_CHARSET] => ISO-8859-1,utf-8;q=0.7,*;q=0.7
     // User::ip        : [REMOTE_ADDR] => 192.168.13.100
-    
+
 }
 ?>
