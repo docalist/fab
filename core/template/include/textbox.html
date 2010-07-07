@@ -24,24 +24,26 @@
     >
     <div test="$test" class="holder textbox $class">
         <if test="{$rows}">
-            <label test="$label" for="{Template::autoId($id:$name:'textarea')}">$label</label>
+            <def name="autoid" value="{Template::autoId($id:$name:'textarea')}" />
+            <label test="$label" for="$autoid">$label</label>
             {select('node()[contains(@class,"before")]')}
             <textarea
                 name="$name"
                 title="$title"
                 rows="$rows"
                 cols="$cols"
-                id="{Template::lastId()}">$value{select('@*')}</textarea>
+                id="$autoid">$value{select('@*')}</textarea>
         </if>
         <else>
-            <label test="$label" for="{Template::autoId($id:$name:'textbox')}">$label</label>
+            <def name="autoid" value="{Template::autoId($id:$name:'textbox')}" />
+            <label test="$label" for="$autoid">$label</label>
             {select('node()[contains(@class,"before")]')}
             <input
                 type="text" 
                 name="$name" 
                 title="$title"
                 value="$value"
-                id="{Template::lastId()}">{select('@*')}</input>
+                id="$autoid">{select('@*')}</input>
         </else>
         {select('node()[not(contains(@class,"before"))]')}
     </div>
