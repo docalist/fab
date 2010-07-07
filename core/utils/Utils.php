@@ -1192,16 +1192,17 @@ final class Utils
      *      $equation='creation='.implode(' OR creation=', $result);
      * </code>
      */
-    public static function dateRange($fromDate, $toDate)
+    public static function dateRange($fromDate, $toDate, $wildcard=false)
     {
         $result=array();
+        $wild = $wildcard ? '*' : '';
 
         // Convertit les dates au format GNU en timestamps
 
         if (false === $fromDate=strtotime($fromDate))
             throw new Exception('Date de début invalide : '.$fromDate);
 
-        if (false === $toDate=strtotime($toDate, $fromDate))
+        if (false === $toDate=strtotime($toDate))
             throw new Exception('Date de fin invalide : '.$toDate);
 
         // Inverse les dates si la date de début est après la date de fin
@@ -1253,7 +1254,7 @@ final class Utils
                     $result[]=sprintf('%d%02d*', $y1, $m1);
                 else
                     for ( ; $d1 <= $d2 ; $d1++)
-                        $result[]=sprintf('%d%02d%02d', $y1, $m1, $d1);
+                        $result[]=sprintf('%d%02d%02d'.$wild, $y1, $m1, $d1);
             }
             else // m1<m2
             {
@@ -1268,7 +1269,7 @@ final class Utils
                         $result[]=sprintf('%d%02d*', $y1, $m1);
                     else
                         for ($last=Utils::lastDay($m1, $y1) ; $d1 <= $last ; $d1++)
-                            $result[]=sprintf('%d%02d%02d', $y1, $m1, $d1);
+                            $result[]=sprintf('%d%02d%02d'.$wild, $y1, $m1, $d1);
 
                     // mois de y1/m1+1 à y1/m2-1
                     while (++$m1 < $m2)
@@ -1279,7 +1280,7 @@ final class Utils
                         $result[]=sprintf('%d%02d*', $y1, $m2);
                     else
                         for ($d1=1 ; $d1 <= $d2 ; $d1++)
-                            $result[]=sprintf('%d%02d%02d', $y1, $m2, $d1);
+                            $result[]=sprintf('%d%02d%02d'.$wild, $y1, $m2, $d1);
                 }
             }
         }
@@ -1295,7 +1296,7 @@ final class Utils
                     $result[]=sprintf('%d%02d*', $y1, $m1);
                 else
                     for ($last = Utils::lastDay($m1, $y1) ; $d1 <= $last ; $d1++)
-                        $result[]=sprintf('%d%02d%02d', $y1, $m1, $d1);
+                        $result[]=sprintf('%d%02d%02d'.$wild, $y1, $m1, $d1);
 
                 // pour y1 : mois de y1/m1+1 à y1/12
                 while (++$m1 <= 12)
@@ -1320,7 +1321,7 @@ final class Utils
                     $result[]=sprintf('%d%02d*', $y2, $m2);
                 else
                     for ($d1=1 ; $d1 <= $d2 ; $d1++)
-                        $result[]=sprintf('%d%02d%02d', $y1, $m1, $d1);
+                        $result[]=sprintf('%d%02d%02d'.$wild, $y1, $m1, $d1);
             }
         }
         return $result;
