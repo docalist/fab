@@ -193,7 +193,7 @@ class Routing
     {
         // Détermine une route pour cette url
         if (! $route=self::routeFor($url))
-            throw new Exception('Route not found');
+            throw new RouteNotFoundException('Route not found');
 
         // Crée et initialise un nouvel objet Request
         $request = Request::create($_GET, $_POST, $route['args'])
@@ -803,4 +803,5 @@ class Routing
         return $query;
     }
 }
+class RouteNotFoundException extends Exception {}
 ?>
