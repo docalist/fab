@@ -147,13 +147,13 @@ div.toolbar span.separator
  ******************************************************************************/
 ul.bigmenu
 {
-    margin: 0;
-    padding: 0;
+    margin: 0 !important;
+    padding: 0 !important;
 }
 
 ul.bigmenu li
 {
-    list-style-type: none;
+    list-style-type: none !important;
     list-style-image: none; 
     margin: 10px 0;
     padding: 10px 20px 10px 104px; /* image de 64px + 10 de marges gauche droite*/
