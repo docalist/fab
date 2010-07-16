@@ -543,8 +543,13 @@ Config::addArray($this->config);    // fixme: objectif : uniquement $this->confi
         // Cas particulier : l'action veut absolument fonctionner "comme avant"
 //        if (false === Config::get('output-buffering', true))
 //        {
-//            $this->response = new LayoutResponse(); TODO : ne pas générer de statut et d'entêtes dans ce cas.
-//            $this->response->output($this);
+//            if (strcasecmp(Config::get('layout'),'none')==0)
+//                $this->callActionMethod();
+//            else
+//            {
+//                $this->response = new LayoutResponse(); // TODO : ne pas générer de statut et d'entêtes dans ce cas.
+//                $ret=$this->response->outputLayout($this);
+//            }
 //        }
 //        else
 //        {
@@ -873,13 +878,7 @@ Config::addArray($this->config);    // fixme: objectif : uniquement $this->confi
      */
     public function GetCssLinks()
     {
-        $result='';
-        foreach($this->CssOrJsPath(Config::get('css'), 'alias') as $path)
-        {
-            $path=Routing::linkFor($path);
-            $result.='<link rel="stylesheet" type="text/css" href="'.$path.'" media="all" />' . "\n    ";
-        }
-        return $result;
+        die("La méthode getCssLinks() n'est plus supportée. A la place, utilisez &lt;css /&gt; dans vos templates.");
     }
 
 
@@ -1110,13 +1109,7 @@ Config::addArray($this->config);    // fixme: objectif : uniquement $this->confi
      */
     public function GetJsLinks()
     {
-        $result='';
-        foreach($this->CssOrJsPath(Config::get('js'), 'alias') as $path)
-        {
-            $path=Routing::linkFor($path);
-            $result.='<script type="text/javascript" src="'.$path.'"></script>' . "\n    ";
-        }
-        return $result;
+        die("La méthode getJsLinks() n'est plus supportée. A la place, utilisez &lt;js /&gt; dans vos templates.");
     }
 
     /**
