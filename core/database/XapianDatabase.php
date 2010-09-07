@@ -700,7 +700,14 @@ class XapianDatabaseDriver extends Database
     private function initializeDocument()
     {
         // On ne stocke dans doc.data que les champs non null
-        $data=array_filter($this->fieldById, 'count'); // Supprime les valeurs null et array()
+        $data = array();
+        foreach($this->fieldById as $id=>$value)
+            if (count($value)) $data[$id]=$value; // Supprime les null et array()
+
+        // Dans une version précédente, on utilisait array_filter($this->fieldById, 'count')
+        // qui fait la même chose que le code ci-dessus. Mais depuis php 5.2.11, cela ne
+        // fonctionne plus car fieldById est une référence qui se retrouve cassée si on la passe
+        // à array_filter. Cf http://bugs.php.net/bug.php?id=51986 pour plus d'informations.
 
         // Stocke les données de l'enregistrement
         $this->xapianDocument->set_data(serialize($data));
@@ -1919,9 +1926,16 @@ class XapianDatabaseDriver extends Database
                 'bool'=>XapianQuery::OP_AND,
             ) as $type=>$op)
             {
+                // Aucune requête de type $type, rien à faire
                 if (count($$type)===0) continue;
-                if (count($$type)==1) $$type=array_pop($$type);
-                $$type=new XapianQuery($op, $$type);
+
+                // Une seule requête de type $type. C'est déjà un objet XapianQuery, on l'utilise tel quel
+                if (count($$type)==1)
+                    $$type=array_pop($$type);
+
+                // Plusieurs requêtes de type $type : on combine tous les XapianQuery en une seule avec $op
+                else
+                    $$type=new XapianQuery($op, $$type);
             }
 
             // Crée la partie principale de la requête sous la forme :
