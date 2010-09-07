@@ -349,7 +349,7 @@ class Runtime
 
         // Définit le fuseau horaire utilisé par les fonctions date de php
         self::setupTimeZone();
-        setlocale(LC_ALL, 'fr'); // fr_FR ne marche pas, retourne false.
+        setlocale(LC_ALL, 'French_France', 'fr');
 
         // Répare les tableaux $_GET, $_POST et $_REQUEST
         Utils::repairGetPostRequest();
