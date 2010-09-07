@@ -278,7 +278,7 @@ class TaskManager extends DatabaseModule
         $IP=Config::get('taskmanager.localIP');
 	    $port = Config::get('taskmanager.port');
         $address= 'tcp://' . $IP . ':' . $port;
-        $startTime = strftime('%x %X');
+        $startTime = strftime('%d/%m/%Y %H:%M:%S');
 
 		// Démarre le serveur
 		$errno = 0; // évite warning 'var not initialized'
@@ -553,7 +553,7 @@ class TaskManager extends DatabaseModule
         echo sprintf
         (
             '<div class="taskinfo">Tâche #%s : %s<br />Date d\'exécution : %s<br />Requête exécutée : %s<br />PID : %d</div>',
-            self::$id, $task->getLabel(), strftime('%x %X'), $this->request, getmypid()
+            self::$id, $task->getLabel(), strftime('%d/%m/%Y %H:%M:%S'), $this->request, getmypid()
         );
 
         // Construit la requête à exécuter
@@ -588,7 +588,7 @@ class TaskManager extends DatabaseModule
         echo sprintf
         (
             '<div class="taskinfo">Tâche #%s : terminée<br />Fin d\'exécution : %s<br />Durée d\'exécution : %s<br /></div>',
-            self::$id, strftime('%x %X'), Utils::friendlyElapsedTime(time()-$start)
+            self::$id, strftime('%d/%m/%Y %H:%M:%S'), Utils::friendlyElapsedTime(time()-$start)
         );
 
         ob_end_flush();

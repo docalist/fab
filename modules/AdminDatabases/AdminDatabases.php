@@ -636,7 +636,7 @@ class AdminDatabases extends Admin
         // 3. Lance le dump
         echo '<h1>', sprintf('Dump de la base %s', $database), '</h1>';
 
-        echo '<p>Date du dump : ', strftime('%x %X'), '</p>';
+        echo '<p>Date du dump : ', strftime('%d/%m/%Y %H:%M:%S'), '</p>';
 
         $selection=Database::open($database, true);
         $selection->search('*', array('sort'=>'+', 'max'=>-1));
@@ -676,7 +676,7 @@ class AdminDatabases extends Admin
         // Autres attributs du tag racine
         $xml->writeAttribute('name', $database);
         $xml->writeAttribute('timestamp', time());
-        $xml->writeAttribute('date', strftime('%x %X'));
+        $xml->writeAttribute('date', strftime('%d/%m/%Y %H:%M:%S'));
 
         // Schéma de la base
         $xml->writeRaw("\n");
