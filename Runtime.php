@@ -152,10 +152,8 @@ class Runtime
             $pt=strpos(self::$url, '?');
             if ($pt!==false)
             {
-                echo 'query string, pt=', $pt, "\n";
                 $_SERVER['QUERY_STRING']=substr(self::$url, $pt+1);
                 self::$url=substr(self::$url, 0, $pt);
-                echo 'url=', self::$url, "<br />\n";
                 parse_str($_SERVER['QUERY_STRING'], $_GET);
                 $_REQUEST=$_GET;
             }
