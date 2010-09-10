@@ -516,7 +516,10 @@ class Routing
         }
 
         // Ajoute la webroot
-        $link= rtrim(Runtime::$home,'/') . $link;
+        if (User::hasAccess('cli') && Config::get('smarturls',false))
+            $link= rtrim(Runtime::$realHome,'/') . $link;
+        else
+            $link= rtrim(Runtime::$home,'/') . $link;
 
         // Crée une url absolue si ça a été demandé
         if ($absolute)

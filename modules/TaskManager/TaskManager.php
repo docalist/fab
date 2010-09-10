@@ -559,6 +559,8 @@ class TaskManager extends DatabaseModule
         // Construit la requête à exécuter
         $request=$task->getRequest();
 
+        Runtime::$request=$request;
+
         // Exécute la tâche
         try
         {
