@@ -1,6 +1,8 @@
-<loop on="$this->selection" as="$record">/*
+<def name="crlf" value="{chr(13).chr(10)}" />/*
+*/<def name="sep" value="{Config::get('formats.'.$format.'.sep', '¤')}" />/*
+*/<loop on="$this->selection" as="$record">/*
     */<loop on="$record" as="$field,$value">/*
-            */<if test="$value">$field{"\n"}{wordwrap(implode(Config::get("formats.$format.sep",'¤'),(array)$value))}{"\n"}/*
+            */<if test="$value">$field{$crlf}{wordwrap(implode($sep, (array)$value), 75, $crlf)}{$crlf}/*
             */</if>/*
-    */</loop>//{"\n"}/*
+    */</loop>//{$crlf}/*
 */</loop>
