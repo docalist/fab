@@ -1129,6 +1129,7 @@ class XapianDatabaseDriver extends Database
             // Pré-traitement de l'équation pour que xapian l'interprête comme on souhaite
             $equation=preg_replace_callback('~(?:[a-z0-9]\.){2,9}~i', array('Utils', 'acronymToTerm'), $equation); // sigles à traiter, xapian ne le fait pas s'ils sont en minu (a.e.d.)
             $equation=preg_replace_callback('~\[(.*?)\]~', array($this,'searchByValueCallback'), $equation);
+            $equation=strtr($equation, array('æ'=>'ae', 'œ'=>'oe'));
             $equation=$this->protectOperators($equation);
             $equation=Utils::convertString($equation, 'queryparser'); // FIXME: utiliser la même table que tokenize()
             $equation=$this->restoreOperators($equation);
