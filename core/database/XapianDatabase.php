@@ -778,6 +778,7 @@ class XapianDatabaseDriver extends Database
                         $term=implode('_', $tokens);
                         if (strlen($term)>self::MAX_TERM-2)
                             $term=substr($term, 0, self::MAX_TERM-2);
+                        $term = strtr($term, '@', 'a');         // Il ne faut pas avoir d'arobase dans les articles (déclenche une recherche à la phrase dans Xapian)
                         $term = '_' . $term . '_';
                         $this->addTerm($term, $prefix, $field->weight, null);
                     }
@@ -1031,6 +1032,9 @@ class XapianDatabaseDriver extends Database
         // Tronque l'article s'il dépasse la limite autorisée
         if (strlen($term)>self::MAX_TERM-2)
             $term=substr($term, 0, self::MAX_TERM-2);
+
+        // Il ne faut pas avoir d'arobase dans les articles (déclenche une recherche à la phrase dans Xapian)
+        $term=strtr($term, '@', 'a');
 
         // Encadre le terme avec des underscores et ajoute éventuellement la troncature
         $term = '_' . $term ; // fixme: pb si ce qui précède est un caractère aa[bb]cc -> aa_bb_cc. Faut gérer ?
