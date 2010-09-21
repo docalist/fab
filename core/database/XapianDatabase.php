@@ -2115,7 +2115,7 @@ class XapianDatabaseDriver extends Database
         // Supprime les <br /> superflus
         $h=str_replace('<br /><br />', '<br />', $h);
         $h=preg_replace('~^<br />|<br />$~', '', $h);
-        $h=preg_replace('~(<div.*?>)<br />(\(<div)~', '$1$2', $h);
+        $h=preg_replace('~(<div[^>]*>)<br />(\(<div)~', '$1$2', $h);
 
         // Retourne le résultat
         return $h;
