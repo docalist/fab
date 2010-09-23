@@ -1109,7 +1109,7 @@ Config::addArray($this->config);    // fixme: objectif : uniquement $this->confi
      */
     public function GetJsLinks()
     {
-        die("La méthode getJsLinks() n'est plus supportée. A la place, utilisez &lt;js /&gt; dans vos templates.");
+        die("La méthode getJsLinks() n'est plus supportée. A la place, utilisez &lt;scripts /&gt; dans vos templates.");
     }
 
     /**
