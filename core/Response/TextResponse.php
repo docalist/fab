@@ -20,6 +20,11 @@ class TextResponse extends Response
     protected $contentType = 'text/plain';
 
     /**
+     * @inheritdoc
+     */
+    protected $charset = 'ISO-8859-1';
+
+    /**
      * Constructeur.
      *
      * Construit la réponse et ajoute un entête spécifique à IE8 pour le forcer à respecter
