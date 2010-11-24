@@ -1164,16 +1164,15 @@ class XapianDatabaseDriver extends Database
     /**
      * Corrige l'orthographe de l'équation de recherche en cours.
      *
-     * La méthode extrait tous les mots présents dans la requête en cours en
-     * ignorant les mots de une lettre, les opérateurs, les noms de champs et
-     * les mots-vides.
+     * La méthode extrait de la requête en cours tous les termes qui n'existent
+     * pas dans la base.
      *
      * Elle appelle ensuite pour chaque mot la méthode
      * XapianDatabase::->get_spelling_suggestion().
      *
      * Si xapian propose une suggestion, le mot d'origine est remplacé par
-     * la celle-ci dans la requête en cours en utilisant le format passé en
-     * parmaètre.
+     * celle-ci dans la requête en cours en utilisant le format passé en
+     * paramètre.
      *
      * Lors de ce remplacement, la méthode essaie de donner à la suggestion
      * trouvée la même casse de caractères que le mot d'origine (si le mot était
@@ -1191,90 +1190,92 @@ class XapianDatabaseDriver extends Database
     private function spellcheckEquation($format='<strong>%s</strong>')
     {
         // requête utilisée pour les tests :
-        // http://apache/Bdsp2009/web/debug.php/Base/Search?_equation=PZTIENT+Pztient+pztient+P.Z.T.I.E.N.T.+%5BEducation+Sznt%E9%5D+z++-priqe+en+chzrge+chzrge+%9Cuef+AND+pztient+dizb%E9tique+OR+diazbet*+REF%3A12+AutPhys%3A%28Flahzult+A.%29+%2BZ.N.A.E.S.+Titre%3Desai&_defaultop=OR
-
+        // /debug.php/Base/Search?_equation=PZTIENT+Pztient+pztient+P.Z.T.I.E.N.T.+%5BEducation+Sznt%E9%5D+z++-priqe+en+chzrge+chzrge+%9Cuef+AND+pztient+dizb%E9tique+OR+diazbet*+REF%3A12+AutPhys%3A%28Flahzult+A.%29+%2BZ.N.A.E.S.+Titre%3Desai&_defaultop=OR
         timer && Timer::enter();
 
-        // Récupère l'équation de recherche à corriger
-        $corrected=$equation=$this->searchInfo('equation');
-
-        // Crée un tableau contenant tous les mots présents dans l'équation
-        $terms=preg_split('~[^.A-Za-z0-9_ŒœÀÁÂÃÄÅÆÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖØÙÚÛÜÝÞßàáâãäåæçèéêëìíîïðñòóôõöùúûüýþÿ]~', $corrected, -1, PREG_SPLIT_NO_EMPTY | PREG_SPLIT_OFFSET_CAPTURE);
-
-        $cache=array();
-        $offset=0;
-        $hasErrors=false;
-        foreach($terms as $term)
+        // Crée la liste des termes de la requête qui n'existent pas dans la base
+        // Chaque terme peut apparaître dans plusieurs index (12:test, 15:test, etc.)
+        // On considère qu'un terme n'existe pas s'il ne figure dans aucun des index
+        timer && Timer::enter('Création de la liste des mots inexistants');
+        $found = array();
+        foreach($this->searchInfo('internalqueryterms') as $term)
         {
-            $position=$term[1];
-            $term=$term[0];
-
-            // Ignore les mots d'une seule lettre (pas de correction possible)
-            if (strlen($term) === 1) continue;
-
-            // Ignore les opérateurs
-            if (false !== stripos(' et and ou or sauf but not ', " $term ")) continue;
-
-            // Ignore les noms de champs (i.e. le terme est suivi par '=' ou ':')
-            if (false !== strpos(':=', substr($equation, $position + strlen($term), 1))) continue;
-
-            // Ignore les mots qui contiennent des chiffres todo: A voir
-//            if (preg_match('~\d~', $term))
-//            {
-//                echo 'match \d<br />';
-//                continue;
-//            }
-
-            // Ignore les mots vides
-            if ($this->stopper && $this->stopper->apply($term)) continue;
-
-            // Si on a déjà rencontré ce terme, on utilise le cache
-            if (isset($cache[$term]))
+            // Extrait le préfixe du terme
+            $prefix = '';
+            if (false !== $pt=strpos($term, ':'))
             {
-                $correction=$cache[$term];
+                $prefix = substr($term, 0, $pt+1);
+                $term = substr($term, $pt+1);
             }
 
-            // Sinon, essaie de trouver une correction et stocke en cache
-            else
+            // Extrait les mots présents dans le terme (essentiellement pour les articles)
+            $words = str_word_count($term, 1, '0123456789@');
+//          $docCount = $this->xapianDatabase->get_doccount();
+            foreach($words as $word)
             {
-                // Gère les lettres doubles
-                $search=strtr($term, array('æ'=>'ae', 'œ'=>'oe'));
+                // Si on a déjà rencontré ce mot, terminé
+                if (isset($found[$word]) && $found[$word]) continue;
 
-                // Gère les sigles
-                $acronym=false;
-                if (false !== strpos($search, '.'))
-                {
-                    // Ignore les sigles d'une seule lettre (exemple : initiale d'auteur)
-                    if (strlen($search)===2) continue;
+                // Si c'est un nombre, terminé
+                if (ctype_digit($word)) continue;  // évite un warning xapian : no overloaded function get_spelling_suggestion(int))
 
-                    $acronym=true;
-
-                    // Transforme le sigle en terme (i.e. supprime les points)
-                    $search=trim(str_replace('.', '', $search));
-                }
-
-                // Recherche une correction et la stocke
-                $correction=$cache[$term]=$this->xapianDatabase->get_spelling_suggestion(Utils::convertString($search, 'alphanum'), 2);
+                if ($this->xapianDatabase->term_exists($prefix.$word))
+//                if ($this->xapianDatabase->get_termfreq($prefix.$word) > 0.001*$docCount)
+                    $found[$word] = true;
+                elseif(! isset($found[$word]))
+                    $found[$word] = false;
             }
+        }
+        timer && Timer::leave();
 
-            if ($correction==='') continue;
+        // Recherche une suggestion pour chacun des mots obtenus
+        timer && Timer::enter('get_spelling_suggestion');
+        foreach($found as $word=>$exists)
+        {
+            if (! $exists && $correction = $this->xapianDatabase->get_spelling_suggestion($word, 2))
+                $corrections[$word] = $correction;
+        }
+        timer && Timer::leave();
 
-            // Essaie de donner à la suggestion la même "casse" que le mot d'origine
-            if (ctype_upper($search))
-                $correction=strtoupper($correction);
-            elseif (ctype_upper($search[0]))
-                $correction=ucfirst($correction);
+        timer && Timer::enter('Remplacement des mots par les corrections');
+        // Récupère l'équation de recherche de l'utilisateur
+        $string = $this->searchInfo('equation');
 
-            if ($acronym)
-                $correction = preg_replace('~.~', '$0.', $correction);
+        // Crée une version en minuscules non accentuées de l'équation de recherche
+        $string = strtr($string, array('æ'=>'ae', 'œ'=>'oe')); // ligatures
+        $string = preg_replace_callback('~(?:[a-z0-9]\.){2,9}~i', array('Utils', 'acronymToTerm'), $string); // sigles
+        $lower = Utils::convertString($string, 'alphanum');
 
-            // Remplace le terme par la suggestion proposée, en gérant le décalage généré
-            $replace=sprintf($format, $correction);
-            $corrected=substr_replace($corrected, $replace, $position + $offset, strlen($term));
-            $offset += (strlen($replace) - strlen($term));
+        // Extrait les mots présents dans l'équation en minu en stockant leur position de départ
+        $words = str_word_count($lower, 2, '0123456789@_');
+
+        // offset enregistre le décalage des positions dûs aux remplacements déjà effectués
+        $offset = 0;
+
+        // Corrige les mots
+        foreach($words as $position=>$word)
+        {
+            if (isset($corrections[$word]))
+            {
+                // Récupère la correction
+                $correction = $corrections[$word];
+
+                // Essaie de donner à la suggestion la même "casse" que le mot d'origine
+                $word=substr($string, $position + $offset, strlen($word));
+                if (ctype_upper($word))
+                    $correction=strtoupper($correction);
+                elseif (ctype_upper($word[0]))
+                    $correction=ucfirst($correction);
+
+                $correction = sprintf($format, $correction);
+
+                $string = substr_replace($string, $correction, $position + $offset, strlen($word));
+                $offset += (strlen($correction) - strlen($word));
+            }
         }
 
-        $this->correctedEquation = $offset ? $corrected : '';
+        $this->correctedEquation = $offset ? $string : '';
+        timer && Timer::leave();
 
         timer && Timer::leave();
     }
