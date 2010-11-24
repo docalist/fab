@@ -2176,5 +2176,86 @@ final class Utils
         if (! file_exists($path)) return false;
         return realpath($path);
     }
+
+
+    /**
+     * Permet de gérer facilement les singuliers et les pluriels dans une phrase.
+     *
+     * Exemples d'utilisation :
+     * <code>
+     * echo Utils::pluralize('{Aucune|Une|%d} occurence{s} trouvée{s}.', $count);
+     * echo Utils::pluralize("{Aucune|Une|%d} tâche{s} {n'a|a|ont} été exécutée{s}.", $count);
+     * </code>
+     *
+     * Les blocs entre accolades représentent les parties de la chaine qui seront pluralisées.
+     *
+     * La forme générale est la suivante : <code>{Aucune|Singulier|Pluriel}</code> :
+     * - {xxx} : génère 'xxx' si $count > 1, rien sinon.
+     * - {xxx|yyy} : génère 'xxx' si $count <= 1, 'yyy' sinon.
+     * - {xxx|yyy|zzz} : génère 'xxx' si $count==0, 'yyy' si $count$=1, 'zzz' sinon.
+     *
+     * Dans la chaine <code>$string</code>, '%d' sera remplacé par <code>$count</code>.
+     *
+     * Vous pouvez inclure dans la chaine <code>$string</code> d'autre tags sprintf() et passer des
+     * arguments supplémentaires à la méthode.
+     *
+     * Exemple :
+     * <code>
+     * echo Utils::pluralize('%d tâche{s} exécutée{s} sur %d au total.', $nb, $total);
+     * </code>
+     *
+     * Inspiré et adapté de :
+     * - http://blog.jaysalvat.com/article/gerer-facilement-les-singuliers-pluriels-en-php
+     * - http://joshduck.com/blog/2010/08/13/a-php-snipped-for-pluralizing-strings/
+     *
+     * @param int $count
+     * @param string $string
+     * @param array $values
+     */
+    public static function pluralize($string, $count = 1)
+    {
+        // Convertit les chaines %x
+        $values = func_get_args();
+        array_shift($values);
+        $string = vsprintf($string, $values);
+
+        // Recherche toutes les occurences de {...}
+        preg_match_all('~\{(.*?)\}~', $string, $matches);
+        foreach($matches[1] as $key=>$value)
+        {
+            // Sépare les alternatives
+            $parts = explode('|', $value);
+
+            // Aucune
+            if ($count == 0)
+                $replace = (count($parts) === 1) ? '' : $parts[0];
+
+            // Singulier
+            elseif ($count == 1)
+                $replace = (count($parts) == 1) ? '' : ((count($parts) == 2) ? $parts[0] : $parts[1]);
+
+            // Pluriel
+            else
+                $replace = (count($parts) == 1) ? $parts[0] : ((count($parts) == 2) ? $parts[1] : $parts[2]);
+
+            // Insère le résultat
+            $string = str_replace($matches[0][$key], $replace , $string);
+        }
+
+        // Retourne le résultat
+        return $string;
+    }
 }
+/*
+for ($i=0; $i<=2; $i++)
+    echo Utils::pluralize('{Aucune|Une|%d} occurence{s} trouvée{s} sur %d (%s).<br/>', $i, 100, 'done');
+
+for ($i=0; $i<=2; $i++)
+    echo Utils::pluralize('%d tâche{s} exécutée{s} sur %d au total.<br />', $i, 7);
+
+for ($i=0; $i<=2; $i++)
+    echo Utils::pluralize("{Aucune|Une|%d} tâche{s} {n'a|a|ont} été exécutée{s} sur %d au total.<br />", $i, 7);
+
+    die();
 ?>
+*/
