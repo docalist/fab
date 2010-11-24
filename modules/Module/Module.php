@@ -599,7 +599,7 @@ Config::addArray($this->config);    // fixme: objectif : uniquement $this->confi
      *
      * @return mixed Retourne ce qu'a retourné la méthode (normallement, un objet Response).
      */
-    private function callActionMethod()
+    protected function callActionMethod()
     {
         // Utilise la reflexion pour examiner les paramètres de l'action
         $reflectionModule = new ReflectionObject($this);
