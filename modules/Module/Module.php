@@ -785,8 +785,12 @@ Config::addArray($this->config);    // fixme: objectif : uniquement $this->confi
         if (substr($name, 0, 8)==='browser.')
         {
             static $browser=null;
-            if (is_null($browser)) $browser=get_browser();
+
+            if (is_null($browser))
+                $browser= isset($_SERVER['HTTP_USER_AGENT']) ? get_browser() : false;
+
             if ($browser===false) return '';
+
             $prop=substr($name, 8);
             if (!isset($browser->$prop)) return '';
             return $browser->$prop;
