@@ -1901,6 +1901,10 @@ class DatabaseModule extends Module
             {
                 if (!isset($format['label']))
                     Config::set("formats.$name.label", $name);
+
+                if (! isset($format['description']))
+                    Config::set("formats.$name.description", '');
+
                 Config::set("formats.$name.max", Config::userGet("formats.$name.max",300));
             }
         }
