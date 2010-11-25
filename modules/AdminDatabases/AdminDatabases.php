@@ -90,12 +90,19 @@ class AdminDatabases extends Admin
             return;
         }
         $info->path=$base->getPath();
-        $info->count=$base->totalCount();
+        $info->count=method_exists($base, 'totalCount') ? $base->totalCount() : -1;
 
-        $schema=$base->getSchema();
-        $info->label=$schema->label;
-        $info->description=$schema->description;
-
+        if (method_exists($base, 'getSchema'))
+        {
+            $schema=$base->getSchema();
+            $info->label=$schema->label;
+            $info->description=$schema->description;
+        }
+        else
+        {
+            $info->label='';
+            $info->description='';
+        }
         return $info;
     }
 
