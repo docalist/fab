@@ -1651,7 +1651,7 @@ class XapianDatabaseDriver extends Database
      * field =>array($tag=>occurences). Dans les deux cas, les tags obtenus sont
      * triés par fréquence décroissante.
      */
-    public function getTags($fields, $max=25, $checkAtLeast=50, $ignoreRegExp=null)
+    public function getTags($fields, $max=25, $checkAtLeast=50, $ignoreRegExp=null, $excludeExistingTerms = true)
     {
         timer && Timer::enter();
 
@@ -1741,22 +1741,28 @@ class XapianDatabaseDriver extends Database
                 $tokens=Utils::tokenize($tag);
 
                 // Si le tag est un mot unique déjà présent dans la requête, on l'ignore
-                if (count($tokens)===1)
+                if ($excludeExistingTerms )
                 {
-                    $term=$indexId[$id] . ':' . current($tokens);
-                    if (isset($searchTerms[$term]))
+                    if (count($tokens)===1)
                     {
-                        unset($tags[$tag]);
-                        continue;
+                        $term=$indexId[$id] . ':' . current($tokens);
+                        if (isset($searchTerms[$term]))
+                        {
+                            unset($tags[$tag]);
+                            continue;
+                        }
                     }
                 }
 
                 // Si le tag est un article déjà présent dans la requête, on l'ignore
                 $term = $indexId[$id].':_' . implode('_', $tokens) . '_';
-                if (isset($searchTerms[$term]))
+                if ($excludeExistingTerms)
                 {
-                    unset($tags[$tag]);
-                    continue;
+                    if (isset($searchTerms[$term]))
+                    {
+                        unset($tags[$tag]);
+                        continue;
+                    }
                 }
 
                 // Si le tag matche l'expression régulière indiquée, on l'ignore
