@@ -1037,6 +1037,7 @@ class DatabaseModule extends Module
         $files=array();
         $counts=array();
         $filesizes=array();
+        $nothing = true;
         foreach($equations as $i=>$equation)
         {
             $response = new Response();
@@ -1045,9 +1046,12 @@ class DatabaseModule extends Module
             if (! $this->select($equation, $max, $start, $sort))
             {
                 $response->appendContent("<p>Aucune réponse pour l'équation $equation</p>");
+                $counts[$i] = 0;
+                $filesizes[$i] = 0;
                 continue;
             }
 
+            $nothing = false;
             $counts[$i]=$max===-1 ? $this->selection->count() : (min($max,$this->selection->count()));
 
             // Définit les entêtes http du fichier généré
@@ -1092,6 +1096,9 @@ class DatabaseModule extends Module
             // de le faire
             // todo: faire le rendu en mémoire ou dans un fichier temporaire ?
         }
+
+        if ($nothing)
+            throw new Exception("Aucune notice sélectionnée, il n'y a rien à exporter.");
 
         // Si l'option zip est active, crée le fichier zip
         if ($zip)
