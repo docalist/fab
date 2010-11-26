@@ -1139,10 +1139,8 @@ class XapianDatabaseDriver extends Database
                 $equation,
                 array
                 (
-                    ' :' => ' :',   // On ne touche pas à un ":" précédé d'un espace. Exploite le fait que strtr ne revient pas sur une chaine déjà remplacée.
-                    ': ' => ':' ,   // Remplace ":" espace par ":" tout court
-                    ' =' => ' =',   // Idem pour le signe égal
-                    '= ' => '=' ,
+                    ' : ' => ':', ' :'  => ':', ': '  => ':',
+                    ' = ' => '=', ' ='  => '=', '='   => '=' ,
                 )
             );
             $equation=$this->protectOperators($equation);
