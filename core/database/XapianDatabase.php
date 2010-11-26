@@ -1140,7 +1140,7 @@ class XapianDatabaseDriver extends Database
                 array
                 (
                     ' : ' => ':', ' :'  => ':', ': '  => ':',
-                    ' = ' => '=', ' ='  => '=', '='   => '=' ,
+                    ' = ' => '=', ' ='  => '=', '= '  => '=' ,
                 )
             );
             $equation=$this->protectOperators($equation);
