@@ -1134,6 +1134,17 @@ class XapianDatabaseDriver extends Database
             $equation=preg_replace_callback('~(?:[a-z0-9]\.){2,9}~i', array('Utils', 'acronymToTerm'), $equation); // sigles à traiter, xapian ne le fait pas s'ils sont en minu (a.e.d.)
             $equation=preg_replace_callback('~\[(.*?)\]~', array($this,'searchByValueCallback'), $equation);
             $equation=strtr($equation, array('æ'=>'ae', 'œ'=>'oe'));
+            $equation=strtr // ticket 125. Index= test  n'est pas interprêté comme Index=Test
+            (
+                $equation,
+                array
+                (
+                    ' :' => ' :',   // On ne touche pas à un ":" précédé d'un espace. Exploite le fait que strtr ne revient pas sur une chaine déjà remplacée.
+                    ': ' => ':' ,   // Remplace ":" espace par ":" tout court
+                    ' =' => ' =',   // Idem pour le signe égal
+                    '= ' => '=' ,
+                )
+            );
             $equation=$this->protectOperators($equation);
             $equation=Utils::convertString($equation, 'queryparser'); // FIXME: utiliser la même table que tokenize()
             $equation=$this->restoreOperators($equation);
