@@ -224,7 +224,7 @@ jQuery.AutoCompleteHandler =
 
     getTextRange: function (value, selection) {
         // Définit la liste des séparateurs qu'on reconnait
-        var sep = /\s*(?:,|;|\/)\s*|\s+(?:et|ou|sauf|and|or|not|near|adj)\s*/ig;
+        var sep = /\s*(?:,|;|\/)\s*|\s+(?:et|ou|sauf|and|or|not|near|adj)\s+/ig;
         
         // texte SEP te|xte SEP texte SEP texte
         //       ^          ^
