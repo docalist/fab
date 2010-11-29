@@ -1206,12 +1206,21 @@ class DatabaseModule extends Module
             }
         }
 
+        // Construit la liste des destinataires
+        $recipients = new Swift_RecipientList();
+        foreach(preg_split('~[,;]~', $to) as $address)
+        {
+            $address = trim($address);
+            if ($address)
+                $recipients->add($address);
+        }
+
         // Envoie le mail
         $from=new Swift_Address(Config::get('admin.email'), Config::get('admin.name'));
         $error='';
         try
         {
-            $sent=$swift->send($email, $to, $from);
+            $sent=$swift->send($email, $recipients, $from);
         }
         catch (Exception $e)
         {

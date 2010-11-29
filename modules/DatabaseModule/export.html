@@ -78,7 +78,9 @@
                     
             /* Details de l'e-mail à envoyer */
             <holder class="vertical" test="$allowmail" id="_maildetails" style="margin-left: 1.3em;">
-                <textbox name="_to" label="Destinataire :" size="80" value="{htmlentities($to)}" />
+                <textbox name="_to" label="Destinataire :" size="80" value="{htmlentities($to)}">
+                    <p class="hint">Vous pouvez indquer plusieurs adresses en les séparant par une virgule.</p>
+                </textbox>
                 <br />
                 <textbox 
                     name="_subject" 
