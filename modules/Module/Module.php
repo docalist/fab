@@ -910,25 +910,60 @@ Config::addArray($this->config);    // fixme: objectif : uniquement $this->confi
      */
     protected function getAssets($type, $placement='all', $defaults=array(), $defaultAttribute='src')
     {
+        /*
+         * On peut se retrouver dans la situation ou un même fichier js (ou css, etc.) est indiqué
+         * plusieurs fois dans la config. Par exemple, l'action Backup de AdminDatabases "sait"
+         * qu'elle a besoin de jquery et elle l'indique dans la config, car jQuery n'est pas chargée
+         * par défaut dans la config générale.
+         *
+         * Le problème c'est que si plus tard, l'application charge systématiquement jQuery, alors
+         * celle-ci sera chargée deux fois et si après le premier chargement, des plugins ont été
+         * installés (par exemple datePicker), alors le deuxième chargement va tout réinitialiser.
+         * Pour éviter cela, il faut qu'on dédoublonne les items. On se sert pour cela de l'attribut
+         * indiqué dans $defaultAttribute.
+         *
+         * On fait une première passe en chargeant tous les items (quel que soit leur placement) et
+         * en les dédoublonnant à la volée.
+         *
+         * On fait ensuite une seconde passe en ne gardant que ceux qui correspondent au placement
+         * demandé. DM,30/11/10
+         */
+
+        // Charge les alias définis dans la config
         $alias=Config::get('alias');
 
+        // Première passe : dédoublonne tous les items sans tenir compte de leur placement
         $result = array();
         foreach ((array) Config::get($type) as $item)
         {
+            // Cas particulier : l'item est une chaine (on n'a que l'attribut par défaut)
             if (is_scalar($item))
                 $item=array($defaultAttribute=>$item);
 
+            // Ajoute les attributs par défaut
             $item = array_merge($defaults, $item);
 
-            if ($placement === 'all' || $item['placement'] === $placement)
+            // Convertit les alias utilisés
+            if (isset($alias[$item[$defaultAttribute]])) $item[$defaultAttribute] = $alias[$item[$defaultAttribute]];
+
+            // Dédoublonnage
+            if ($item['placement'] === 'top' || !isset($result[$item[$defaultAttribute]]))
+                $result[$item[$defaultAttribute]] = $item;
+        }
+
+        // Seconde passe : ne garde que les items correspondants au placement demandé
+        if ($placement !== 'all')
+        {
+            foreach($result as $key=>$item)
             {
-                if (isset($alias[$item[$defaultAttribute]])) $item[$defaultAttribute] = $alias[$item[$defaultAttribute]];
-                $result[] = $item;
+                if ($item['placement'] !== $placement)
+                    unset($result[$key]);
             }
         }
+
+        // Retourne le résultat
         return $result;
     }
-
 
     /**
      * Retourne la liste des scripts javascript à inclure dans la page.
