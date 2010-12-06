@@ -1259,7 +1259,7 @@ final class Utils
             else // m1<m2
             {
                 // année complète
-                if ($d1==1 && $m1==1 && $m2==12 && $d2=31)
+                if ($d1==1 && $m1==1 && $m2==12 && $d2==31)
             	   $result[]=sprintf('%d*', $y1);
                 else
                 {
