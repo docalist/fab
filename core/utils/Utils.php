@@ -1751,7 +1751,7 @@ final class Utils
      * @param string $text
      * @return array
      */
-    public static function tokenize($text)
+    public static function tokenize($text, $mode=1)
     {
         static $charFroms = '\'-ABCDEFGHIJKLMNOPQRSTUVWXYZŒœÀÁÂÃÄÅÆÇÈÉÊËÌÍÎÏĞÑÒÓÔÕÖØÙÚÛÜİŞßàáâãäåæçèéêëìíîïğñòóôõöùúûüışÿ';
         static $charTo    =  '  abcdefghijklmnopqrstuvwxyzœœaaaaaaæceeeeiiiidnoooooœuuuuytsaaaaaaæceeeeiiiidnooooouuuuyty';
@@ -1772,7 +1772,7 @@ final class Utils
         $text=strtr($text, array('æ'=>'ae', 'œ'=>'oe'));
 
         // Retourne un tableau contenant tous les mots présents
-        return str_word_count($text, 1, '0123456789@_');
+        return str_word_count($text, $mode, '0123456789@_');
     }
 
 
