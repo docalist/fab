@@ -1281,19 +1281,20 @@ class DatabaseModule extends Module
     }
 
     /**
-     * Affiche le résultat d'une recherche dans une table des entrées (lookup) (pour Xapian uniquement).
+     * Effectue une recherche dans un index ou dans une table de lookups (Xapian uniquement).
      *
-     * Recherche dans la table des entrées <code>$table</code> les valeurs qui
-     * commencent par le terme <code>$value</code> indiqué (voir méthode
-     * {@link XapianDatabase2#lookup lookup} de {@link XapianDatabase2}, et affiche
-     * le résultat en utilisant le template retourné par la méthode {@link getTemplate()}
-     * et le callback retourné par la méthode {@link getCallback()}.
+     * L'action recherche toutes les entrées qui commencent par le terme <code>$value</code>
+     * indiqué et affiche le résultat en utilisant le template retourné par la méthode
+     * {@link getTemplate()} et le callback retourné par la méthode {@link getCallback()}.
      *
-     * @param string $table le nom de la table des entrées.
+     * Les valeurs sont recherchées dans l'index ou dans la table de lookup indiquée dans
+     * <code>$table</code>.
+     *
+     * @param string $table le nom de l'index, de l'alias ou de la table des entrées à utiliser.
      * @param string $value le terme recherché.
      * @param int $max le nombre maximum de valeurs à retourner (0=pas de limite).
      */
-    function actionLookup($table, $value='', $max=10, $sort=false)
+    function actionLookup($table, $value='', $max=10)
     {
         $max=$this->request->defaults('max', 10)->int()->min(0)->ok();
 
@@ -1301,7 +1302,7 @@ class DatabaseModule extends Module
         $this->openDatabase();
 
         // Lance la recherche
-        $terms = $this->selection->lookup($table, $value, $max, $sort);
+        $terms = $this->selection->lookup($table, $value, $max);
 
         // Détermine le template à utiliser
         if (! $template = $this->getTemplate())
@@ -1316,7 +1317,7 @@ class DatabaseModule extends Module
             $this,
             $template,
             array($this, $callback),
-            array('search'=>$value, 'table'=>$table, 'terms'=>$terms)
+            array('search'=>$value, 'table'=>$table, 'terms'=>$terms, 'max'=>$max)
         );
     }
 
