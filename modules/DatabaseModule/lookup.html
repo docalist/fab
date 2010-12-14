@@ -1,3 +1,19 @@
-<ul><loop on="$terms" as="$term,$freq">
-    <li onclick="this.set('{addslashes(strip_tags($term))}')">$term ($freq)</li></loop>
+<ul test="$terms"><loop on="$terms" as="$term,$freq">
+    <li onclick="this.set('{htmlspecialchars(addslashes(strip_tags($term)))}')">$term <span>$freq</span></li></loop>
 </ul>
+<p class="hint right">
+    <if test="{count($terms)===$max}">
+        Liste limitée à <strong>$max</strong> suggestions, 
+        tapez des lettres supplémentaires pour l'affiner.
+    </if>
+    <else>
+        {
+            Utils::pluralize
+            (
+                '{Aucune|Une|%d} entrée{s} {ne ||}commence{nt} par "%s".',
+                count($terms),
+                implode(' ', Utils::tokenize($search))
+            );
+        }
+    </else>
+</p>
