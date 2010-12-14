@@ -657,8 +657,6 @@ class SimpleTableLookup extends LookupHelper
             $entry = substr($this->entry, strlen($this->prefix));
 
             // Détermine la clé utilisée pour trier l'entrée
-            $key = implode(' ', Utils::tokenize($entry)) ;
-            //$key = Utils::convertString($entry, 'alphanum');
             $key = implode('', Utils::tokenize($entry)) ;
 
             // Met les termes en surbrillance
