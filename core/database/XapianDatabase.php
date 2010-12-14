@@ -824,27 +824,7 @@ class XapianDatabaseDriver extends Database
                     if (strlen($value)>self::MAX_ENTRY) continue;
 
                     // Table de lookup de type simple
-                    if ($lookupTable->_type === DatabaseSchema::LOOKUP_SIMPLE)
-                    {
-                        $this->addTerm($value, $prefix);
-                    }
-
-                    // Table de lookup de type inversée
-                    else
-                    {
-                        // Tokenise et ajoute une entrée dans la table pour chaque terme obtenu
-                        foreach(Utils::tokenize($value) as $term)
-                        {
-                            // Vérifie que la longueur du terme est dans les limites autorisées
-                            if (strlen($term)<self::MIN_ENTRY_SLOT || strlen($term)>self::MAX_ENTRY_SLOT) continue;
-
-                            // Vérifie que ce n'est pas un mot-vide
-                            if (isset($stopwords[$term])) continue;
-
-                            // Ajoute le terme dans le document
-                            $this->addTerm($term.'='.$value, $prefix);
-                        }
-                    }
+                    $this->addTerm($value, $prefix);
                 }
             }
         }
@@ -2856,64 +2836,37 @@ class XapianDatabaseDriver extends Database
      * Suggère à l'utilisateur des entrées ou des termes existant dans l'index
      * de xapian.
      *
-     * Lookup prend en paramètre un mot, un début de mot ou une expression
-     * constituée de plusieurs mots ou début de mots et va rechercher dans les
-     * index de xapian des termes, des articles ou des entrées issues des tables
-     * de lookup susceptibles de correspondre à ce que rechercher l'utilisateur.
+     * Lookup prend en paramètre un terme ou une expression et recherche dans les
+     * index de xapian toutes les entrées qui commencent par cette valeur.
      *
-     * Lookup teste dans l'ordre que la "table" indiquée en paramètre correspond
+     * Lookup teste dans l'ordre si la "table" indiquée en paramètre correspond
      * au nom d'une table de lookup, d'un alias ou d'un index existant (une
      * exception sera générée si ce n'est pas le cas).
      *
      * Selon la source utilisée, la nature des suggestions retournées sera
      * différente :
-     * - S'il s'agit d'une table de lookup inversée, lookup retournera des
-     *   entrées en format riche (majuscules et minuscules, accents) contenant
-     *   tous les mots indiqués.
-     * - S'il s'agit d'une table de lookup simple, lookup retournera également
-     *   des entrées en format riche, mais uniquement celles qui commencent par
-     *   l'un des mots indiqués (et qui contiennent tous les autres).
-     * - S'il s'agit d'un index de type "article", lookup retournera des chaines
-     *   "pauvres" (en minuscules non accentuées) qui commencent par l'un des
-     *   mots indiqués et contiennent tous les autres.
-     * - S'il s'agit d'un index de type "mot", seul le dernier mot indiqué dans
-     *   l'expression de recherche sera pris en compte et les suggestions
-     *   retournées sous la forme de "mots" en format pauvre.
-     * - S'il s'agit d'un alias, les suggestions retournées correspondront au
-     *   type des indices composant cet alias (i.e. soit des articles, soit des
-     *   termes).
+     * - S'il s'agit d'une table de lookup, lookup retourne toutes les entrées (en format riche)
+     *   qui commencent par l'expression de recherche indiquée.
+     * - S'il s'agit d'un index de type "article", lookup retourne toutes les entrées (en format
+     *   "pauvre", en minuscules non accentuées) qui commencent par l'expression recherchée.
+     * - S'il s'agit d'un index de type "mot", seul le dernier mot indiqué dans l'expression de
+     *   recherche est pris en compte. Lokkup retourne alors tous les mots de l'index (en format
+     *   pauvre) qui commencent par le dernier des mots indiqués dans l'expression recherchée.
+     * - S'il s'agit d'un alias, les suggestions retournées correspondront au type des index
+     *   composant cet alias (i.e. soit des articles, soit des termes).
      *
      * @param string $table le nom de la table de lookup, de l'alias ou de
      * l'index à utiliser pour générer des suggestions.
      *
-     * @param string $term le mot, le début de mot ou l'expression à rechercher.
+     * @param string $term le mot ou l'expression recherchée.
      *
-     * @param int $max le nombre maximum de suggestions à retourner
-     * (0=pas de limite)
-     *
-     * @param bool $sort indique s'il faut trier les réponses par ordre
-     * alphabétique ou par nombre décroissant d'occurences dans la base.
-     *
-     * Ce paramètre accepte les valeurs suivantes :
-     * - false ou '-' : trier par ordre alphabétique ;
-     * - true ou '%' : trier par nombre d'occurences.
-     *
-     * Par défaut (false ou '-'), les suggestions sont triées en ordre
-     * alphabétique. La recherche s'arrête dès que $max suggestions ont été
-     * trouvées.
-     *
-     * Si $sort est à true (ou '%'), lookup va générer la liste complète de
-     * toutes les suggestions possibles puis va trier le résultat obtenu par
-     * occurences décroissantes et va ensuite conserver les $max meilleures.
-     *
-     * Un lookup avec le tri par défaut (ordre alphabétique) est donc bien plus
-     * efficace.
+     * @param int $max le nombre maximum de suggestions à retourner (0=pas de limite)
      *
      * @param string $format définit le format à utiliser pour la mise en
      * surbrillance des termes de recherche de l'utilisateur au sein de chacun
      * des suggestions trouvées.
      *
-     * Il s'agit d'une chaine qui sera appliquée à chacune des mots en utilisant
+     * Il s'agit d'une chaine qui sera appliquée aux suggestions trouvées en utilisant
      * la fonction sprintf() de php (exemple de format : <strong>%s</strong>).
      *
      * Si $format est null ou s'il s'agit d'une chaine vide, aucune surbrillance
@@ -2931,8 +2884,10 @@ class XapianDatabaseDriver extends Database
      *     'information du malade' => 3
      * )
      * </code>
+     *
+     * Les suggestions retournées sont triées par ordre alphabétique croissant.
      */
-    public function lookup($table, $term, $max=0, $sort=false, $format='<strong>%s</strong>')
+    public function lookup($table, $value, $max=10, $format='<strong>%s</strong>')
     {
         require_once(dirname(__FILE__) . DIRECTORY_SEPARATOR. 'XapianLookupHelpers.php');
 
@@ -2941,33 +2896,13 @@ class XapianDatabaseDriver extends Database
          */
         $helper=null;
 
-        // Ajuste $sort
-        if ($sort === false || $sort==='-')
-            $sort = false;
-        elseif($sort===true || $sort==='%')
-            $sort=true;
-        else
-            throw new BadMethodCallException('Valeur incorrecte pour $sort : '.var_export($sort,true));
-
-        // Construit la version "minuscules non accentuées" de la table indiquée
+		// Construit la version "minuscules non accentuées" du nom de la table indiquée
         $key=Utils::ConvertString($table, 'alphanum');
 
         // Teste s'il s'agit d'une table de lookup
         if (isset($this->schema->lookuptables[$key]))
         {
-            switch(Utils::get($this->schema->lookuptables[$key]->_type, DatabaseSchema::LOOKUP_INVERTED))
-            {
-                case DatabaseSchema::LOOKUP_SIMPLE:
-                    $helper=new SimpleTableLookup();
-                    break;
-
-                case DatabaseSchema::LOOKUP_INVERTED:
-                    $helper=new InvertedTableLookup();
-                    break;
-
-                default:
-                    throw new Exception("Impossible de faire un lookup sur la table de lookup '$table' : type de table non géré");
-            }
+            $helper=new SimpleTableLookup();
             $prefix='T' . $this->schema->lookuptables[$key]->_id . ':';
         }
 
@@ -2981,21 +2916,11 @@ class XapianDatabaseDriver extends Database
                 // S'il existe une table de lookup avec ce nom, on l'utilise plutôt que l'index
                 if (isset($this->schema->lookuptables[$name]))
                 {
-                    switch(Utils::get($this->schema->lookuptables[$name]->_type, DatabaseSchema::LOOKUP_INVERTED))
-                    {
-                        case DatabaseSchema::LOOKUP_SIMPLE:
-                            $item=new SimpleTableLookup();
-                            break;
-
-                        case DatabaseSchema::LOOKUP_INVERTED:
-                            $item=new InvertedTableLookup();
-                            break;
-
-                        default:
-                            throw new Exception("Impossible de faire un lookup sur la table de lookup '$name' : type de table non géré");
-                    }
-                    $prefix='T' . $this->schema->lookuptables[$name]->_id . ':';
+                    $item=new SimpleTableLookup();
+                	$prefix='T' . $this->schema->lookuptables[$name]->_id . ':';
                 }
+
+                // C'est un index. Détermine si c'est un index au mot ou à l'article
                 else
                 {
                     $index=$this->schema->indices[$name];
@@ -3005,11 +2930,10 @@ class XapianDatabaseDriver extends Database
                         $item=new TermLookup();
                     $prefix=$index->_id . ':';
                 }
+
+                // Initialise l'item et l'ajoute à l'alias
                 $item->setIterators($this->xapianDatabase->allterms_begin(), $this->xapianDatabase->allterms_end());
-                $item->setMax($max);
-                $item->setSortByFrequency($sort);
                 $item->setPrefix($prefix);
-                $item->setFormat($format);
 
                 $helper->add($item);
             }
@@ -3031,6 +2955,7 @@ class XapianDatabaseDriver extends Database
                 $helper=new ValueLookup();
             else
                 $helper=new TermLookup();
+
             $prefix=$this->schema->indices[$key]->_id . ':';
         }
 
@@ -3042,13 +2967,10 @@ class XapianDatabaseDriver extends Database
 
         // Paramétre le helper
         $helper->setIterators($this->xapianDatabase->allterms_begin(), $this->xapianDatabase->allterms_end());
-        $helper->setMax($max);
-        $helper->setSortByFrequency($sort);
         $helper->setPrefix($prefix);
-        $helper->setFormat($format);
 
         // Fait le lookup et retourne les résultats
-        return $helper->lookup($term);
+        return $helper->lookup($value, $max, $format);
     }
 
 
