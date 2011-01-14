@@ -52,11 +52,11 @@
     <else>
         <loop on="{$this->selection}" as="$rank,$record">
             <tr class="$Status {$odd ? 'odd' : ''}">
-                <td class="label" title="Tâche n°$Id. Date de création : {Utils::friendlyDate(Task::stringToTimestamp($creation))}, date d'exécution prévue : {Utils::friendlyDate(Task::stringToTimestamp($time), '%H:%M:%S')}, répétition : {$Repeat:'non'}">{$Label:$Module.'/'.$Action}</td>
-                <td class="status">$Status</td>
-                <td class="last"><a href="TaskStatus?id=$id" strip="{is_null($last)}" title="Voir le résultat...">{Utils::friendlyDate(Task::stringToTimestamp($last), '%H:%M:%S')}</a></td>
-                <td class="next">{Utils::friendlyDate(Task::stringToTimestamp($next), '%H:%M:%S')}</td>
-                <td class="actions">
+                <th class="task-label" title="Tâche n°$Id. Date de création : {Utils::friendlyDate(Task::stringToTimestamp($creation))}, date d'exécution prévue : {Utils::friendlyDate(Task::stringToTimestamp($time), '%H:%M:%S')}, répétition : {$Repeat:'non'}">{$Label:$Module.'/'.$Action}</th>
+                <td class="task-status">$Status</td>
+                <td class="task-last"><a href="TaskStatus?id=$id" strip="{is_null($last)}" title="Voir le résultat...">{Utils::friendlyDate(Task::stringToTimestamp($last), '%H:%M:%S')}</a></td>
+                <td class="task-next">{Utils::friendlyDate(Task::stringToTimestamp($next), '%H:%M:%S')}</td>
+                <td class="task-actions">
                     <def name="url" value="{$this->request->copy()->clear('_filter')->set('ID', $ID)}" />
                     
                     /* show */

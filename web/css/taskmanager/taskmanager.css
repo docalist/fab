@@ -3,11 +3,6 @@
 
     Feuille de style utilisée par le gestionnaire de tâches
 */
-th, td
-{
-    text-align: center;
-}
-
 table.tasks
 {
     border: 1px solid #000;
@@ -24,20 +19,18 @@ table.tasks td,
 table.tasks th    
 {
     padding: 0 1em 0 1em;
-    text-align: center;
+    vertical-align: middle;
 }
 
 table.tasks a img
 {
     border: 1px solid transparent;
-/*    opacity: .5;*/
 }
 
 table.tasks a:hover img
 {
     border: 1px outset #000;
     background-color: #888;
-/*    opacity: 1.0;*/
 }
 
 table.tasks tr.even
@@ -80,39 +73,38 @@ table.tasks tr.done
 }
 
 
-table.tasks td.status
+table.tasks td.task-status
 {
-/*    background: transparent no-repeat 4px center ;*/
     background-position: 4px center;
     background-repeat: no-repeat;
     padding-left: 24px;
 }
 
-table.tasks tr.disabled td.status
+table.tasks tr.disabled td.task-status
 {
     background-image: url('plugin_disabled.png');
 }
-table.tasks tr.waiting td.status
+table.tasks tr.waiting td.task-status
 {
     background-image: url('clock.png');
 }
-table.tasks tr.starting td.status
+table.tasks tr.starting td.task-status
 {
     background-image: url('starting.gif');
 }
-table.tasks tr.running td.status
+table.tasks tr.running td.task-status
 {
     background-image: url('running.gif');
 }
-table.tasks tr.done td.status
+table.tasks tr.done td.task-status
 {
     background-image: url('accept.png');
 }
-table.tasks tr.expired td.status
+table.tasks tr.expired td.task-status
 {
     background-image: url('clock_red.png');
 }
-table.tasks tr.error td.status
+table.tasks tr.error td.task-status
 {
     background-image: url('exclamation.png');
 }
