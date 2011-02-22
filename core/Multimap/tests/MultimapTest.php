@@ -175,6 +175,23 @@ class MultimapTest extends AutoTestCase
         $this->check(Multimap::create()->addMany($map), array(0=>'a',1=>'b')); // ajoute les clés contenue dans le tableau dans la collection
 
         $this->check(Multimap::create()->addMany($object), (array)$object); // on obtient un tableau contenant les propriétés de l'objet
+
+        // addMany(multimap)
+        $map = Multimap::create(array('a'=>'A','b'=>'B'), array('a'=>'AA','b'=>'BB'), array('a'=>'AAA','b'=>'BBB'));
+        $copy = Multimap::create()->addMany($map);
+
+        // Bug dans record
+        $record=Multimap::create()
+            ->add('Ident', '3101')
+            ->add('Ident', '123456')
+            ->add('Ident', 'HOP114')
+            ->add('Ident', 'Bdsp')
+            ->add('Ident', 'C')
+            ->add('Ident', 'ds')
+        ;
+        $this->check($record, array('Ident' => Array('3101', '123456', 'HOP114', 'Bdsp', 'C', 'ds')));
+        $bdsp = new Multimap($record);
+        $this->check($bdsp, array('Ident' => Array('3101', '123456', 'HOP114', 'Bdsp', 'C', 'ds')));
     }
 
     public function testGet()
@@ -263,16 +280,28 @@ class MultimapTest extends AutoTestCase
         $map = Multimap::create(array('a'=>'A', 'b'=>'B', 'c'=>'C'));
         $map->move('a,b','a');
         $this->check($map, array('a'=>array('A','B'), 'c'=>'C'));
-        return;
 
-        $this->check(Multimap::create(array('a'=>'A', 'b'=>'B', 'c'=>'C'))->getAll('a,b,c'), array('A','B','C'));
+        // Transfert d'un champ multivalué
+        $map = Multimap::create(array('a'=>'A'), array('a'=>'AA'), array('a'=>'AAA'));
+        $map->move('a','b');
+        $this->check($map, array('b'=>array('A','AA','AAA')));
 
-// Recopie MotsCles dans NouvDesc
-$map->move('MotsCles', 'MotsCles,NouvDesc');
+        // Transfert d'un champ multivalué
+        $map = Multimap::create(array('a'=>'A', 'b'=>'B'), array('a'=>'AA', 'b'=>'BB'), array('a'=>'AAA', 'b'=>'BBB'));
+        $map->move('a,b','a');
+        $this->check($map, array('a'=>array('A','AA','AAA','B','BB','BBB')));
 
-// Ajoute NouvDesc à MotsCles
-$map->move('MotsCles,NouvDesc', 'MotsCles');
+        // Transfert d'un champ multivalué
+        $map = Multimap::create(array('a'=>'A', 'b'=>'B'), array('a'=>'AA', 'b'=>'BB'), array('a'=>'AAA', 'b'=>'BBB'));
+        $map->move('ident,a','ident');
+        $map->move('ident,b','ident');
+        $map->move('ident','a');
+        $this->check($map, array('a'=>array('A','AA','AAA','B','BB','BBB')));
 
+        // Transfert d'un champ multivalué
+        $map = Multimap::create(array('a'=>'A', 'b'=>'B'), array('a'=>'AA', 'b'=>'BB'), array('a'=>'AAA', 'b'=>'BBB'));
+        $map->move('a,b','c');
+        $this->check($map, array('c'=>array('A','AA','AAA','B','BB','BBB')));
     }
 
     public function testKeepOnly()
@@ -429,8 +458,8 @@ $map->move('MotsCles,NouvDesc', 'MotsCles');
 
     public function testToString()
     {
-        $this->check(Multimap::create()->__toString(), "<pre>objet Multimap vide\n</pre>");
-        $this->assertNoDiff(Multimap::create(array('a'=>1, 'z'=>26))->__toString(),"<pre>objet Multimap, 2 item(s) :'a' = Array([0] => 1)'z' = Array([0] => 26)</pre>");
+        $this->assertNoDiff(Multimap::create()->__toString(), "<pre>Multimap vide</pre>");
+        $this->assertNoDiff(Multimap::create(array('a'=>1, 'z'=>26))->__toString(),"<pre>Multimap : 2 item(s) = a 1 z 26 </pre>");
     }
 
     public function testJson()

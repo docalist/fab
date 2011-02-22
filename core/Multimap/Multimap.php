@@ -667,10 +667,16 @@ class Multimap implements Countable, ArrayAccess, IteratorAggregate
                     throw new BadMethodCallException('Tableau ou objet itérable attendu.');
 
                 if ($data instanceof Multimap)
-                    $data = $data->toArray();
-
-                foreach($data as $key=>$value)
-                    $this->add($key, $value);
+                {
+                    foreach($data->toArray() as $key=>$value)
+                        if (is_array($value))
+                            $this->addMany($key, $value);
+                        else
+                            $this->add($key, $value);
+                }
+                else
+                    foreach($data as $key=>$value)
+                        $this->add($key, $value);
             }
 
         }
