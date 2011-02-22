@@ -513,6 +513,7 @@ class ElementDoc
         {
             for(;;) // on boucle uniquement si on tombe sur un alias
             {
+                if ($type=='$this') $type='this';
                 if (!array_key_exists($type, $types))
                 {
                     if (in_array($type, array(0, 1, -1, 'true', 'false'), true))
