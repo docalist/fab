@@ -791,6 +791,76 @@ class Multimap implements Countable, ArrayAccess, IteratorAggregate
 
 
     /**
+     * Transfère le contenu d'une ou plusieurs clés vers d'autres clés.
+     *
+     * La méthode <code>move()</code> permet de déplacer, de concaténer ou de dupliquer des champs.
+     * Le contenu existant des clés destination est écrasé.
+     *
+     * Exemples :
+     * <code>
+     * // Transfère TITFRAN Dans TitOrigA
+     * $map->move('TITFRAN', 'TitOrigA');
+     *
+     * // Transfère tous les champ mots-clés dans le champ MotsCles
+     * $map->move('MOTSCLE1,MOTSCLE2,MOTSCLE3,MOTSCLE4,PERIODE', 'MotsCles');
+     *
+     * // Recopie MotsCles dans NouvDesc
+     * $map->move('MotsCles', 'MotsCles,NouvDesc');
+     *
+     * // Ajoute NouvDesc à MotsCles
+     * $map->move('MotsCles,NouvDesc', 'MotsCles');
+     * </code>
+     *
+     * @param string $from une ou plusieurs clés sources.
+     * @param string $to une ou plusieurs clés destination.
+     * @return $this
+     */
+    public function move($from, $to)
+    {
+        // Récupère toutes les données
+        $data = $this->getAll($from);
+
+        // Vide les clés de $from qui ne figurent pas dans $to
+        // On pourrait faire directement clear($from) mais dans ce cas, cela changerait l'ordre
+        //  des clés pour un appel comme move('a,b', 'a')
+        $from = $this->parseKey($from);
+        $to = $this->parseKey($to);
+
+        $diff = array_diff($from, $to);
+        if ($diff) $this->clear($diff);
+
+        // Aucune donnée : supprime les clés destination
+        if (count($data)===0)
+            return $this->clear($to);
+
+        // Stocke les données dans les clés destination
+        foreach($to as $to)
+            $this->data[$to] = $data;
+
+        return $this;
+    }
+
+    /**
+     * @return array
+     *
+     * @param $key
+     */
+    public function getAll($key)
+    {
+        $args = func_get_args();
+        $t = array();
+        foreach($args as $key)
+        {
+            foreach($this->parseKey($key) as $key)
+            {
+                if (! isset($this->data[$key])) continue;
+                $t = array_merge($t, $this->data[$key]);
+            }
+        }
+        return $t;
+    }
+
+    /**
      * Supprime toutes les clés sauf celles indiquées.
      *
      * Exemple :

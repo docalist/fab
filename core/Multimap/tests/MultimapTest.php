@@ -190,12 +190,37 @@ class MultimapTest extends AutoTestCase
         $this->check(Multimap::create()->get('item,item2', 'def'), 'def');
         $this->check(Multimap::create(array('a'=>'A'))->get('a'), 'A');
         $this->check(Multimap::create(array('a'=>'A'))->get('x,y,z,a'), 'A');
-        $this->check(Multimap::create(array('a'=>'A'))->get('x,y,z,a'), 'A');
+        $this->check(Multimap::create(array('a'=>'A'))->get('x,y,z,b'), null);
         $this->check(Multimap::create(array('a'=>'A'))->get('*'), 'A');
         $this->check(Multimap::create(array('a'=>array(1,2,3)))->get('*'), array(1,2,3));
         $this->check(Multimap::create(array('a'=>$object))->get('*'), $object);
         $map=Multimap::create(array('x'=>'X'));
         $this->check(print_r(Multimap::create(array('a'=>$map))->get('a'), true), print_r($map,true));
+    }
+
+    public function testGetAll()
+    {
+        // objet utilisé pour les tests
+        $object = new StdClass;
+        $object->flag=true; $object->pi=3.14;
+
+        // get()
+        $this->check(Multimap::create()->getAll('item'), array());
+        $this->check(Multimap::create()->getAll('item', 'def'), array());
+        $this->check(Multimap::create()->getAll('item,item2'), array());
+        $this->check(Multimap::create()->getAll('*'), array());
+
+        $this->check(Multimap::create(array('a'=>'A'))->getAll('a'), array('A'));
+        $this->check(Multimap::create(array('a'=>'A'))->getAll('x,y,z,a'), array('A'));
+        $this->check(Multimap::create(array('a'=>'A'))->getAll('x,y,z,b'), array());
+        $this->check(Multimap::create(array('a'=>'A'))->getAll('*'), array('A'));
+        $this->check(Multimap::create(array('a'=>array(1,2,3)))->getAll('*'), array(array(1,2,3)));
+        $this->check(Multimap::create(array('a'=>$object))->getAll('*'), array($object));
+
+        $this->check(Multimap::create(array('a'=>'A', 'b'=>'B', 'c'=>'C'))->getAll('a,b,c'), array('A','B','C'));
+        $this->check(Multimap::create(array('a'=>'A', 'b'=>'B', 'c'=>'C'))->getAll('a','b','c'), array('A','B','C'));
+
+        $this->check(Multimap::create(array('a'=>'A', 'b'=>'B', 'c'=>'C'))->add('a,b,c','X')->getAll('a,b,c'), array('A','X','B','X','C','X'));
     }
 
     public function testSet()
@@ -210,6 +235,44 @@ class MultimapTest extends AutoTestCase
         $this->check($map->set('item'), array());
         $this->check($map->add('item', 'toto')->set('item', array(1,2)), array('item'=>array(1,2))); // remplace le contenu existant de 'item' par la valeur array(1,2)
         $this->check($map->set('item', $object), array('item'=>$object));
+    }
+
+    public function testMove()
+    {
+        // Transfert d'un champ dans un autre
+        $map = Multimap::create(array('a'=>'A', 'b'=>'B', 'c'=>'C'));
+        $map->move('a','b');
+        $this->check($map, array('b'=>'A','c'=>'C'));
+
+        // Transfert plusieurs champs dans un autre
+        $map = Multimap::create(array('a'=>'A', 'b'=>'B', 'c'=>'C'));
+        $map->move('a,c,z','b');
+        $this->check($map, array('b'=>array('A','C')));
+
+        // Transfert d'un champ vers plusieurs destination
+        $map = Multimap::create(array('a'=>'A', 'b'=>'B', 'c'=>'C'));
+        $map->move('a','b,z');
+        $this->check($map, array('b'=>'A','c'=>'C','z'=>'A'));
+
+        // Recopie d'un champ dans un autre
+        $map = Multimap::create(array('a'=>'A', 'b'=>'B', 'c'=>'C'));
+        $map->move('a','a,b');
+        $this->check($map, array('a'=>'A', 'b'=>'A', 'c'=>'C'));
+
+        // Concaténation d'un champ avec un autre
+        $map = Multimap::create(array('a'=>'A', 'b'=>'B', 'c'=>'C'));
+        $map->move('a,b','a');
+        $this->check($map, array('a'=>array('A','B'), 'c'=>'C'));
+        return;
+
+        $this->check(Multimap::create(array('a'=>'A', 'b'=>'B', 'c'=>'C'))->getAll('a,b,c'), array('A','B','C'));
+
+// Recopie MotsCles dans NouvDesc
+$map->move('MotsCles', 'MotsCles,NouvDesc');
+
+// Ajoute NouvDesc à MotsCles
+$map->move('MotsCles,NouvDesc', 'MotsCles');
+
     }
 
     public function testKeepOnly()
