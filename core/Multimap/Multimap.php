@@ -980,22 +980,36 @@ class Multimap implements Countable, ArrayAccess, IteratorAggregate
      */
     public function __toString()
     {
-        $h = '<pre>'
-            . 'objet ' . get_class($this);
+        $cli = php_sapi_name()=='cli';
+
+        ob_start();
+        echo $cli ? "\n" : '<pre>';
+
+        echo get_class($this);
 
         if ($this->isEmpty())
-            $h .= " vide\n";
+            echo " vide\n";
         else
         {
-            $h .= ', ' . count($this->data) . " item(s) : \n";
+            echo  ' : ' , count($this->data) , " item(s) = \n";
             foreach ($this->data as $key => $data)
             {
-                $h .= var_export($key, true) . ' = ' . print_r($data, true) . "\n";
+                echo $key, "\n";
+                if (count($data) === 1)
+                {
+                    $data = current($data);
+                    echo '  ', var_export($data, true), "\n";
+                }
+                else
+                {
+                    foreach($data as $i=>$value)
+                        echo '  ', $i, '. ', var_export($value, true), "\n";
+                }
             }
         }
 
-        $h .= '</pre>';
-        return $h;
+        echo $cli ? "\n" : '</pre>';
+        return ob_get_clean();
     }
 
 
