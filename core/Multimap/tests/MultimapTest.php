@@ -362,7 +362,7 @@ class MultimapTest extends AutoTestCase
         $t = $map->a;
         unset($t[0]);
         $map->a = $t;
-        $this->check($map->a, array(1=>'B'));
+        $this->check($map->a, 'B');
     }
 
     public function testArrayAccess()

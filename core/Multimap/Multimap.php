@@ -267,7 +267,7 @@ class Multimap implements Countable, ArrayAccess, IteratorAggregate
      *
      * @param mixed $data ... optionnel, un ou plusieurs tableaux (ou objets itérables)
      * représentant les données initiales de la collection. Chaque paramètre est ajouté
-     * au multimap en utilisant la méthode {@link add()}.
+     * au multimap en utilisant la méthode {@link addMany()}.
      */
     public function __construct($data = null)
     {
@@ -631,7 +631,7 @@ class Multimap implements Countable, ArrayAccess, IteratorAggregate
      * - Tout autre type de valeur génère une exception. Une exception est également générée si
      *   la clé passée en paramêtre n'est pas un scalaire.
      *
-     * @param string|int $key (optionnel) la clé à modifier.
+     * @param mixed $key (optionnel) la ou les clés à modifier.
      * @param array|object|Traversable $data un ou plusieurs tableaux contenant les données ou les
      * clés à ajouter.
      *
@@ -737,7 +737,7 @@ class Multimap implements Countable, ArrayAccess, IteratorAggregate
         if ($this->emptyValue($value)) return $this->clear($key);
 
         foreach($this->parseKey($key) as $key)
-            $this->data[$key] = array($value);
+            $this->data[$key] = is_array($value) ? $value : array($value);
 
         return $this;
     }
@@ -753,7 +753,7 @@ class Multimap implements Countable, ArrayAccess, IteratorAggregate
      * - une donnée particulière associée à une ou plusieurs clés :
      * <code>$map->clear('TypDoc,TypDocB', 'Article');</code>
      *
-     * @param string $key le ou les clés à supprimer.
+     * @param mixed $key le ou les clés à supprimer.
      * @param mixed $value la valeur à supprimer
      * @param mixed $compareMode méthode de comparaison à utiliser pour comparer $value aux
      * données de la clé.
@@ -874,7 +874,8 @@ class Multimap implements Countable, ArrayAccess, IteratorAggregate
      * $map->keepOnly('start,max', 'format'); // supprime tous sauf start, max et format
      * </code>
      *
-     * @param mixed $key un ou plusieurs paramètres indiquant les noms des clés à conserver.
+     * @param mixed $key un ou plusieurs paramètres indiquant le ou les noms des clés
+     * à conserver.
      *
      * @return $this
      */
@@ -915,7 +916,7 @@ class Multimap implements Countable, ArrayAccess, IteratorAggregate
      * $map->isEmpty('*'); // identique à $map->isEmpty() : false
      * </code>
      *
-     * @param int|string $key la clé à tester.
+     * @param mixed $key la ou les clés à tester.
      *
      * @return bool
      */
@@ -1080,21 +1081,20 @@ class Multimap implements Countable, ArrayAccess, IteratorAggregate
      * ou, si vous utilisez les arguments optionnels :
      * <code>protected function callback(mixed $value, $arg1, ...) returns string</code>
      *
-     * @param string $key la ou les clés (séparées par le délimiteur de clé) pour lesquelles le
-     * callback sera appellé.
+     * @param mixed $key la ou les clés pour lesquelles le callback sera appellé.
      *
      * @param mixed $args ... optionnel, des argument supplémentaires à passer au callback.
      *
      * @return $this
      */
-    public function apply($callback, $key = null, $args=null)
+    public function apply($callback, $key=null, $args=null)
     {
         // Détermine si le callback est une méthode de la classe ou une fonction globale
         if (is_string($callback) && method_exists($this, $callback))
             $callback = array($this, $callback);
 
         if (! is_callable($callback))
-            throw new Exception('Callback non trouvé : ' . var_export($callback));
+            throw new Exception('Callback non trouvé : ' . var_export($callback, true));
 
         // Détermine les arguments à passer au callback
         $args = func_get_args();
@@ -1151,21 +1151,20 @@ class Multimap implements Countable, ArrayAccess, IteratorAggregate
      *
      * Si le callback retourne false, le parcourt des clés est interrompu.
      *
-     * @param string $key la ou les clés (séparées par le délimiteur de clé) pour lesquelles
-     * le callback sera appellé.
+     * @param mixed $key la ou les clés pour lesquelles le callback sera appellé.
      *
      * @param mixed $args ... optionnel, des argument supplémentaires à passer au callback.
      *
      * @return $this
      */
-    public function run($callback, $key = null, $args=null)
+    public function run($callback, $key=null, $args=null)
     {
         // Détermine si le callback est une méthode de la classe ou une fonction globale
         if (is_string($callback) && method_exists($this, $callback))
             $callback = array($this, $callback);
 
         if (! is_callable($callback))
-            throw new Exception('Callback non trouvé : ' . var_export($callback));
+            throw new Exception('Callback non trouvé : ' . var_export($callback, true));
 
         // Détermine les arguments à passer au callback
         $args = func_get_args();
@@ -1219,21 +1218,20 @@ class Multimap implements Countable, ArrayAccess, IteratorAggregate
      * ou, si vous utilisez les arguments optionnels :
      * protected function callback(mixed $value, scalar $key, ...) returns boolean
      *
-     * @param string $key la ou les clés (séparées par le délimiteur de clé) pour lesquelles
-     * le callback sera appellé.
+     * @param mixed $key la ou les clés pour lesquelles le callback sera appellé.
      *
      * @param mixed $args ... optionnel, des argument supplémentaires à passer au filtre.
      *
      * @return array
      */
-    public function filter($callback, $key = null, $args=null)
+    public function filter($callback, $key=null, $args=null)
     {
         // Détermine si le callback est une méthode de la classe ou une fonction globale
         if (is_string($callback) && method_exists($this, $callback))
             $callback = array($this, $callback);
 
         if (! is_callable($callback))
-            throw new Exception('Callback non trouvé : ' . var_export($callback));
+            throw new Exception('Callback non trouvé : ' . var_export($callback, true));
 
         // Détermine les arguments à passer au callback
         $args = func_get_args();
@@ -1350,11 +1348,11 @@ class Multimap implements Countable, ArrayAccess, IteratorAggregate
 
     /**
      * Retourne le nombre de clés présentes dans la collection ou le nombre de données
-     * associées à la clé indiquée.
+     * associées à la clé ou aux clés indiquées.
      *
      * @implements Countable
      *
-     * @param int|string $key la clé à tester.
+     * @param mixed $key la ou les clés à compter.
      *
      * @return int
      */
