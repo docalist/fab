@@ -708,7 +708,7 @@ class Multimap implements Countable, ArrayAccess, IteratorAggregate
     {
         foreach($this->parseKey($key) as $key)
             if (isset($this->data[$key]))
-                return count($this->data[$key])===1 ? current($this->data[$key]) : $this->data[$key];
+                return count($this->data[$key])===1 ? reset($this->data[$key]) : $this->data[$key];
 
         return $default;
     }
@@ -1004,7 +1004,7 @@ class Multimap implements Countable, ArrayAccess, IteratorAggregate
                 echo $key, "\n";
                 if (count($data) === 1)
                 {
-                    $data = current($data);
+                    $data = reset($data);
                     echo '  ', var_export($data, true), "\n";
                 }
                 else
@@ -1029,7 +1029,7 @@ class Multimap implements Countable, ArrayAccess, IteratorAggregate
     {
         $result = $this->data;
         foreach ($result as & $data)
-            if (count($data)===1) $data = current($data);
+            if (count($data)===1) $data = reset($data);
 
         return $result;
     }
