@@ -600,6 +600,7 @@ class TemplateCode
             $compileTimeFunctions=array_flip(array
             (
                 'addslashes',
+                'array_combine',
                 'array_diff_key',
                 'array_filter',
                 'array_flip',
