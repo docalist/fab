@@ -12,8 +12,8 @@
     <table style="width:49%; float: left;">
         <loop on="{$this->selection->getSchema()->fields}" as="$name,$field">
             <tr class="{empty($this->selection[$name]) ? 'empty' : ''}">
-                <th title="{$field->description}">
-                    {$field->label:$field->name}
+                <th title="{$field->name}. {$field->description}">
+                    {$field->name}
                 </th>
                 <td>
                     <span>
