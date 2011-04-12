@@ -7,13 +7,13 @@ class DatabaseInspector extends DatabaseModule
             throw new Exception('Pour utiliser '.__CLASS__.' la base de données à utiliser doit être indiquée en paramètre');
         Config::set('database', $database);
     }
-    
+
     public function actionSearchForm()
     {
         $this->openDatabase();
-        parent::actionSearchForm();
+        return parent::actionSearchForm();
     }
-    
+
     private function showSpaces($value)
     {
         return str_replace
@@ -42,21 +42,21 @@ class DatabaseInspector extends DatabaseModule
             return '<span class="type">string('.strlen($value).')</span> <span class="value">' . $this->showSpaces($value) . '</span>';
         if (is_array($value))
             return '<span class="type">array('.count($value).')</span> <span class="value"><ol><li>' . implode('</li><li>', array_map(array($this,'dump'), $value)) . '</span></li></ol>';
-        return 'unknown' . var_dump($value); 
+        return 'unknown' . var_dump($value);
     }
-    
+
     public function guessLookupTable($indexOrAlias)
     {
         $dbs=$this->selection->getSchema();
         $bestnb=0;
         $besttable='';
-        
+
         // Cas 1 : c'est un index de base
         if (! isset($indexOrAlias->indices))
         {
             $fields=$indexOrAlias->fields;
         }
-        
+
         // Cas 2 : c'est un alias
         else
         {
@@ -69,7 +69,7 @@ class DatabaseInspector extends DatabaseModule
                 }
             }
         }
-        
+
         foreach($dbs->lookuptables as $lookupname=>$lookuptable)
         {
             $nb=0;
@@ -83,8 +83,8 @@ class DatabaseInspector extends DatabaseModule
                 $besttable=$lookupname;
             }
         }
-        if ($bestnb<count($fields)) return null;      
-        return $besttable;        
+        if ($bestnb<count($fields)) return null;
+        return $besttable;
     }
 }
 ?>
