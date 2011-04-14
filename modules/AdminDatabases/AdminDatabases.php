@@ -687,7 +687,13 @@ class AdminDatabases extends Admin
 
         // Schéma de la base
         $xml->writeRaw("\n");
-        $xml->writeRaw($selection->getSchema()->toXml(false, '    '));
+        $xml->writeRaw($selection->getSchema(true)->toXml(false, '    '));
+
+        /*
+             Remarque : dans la ligne ci-dessus, on appelle getSchema(true) pour récupérer le
+             schéma "brut" tel qu'il est stocké dans les metadata de la base, c'est à dire sans
+             les propriétés _stopwords.
+         */
 
         // Données
         $xml->startElement('records');     // <records>

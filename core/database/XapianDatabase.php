@@ -246,11 +246,21 @@ class XapianDatabaseDriver extends Database
     /**
      * Retourne le schéma de la base de données
      *
+     * @param bool $raw Par défaut, le schéma retourné contient des propriétés _stopwords qui
+     * contiennent un tableau permettant un accès direct aux mots-vides définis pour la base et
+     * pour chacun des champs (cf initDatabase). Normallement, ces propriétés _stopwords ne
+     * figurent pas dans le schéma (tel qu'il est stocké dans /data/schemas ou dans les
+     * metadonnées de la base).
+     * Pour récupérer le schéma réel, appellez getSchema() en indiquant $raw=true.
+     *
      * @return DatabaseSchema
      */
-    public function getSchema()
+    public function getSchema($raw = false)
     {
-        return $this->schema;
+        if ($raw)
+            return unserialize($this->xapianDatabase->get_metadata('schema_object'));
+        else
+            return $this->schema;
     }
 
     // *************************************************************************
