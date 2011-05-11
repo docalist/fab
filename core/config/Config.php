@@ -76,7 +76,7 @@ class Config
 
         // Applique le transformer
         if ($transformer)
-            $data=call_user_func($transformer, $data);
+            $data=call_user_func($transformer, $data, $configPath);
 
         // Stocke le fichier en cache
         if ($cache)
