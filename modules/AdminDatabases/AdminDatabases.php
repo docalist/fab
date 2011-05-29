@@ -199,7 +199,7 @@ class AdminDatabases extends Admin
         if ($this->selection->count()==0)
             return Response::create('Html')->setContent
             (
-                '<p>La base ', $database, ' ne contient aucun document, il est inutile de lancer une réindexation complète.</p>'
+                '<p>La base ' . $database . ' ne contient aucun document, il est inutile de lancer une réindexation complète.</p>'
             );
 
         // Demande confirmation à l'utilisateur
