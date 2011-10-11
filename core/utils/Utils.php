@@ -800,6 +800,12 @@ final class Utils
      * faire en sorte que, si plusieurs valeurs ont été transmises pour un
      * paramètre, on récupère dans $_GET, $_POST et $_REQUEST non pas la
      * dernière valeur transmise mais un tableau de paramètre.
+     *
+     * Important : cette méthode ne fonctionne pas si le formulaire est en
+     * enctype="multipart/form-data". C'est dû au fait que php://input n'est
+     * pas accessible en multipart. Dans ce cas, seule la dernière valeur
+     * fournie sera accessible dans la requête (i.e. comportement standard
+     * de php).
      */
     public static function repairGetPostRequest()
     {
