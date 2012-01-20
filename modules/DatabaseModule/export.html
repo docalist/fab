@@ -112,7 +112,7 @@
     </loop>
     
     <hidden name="confirm" value="1" />
-    <loop on="{$this->request->copy()->keepOnly('_sort')->getParameters()}" as="$name,$value">
+    <loop on="{$this->request->copy()->clear('_format')->clear('_equation')->getParameters()}" as="$name,$value">
         <loop on="{(array)$value}" as="$value">
             <hidden name="$name" value="{htmlspecialchars($value)}" />
         </loop>
