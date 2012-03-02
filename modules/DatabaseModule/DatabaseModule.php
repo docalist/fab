@@ -725,6 +725,8 @@ class DatabaseModule extends Module
 
         $count=$this->selection->count();
 
+        $database=Config::get('database');
+
         // Si on est "en ligne" (ie pas en ligne de commande), crée une tâche dans le TaskManager
         if (!User::hasAccess('cli'))
         {
@@ -743,7 +745,7 @@ class DatabaseModule extends Module
                 var_export($search,true),
                 var_export($replace,true),
                 $count,
-                Config::get('database'),
+                $database,
                 $options
             );
 
@@ -837,6 +839,7 @@ class DatabaseModule extends Module
             array($this, $callback),
             array
             (
+                'database'=>$database,    // Base de données
                 'count'=>$count,          // Le nombre de notices à modifier
                 'search'=>$search,        // La chaîne à rechercher
                 'replace'=>$replace,      // La chaîne qui viendra remplacer la chaîne à rechercher
