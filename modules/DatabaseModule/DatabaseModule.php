@@ -759,20 +759,7 @@ class DatabaseModule extends Module
         }
 
         // Sinon, au boulot !
-
-        echo '<h1>Modification en série</h1>', "\n";
-        echo '<ul>', "\n";
-        echo '<li>Equation de recherche : <code>', $this->equation, '</code></li>', "\n";
-        echo '<li>Nombre de notices à modifier : <code>', $count, '</code></li>', "\n";
-        echo '<li>Rechercher : <code>', var_export($search,true), '</code></li>', "\n";
-        echo '<li>Remplacer par : <code>', var_export($replace,true), '</code></li>', "\n";
-        echo '<li>Dans le(s) champ(s) : <code>', implode(', ', $fields), '</code></li>', "\n";
-        echo '<li>Mots entiers uniquement : <code>', ($word ? 'oui' : 'non'), '</code></li>', "\n";
-        echo '<li>Ignorer la casse des caractères : <code>', ($ignoreCase ? 'oui' : 'non'), '</code></li>', "\n";
-        echo '<li>Expression régulière : <code>', ($regexp ? 'oui' : 'non'), '</code></li>', "\n";
-        echo '</ul>', "\n";
-
-        $count = 0;         // nombre de remplacements effectués par enregistrement
+        $replaceCount = 0;  // nombre de remplacements effectués par enregistrement
         $totalCount = 0;    // nombre total de remplacements effectués sur le sous-ensemble de notices
 
         // Search est vide : on injecte la valeur indiquée par replace dans les champs vides
@@ -781,9 +768,9 @@ class DatabaseModule extends Module
             foreach($this->selection as $record)
             {
                 $this->selection->editRecord(); // on passe en mode édition de l'enregistrement
-                $this->selection->replaceEmpty($fields, $replace, $count);
+                $this->selection->replaceEmpty($fields, $replace, $replaceCount);
                 $this->selection->saveRecord();
-                $totalCount += $count;
+                $totalCount += $replaceCount;
             }
         }
 
@@ -796,28 +783,29 @@ class DatabaseModule extends Module
                 // dans ces deux-cas, on appellera pregReplace pour simplier
 
                 // échappe le '~' éventuellement entré par l'utilisateur car on l'utilise comme délimiteur
-                $search = str_replace('~', '\~', $search);
+                $searchPattern = str_replace('~', '\~', $search);
 
                 if ($word)
-                    $search = $search = '~\b' . $search . '\b~';
-                else
-                    $search = '~' . $search . '~';  // délimiteurs de l'expression régulière
+                    $searchPattern = '\b' . $searchPattern . '\b';
+
+                // Ajoute les délimiteurs de l'expression régulière
+                $searchPattern = '~' . $searchPattern . '~';
 
                 if ($ignoreCase)
-                    $search = $search . 'i';
+                    $searchPattern = $searchPattern . 'i';
 
                 foreach($this->selection as $record)
                 {
                     $this->selection->editRecord(); // on passe en mode édition de l'enregistrement
 
-                    if (! $this->selection->pregReplace($fields, $search, $replace, $count))    // cf. Database.php
+                    if (! $this->selection->pregReplace($fields, $searchPattern, $replace, $replaceCount))    // cf. Database.php
                     {
                         $totalCount = false;
                         break;
                     }
 
                     $this->selection->saveRecord();
-                    $totalCount += $count;
+                    $totalCount += $replaceCount;
                 }
             }
 
@@ -827,10 +815,10 @@ class DatabaseModule extends Module
                 foreach($this->selection as $record)
                 {
                     $this->selection->editRecord(); // on passe en mode édition de l'enregistrement
-//                    $this->selection->strReplace($fields, $search, $replace, $ignoreCase, $count, $callback);     // cf. Database.php
-                    $this->selection->strReplace($fields, $search, $replace, $ignoreCase, $count);
+//                    $this->selection->strReplace($fields, $search, $replace, $ignoreCase, $replaceCount, $callback);     // cf. Database.php
+                    $this->selection->strReplace($fields, $search, $replace, $ignoreCase, $replaceCount);
                     $this->selection->saveRecord();
-                    $totalCount += $count;
+                    $totalCount += $replaceCount;
                 }
             }
         }
@@ -847,7 +835,17 @@ class DatabaseModule extends Module
         (
             $template,
             array($this, $callback),
-            array('count'=>$totalCount)
+            array
+            (
+                'count'=>$count,          // Le nombre de notices à modifier
+                'search'=>$search,        // La chaîne à rechercher
+                'replace'=>$replace,      // La chaîne qui viendra remplacer la chaîne à rechercher
+                'fields'=>$fields,        // Le ou les champs dans lesquels se fait le remplacement
+                'word'=>$word,            // Indique si la chaîne à rechercher est à considérer ou non comme un mot entier
+                'ignoreCase'=>$ignoreCase,// Indique si la casse des caractères doit être ignorée ou non
+                'regexp'=>$regexp,        // Indique si le remplacement se fait à partir d'une expression régulière
+            	'totalCount'=>$totalCount,// Nombre total de remplacements effectués
+            )
         );
      }
 
