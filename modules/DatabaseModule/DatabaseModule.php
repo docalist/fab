@@ -1054,6 +1054,7 @@ class DatabaseModule extends Module
 
             $nothing = false;
             $counts[$i]=$max===-1 ? $this->selection->count() : (min($max,$this->selection->count()));
+            if ($counts[$i] > 10000) set_time_limit(0);
 
             // Définit les entêtes http du fichier généré
             if (isset($fmt['content-type']))
