@@ -897,6 +897,16 @@ class TaskManager extends DatabaseModule
         return new RedirectResponse('index');
     }
 
+    /**
+     * Action permettant d'afficher le statut du démon.
+     *
+     * @return Response
+     */
+    public function actionStatus()
+    {
+        return Response::create('text')->setContent(self::status());
+    }
+
 	// ================================================================
 	// API DU GESTIONNAIRE DE TACHES
 	// ================================================================
