@@ -313,7 +313,8 @@ class TaskManager extends DatabaseModule
                 else
                     $diff=time() - $next;
 
-                $expired=($diff>60); // on tolère une minute de marge
+                //$expired=($diff>60); // on tolère une minute de marge
+                $expired=false;
 
                 // Si l'heure d'exécution prévue est dépassée, passe la tâche en statut 'Expired'
                 if ($expired)
