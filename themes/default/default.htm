@@ -2,13 +2,16 @@
 "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="fr">
 <head>
-    <title>{$this->getPageTitle()}</title>
-    <meta http-equiv="Content-Type" content="application/xhtml+xml; charset=iso-8859-1" />
-    <scripts />
-    <css />
+        <metas />
+        <title>{$this->getPageTitle()}</title>
+
+        <css />        
+        <scripts placement="top" />
+        <links />
 </head>
 <body>
 {$this->runAction()}
 <if test="{timer and debug}">{Timer::printOut(true)}</if>
+<scripts placement="bottom" />
 </body>
 </html>
