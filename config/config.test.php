@@ -1,5 +1,5 @@
 <?php
-/*
+/* 
   
 Fichier de configuration du site web, de l'application
 Ce fichier contient uniquement les options de configuration qui ne peuvent
