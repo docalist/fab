@@ -513,8 +513,8 @@ class DatabaseModule extends Module
         {
             // Ouvre la sélection
             debug && Debug::log('Chargement de la notice numéro %s', $REF);
-
-            if (! $this->select("REF=$REF"))
+                        
+            if (! $this->selection->search("REF=$REF"))
                 throw new Exception('La référence demandée n\'existe pas');
 
             $this->selection->editRecord();     // mode édition enregistrement
@@ -552,7 +552,8 @@ class DatabaseModule extends Module
 
         // Redirige vers le template s'il y en a un, vers l'action Show sinon
         if (! $template=$this->getTemplate())
-            return Response::create('Redirect', 'Show?REF='.$REF);
+            //return Response::create('Redirect', 'Show?REF='.$REF);
+            return Response::create('Redirect', '/'.$this->module.'/Show?REF='.$REF);
 
         return Response::create('Html')->setTemplate
         (
@@ -1408,7 +1409,7 @@ class DatabaseModule extends Module
          * - ce qu'il y a dans la config.
          */
         $options=$this->selection->getDefaultOptions();
-        foreach ($options as $name => &$value)
+        foreach ($options as $name => $value)
         {
             $value = isset($$name) ? $$name
                 : $value=$this->request->get('_' . $name, Config::userGet($name, $value));
