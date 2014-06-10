@@ -1409,7 +1409,7 @@ class DatabaseModule extends Module
          * - ce qu'il y a dans la config.
          */
         $options=$this->selection->getDefaultOptions();
-        foreach ($options as $name => $value)
+        foreach ($options as $name => &$value)
         {
             $value = isset($$name) ? $$name
                 : $value=$this->request->get('_' . $name, Config::userGet($name, $value));
