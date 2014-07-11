@@ -64,6 +64,16 @@ abstract class Module
     }
 
     /**
+     * Permet de gérer l'affichage d'un message d'avertissement sur la présence de cookies sur un site internet.
+     *
+     * La méthode <code>showCookies()</code> est destinée à être surchargée par
+     * les modules descendants.
+     *
+     */
+    public function showCookies(){}
+    
+    
+    /**
      * Crée une instance du module dont le nom est passé en paramètre.
      *
      * La fonction se charge de charger le code source du module, de créer un
