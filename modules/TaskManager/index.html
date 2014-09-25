@@ -77,6 +77,6 @@
         <a href="{$this->request->clear('_filter')->clear('done')}" title="Masque les fichiers qui ont déjà été importés dans la base">Masquer l'historique</a>
     </if>
     <else>
-        <a href="{$this->request->clear('_filter')->set('done','true')}" title="Affiche les fichiers qui ont déjà été importés dans la base">Afficher l'historique</a>
+        <a href="{$this->request->clear('_filter')->set('_filter','*')->set('done','true')}" title="Affiche les fichiers qui ont déjà été importés dans la base">Afficher l'historique</a>
     </else>
 </p>
