@@ -870,13 +870,30 @@ class AdminDatabases extends Admin
                     if ($child->nodeName !== 'item')
                         throw new DumpException('<item> attendu');
 //                    echo 'nouvel item : ', $child->nodeValue, '<br />';
-                    $value[]=$this->decode($child);
+
+                    // Fils avec plusieurs petits-fils
+                    if ($child->hasChildNodes() && $child->childNodes->length > 1)
+                    {
+//                        echo 'nb de petits fils : ', $child->childNodes->length, '<br />';
+
+                        $arrayValue = array();
+                        foreach ($child->childNodes as $grandChild)
+                        {
+//                            echo 'petit-fils :', $grandChild->nodeValue, '<br />';
+                            $arrayValue[] = $this->decode($grandChild);
+                        }
+                        $value[] = $arrayValue;
+                    }
+                    else
+                    {
+                        $value[]=$this->decode($child);
+                    }
                     break;
 
                 case XML_TEXT_NODE:
                     if (! $child->isWhitespaceInElementContent())
                         throw new DumpException('seuls des blancs sont autorisés entre des tags <item>'.var_export($child->nodeValue, true));
-//                    echo 'noeud type texte contenant des clancs<br />';
+//                    echo 'noeud type texte contenant des blancs<br />';
                     break;
 
                 default:
