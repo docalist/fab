@@ -25,10 +25,11 @@ function()
         selon que le bouton "tâche périodique" est coché ou non.
     */
     var f=function(){
-        if (jQuery(this).is(':checked'))
+        if (jQuery('#taskRepeat').is(':checked')) {
             jQuery('#taskRepeatDetails').show('normal');
-        else
+        } else {
             jQuery('#taskRepeatDetails').hide('normal');
+            }
     };
     f(); // exécute la fonction au démarrage
     jQuery('#taskRepeat').click(f); // puis chaque fois qu'on clique

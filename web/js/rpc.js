@@ -485,7 +485,8 @@ jQuery.AutoCompleteHandler =
             target.ac.cache[jQuery.AutoCompleteHandler.xhrValue] = data;
         }
         
-        popup.attr('innerHTML', data);
+        //popup.attr('innerHTML', data);
+        popup.html(data);
 
         var items = jQuery(popup).children(0).children();
         
