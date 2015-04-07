@@ -108,9 +108,8 @@ class Runtime
     public static function checkRequirements()
     {
         // Options qu'on vérifie mais qu'on ne peut poas modifier (magic quotes, etc...)
-
-    	//if (ini_get('short_open_tag'))
-        //    throw new Exception("Impossible de lancer l'application : l'option 'short_open_tag' de votre fichier 'php.ini' est à 'on'");
+        if (ini_get('short_open_tag'))
+            throw new Exception("Impossible de lancer l'application : l'option 'short_open_tag' de votre fichier 'php.ini' est à 'on'");
 
         // Options qu'on peut changer dynamiquement
         // ini_set('option à changer', 0));
