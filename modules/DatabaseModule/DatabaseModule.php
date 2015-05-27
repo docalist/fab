@@ -1657,7 +1657,7 @@ class DatabaseModule extends Module
             if ($current > 1)
                 echo ' <a class="first" href="',$request, 1,'" title="Première page"><span class="hidden-xs">', $firstLabel, '</span></a> ';
             else
-                echo ' <span class="first hidden-xs">', $firstLabel, '</span> ';
+                echo ' <span class="first">', $firstLabel, '</span> ';
         }
 
         // Lien vers la page précédente
@@ -1666,7 +1666,7 @@ class DatabaseModule extends Module
             if ($current > 1)
                 echo ' <a class="prev" href="', $request, 1+($current-2)*$max,'" title="Page précédente"><span class="hidden-xs">', $previousLabel, '</span></a> ';
             else
-                echo ' <span class="prev hidden-xs">', $previousLabel, '</span> ';
+                echo ' <span class="prev">', $previousLabel, '</span> ';
 
         }
 
@@ -1693,7 +1693,7 @@ class DatabaseModule extends Module
             if ($current < $maxlast)
                 echo ' <a class="nex" href="', $request, 1+($current)*$max,'" title="Page suivante"><span class="hidden-xs">', $nextLabel, '</span></a> ';
             else
-                echo ' <span class="nex hidden-xs">', $nextLabel, '</span> ';
+                echo ' <span class="nex">', $nextLabel, '</span> ';
 
         }
 
@@ -1703,7 +1703,7 @@ class DatabaseModule extends Module
             if ($current < $maxlast)
                 echo ' <a class="last" href="', $request, 1+($maxlast-1)*$max,'" title="Dernière page"><span class="hidden-xs">', $lastLabel, '</span></a> ';
             else
-                echo ' <span class="last hidden-xs">', $lastLabel, '</span> ';
+                echo ' <span class="last">', $lastLabel, '</span> ';
         }
     }
 
